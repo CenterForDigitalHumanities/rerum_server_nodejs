@@ -19,7 +19,7 @@ router.route('/test')
 
 // api/getByID/_id to fire a request for http://devstore.rerum.io/v1/id/11111 from annotationStoreDev on img-01
 router.route('/id/:_id')
-    .get(controller.getByID)
+    .get(controller.id)
 
 // api/getByProps handles a POST with body that is a JSON object of properties to match on.
 router.route('/getByProps')
