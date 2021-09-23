@@ -60,7 +60,7 @@ exports.getByProps = function (req, res) {
 };
 
 // Handle find by _id
-exports.getByID = function (req, res) {
+exports.id = function (req, res) {
     let id =  req.params["_id"]
     Model.findById(id, function (err, obj) {
         if (err){

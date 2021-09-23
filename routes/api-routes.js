@@ -3,6 +3,7 @@ let router = require('express').Router();
 var controller = require('../db-controller.js');
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
+
 // Set default API response
 router.get('/', function (req, res) {
     res.json({
@@ -17,10 +18,10 @@ router.route('/test')
     .get(controller.index)
 
 // api/getByID/_id to fire a request for http://devstore.rerum.io/v1/id/11111 from annotationStoreDev on img-01
-router.route('/getByID/:_id')
+router.route('/id/:_id')
     .get(controller.getByID)
 
-// api/getByProp/_id to fire a request for http://devstore.rerum.io/v1/id/11111 from annotationStoreDev on img-01
+// api/getByProps handles a POST with body that is a JSON object of properties to match on.
 router.route('/getByProps')
     .post(controller.getByProps, jsonParser)
 
