@@ -45,7 +45,7 @@ exports.getByProps = function (req, res) {
     let prop = req.body
     console.log("Props request object");
     console.log(prop);
-    Model.findOne(prop, function (err, obj) {
+    Model.find(prop, function (err, obj) {
         if (err){
             console.log("Model.findOne did not work as expected")
             console.error(err)
