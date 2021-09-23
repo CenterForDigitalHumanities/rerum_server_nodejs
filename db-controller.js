@@ -43,10 +43,8 @@ exports.create = function (req, res) {
 // Handle find by property object matching
 exports.getByProp = function (req, res) {
     let prop = req.body
-    let id =  req.params["_id"]
-    const RERUM_PREFIX = "http://devstore.rerum.io/v1/id/";
-    let prop = {"@id":RERUM_PREFIX+id}
-    console.log("view controller")
+    console.log("Props request object");
+    console.log(prop);
     Model.findOne(prop, function (err, obj) {
         if (err){
             console.log("Model.findOne did not work as expected")
