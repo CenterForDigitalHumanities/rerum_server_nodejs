@@ -21,8 +21,8 @@ router.route('/getByID/:_id')
     .get(controller.getByID)
 
 // api/getByProp/_id to fire a request for http://devstore.rerum.io/v1/id/11111 from annotationStoreDev on img-01
-router.route('/getByProp')
-    .post(controller.getByProp, jsonParser)
+router.route('/getByProps')
+    .post(controller.getByProps, jsonParser)
 
 // api/makeNew to make a simple object with _id and @id.
 router.route("/makeNew")
