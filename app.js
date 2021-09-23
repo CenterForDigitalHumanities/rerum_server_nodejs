@@ -36,7 +36,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 //Assign routes to the app.  This is processing URL patterns and pointing them to servlet logic
 app.use('/', indexRouter);
-app.use('/api', apiRouter);
+app.use('/v1', apiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
