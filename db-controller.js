@@ -41,7 +41,7 @@ exports.create = function (req, res) {
 
 
 // Handle find by property object matching
-exports.getByProp = function (req, res) {
+exports.getByProps = function (req, res) {
     let prop = req.body
     console.log("Props request object");
     console.log(prop);
