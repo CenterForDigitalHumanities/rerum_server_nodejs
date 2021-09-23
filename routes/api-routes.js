@@ -14,7 +14,7 @@ router.get('/', function (req, res) {
 // API routes
 
 // api/test to just return some JSON, no DB interactions
-router.route('/test')
+router.route('/api/test')
     .get(controller.index)
 
 // api/getByID/_id to fire a request for http://devstore.rerum.io/v1/id/11111 from annotationStoreDev on img-01
@@ -22,11 +22,11 @@ router.route('/id/:_id')
     .get(controller.id)
 
 // api/getByProps handles a POST with body that is a JSON object of properties to match on.
-router.route('/getByProps')
+router.route('/api/getByProps')
     .post(controller.getByProps, jsonParser)
 
 // api/makeNew to make a simple object with _id and @id.
-router.route("/makeNew")
+router.route("/api/makeNew")
     .get(controller.create)
 
     
