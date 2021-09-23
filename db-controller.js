@@ -14,34 +14,7 @@ exports.index = function (req, res) {
     });
 };
 
-
-// Handle save new object
-exports.save = function (req, res) {
-    let modelObj = new Model();
-    const id = req.body["_id"] ? req.body["_id"] : new mongoose.Types.ObjectId();
-    const RERUM_PREFIX = "http://devstore.rerum.io/v1/id/"
-    modelObj["_id"] = id
-    modelObj["@id"] = req.body["@id"] ? req.body["@id"] : RERUM_PREFIX+new mongoose.Types.ObjectId();
-    modelObj.name = "Hello "+Date.now();
-    // save the contact and check for errors
-    //save() means the object being saved HAS TO BE AN INSTANCE OF THE MODEL.  
-    console.log("Use Model.save to put the following object into the db");
-    console.log(modelObj);
-    modelObj.save(function (err) {
-        if (err){
-            console.log("Error with Model.save");
-            console.error(err);
-            res.send(err);
-        }
-        else{
-            console.log("Success with Model.save");
-            res.json(modelObj);
-        }
-    });
-};
-
-
-// Handle create new object
+// Just makes a very simple object based on a simple model.  Happens on the fly.
 exports.create = function (req, res) {
     var modelObj = new Model();
     const id = new mongoose.Types.ObjectId();
@@ -69,7 +42,7 @@ exports.create = function (req, res) {
 
 // Handle find by property object matching
 exports.getByProp = function (req, res) {
-    //let prop = req.readPropFromBody()
+    let prop = req.body
     let id =  req.params["_id"]
     const RERUM_PREFIX = "http://devstore.rerum.io/v1/id/";
     let prop = {"@id":RERUM_PREFIX+id}
