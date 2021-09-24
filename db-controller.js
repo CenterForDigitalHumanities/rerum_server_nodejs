@@ -8,7 +8,7 @@ var mongoose = require('mongoose');
 // ??
 
 const MongoClient = require('mongodb').MongoClient;
-const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2, { useUnifiedTopology: true });
+const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
 
 
 // Import contact model
