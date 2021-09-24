@@ -22,7 +22,7 @@ exports.index = function (req, res) {
 // TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
 exports.create = async function (req, res) {
     try{
-        const id = new mongoose.Types.ObjectId();
+        const id = new mongoose.Types.ObjectId().toString();
         let obj = req.body;
         obj["_id"] = id;
         obj["@id"] = "https://rerum-server-nodejs.herokuapp.com/v1/id/"+id;
