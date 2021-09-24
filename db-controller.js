@@ -37,7 +37,7 @@ exports.create = function (req, res) {
 exports.query = async function (req, res) {
     try{
         //Return the array of matches 
-        let conn = await client.connection();
+        let conn = await client.connect();
         let props = req.body
         console.log("Props request object");
         console.log(props);
