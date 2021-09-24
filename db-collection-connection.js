@@ -19,5 +19,4 @@ async function mongoConnection(){
   } 
 }
 
-//Get all instances of this model.  Provide callback and limit if desired.
-module.exports = mongodbCollection;
+module.exports.collection = mongodbCollection;
