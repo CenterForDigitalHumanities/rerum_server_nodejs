@@ -37,17 +37,16 @@ exports.create = function (req, res) {
 exports.query = async function (req, res) {
     try{
         //Return the array of matches 
-        return await client.connect(async function(err) {
-            let props = req.body
-            console.log("Props request object");
-            console.log(props);
-            let db = client.db(process.env.MONGODBNAME);
-            let collection = db.collection(process.env.MONGODBCOLLECTION)
-            let matches = await collection.find(props);
-            return matches;
-        }); 
+        let conn = await client.connection();
+        let props = req.body
+        console.log("Props request object");
+        console.log(props);
+        let db = client.db(process.env.MONGODBNAME);
+        let collection = db.collection(process.env.MONGODBCOLLECTION)
+        let matches = await collection.find(props);
+        return matches;
     }
-    catch(Error e){
+    catch(err){
         console.error("Could not perform query, see error below");
         console.log(e)
         return []
