@@ -41,14 +41,18 @@ exports.create = function (req, res) {
 exports.query = async function (req, res) {
     try{
         //Return the array of matches 
-        let conn = await client.connect();
+        await client.connect();
+        //Test connection with a ping
+        await client.db(process.env.MONGODBNAME).command({ ping: 1 });
+        console.log("Client has connected, see client below");
+        console.log(client)
         let props = req.body
         console.log("Props request object");
         console.log(props);
-        console.log("DBNAME: "+process.env.MONGODBNAME)
-        console.log("COLLECTIONNAME: "+process.env.MONGODBCOLLECTION)
-        let db = conn.db(process.env.MONGODBNAME);
-        let collection = db.collection(process.env.MONGODBCOLLECTION)
+        console.log("DBNAME: "+process.env.MONGODBNAME);
+        console.log("COLLECTIONNAME: "+process.env.MONGODBCOLLECTION);
+        let db = client.db(process.env.MONGODBNAME);
+        let collection = db.collection(process.env.MONGODBCOLLECTION);
         let matches = await collection.find(props);
         return matches;
     }
