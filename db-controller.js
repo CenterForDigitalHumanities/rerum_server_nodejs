@@ -2,17 +2,12 @@
 
 var mongoose = require('mongoose');
 const { MongoClient } = require('mongodb');
-// Import collection connection from app.s
-//var mongodb =  require('./db-collection-connection.js');
-//var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
-
 console.log("Controller is making a mongo connection...");
 const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
 client.connect();
 
 // Import contact model
 Model = require('./db-object-model.js');
-
 
 // Handle index actions
 exports.index = function (req, res) {
@@ -42,7 +37,7 @@ exports.create = async function (req, res) {
     }
 };
 
-//  Update object passed in the body
+//  Overwrite object passed in the body with replaceOne 
 exports.overwrite = async function (req, res) {
     try{
         let obj = req.body;
