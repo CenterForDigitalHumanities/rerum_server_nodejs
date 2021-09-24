@@ -8,21 +8,9 @@ const dotenv = require('dotenv');
 var logger = require('morgan');
 let mongoose = require('mongoose');
 
-console.log("initializer trying to connect to mongo...")
-// var db = mongooseConnection()
-// .then(conn => {
-//   console.log("... initializer connection can be seen below")
-//   console.log(conn)
-//   return conn
-// })
-
-const { MongoClient } = require('mongodb');
-var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
-
 var db = mongooseConnection()
 .then(conn => {
-  console.log("... initializer connection can be seen below")
-  console.log(conn)
+  console.log("mongoose is connected")
   return conn
 })
 
@@ -66,7 +54,7 @@ app.use(function(err, req, res, next) {
 
 //Connect to a mongodb via mongoose.
 async function mongooseConnection(){
-  console.log("Awaiting mongo connection...")
+  console.log("Awaiting mongoose connection...")
   try {
       await mongoose.connect(process.env.ATLAS_CONNECTION_STRING, { useNewUrlParser: true});
       console.log("...returning mongoose connection");

@@ -3,8 +3,9 @@
 var mongoose = require('mongoose');
 const { MongoClient } = require('mongodb');
 // Import collection connection from app.s
-//var mongodbCollection =  require('./db-collection-connection.js');
-var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
+var mongodbCollection =  require('./db-collection-connection.js');
+//var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
+//var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
 // ??
 
 
