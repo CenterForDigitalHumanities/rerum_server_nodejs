@@ -54,9 +54,15 @@ exports.overwrite = async function (req, res) {
             console.log("Overwriting an object (no history or __rerum yet)");
             const query = {"@id":obj["@id"]};
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj);
-            res.json(result);
+            if(result.modifiedCount > 0){
+                res.json(obj);
+            }
+            else{
+                res.sendStatus(304);
+            }
         }    
         else{
+            //Can I set the 400 status here?
             res.json({"err" : "Object in request body must have the property '@id'."})
         } 
     }
