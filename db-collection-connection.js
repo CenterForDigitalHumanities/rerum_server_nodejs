@@ -19,4 +19,4 @@ async function mongoConnection(){
   } 
 }
 
-module.exports.collection = mongodbCollection;
+module.exports = mongodbCollection;

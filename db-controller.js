@@ -1,19 +1,12 @@
 #!/usr/bin/env node
 
 var mongoose = require('mongoose');
+const { MongoClient } = require('mongodb');
 // Import collection connection from app.s
 //var mongodb =  require('./db-collection-connection.js');
 //var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
-//var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
-// ??
-/*
-const { MongoClient } = require('mongodb');
-var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
-*/
-//const MongoClient = require('mongodb').MongoClient;
-const { MongoClient } = require('mongodb');
-const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
-
+console.log("Controller is making a mongo connection...");
+const mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION));
 
 // Import contact model
 Model = require('./db-object-model.js');
@@ -40,12 +33,12 @@ exports.create = function (req, res) {
 // Handle find by property object matching
 exports.query = async function (req, res) {
     try{
+        /*
         //Return the array of matches 
         await client.connect();
         //Test connection with a ping
-        await client.db(process.env.MONGODBNAME).command({ ping: 1 });
         console.log("Client has connected, see client below");
-        console.log(client)
+        // console.log(client)
         let props = req.body
         console.log("Props request object");
         console.log(props);
@@ -55,8 +48,8 @@ exports.query = async function (req, res) {
         console.log("Connected to DBNAME: "+process.env.MONGODBNAME);
         let collection = db.collection(process.env.MONGODBCOLLECTION);
         console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
-        let matches = await collection.find(props);
-        console.log("Return the matches");
+        */
+        let matches = await mongodbCollection.find(props);
         res.json(matches);
     }
     catch(err){
@@ -129,17 +122,16 @@ exports.id = function (req, res) {
 
 //Connect to a mongodb via mongodb node driver.
 async function mongoConnection(){
-  console.log("Awaiting mongo connection...")
+  console.log("Awaiting mongo connection...");
   try {
       const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
       let clientConnection = await client.connect();
-      console.log('Connected successfully to mongodb client');
-      //const db = client.db(dbName);
-      //const collection = db.collection('documents');
+      console.log("Client connection established successfully!");
       return clientConnection;
   } 
   catch (err) {
     console.log('mongo connect error in app initializer: ');
+    console.error(err);
     return err;
   } 
 }
