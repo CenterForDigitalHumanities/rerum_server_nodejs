@@ -33,7 +33,7 @@ exports.create = async function (req, res) {
         console.log("Creating an object (no history or __rerum yet)");
         console.log(obj);
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj);
-        res.json(result);
+        res.json(obj);
     }
     catch(err){
         console.error("Could not perform insertOne, see error below");
@@ -51,7 +51,10 @@ exports.overwrite = async function (req, res) {
             const query = {"@id":obj["@id"]};
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj);
             res.json(result);
-        }     
+        }    
+        else{
+            res.json({"err" : "Object in request body must have the property '@id'."})
+        } 
     }
     catch(err){
         console.error("Could not perform overwrite, see error below");
