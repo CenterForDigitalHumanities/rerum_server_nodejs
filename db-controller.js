@@ -3,9 +3,9 @@
 var mongoose = require('mongoose');
 const { MongoClient } = require('mongodb');
 // Import collection connection from app.s
-var mongodb =  require('./db-collection-connection.js');
+//var mongodb =  require('./db-collection-connection.js');
 //var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
-//var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
+var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
 // ??
 
 
@@ -36,7 +36,7 @@ exports.query = async function (req, res) {
     let props = req.body
     console.log("Props request object");
     console.log(props);
-    let matches = await mongodb.collection.find(props);
+    let matches = await mongodbCollection.find(props);
     return matches;
 };
 
