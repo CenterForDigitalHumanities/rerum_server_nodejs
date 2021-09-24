@@ -31,7 +31,7 @@ router.route('/api/create')
 
 // POST with body that is a JSON object to be overwritten (must have @id).  Uses replaceOne for now.
 router.route('/api/overwrite')
-    .post(controller.overwrite, jsonParser)
+    .put(controller.overwrite, jsonParser)
 
 // api/makeNew to make a simple object with _id and @id.
 router.route("/api/makeNew")
