@@ -18,7 +18,8 @@ exports.index = function (req, res) {
     });
 };
 
-//  Create object passed in the body
+// Create object passed in the body
+// TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
 exports.create = async function (req, res) {
     try{
         const id = new mongoose.Types.ObjectId();
@@ -37,7 +38,15 @@ exports.create = async function (req, res) {
     }
 };
 
-//  Overwrite object passed in the body with replaceOne 
+// Create object passed in the body
+// TODO only registered apps should be able to do this.  It should alter history.
+// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+exports.putUpdate = async function (req, res) {
+    
+};
+
+// Overwrite object passed in the body with replaceOne 
+// TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
 exports.overwrite = async function (req, res) {
     try{
         let obj = req.body;
