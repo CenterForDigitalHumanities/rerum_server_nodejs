@@ -8,7 +8,7 @@ var mongoose = require('mongoose');
 // ??
 
 const MongoClient = require('mongodb').MongoClient;
-const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
+const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2).connect();
 
 
 // Import contact model
@@ -37,7 +37,7 @@ exports.create = function (req, res) {
 exports.query = async function (req, res) {
     try{
         //Return the array of matches 
-        let conn = await client.connect();
+        //let conn = await client.connect();
         let props = req.body
         console.log("Props request object");
         console.log(props);
