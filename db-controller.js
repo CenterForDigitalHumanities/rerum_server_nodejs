@@ -130,7 +130,7 @@ exports.getByProps = function (req, res) {
 };
 
 //  Find by _id and return the match
-exports.id = function (req, res) {
+exports.id = async function (req, res) {
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id});
     if(match){
         res.json(match);    
