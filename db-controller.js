@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 var mongoose = require('mongoose');
-const { MongoClient } = require('mongodb');
 // Import collection connection from app.s
 //var mongodb =  require('./db-collection-connection.js');
 //var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
-var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
+//var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
 // ??
+
+const MongoClient = require('mongodb').MongoClient;
+const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2, { useUnifiedTopology: true });
 
 
 // Import contact model
@@ -33,11 +35,15 @@ exports.create = function (req, res) {
 
 // Handle find by property object matching
 exports.query = async function (req, res) {
-    let props = req.body
-    console.log("Props request object");
-    console.log(props);
-    let matches = await mongodbCollection.find(props);
-    return matches;
+    client.connect(function(err) {
+        let props = req.body
+        console.log("Props request object");
+        console.log(props);
+        let db = client.db(process.env.MONGODBNAME);
+        let collection = db.collection(process.env.MONGODBCOLLECTION)
+        let matches = await collection.find(props);
+        return matches;
+    }); 
 };
 
 // Just makes a very simple object based on a simple model.  Happens on the fly.
