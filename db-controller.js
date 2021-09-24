@@ -52,8 +52,11 @@ exports.query = async function (req, res) {
         console.log("DBNAME: "+process.env.MONGODBNAME);
         console.log("COLLECTIONNAME: "+process.env.MONGODBCOLLECTION);
         let db = client.db(process.env.MONGODBNAME);
+        console.log("Connected to DBNAME: "+process.env.MONGODBNAME);
         let collection = db.collection(process.env.MONGODBCOLLECTION);
+        console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
         let matches = await collection.find(props);
+        console.log("Return the matches");
         return matches;
     }
     catch(err){
