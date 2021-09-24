@@ -6,9 +6,13 @@ var mongoose = require('mongoose');
 //var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
 //var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
 // ??
-
-const MongoClient = require('mongodb').MongoClient;
-const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2).connect();
+/*
+const { MongoClient } = require('mongodb');
+var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
+*/
+//const MongoClient = require('mongodb').MongoClient;
+const { MongoClient } = require('mongodb');
+const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
 
 
 // Import contact model
@@ -37,7 +41,7 @@ exports.create = function (req, res) {
 exports.query = async function (req, res) {
     try{
         //Return the array of matches 
-        //let conn = await client.connect();
+        client = await client.connect();
         let props = req.body
         console.log("Props request object");
         console.log(props);
