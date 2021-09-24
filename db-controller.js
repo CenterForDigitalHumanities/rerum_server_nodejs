@@ -24,7 +24,7 @@ exports.index = function (req, res) {
 };
 
 //  Create object passed in the body
-exports.create = function (req, res) {
+exports.create = async function (req, res) {
     try{
         const id = new mongoose.Types.ObjectId();
         let obj = req.body;
@@ -43,7 +43,7 @@ exports.create = function (req, res) {
 };
 
 //  Update object passed in the body
-exports.overwrite = function (req, res) {
+exports.overwrite = async function (req, res) {
     try{
         let obj = req.body;
         if(obj.hasProperty("@id")){
