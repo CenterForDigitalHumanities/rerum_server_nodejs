@@ -39,7 +39,6 @@ exports.query = async function (req, res) {
         //Test connection with a ping
         console.log("Client has connected, see client below");
         // console.log(client)
-        let props = req.body
         console.log("Props request object");
         console.log(props);
         console.log("DBNAME: "+process.env.MONGODBNAME);
@@ -49,6 +48,7 @@ exports.query = async function (req, res) {
         let collection = db.collection(process.env.MONGODBCOLLECTION);
         console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
         */
+        let props = req.body
         let matches = await mongodbCollection.find(props);
         res.json(matches);
     }
