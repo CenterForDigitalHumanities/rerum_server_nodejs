@@ -57,12 +57,12 @@ exports.query = async function (req, res) {
         console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
         let matches = await collection.find(props);
         console.log("Return the matches");
-        return matches;
+        res.json(matches);
     }
     catch(err){
         console.error("Could not perform query, see error below");
         console.log(err)
-        return []
+        res.json([]);
     }
 };
 
