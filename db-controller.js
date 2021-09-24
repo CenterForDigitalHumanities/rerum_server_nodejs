@@ -50,7 +50,7 @@ exports.putUpdate = async function (req, res) {
 exports.overwrite = async function (req, res) {
     try{
         let obj = req.body;
-        if(obj.hasProperty("@id")){
+        if(obj.hasOwnProperty("@id")){
             console.log("Overwriting an object (no history or __rerum yet)");
             const query = {"@id":obj["@id"]};
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj);
