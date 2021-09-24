@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const { MongoClient } = require('mongodb');
-var mongodbCollection = await mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
+var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
 
 //Connect to a mongodb via mongodb node driver.
 async function mongoConnection(){

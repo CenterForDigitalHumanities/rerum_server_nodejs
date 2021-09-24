@@ -5,7 +5,7 @@
  */
 
 var app = require('../app');
-var debug = require('debug')('queryapp:server');
+var debug = require('debug')('rerum_server_nodejs:server');
 var http = require('http');
 
 
