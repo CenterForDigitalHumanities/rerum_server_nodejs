@@ -120,7 +120,20 @@ exports.getByProps = function (req, res) {
     });
 };
 
-// Handle find by _id
+//  Find by _id and return the match
+exports.id = function (req, res) {
+    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id});
+    if(match){
+        res.json(match);    
+    }
+    else{
+        res.sendStatus(404);
+    }
+    
+};
+
+/*
+// Handle find by _id with Model
 exports.id = function (req, res) {
     let id =  req.params["_id"]
     Model.findById(id, function (err, obj) {
@@ -135,3 +148,4 @@ exports.id = function (req, res) {
         }
     });
 };
+*/
