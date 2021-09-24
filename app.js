@@ -9,7 +9,17 @@ var logger = require('morgan');
 let mongoose = require('mongoose');
 
 console.log("initializer trying to connect to mongo...")
-var db = mongoConnection()
+// var db = mongooseConnection()
+// .then(conn => {
+//   console.log("... initializer connection can be seen below")
+//   console.log(conn)
+//   return conn
+// })
+
+const { MongoClient } = require('mongodb');
+var mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION))
+
+var db = mongooseConnection()
 .then(conn => {
   console.log("... initializer connection can be seen below")
   console.log(conn)
@@ -54,8 +64,8 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-//Connect to a mongodb.
-async function mongoConnection(){
+//Connect to a mongodb via mongoose.
+async function mongooseConnection(){
   console.log("Awaiting mongo connection...")
   try {
       await mongoose.connect(process.env.ATLAS_CONNECTION_STRING, { useNewUrlParser: true});
@@ -64,6 +74,23 @@ async function mongoConnection(){
   } 
   catch (err) {
     console.log('mongoose.connect error in app initializer: ');
+    return err;
+  } 
+}
+
+//Connect to a mongodb via mongodb node driver.
+async function mongoConnection(){
+  console.log("Awaiting mongo connection...")
+  try {
+      const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
+      let clientConnection = await client.connect();
+      console.log('Connected successfully to mongodb client');
+      //const db = client.db(dbName);
+      //const collection = db.collection('documents');
+      return clientConnection;
+  } 
+  catch (err) {
+    console.log('mongo connect error in app initializer: ');
     return err;
   } 
 }

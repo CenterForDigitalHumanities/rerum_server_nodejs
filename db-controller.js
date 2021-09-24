@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
 var mongoose = require('mongoose');
+const { MongoClient } = require('mongodb');
+// Import collection connection from app.s
+var mongodbCollection =  require('./db-collection-connection.js');
+//var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
+// ??
+
+
 // Import contact model
 Model = require('./db-object-model.js');
 
@@ -14,8 +21,23 @@ exports.index = function (req, res) {
     });
 };
 
-// Just makes a very simple object based on a simple model.  Happens on the fly.
 exports.create = function (req, res) {
+    const id = new mongoose.Types.ObjectId();
+    let obj = req.body
+
+};
+
+// Handle find by property object matching
+exports.query = async function (req, res) {
+    let props = req.body
+    console.log("Props request object");
+    console.log(prop);
+    let matches = await mongodbCollection.find(props);
+    return matches;
+};
+
+// Just makes a very simple object based on a simple model.  Happens on the fly.
+exports.makeNew = function (req, res) {
     var modelObj = new Model();
     const id = new mongoose.Types.ObjectId();
     const RERUM_PREFIX = "https://rerum-server-nodejs.herokuapp.com/v1/id/";
