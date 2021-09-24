@@ -25,34 +25,45 @@ exports.index = function (req, res) {
 
 //  Create object passed in the body
 exports.create = function (req, res) {
-    const id = new mongoose.Types.ObjectId();
-    let obj = req.body
-    console.log("No connection for creation.  Just handing you the object back");
-    res.json(obj);
+    try{
+        const id = new mongoose.Types.ObjectId();
+        let obj = req.body;
+        obj["_id"] = id;
+        obj["@id"] = "https://rerum-server-nodejs.herokuapp.com/v1/id/"+id;
+        console.log("Creating an object (no history or __rerum yet)");
+        console.log(obj);
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj);
+        res.json(result);
+    }
+    catch(err){
+        console.error("Could not perform insertOne, see error below");
+        console.log(err)
+        res.json({"err":err});
+    }
+};
 
+//  Update object passed in the body
+exports.overwrite = function (req, res) {
+    try{
+        let obj = req.body;
+        if(obj.hasProperty("@id")){
+            console.log("Overwriting an object (no history or __rerum yet)");
+            const query = {"@id":obj["@id"]};
+            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj);
+            res.json(result);
+        }     
+    }
+    catch(err){
+        console.error("Could not perform overwrite, see error below");
+        console.log(err)
+        res.json({"err":err});
+    }
 };
 
 // Handle find by property object matching
 exports.query = async function (req, res) {
     try{
-        /*
-        //Return the array of matches 
-        await client.connect();
-        //Test connection with a ping
-        console.log("Client has connected, see client below");
-        // console.log(client)
-        console.log("Props request object");
-        console.log(props);
-        console.log("DBNAME: "+process.env.MONGODBNAME);
-        console.log("COLLECTIONNAME: "+process.env.MONGODBCOLLECTION);
-        let db = client.db(process.env.MONGODBNAME);
-        console.log("Connected to DBNAME: "+process.env.MONGODBNAME);
-        let collection = db.collection(process.env.MONGODBCOLLECTION);
-        console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
-        */
         let props = req.body
-        console.log("Connecting to DBNAME: "+process.env.MONGODBNAME);
-        console.log("Connecting to COLLECTION: "+process.env.MONGODBCOLLECTION);
         console.log("Looking matches against props...");
         console.log(props);
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray();
@@ -126,19 +137,3 @@ exports.id = function (req, res) {
         }
     });
 };
-
-//Connect to a mongodb via mongodb node driver.
-async function mongoConnection(){
-  console.log("Awaiting mongo connection...");
-  try {
-      const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
-      let clientConnection = await client.connect();
-      console.log("Client connection established successfully!");
-      return clientConnection;
-  } 
-  catch (err) {
-    console.log('mongo connect error in app initializer: ');
-    console.error(err);
-    return err;
-  } 
-}
