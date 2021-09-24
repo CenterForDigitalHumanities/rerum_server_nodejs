@@ -48,7 +48,7 @@ exports.query = async function (req, res) {
     }
     catch(err){
         console.error("Could not perform query, see error below");
-        console.log(e)
+        console.log(err)
         return []
     }
 };
