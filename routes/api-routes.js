@@ -22,12 +22,16 @@ router.route('/id/:_id')
     .get(controller.id)
 
 // api/getByProps handles a POST with body that is a JSON object of properties to match on.
-router.route('/api/getByProps')
-    .post(controller.getByProps, jsonParser)
+router.route('/api/query')
+    .post(controller.query, jsonParser)
+
+    // api/getByProps handles a POST with body that is a JSON object of properties to match on.
+router.route('/api/create')
+    .post(controller.create, jsonParser)
 
 // api/makeNew to make a simple object with _id and @id.
 router.route("/api/makeNew")
-    .get(controller.create)
+    .get(controller.makeNew)
 
     
 // Export API routes

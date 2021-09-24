@@ -3,8 +3,8 @@
 var mongoose = require('mongoose');
 const { MongoClient } = require('mongodb');
 // Import collection connection from app.s
-var mongodbCollection =  require('./db-collection-connection.js');
-//var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
+//var mongodbCollection =  require('./db-collection-connection.js');
+var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
 // ??
 
 
@@ -21,9 +21,12 @@ exports.index = function (req, res) {
     });
 };
 
+//  Create object passed in the body
 exports.create = function (req, res) {
     const id = new mongoose.Types.ObjectId();
     let obj = req.body
+    console.log("No connection for creation.  Just handing you the object back");
+    res.json(obj);
 
 };
 
@@ -96,3 +99,20 @@ exports.id = function (req, res) {
         }
     });
 };
+
+//Connect to a mongodb via mongodb node driver.
+async function mongoConnection(){
+  console.log("Awaiting mongo connection...")
+  try {
+      const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
+      let clientConnection = await client.connect();
+      console.log('Connected successfully to mongodb client');
+      //const db = client.db(dbName);
+      //const collection = db.collection('documents');
+      return clientConnection;
+  } 
+  catch (err) {
+    console.log('mongo connect error in app initializer: ');
+    return err;
+  } 
+}
