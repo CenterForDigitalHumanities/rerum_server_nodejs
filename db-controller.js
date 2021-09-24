@@ -35,15 +35,23 @@ exports.create = function (req, res) {
 
 // Handle find by property object matching
 exports.query = async function (req, res) {
-    client.connect(function(err) {
-        let props = req.body
-        console.log("Props request object");
-        console.log(props);
-        let db = client.db(process.env.MONGODBNAME);
-        let collection = db.collection(process.env.MONGODBCOLLECTION)
-        let matches = await collection.find(props);
-        return matches;
-    }); 
+    try{
+        //Return the array of matches 
+        return await client.connect(async function(err) {
+            let props = req.body
+            console.log("Props request object");
+            console.log(props);
+            let db = client.db(process.env.MONGODBNAME);
+            let collection = db.collection(process.env.MONGODBCOLLECTION)
+            let matches = await collection.find(props);
+            return matches;
+        }); 
+    }
+    catch(Error e){
+        console.error("Could not perform query, see error below");
+        console.log(e)
+        return []
+    }
 };
 
 // Just makes a very simple object based on a simple model.  Happens on the fly.
