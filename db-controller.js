@@ -35,7 +35,7 @@ exports.create = function (req, res) {
 exports.query = async function (req, res) {
     let props = req.body
     console.log("Props request object");
-    console.log(prop);
+    console.log(props);
     let matches = await mongodbCollection.find(props);
     return matches;
 };
