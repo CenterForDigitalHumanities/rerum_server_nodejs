@@ -6,7 +6,7 @@ const { MongoClient } = require('mongodb');
 //var mongodb =  require('./db-collection-connection.js');
 //var mongodbCollection =  MongoClient.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION);
 console.log("Controller is making a mongo connection...");
-const mongodbCollection = mongoConnection().then(conn => conn.db(process.env.MONGODBNAME)).then(db => db.collection(process.env.MONGODBCOLLECTION));
+const client = mongoConnection();
 
 // Import contact model
 Model = require('./db-object-model.js');
@@ -49,7 +49,11 @@ exports.query = async function (req, res) {
         console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
         */
         let props = req.body
-        let matches = await mongodbCollection.find(props);
+        let db = client.db(process.env.MONGODBNAME);
+        console.log("Connected to DBNAME: "+process.env.MONGODBNAME);
+        let collection = db.collection(process.env.MONGODBCOLLECTION);
+        console.log("Connected to COLLECTION: "+process.env.MONGODBCOLLECTION);
+        let matches = await collection.find(props);
         res.json(matches);
     }
     catch(err){
