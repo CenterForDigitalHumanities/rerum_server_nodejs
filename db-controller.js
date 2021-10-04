@@ -21,6 +21,11 @@ exports.index = function (req, res) {
 // Create object passed in the body
 // TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
 exports.create = async function (req, res) {
+    res.set("Content-Type", "application/json; charset=utf-8");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "*");
+    res.set("Access-Control-Expose-Headers", "*");
+    res.set("Access-Control-Allow-Methods", "*");
     try{
         const id = new mongoose.Types.ObjectId().toString();
         let obj = req.body;
@@ -29,7 +34,7 @@ exports.create = async function (req, res) {
         console.log("Creating an object (no history or __rerum yet)");
         console.log(obj);
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj);
-
+        res.set("Location", obj["@id"])
         res.json(obj);
     }
     catch(err){
@@ -61,6 +66,7 @@ exports.overwrite = async function (req, res) {
             const query = {"@id":obj["@id"]};
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj);
             if(result.modifiedCount > 0){
+                res.set("Location", obj["@id"])
                 res.json(obj);
             }
             else{
