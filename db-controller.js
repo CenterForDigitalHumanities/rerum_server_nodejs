@@ -29,6 +29,7 @@ exports.create = async function (req, res) {
         console.log("Creating an object (no history or __rerum yet)");
         console.log(obj);
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj);
+
         res.json(obj);
     }
     catch(err){
@@ -48,6 +49,11 @@ exports.putUpdate = async function (req, res) {
 // Overwrite object passed in the body with replaceOne 
 // TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
 exports.overwrite = async function (req, res) {
+    res.set("Content-Type", "application/json; charset=utf-8");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "*");
+    res.set("Access-Control-Expose-Headers", "*");
+    res.set("Access-Control-Allow-Methods", "*");
     try{
         let obj = req.body;
         if(obj.hasOwnProperty("@id")){
@@ -75,6 +81,11 @@ exports.overwrite = async function (req, res) {
 
 // Handle find by property object matching
 exports.query = async function (req, res) {
+    res.set("Content-Type", "application/json; charset=utf-8");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "*");
+    res.set("Access-Control-Expose-Headers", "*");
+    res.set("Access-Control-Allow-Methods", "*");
     try{
         let props = req.body
         console.log("Looking matches against props...");
@@ -118,6 +129,11 @@ exports.makeNew = function (req, res) {
 
 // Handle find by property object matching
 exports.getByProps = function (req, res) {
+    res.set("Content-Type", "application/json; charset=utf-8");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "*");
+    res.set("Access-Control-Expose-Headers", "*");
+    res.set("Access-Control-Allow-Methods", "*");
     let prop = req.body
     console.log("Props request object");
     console.log(prop);
@@ -137,6 +153,11 @@ exports.getByProps = function (req, res) {
 
 //  Find by _id and return the match
 exports.id = async function (req, res) {
+    res.set("Content-Type", "application/json; charset=utf-8");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "*");
+    res.set("Access-Control-Expose-Headers", "*");
+    res.set("Access-Control-Allow-Methods", "*");
     let id = req.params["_id"];
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id});
     if(match){
