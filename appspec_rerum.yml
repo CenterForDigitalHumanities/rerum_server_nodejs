@@ -1,0 +1,10 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /rerum/proof-express-and-mongodb-driver
+hooks:
+  AfterInstall:
+    - location: https://urldefense.com/v3/__http://deploy_rerum.sh__;!!K543PA!Y6KceqAILpHhn-bKkjHIlVR8aRNvR1cfPXFWy5z45vH67Ibse_-XhgNIqIJfsvN5PgB5$ 
+      timeout: 300
+      runas: root
