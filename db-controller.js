@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-var mongoose = require('mongoose');
-const { MongoClient } = require('mongodb');
-console.log("Controller is making a mongo connection...");
+var mongoose = require('mongoose')
+const { MongoClient } = require('mongodb')
+console.log("Controller is making a mongo connection...")
+console.log("Controller connection string")
+console.log(process.env.ATLAS_CONNECTION_STRING2)
 const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
 client.connect();
 
