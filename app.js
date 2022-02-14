@@ -4,7 +4,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
-
+dotenv.config()
 var logger = require('morgan');
 let mongoose = require('mongoose');
 
