@@ -2,11 +2,182 @@
 
 var mongoose = require('mongoose')
 const { MongoClient } = require('mongodb')
+
+// Load the AWS SDK
+var AWS = require('aws-sdk'),
+    region = "us-east-1",
+    secretName = "arn:aws:secretsmanager:us-east-1:134308136738:secret:dev-RerumSecrets-2mHUuH",
+    secret,
+    decodedBinarySecret;
+
+// Create a Secrets Manager client
+var client = new AWS.SecretsManager({
+    region: region
+});
+
+// In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+// See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+// We rethrow the exception by default.
+
+let ATLAS_CONNECTION_STRING = client.getSecretValue({SecretId: "ATLAS_CONNECTION_STRING"}, function(err, data) {
+    if (err) {
+        if (err.code === 'DecryptionFailureException')
+            // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InternalServiceErrorException')
+            // An error occurred on the server side.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidParameterException')
+            // You provided an invalid value for a parameter.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidRequestException')
+            // You provided a parameter value that is not valid for the current state of the resource.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'ResourceNotFoundException')
+            // We can't find the resource that you asked for.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+    }
+    else {
+        // Decrypts secret using the associated KMS key.
+        // Depending on whether the secret is a string or binary, one of these fields will be populated.
+        if ('SecretString' in data) {
+            secret = data.SecretString;
+            return secret
+        } else {
+            let buff = new Buffer(data.SecretBinary, 'base64');
+            decodedBinarySecret = buff.toString('ascii');
+        }
+    }
+    
+    // Your code goes here. 
+});
+
+let ATLAS_CONNECTION_STRING2 = client.getSecretValue({SecretId: "ATLAS_CONNECTION_STRING2"}, function(err, data) {
+    if (err) {
+        if (err.code === 'DecryptionFailureException')
+            // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InternalServiceErrorException')
+            // An error occurred on the server side.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidParameterException')
+            // You provided an invalid value for a parameter.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidRequestException')
+            // You provided a parameter value that is not valid for the current state of the resource.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'ResourceNotFoundException')
+            // We can't find the resource that you asked for.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+    }
+    else {
+        // Decrypts secret using the associated KMS key.
+        // Depending on whether the secret is a string or binary, one of these fields will be populated.
+        if ('SecretString' in data) {
+            secret = data.SecretString;
+            return secret
+        } else {
+            let buff = new Buffer(data.SecretBinary, 'base64');
+            decodedBinarySecret = buff.toString('ascii');
+        }
+    }
+    
+    // Your code goes here. 
+});
+
+let MONGODBNAME = client.getSecretValue({SecretId: "MONGODBNAME"}, function(err, data) {
+    if (err) {
+        if (err.code === 'DecryptionFailureException')
+            // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InternalServiceErrorException')
+            // An error occurred on the server side.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidParameterException')
+            // You provided an invalid value for a parameter.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidRequestException')
+            // You provided a parameter value that is not valid for the current state of the resource.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'ResourceNotFoundException')
+            // We can't find the resource that you asked for.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+    }
+    else {
+        // Decrypts secret using the associated KMS key.
+        // Depending on whether the secret is a string or binary, one of these fields will be populated.
+        if ('SecretString' in data) {
+            secret = data.SecretString;
+            return secret
+        } else {
+            let buff = new Buffer(data.SecretBinary, 'base64');
+            decodedBinarySecret = buff.toString('ascii');
+        }
+    }
+    
+    // Your code goes here. 
+});
+
+let MONGODBCOLLECTION = client.getSecretValue({SecretId: "MONGODBCOLLECTION"}, function(err, data) {
+    if (err) {
+        if (err.code === 'DecryptionFailureException')
+            // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InternalServiceErrorException')
+            // An error occurred on the server side.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidParameterException')
+            // You provided an invalid value for a parameter.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'InvalidRequestException')
+            // You provided a parameter value that is not valid for the current state of the resource.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+        else if (err.code === 'ResourceNotFoundException')
+            // We can't find the resource that you asked for.
+            // Deal with the exception here, and/or rethrow at your discretion.
+            throw err;
+    }
+    else {
+        // Decrypts secret using the associated KMS key.
+        // Depending on whether the secret is a string or binary, one of these fields will be populated.
+        if ('SecretString' in data) {
+            secret = data.SecretString;
+            return secret
+        } else {
+            let buff = new Buffer(data.SecretBinary, 'base64');
+            decodedBinarySecret = buff.toString('ascii');
+        }
+    }
+    
+    // Your code goes here. 
+});
+
+
+
 console.log("Controller is making a mongo connection...")
 console.log("Controller connection string")
-console.log(process.env.ATLAS_CONNECTION_STRING2)
-const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
-client.connect();
+console.log(ATLAS_CONNECTION_STRING2)
+const mongo_client = new MongoClient(ATLAS_CONNECTION_STRING2);
+mongo_client.connect();
 
 // Import contact model
 Model = require('./db-object-model.js');
@@ -35,7 +206,7 @@ exports.create = async function (req, res) {
         obj["@id"] = "https://rerum-server-nodejs.herokuapp.com/v1/id/"+id;
         console.log("Creating an object (no history or __rerum yet)");
         console.log(obj);
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj);
+        let result = await mongo_client.db(MONGODBNAME).collection(MONGODBCOLLECTION).insertOne(obj);
         res.set("Location", obj["@id"])
         res.json(obj);
     }
@@ -66,7 +237,7 @@ exports.overwrite = async function (req, res) {
         if(obj.hasOwnProperty("@id")){
             console.log("Overwriting an object (no history or __rerum yet)");
             const query = {"@id":obj["@id"]};
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj);
+            let result = await mongo_client.db(MONGODBNAME).collection(MONGODBCOLLECTION).replaceOne(query, obj);
             if(result.modifiedCount > 0){
                 res.set("Location", obj["@id"])
                 res.json(obj);
@@ -98,7 +269,7 @@ exports.query = async function (req, res) {
         let props = req.body
         console.log("Looking matches against props...");
         console.log(props);
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray();
+        let matches = await mongo_client.db(MONGODBNAME).collection(MONGODBCOLLECTION).find(props).toArray();
         console.log(matches);
         res.json(matches);
     }
@@ -167,7 +338,7 @@ exports.id = async function (req, res) {
     res.set("Access-Control-Expose-Headers", "*");
     res.set("Access-Control-Allow-Methods", "*");
     let id = req.params["_id"];
-    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id});
+    let match = await mongo_client.db(MONGODBNAME).collection(MONGODBCOLLECTION).findOne({"_id" : id});
     if(match){
         res.json(match);    
     }
