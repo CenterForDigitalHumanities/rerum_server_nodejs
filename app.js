@@ -24,7 +24,7 @@ var client = new AWS.SecretsManager({
 // See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
 // We rethrow the exception by default.
 
-let ATLAS_CONNECTION_STRING = await client.getSecretValue({SecretId: "ATLAS_CONNECTION_STRING"}, function(err, data) {
+let ATLAS_CONNECTION_STRING = client.getSecretValue({SecretId: "ATLAS_CONNECTION_STRING"}, function(err, data) {
     if (err) {
         if (err.code === 'DecryptionFailureException')
             // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
@@ -62,7 +62,7 @@ let ATLAS_CONNECTION_STRING = await client.getSecretValue({SecretId: "ATLAS_CONN
     // Your code goes here. 
 });
 
-let ATLAS_CONNECTION_STRING2 = await client.getSecretValue({SecretId: "ATLAS_CONNECTION_STRING2"}, function(err, data) {
+let ATLAS_CONNECTION_STRING2 = client.getSecretValue({SecretId: "ATLAS_CONNECTION_STRING2"}, function(err, data) {
     if (err) {
         if (err.code === 'DecryptionFailureException')
             // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
@@ -100,7 +100,7 @@ let ATLAS_CONNECTION_STRING2 = await client.getSecretValue({SecretId: "ATLAS_CON
     // Your code goes here. 
 });
 
-let MONGODBNAME = await client.getSecretValue({SecretId: "MONGODBNAME"}, function(err, data) {
+let MONGODBNAME = client.getSecretValue({SecretId: "MONGODBNAME"}, function(err, data) {
     if (err) {
         if (err.code === 'DecryptionFailureException')
             // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
@@ -138,7 +138,7 @@ let MONGODBNAME = await client.getSecretValue({SecretId: "MONGODBNAME"}, functio
     // Your code goes here. 
 });
 
-let MONGODBCOLLECTION = await client.getSecretValue({SecretId: "MONGODBCOLLECTION"}, function(err, data) {
+let MONGODBCOLLECTION = client.getSecretValue({SecretId: "MONGODBCOLLECTION"}, function(err, data) {
     if (err) {
         if (err.code === 'DecryptionFailureException')
             // Secrets Manager can't decrypt the protected secret text using the provided KMS key.
