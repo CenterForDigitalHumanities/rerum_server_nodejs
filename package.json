@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node ./bin/startApp.js",
     "devstart": "node ./bin/startApp.js",
-    "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart"
+    "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
+    "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -18,7 +19,8 @@
     "mongodb": "^4.1.2",
     "mongoose": "^6.0.7",
     "morgan": "~1.9.1",
-    "node-fetch": "^3.0.0"
+    "node-fetch": "^3.0.0",
+    "aws-secrets-dotenv": "^1.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.12"
