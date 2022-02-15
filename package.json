@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/startApp.js",
-    "stop" : "node ./bin/stopApp.js",
+    "stop": "node ./bin/stopApp.js",
     "devstart": "node ./bin/startApp.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
     "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod"
   },
   "dependencies": {
+    "aws-secrets-dotenv": "^1.0.0",
     "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
@@ -21,7 +22,8 @@
     "mongoose": "^6.0.7",
     "morgan": "~1.9.1",
     "node-fetch": "^3.0.0",
-    "aws-secrets-dotenv": "^1.0.0"
+    "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.12"
