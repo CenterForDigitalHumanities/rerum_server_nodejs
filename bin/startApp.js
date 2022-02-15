@@ -7,7 +7,8 @@
 var app = require('../app');
 var debug = require('debug')('rerum_server_nodejs:server');
 var http = require('http');
-
+const io = require('socket.io-client');
+const socketClient = io.connect('http://localhost'); // Specify port if your express server is not using default port 80
 
 /**
  * Get port from environment and store in Express.
