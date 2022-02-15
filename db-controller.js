@@ -3,8 +3,6 @@
 var mongoose = require('mongoose')
 const { MongoClient } = require('mongodb')
 console.log("Controller is making a mongo connection...")
-console.log("Controller connection string")
-console.log(process.env.ATLAS_CONNECTION_STRING2)
 const client = new MongoClient(process.env.ATLAS_CONNECTION_STRING2);
 client.connect();
 
@@ -13,7 +11,6 @@ Model = require('./db-object-model.js');
 
 // Handle index actions
 exports.index = function (req, res) {
-    console.log("index controller")
     res.json({
         status: "connected",
         message: "Not sure what to do"
@@ -32,7 +29,7 @@ exports.create = async function (req, res) {
         const id = new mongoose.Types.ObjectId().toString();
         let obj = req.body;
         obj["_id"] = id;
-        obj["@id"] = "https://rerum-server-nodejs.herokuapp.com/v1/id/"+id;
+        obj["@id"] = "https://storedev.rerum.io/v1/id/"+id;
         console.log("Creating an object (no history or __rerum yet)");
         console.log(obj);
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj);
@@ -113,7 +110,7 @@ exports.query = async function (req, res) {
 exports.makeNew = function (req, res) {
     var modelObj = new Model();
     const id = new mongoose.Types.ObjectId();
-    const RERUM_PREFIX = "https://rerum-server-nodejs.herokuapp.com/v1/id/";
+    const RERUM_PREFIX = "https://storedev.rerum.io/v1/id/";
     modelObj["_id"] = id;
     modelObj["@id"] = RERUM_PREFIX+id;
     modelObj.name = "Hello "+Date.now();
@@ -161,23 +158,19 @@ exports.getByProps = function (req, res) {
 
 //  Find by _id and return the match
 exports.id = async function (req, res) {
-
     res.set("Content-Type", "application/json; charset=utf-8");
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Headers", "*");
     res.set("Access-Control-Expose-Headers", "*");
     res.set("Access-Control-Allow-Methods", "*");
     let id = req.params["_id"];
-    console.log(req.params)
-    console.log("Find by id " +id)
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id});
     if(match){
         res.json(match);    
     }
     else{
         res.sendStatus(404);
-    }
-    
+    }  
 };
 
 /*

@@ -56,8 +56,6 @@ app.use(function(err, req, res, next) {
 async function mongooseConnection(){
   console.log("Awaiting mongoose connection...")
   try {
-      console.log("Connect to mongoose with following connection string.")
-      console.log(process.env.ATLAS_CONNECTION_STRING)
       await mongoose.connect(process.env.ATLAS_CONNECTION_STRING, { useNewUrlParser: true});
       console.log("...returning mongoose connection");
       return mongoose.connection;
