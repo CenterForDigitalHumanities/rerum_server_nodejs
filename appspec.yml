@@ -2,7 +2,7 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /rerum/main
+    destination: /rerum/proof-express-and-mongodb-driver
 hooks:
   AfterInstall:
     - location: deploy_rerum.sh
