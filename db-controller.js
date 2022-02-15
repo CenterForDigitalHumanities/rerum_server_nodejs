@@ -161,12 +161,15 @@ exports.getByProps = function (req, res) {
 
 //  Find by _id and return the match
 exports.id = async function (req, res) {
+
     res.set("Content-Type", "application/json; charset=utf-8");
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Headers", "*");
     res.set("Access-Control-Expose-Headers", "*");
     res.set("Access-Control-Allow-Methods", "*");
     let id = req.params["_id"];
+    console.log(req.params)
+    console.log("Find by id " +id)
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id});
     if(match){
         res.json(match);    
