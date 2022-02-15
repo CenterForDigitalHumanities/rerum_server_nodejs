@@ -7,8 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('rerum_server_nodejs:server');
 var http = require('http');
-const io = require('socket.io-client');
-const socketClient = io.connect('http://localhost'); // Specify port if your express server is not using default port 80
+
 
 /**
  * Get port from environment and store in Express.
@@ -22,6 +21,7 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+const io = require('socket.io')(server);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -94,7 +94,6 @@ function onListening() {
 /**
  * Socket magic for npm stop
  * */
-const io = require('socket.io')(server);
 io.on('connection', (socketServer) => {
   socketServer.on('npmStop', () => {
     process.exit(0);
