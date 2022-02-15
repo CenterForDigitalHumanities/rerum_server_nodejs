@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/startApp.js",
+    "stop" : "node ./bin/stopApp.js",
     "devstart": "node ./bin/startApp.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
     "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod"
