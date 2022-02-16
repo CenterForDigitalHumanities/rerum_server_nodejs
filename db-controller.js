@@ -2,8 +2,10 @@
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
-console.log("Controller is making a mongo connection...")
-const client = mongoConnection()
+const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
+client.connect();
+console.log("Controller is made a mongo connection...")
+//var client = mongoConnection()
 
 // Handle index actions
 exports.index = function (req, res) {
@@ -16,7 +18,7 @@ exports.index = function (req, res) {
 // Create object passed in the body
 // TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
 exports.create = async function (req, res) {
-    res.set("Content-Type", "application/json charset=utf-8")
+    res.set("Content-Type", "application/json; charset=utf-8")
     res.set("Access-Control-Allow-Origin", "*")
     res.set("Access-Control-Allow-Headers", "*")
     res.set("Access-Control-Expose-Headers", "*")
@@ -49,7 +51,7 @@ exports.putUpdate = async function (req, res) {
 // Overwrite object passed in the body with replaceOne 
 // TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
 exports.overwrite = async function (req, res) {
-    res.set("Content-Type", "application/json charset=utf-8")
+    res.set("Content-Type", "application/json; charset=utf-8")
     res.set("Access-Control-Allow-Origin", "*")
     res.set("Access-Control-Allow-Headers", "*")
     res.set("Access-Control-Expose-Headers", "*")
@@ -82,7 +84,7 @@ exports.overwrite = async function (req, res) {
 
 // Handle find by property object matching
 exports.query = async function (req, res) {
-    res.set("Content-Type", "application/json charset=utf-8")
+    res.set("Content-Type", "application/json; charset=utf-8")
     res.set("Access-Control-Allow-Origin", "*")
     res.set("Access-Control-Allow-Headers", "*")
     res.set("Access-Control-Expose-Headers", "*")
@@ -104,7 +106,7 @@ exports.query = async function (req, res) {
 
 //  Find by _id and return the match
 exports.id = async function (req, res) {
-    res.set("Content-Type", "application/json charset=utf-8")
+    res.set("Content-Type", "application/json; charset=utf-8")
     res.set("Access-Control-Allow-Origin", "*")
     res.set("Access-Control-Allow-Headers", "*")
     res.set("Access-Control-Expose-Headers", "*")
@@ -123,15 +125,16 @@ exports.id = async function (req, res) {
 async function mongoConnection(){
   console.log("Awaiting mongo connection...")
   try {
-      const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
-      let clientConnection = await client.connect()
+      let mc = new MongoClient(process.env.MONGO_CONNECTION_STRING)
+      await mc.connect()
       console.log('Connected successfully to mongodb client')
       //const db = client.db(dbName)
       //const collection = db.collection('documents')
-      return clientConnection
+      return mc
   } 
   catch (err) {
     console.log('mongo connect error in app initializer: ')
+    console.log(err)
     return err
   } 
 }
