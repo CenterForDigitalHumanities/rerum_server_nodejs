@@ -22,7 +22,7 @@ exports.create = async function (req, res) {
     res.set("Access-Control-Expose-Headers", "*")
     res.set("Access-Control-Allow-Methods", "*")
     try{
-        const id = client.
+        const id = new ObjectID().toHexString()
         let obj = req.body
         obj["_id"] = id
         obj["@id"] = "https://storedev.rerum.io/v1/id/"+id

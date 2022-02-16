@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-let router = require('express').Router()
-var controller = require('../db-controller.js')
+const router = require('express').Router()
+const controller = require('../db-controller.js')
 const bodyParser = require('body-parser')
 const jsonParser = bodyParser.json()
 
