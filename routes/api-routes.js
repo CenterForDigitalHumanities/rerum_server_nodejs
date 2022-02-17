@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-let router = require('express').Router();
-var controller = require('../db-controller.js');
-const bodyParser = require('body-parser');
-const jsonParser = bodyParser.json();
+const router = require('express').Router()
+const controller = require('../db-controller.js')
+const bodyParser = require('body-parser')
+const jsonParser = bodyParser.json()
 
 // Set default API response
 router.get('/', function (req, res) {
     res.json({
         message: 'Welcome to v1 in nodeJS!'
-    });
-});
+    })
+})
 
 // API routes.  Test deploy pipelines.
 
@@ -32,11 +32,6 @@ router.route('/api/create')
 // POST with body that is a JSON object to be overwritten (must have @id).  Uses replaceOne for now.
 router.route('/api/overwrite')
     .put(controller.overwrite, jsonParser)
-
-// api/makeNew to make a simple object with _id and @id.
-router.route("/api/makeNew")
-    .get(controller.makeNew)
-
     
 // Export API routes
-module.exports = router;
+module.exports = router
