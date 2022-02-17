@@ -19,10 +19,10 @@ exports.index = function (req, res) {
 // TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
 exports.create = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    res.set("Access-Control-Allow-Origin", "*")
-    res.set("Access-Control-Allow-Headers", "*")
-    res.set("Access-Control-Expose-Headers", "*")
-    res.set("Access-Control-Allow-Methods", "*")
+    // res.set("Access-Control-Allow-Origin", "*")
+    // res.set("Access-Control-Allow-Headers", "*")
+    // res.set("Access-Control-Expose-Headers", "*")
+    // res.set("Access-Control-Allow-Methods", "*")
     try{
         const id = new ObjectID().toHexString()
         let obj = req.body
@@ -52,10 +52,10 @@ exports.putUpdate = async function (req, res) {
 // TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
 exports.overwrite = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    res.set("Access-Control-Allow-Origin", "*")
-    res.set("Access-Control-Allow-Headers", "*")
-    res.set("Access-Control-Expose-Headers", "*")
-    res.set("Access-Control-Allow-Methods", "*")
+    // res.set("Access-Control-Allow-Origin", "*")
+    // res.set("Access-Control-Allow-Headers", "*")
+    // res.set("Access-Control-Expose-Headers", "*")
+    // res.set("Access-Control-Allow-Methods", "*")
     try{
         let obj = req.body
         if(obj.hasOwnProperty("@id")){
@@ -85,10 +85,10 @@ exports.overwrite = async function (req, res) {
 // Handle find by property object matching
 exports.query = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    res.set("Access-Control-Allow-Origin", "*")
-    res.set("Access-Control-Allow-Headers", "*")
-    res.set("Access-Control-Expose-Headers", "*")
-    res.set("Access-Control-Allow-Methods", "*")
+    // res.set("Access-Control-Allow-Origin", "*")
+    // res.set("Access-Control-Allow-Headers", "*")
+    // res.set("Access-Control-Expose-Headers", "*")
+    // res.set("Access-Control-Allow-Methods", "*")
     try{
         let props = req.body
         console.log("Looking matches against props...")
@@ -107,18 +107,23 @@ exports.query = async function (req, res) {
 //  Find by _id and return the match
 exports.id = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    res.set("Access-Control-Allow-Origin", "*")
-    res.set("Access-Control-Allow-Headers", "*")
-    res.set("Access-Control-Expose-Headers", "*")
-    res.set("Access-Control-Allow-Methods", "*")
-    let id = req.params["_id"]
-    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    if(match){
-        res.json(match)    
+    // res.set("Access-Control-Allow-Origin", "*")
+    // res.set("Access-Control-Allow-Headers", "*")
+    // res.set("Access-Control-Expose-Headers", "*")
+    // res.set("Access-Control-Allow-Methods", "*")
+    try{
+        let id = req.params["_id"]
+        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+        if(match){
+            res.json(match)    
+        }
+        else{
+            res.sendStatus(404)
+        }  
     }
-    else{
-        res.sendStatus(404)
-    }  
+    catch(err){
+        res.status(500).send("Could not perform lookup by id.")
+    }
 }
 
 //Connect to a mongodb via mongodb node driver.
@@ -137,4 +142,60 @@ async function mongoConnection(){
     console.log(err)
     return err
   } 
+}
+
+/**
+ * Allow for HEAD requests for requests like /v1/api/id
+ * No object is returned, but the Content-Length header is set. 
+ * */
+exports.idHeadRequest = async function(req, res){
+    //res.set("Content-Type", "application/json; charset=utf-8")
+    // res.set("Access-Control-Allow-Origin", "*")
+    // res.set("Access-Control-Allow-Headers", "*")
+    // res.set("Access-Control-Expose-Headers", "*")
+    // res.set("Access-Control-Allow-Methods", "*")
+    try{
+        let id = req.params["_id"]
+        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+        if(match){
+            const size = Buffer.byteLength(JSON.stringify(match))
+            res.set("Content-Length", size)
+            res.sendStatus(200)    
+        }
+        else{
+            res.sendStatus(404)
+        }  
+    }
+    catch(err){
+        res.status(500).send("Could not process HEAD request.  Request was like /v1/id/abcde")
+    }
+}
+
+/**
+ * Allow for HEAD requests for requests like /v1/api/query
+ * No objects are returned, but the Content-Length header is set. 
+ * */
+exports.queryHeadRequest = async function(req, res){
+    //res.set("Content-Type", "application/json; charset=utf-8")
+    // res.set("Access-Control-Allow-Origin", "*")
+    // res.set("Access-Control-Allow-Headers", "*")
+    // res.set("Access-Control-Expose-Headers", "*")
+    // res.set("Access-Control-Allow-Methods", "*")
+    try{
+        let props = req.body
+        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+        if(matches.length){
+            const size = Buffer.byteLength(JSON.stringify(match))
+            res.set("Content-Length", size)
+            res.sendStatus(200)    
+        }
+        else{
+            //Hmm 404 or 200?
+            res.set("Content-Length", 0)
+            res.sendStatus(404)    
+        }
+    }
+    catch(err){
+        res.status(500).send("Could not process HEAD request.  Request was like /v1/api/query")
+    }
 }
