@@ -9,8 +9,9 @@ dotenv.config()
 var logger = require('morgan')
 const cors = require('cors')
 
-var indexRouter = require('./routes/index')
+var indexRouter = require('./routes/index.js')
 var apiRouter = require('./routes/api-routes.js')
+var downRouter  = require('./routes/down.js')
 //var utils = require('utils.js')
 var app = express()
 
@@ -30,6 +31,30 @@ app.use(cookieParser())
 app.use(express.static(path.join(__dirname, 'public')))
 
 //Assign routes to the app.  This is processing URL patterns and pointing them to servlet logic
+
+/**
+ * For any request that comes through to the app, check whether or not we are in maintenance mode.
+ * If we are, then show the sad puppy.  Otherwise, continue on.
+ * This is without middleware
+ */ 
+app.all('/', (req, res, next) => {
+  const down = process.env.down
+  if(down){
+      req.status(503).redirectToSadFace()
+  }
+  else{
+      next() //pass on to the next app.use
+  }
+})
+
+/**
+ * For any request that comes through to the app, check whether or not we are in maintenance mode.
+ * If we are, then show the sad puppy.  Otherwise, continue on.
+ * This is with middleware
+ */ 
+app.use('/', downCheck)
+
+
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
 
