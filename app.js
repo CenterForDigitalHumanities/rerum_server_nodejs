@@ -30,7 +30,6 @@ app.use(cookieParser())
 //Publicly available scripts, CSS, and HTML pages.
 app.use(express.static(path.join(__dirname, 'public')))
 
-//Assign routes to the app.  This is processing URL patterns and pointing them to servlet logic
 
 /**
  * For any request that comes through to the app, check whether or not we are in maintenance mode.
@@ -46,12 +45,6 @@ app.all('*', (req, res, next) => {
       next() //pass on to the next app.use
   }
 })
-
-/**
- * For any request that comes through to the app, check whether or not we are in maintenance mode.
- * If we are, then show the sad puppy.  Otherwise, continue on.
- * This is with middleware
- */ 
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
 
