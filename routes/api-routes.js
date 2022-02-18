@@ -3,11 +3,11 @@ const router = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
 //Utility functions
-//const utilities = require('../utils.js')
+const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
 
-
+/*
 const createRoute = require("./create.js")
 const putUpdateRoute = require("./putUpdate.js")
 const overwriteRoute = require("./overwrite.js")
@@ -18,6 +18,7 @@ const getByIdRoute = require("./id.js")
 const queryRoute = require("./query.js")
 const deleteRoute = require("./delete.js")
 const auxRoute = "TODO"
+*/
 
 // Set default API response
 router.get('/', function (req, res) {
