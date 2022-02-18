@@ -11,7 +11,7 @@ const cors = require('cors')
 
 var indexRouter = require('./routes/index.js')
 var apiRouter = require('./routes/api-routes.js')
-var downRouter  = require('./routes/down.js')
+
 //var utils = require('utils.js')
 var app = express()
 
@@ -37,10 +37,15 @@ app.use(express.static(path.join(__dirname, 'public')))
  * If we are, then show the sad puppy.  Otherwise, continue on.
  * This is without middleware
  */ 
-app.all('/', (req, res, next) => {
+app.all('*', (req, res, next) => {
   const down = process.env.down
-  if(down){
-      req.status(503).redirectToSadFace()
+  if(down=="true"){
+      // res.set("Access-Control-Allow-Origin", "*")
+      // res.set("Access-Control-Allow-Headers", "*")
+      // res.set("Access-Control-Expose-Headers", "*")
+      // res.set("Access-Control-Allow-Methods", "*")
+      res.status(503).send("RERUM v1 is down for updates or maintenance at this time.  We aplologize for the inconvenience.  Try again later.")
+      res.redirect(301, "/maintenance.html")
   }
   else{
       next() //pass on to the next app.use
@@ -52,8 +57,7 @@ app.all('/', (req, res, next) => {
  * If we are, then show the sad puppy.  Otherwise, continue on.
  * This is with middleware
  */ 
-app.use('/', downRouter) //This says to do next() if we aren't in maintenance mode
-
+//app.use('/', downRouter) //This says to do next() if we aren't in maintenance mode
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
 

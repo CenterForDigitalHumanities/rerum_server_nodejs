@@ -31,7 +31,7 @@ exports.create = async function (req, res) {
         console.log("Creating an object (no history or __rerum yet)")
         console.log(obj)
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj)
-        res.set("Location", obj["@id"])
+        res.location(obj["@id"])
         res.json(obj)
     }
     catch(err){
