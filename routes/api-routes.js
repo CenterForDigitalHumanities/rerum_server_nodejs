@@ -54,7 +54,7 @@ router.route('/api/query')
     .get((req, res) => {
         res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
-    .post(controller.query, jsonParser)
+    .post(controller.query)
     .put((req, res) => {
         res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
@@ -77,7 +77,7 @@ router.route('/api/create')
     .get((req, res) => {
         res.status(405).send('Improper request method for creating, please use POST.')
     })
-    .post(controller.create, jsonParser)
+    .post(controller.create)
     .put((req, res) => {
         res.status(405).send('Improper request method for creating, please use POST.')
     })
@@ -101,7 +101,7 @@ router.route('/api/overwrite')
     .post((req, res) => {
         res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
     })
-    .put(controller.overwrite, jsonParser)
+    .put(controller.overwrite)
     .patch((req, res) => {
         res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
     })
@@ -122,7 +122,7 @@ router.route('/api/update')
     .post((req, res) => {
         res.status(405).send('Improper request method for updating, please use PUT to update this object.')
     })
-    .put(controller.putUpdate, jsonParser)
+    .put(controller.putUpdate)
     .patch((req, res) => {
         res.status(405).send('Improper request method for updating, please use PUT to update this object.')
     })
@@ -152,7 +152,7 @@ router.route('/api/patch')
     .put((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
     })
-    .patch(controller.patchSet, jsonParser)
+    .patch(controller.patchSet)
     .options(rest.optionsRequest)
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
@@ -172,7 +172,7 @@ router.route('/api/set')
     .put((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
     })
-    .patch(controller.patchSet, jsonParser)
+    .patch(controller.patchSet)
     .options(rest.optionsRequest)
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
@@ -192,7 +192,7 @@ router.route('/api/unset')
     .put((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
     })
-    .patch(controller.patchUnset, jsonParser)
+    .patch(controller.patchUnset)
     .options(rest.optionsRequest)
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
