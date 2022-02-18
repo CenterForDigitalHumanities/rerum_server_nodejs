@@ -5,7 +5,6 @@ var ObjectID = require('mongodb').ObjectID
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
 client.connect();
 console.log("Controller is made a mongo connection...")
-//var client = mongoConnection()
 
 // Handle index actions
 exports.index = function (req, res) {
@@ -15,8 +14,10 @@ exports.index = function (req, res) {
     })
 }
 
-// Create object passed in the body
-// TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
+/**
+ * Create a new Linked Open Data object in RERUM v1.
+ * Respond RESTfully
+ * */
 exports.create = async function (req, res) {
     res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
@@ -38,36 +39,52 @@ exports.create = async function (req, res) {
     }
 }
 
-// Create object passed in the body
-// TODO only registered apps should be able to do this.  It should alter history.
-// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+/**
+ * Replace some existing object in MongoDB with the JSON object in the request body.
+ * Track History
+ * Respond RESTfully
+ * */
 exports.putUpdate = async function (req, res) {
     
 }
 
-// Create object passed in the body
-// TODO only registered apps should be able to do this.  It should alter history.
-// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+/**
+ * Update some existing object in MongoDB with the JSON object in the request body.
+ * Note that only keys that exist on the object will be respected.  This cannot set or unset keys.  
+ * Track History
+ * Respond RESTfully
+ * */
 exports.patchUpdate = async function (req, res) {
     
 }
 
-// Create object passed in the body
-// TODO only registered apps should be able to do this.  It should alter history.
-// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+/**
+ * Update some existing object in MongoDB by adding the keys from the JSON object in the request body.
+ * Note that if a key on the request object matches a key on the object in MongoDB, that key will be ignored.
+ * This cannot change or unset existing keys.
+ * Track History
+ * Respond RESTfully
+ * */
 exports.patchSet = async function (req, res) {
     
 }
 
-// Create object passed in the body
-// TODO only registered apps should be able to do this.  It should alter history.
-// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+/**
+ * Update some existing object in MongoDB by removing the keys noted in the JSON object in the request body.
+ * Note that if a key on the request object does not match a key on the object in MongoDB, that key will be ignored.
+ * This cannot change existing keys or set new keys.
+ * Track History
+ * Respond RESTfully
+ * */
 exports.patchUnset = async function (req, res) {
     
 }
 
-// Overwrite object passed in the body with replaceOne 
-// TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
+/**
+ * Replace some existing object in MongoDB with the JSON object in the request body.
+ * DO NOT Track History
+ * Respond RESTfully
+ * */
 exports.overwrite = async function (req, res) {
     res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
@@ -96,7 +113,13 @@ exports.overwrite = async function (req, res) {
     }
 }
 
-// Handle find by property object matching
+/**
+ * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
+ * This will support wildcards and mongo params like {"key":{$exists:true}}
+ * The return is always an array, even if 0 or 1 objects in the return.
+ * Track History
+ * Respond RESTfully
+ * */
 exports.query = async function (req, res) {
     res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
@@ -114,7 +137,12 @@ exports.query = async function (req, res) {
     }
 }
 
-//  Find by _id and return the match
+/**
+ * Query the MongoDB for objects with the _id provided in the request body or request URL
+ * Note this specifically checks for _id, the @id pattern is irrelevant.  
+ * Track History
+ * Respond RESTfully
+ * */
 exports.id = async function (req, res) {
     console.log("Controller.id Here...");
     res.set("Content-Type", "application/ld+json; charset=utf-8")
