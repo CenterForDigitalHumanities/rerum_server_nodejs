@@ -18,21 +18,18 @@ exports.index = function (req, res) {
 // Create object passed in the body
 // TODO only registered apps should be able to do this.  It needs to generate the __rerum property.
 exports.create = async function (req, res) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    // res.set("Access-Control-Allow-Origin", "*")
-    // res.set("Access-Control-Allow-Headers", "*")
-    // res.set("Access-Control-Expose-Headers", "*")
-    // res.set("Access-Control-Allow-Methods", "*")
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         const id = new ObjectID().toHexString()
-        let obj = req.body
+        let obj = req.body //Is that JSON?  If not, then 400
         obj["_id"] = id
+        //REMEMBER in the java this is a Constant.  Maybe this is the time to make it process.env
         obj["@id"] = "https://storedev.rerum.io/v1/id/"+id
         console.log("Creating an object (no history or __rerum yet)")
         console.log(obj)
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj)
         res.location(obj["@id"])
-        res.json(obj)
+        res.json(obj) //What response code does this fail with if obj is not json?
     }
     catch(err){
         console.error("Could not perform insertOne, see error below")
@@ -72,11 +69,7 @@ exports.patchUnset = async function (req, res) {
 // Overwrite object passed in the body with replaceOne 
 // TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
 exports.overwrite = async function (req, res) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    // res.set("Access-Control-Allow-Origin", "*")
-    // res.set("Access-Control-Allow-Headers", "*")
-    // res.set("Access-Control-Expose-Headers", "*")
-    // res.set("Access-Control-Allow-Methods", "*")
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let obj = req.body
         if(obj.hasOwnProperty("@id")){
@@ -105,11 +98,7 @@ exports.overwrite = async function (req, res) {
 
 // Handle find by property object matching
 exports.query = async function (req, res) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    // res.set("Access-Control-Allow-Origin", "*")
-    // res.set("Access-Control-Allow-Headers", "*")
-    // res.set("Access-Control-Expose-Headers", "*")
-    // res.set("Access-Control-Allow-Methods", "*")
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let props = req.body
         console.log("Looking matches against props...")
@@ -127,11 +116,7 @@ exports.query = async function (req, res) {
 
 //  Find by _id and return the match
 exports.id = async function (req, res) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    // res.set("Access-Control-Allow-Origin", "*")
-    // res.set("Access-Control-Allow-Headers", "*")
-    // res.set("Access-Control-Expose-Headers", "*")
-    // res.set("Access-Control-Allow-Methods", "*")
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let id = req.params["_id"]
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
@@ -170,11 +155,7 @@ async function mongoConnection(){
  * No object is returned, but the Content-Length header is set. 
  * */
 exports.idHeadRequest = async function(req, res){
-    //res.set("Content-Type", "application/json; charset=utf-8")
-    // res.set("Access-Control-Allow-Origin", "*")
-    // res.set("Access-Control-Allow-Headers", "*")
-    // res.set("Access-Control-Expose-Headers", "*")
-    // res.set("Access-Control-Allow-Methods", "*")
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let id = req.params["_id"]
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
@@ -197,11 +178,7 @@ exports.idHeadRequest = async function(req, res){
  * No objects are returned, but the Content-Length header is set. 
  * */
 exports.queryHeadRequest = async function(req, res){
-    //res.set("Content-Type", "application/json; charset=utf-8")
-    // res.set("Access-Control-Allow-Origin", "*")
-    // res.set("Access-Control-Allow-Headers", "*")
-    // res.set("Access-Control-Expose-Headers", "*")
-    // res.set("Access-Control-Allow-Methods", "*")
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let props = req.body
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()

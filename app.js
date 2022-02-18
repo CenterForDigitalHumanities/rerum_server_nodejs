@@ -20,7 +20,7 @@ app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
 
 //Middleware to use
-app.use(cors()) 
+app.use(cors()) //INVESTIGATE!!!
 app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -38,12 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')))
  * This is without middleware
  */ 
 app.all('*', (req, res, next) => {
-  const down = process.env.down
-  if(down=="true"){
-      // res.set("Access-Control-Allow-Origin", "*")
-      // res.set("Access-Control-Allow-Headers", "*")
-      // res.set("Access-Control-Expose-Headers", "*")
-      // res.set("Access-Control-Allow-Methods", "*")
+  if(process.env.down=="true"){
       res.status(503).send("RERUM v1 is down for updates or maintenance at this time.  We aplologize for the inconvenience.  Try again later.")
       res.redirect(301, "/maintenance.html")
   }
@@ -57,7 +52,6 @@ app.all('*', (req, res, next) => {
  * If we are, then show the sad puppy.  Otherwise, continue on.
  * This is with middleware
  */ 
-//app.use('/', downRouter) //This says to do next() if we aren't in maintenance mode
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
 
