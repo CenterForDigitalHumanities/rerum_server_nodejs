@@ -116,6 +116,7 @@ exports.query = async function (req, res) {
 
 //  Find by _id and return the match
 exports.id = async function (req, res) {
+    console.log("Controller.id Here...");
     res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let id = req.params["_id"]
