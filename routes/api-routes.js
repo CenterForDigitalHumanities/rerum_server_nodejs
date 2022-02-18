@@ -43,7 +43,6 @@ router.route('/id/:_id')
         res.status(405).send('Improper request method for reading, please use GET or request for headers with HEAD.')
     })
     .options(rest.optionsRequest)
-    //FIXME do the whole thing and get the object and respond with an empty body.
     .head(controller.idHeadRequest)
 
 /**
@@ -53,18 +52,21 @@ router.route('/id/:_id')
 */
 router.route('/api/query')
     .get((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Use POST.')
+        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
     .post(controller.query, jsonParser)
     .put((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Use POST.')
+        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Use POST.')
+        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
     .options(rest.optionsRequest)
+    .head((req, res) => {
+        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
+    })
     //Do we want to support this? Technically HEAD is only for something that could be a GET request.  
-    .head(controller.queryHeadRequest)
+    //.head(controller.queryHeadRequest)
 
 /**
  * Support POST requests with JSON bodies used for establishing new objects in the MongoDB.
