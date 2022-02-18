@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const putUpdateRoute = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
@@ -13,7 +14,7 @@ const rest = require('../rest.js')
     .post((req, res) => {
         res.status(405).send('Improper request method for updating, please use PUT to update this object.')
     })
-    .put(controller.putUpdate, jsonParser)
+    .put(controller.putUpdate)
     .patch((req, res) => {
         res.status(405).send('Improper request method for updating, please use PUT to update this object.')
     })

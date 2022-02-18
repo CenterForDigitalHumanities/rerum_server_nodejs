@@ -5,7 +5,6 @@ const controller = require('../db-controller.js')
 const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
-
   idRoute
     .get(controller.id)
     .post((req, res) => {

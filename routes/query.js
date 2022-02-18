@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const queryRoute = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
@@ -10,7 +11,7 @@ const rest = require('../rest.js')
      .get((req, res) => {
         res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
-    .post(controller.query, jsonParser)
+    .post(controller.query)
     .put((req, res) => {
         res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })

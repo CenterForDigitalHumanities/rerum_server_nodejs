@@ -33,7 +33,23 @@ exports.create = async function (req, res) {
         res.json(obj) //What response code does this fail with if obj is not json?
     }
     catch(err){
-        console.error("Could not perform insertOne, see error below")
+        console.error("Could not perform create, see error below")
+        console.log(err)
+        res.json({"err":err})
+    }
+}
+
+/**
+ * Create a new Linked Open Data object in RERUM v1.
+ * Respond RESTfully
+ * */
+exports.delete = async function (req, res) {
+    res.set("Content-Type", "application/ld+json; charset=utf-8")
+    try{
+        res.status(202).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
+    }
+    catch(err){
+        console.error("Could not perform delete, see error below")
         console.log(err)
         res.json({"err":err})
     }
@@ -144,7 +160,7 @@ exports.query = async function (req, res) {
  * Respond RESTfully
  * */
 exports.id = async function (req, res) {
-    console.log("Controller.id Here...");
+    console.log("Controller.id Here...")
     res.set("Content-Type", "application/ld+json; charset=utf-8")
     try{
         let id = req.params["_id"]

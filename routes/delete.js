@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const createRoute = require('express').Router()
+const deleteRoute = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
 //Utility functions
@@ -11,20 +11,23 @@ const rest = require('../rest.js')
 //const bodyParser = require('body-parser')
 //const jsonParser = bodyParser.json()
 
-  createRoute
+  deleteRoute
     .get((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
     })
-    .post(controller.create)
+    .post((req, res) => {
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
+    })
     .put((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
     })
     .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
     })
+    .delete(controller.delete)
 
-module.exports = createRoute
+module.exports = deleteRoute

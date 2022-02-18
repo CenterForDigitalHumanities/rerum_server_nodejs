@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const patchUpdateRoute = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
@@ -21,7 +22,7 @@ const rest = require('../rest.js')
     .put((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
     })
-    .patch(controller.patchSet, jsonParser)
+    .patch(controller.patchSet)
     .options(rest.optionsRequest)
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')

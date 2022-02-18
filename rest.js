@@ -1,4 +1,4 @@
-
+#!/usr/bin/env node
 /**
  * Support OPTIONS request, which are essentially CORS enabled heartbeats.  
  * */
