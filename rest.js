@@ -21,19 +21,29 @@ exports.optionsRequest = function (req, res) {
 
 /**
  * Since programming languages with HTTP packages don't all support PATCH, we have to detect the workaround.
- * If the user supplies the header
- * @param http_request the request that was made so we can check its headers. 
+ * There are 3 states
+ *
+ *  X-HTTP-Method-Override header is not present means "no", there is no override support, POST is the wrong method so 405
+ *  X-HTTP-Method-Override header is present, == PATCH, and method request is POST means "yes", there is valid override support, POST is OK, 200
+ *  X-HTTP-Method-Override header is present, !== PATCH or method request is not POST means "invalid", there is invalid override support so 400
+ *
+ *  REST has a different response for each.
  */
-exports.checkPatchOverrideSupport = function(req, resp){
+exports.checkPatchOverrideSupport = function(req, res){
     let overrideStatus = "no"
-    const overrideHeader = req.getHeader("X-HTTP-Method-Override");
+    const overrideHeader = req.getHeader("X-HTTP-Method-Override")
     if(undefined != overrideHeader){
         if(overrideHeader.equals("PATCH")){
-            overrideStatus = "yes"
+            return true
         }
         else{
-            overrideStatus = "improper"
+            res.status(400).send(
+                'Detected an invalid attempt to supply the "X-HTTP-Method-Override" header.  '+ 
+                'Use the POST method with this header, or use the PATCH method without this header.'
+            )
         }
     }
-    return overrideStatus;
+    else{
+        res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
+    }
 }

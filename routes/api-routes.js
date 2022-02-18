@@ -6,7 +6,7 @@ const controller = require('../db-controller.js')
 const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
-
+// https://stackoverflow.com/a/68151763/1413302 body-parser is already in express.json() now.  Confirm this, and remove bodyParser if so.
 const bodyParser = require('body-parser')
 const jsonParser = bodyParser.json()
 
@@ -142,7 +142,14 @@ router.route('/api/patch')
     .get((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
     })
-    .post(rest.checkPatchOverrideSupport)
+    .post((req, res) => {
+        if(rest.checkPatchOverrideSupport()){
+            controller.patchUpdate(req, resp)
+        }
+        else{
+            res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')    
+        }
+    })
     .put((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
     })

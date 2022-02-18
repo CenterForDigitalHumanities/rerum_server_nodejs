@@ -48,6 +48,27 @@ exports.putUpdate = async function (req, res) {
     
 }
 
+// Create object passed in the body
+// TODO only registered apps should be able to do this.  It should alter history.
+// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+exports.patchUpdate = async function (req, res) {
+    
+}
+
+// Create object passed in the body
+// TODO only registered apps should be able to do this.  It should alter history.
+// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+exports.patchSet = async function (req, res) {
+    
+}
+
+// Create object passed in the body
+// TODO only registered apps should be able to do this.  It should alter history.
+// Note this is the same thing as an /overwrite without history when you don't care about __rerum.generatedBy.
+exports.patchUnset = async function (req, res) {
+    
+}
+
 // Overwrite object passed in the body with replaceOne 
 // TODO only registered apps, and only if the requestor is of the agent __rerum.generatedBy for the object being overwritten.
 exports.overwrite = async function (req, res) {
@@ -145,7 +166,7 @@ async function mongoConnection(){
 }
 
 /**
- * Allow for HEAD requests for requests like /v1/api/id
+ * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
  * No object is returned, but the Content-Length header is set. 
  * */
 exports.idHeadRequest = async function(req, res){
@@ -172,7 +193,7 @@ exports.idHeadRequest = async function(req, res){
 }
 
 /**
- * Allow for HEAD requests for requests like /v1/api/query
+ * Allow for HEAD requests via the RERUM getByProperties pattern /v1/api/query
  * No objects are returned, but the Content-Length header is set. 
  * */
 exports.queryHeadRequest = async function(req, res){
@@ -190,9 +211,8 @@ exports.queryHeadRequest = async function(req, res){
             res.sendStatus(200)    
         }
         else{
-            //Hmm 404 or 200?
             res.set("Content-Length", 0)
-            res.sendStatus(404)    
+            res.sendStatus(204)    
         }
     }
     catch(err){

@@ -52,8 +52,7 @@ app.all('/', (req, res, next) => {
  * If we are, then show the sad puppy.  Otherwise, continue on.
  * This is with middleware
  */ 
-app.use('/', downCheck)
-
+app.use('/', downCheck) //This says to do next() if we aren't in maintenance mode
 
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
