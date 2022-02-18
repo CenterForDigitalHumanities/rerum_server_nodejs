@@ -35,16 +35,19 @@ router.get('/', function (req, res) {
 router.route('/id/:_id')
     .get(controller.id)
     .post((req, res) => {
-        res.status(405).send('Improper request method for reading, please use GET or request for headers with HEAD.')
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
     })
     .put((req, res) => {
-        res.status(405).send('Improper request method for reading, please use GET or request for headers with HEAD.')
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for reading, please use GET or request for headers with HEAD.')
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
     })
     .options(rest.optionsRequest)
     .head(controller.idHeadRequest)
+    .delete((req, res) => {
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+    })
 
 /**
  * Support POST requests with JSON bodies used for passing queries though to the database.
@@ -64,6 +67,9 @@ router.route('/api/query')
     })
     .options(rest.optionsRequest)
     .head((req, res) => {
+        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
+    })
+    .delete((req, res) => {
         res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
     })
     //Do we want to support this? Technically HEAD is only for something that could be a GET request.  
@@ -89,7 +95,9 @@ router.route('/api/create')
     .head((req, res) => {
         res.status(405).send('Improper request method for creating, please use POST.')
     })
-
+    .delete((req, res) => {
+        res.status(405).send('Improper request method for creating, please use POST.')
+    })
 
 /**
  * Support POST requests with JSON bodies used for replacing some existing object in MongoDB.
@@ -108,6 +116,9 @@ router.route('/api/overwrite')
     })
     .options(rest.optionsRequest)
     .head((req, res) => {
+        res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
+    })
+    .delete((req, res) => {
         res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
     })
     
@@ -131,7 +142,9 @@ router.route('/api/update')
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PUT to update this object.')
     })
-    
+    .delete((req, res) => {
+        res.status(405).send('Improper request method for updating, please use PUT to update this object.')
+    })
 
 /**
  * Support PATCH requests with JSON bodies used for replacing some existing keys in some existing object in MongoDB.
@@ -158,7 +171,9 @@ router.route('/api/patch')
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
     })
-    
+    .delete((req, res) => {
+        res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
+    })
 
 /**
  * Support PATCH requests with JSON bodies used for creating new keys in some existing object in MongoDB.
@@ -178,7 +193,9 @@ router.route('/api/set')
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
     })
-    
+    .delete((req, res) => {
+        res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
+    })
 
 /**
  * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
@@ -198,7 +215,9 @@ router.route('/api/unset')
     .head((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
     })
-
+    .delete((req, res) => {
+        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
+    })
 /**
  * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
  * Note that this will track history.
