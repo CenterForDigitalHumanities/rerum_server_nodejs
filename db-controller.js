@@ -30,7 +30,7 @@ exports.create = async function (req, res) {
         console.log(obj)
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj)
         res.location(obj["@id"])
-        res.json(obj) //What response code does this fail with if obj is not json?
+        res.json(obj)
     }
     catch(err){
         console.error("Could not perform create, see error below")
@@ -44,9 +44,8 @@ exports.create = async function (req, res) {
  * Respond RESTfully
  * */
 exports.delete = async function (req, res) {
-    res.set("Content-Type", "application/json; charset=utf-8")
     try{
-        res.status(202).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
+        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
     }
     catch(err){
         console.error("Could not perform delete, see error below")
@@ -61,7 +60,14 @@ exports.delete = async function (req, res) {
  * Respond RESTfully
  * */
 exports.putUpdate = async function (req, res) {
-    
+    try{
+        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
+    }
+    catch(err){
+        console.error("Could not PUT update, see error below")
+        console.log(err)
+        res.json({"err":err})
+    }
 }
 
 /**
@@ -71,7 +77,14 @@ exports.putUpdate = async function (req, res) {
  * Respond RESTfully
  * */
 exports.patchUpdate = async function (req, res) {
-    
+    try{
+        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
+    }
+    catch(err){
+        console.error("Could not perform PATCH update, see error below")
+        console.log(err)
+        res.json({"err":err})
+    }
 }
 
 /**
@@ -82,7 +95,14 @@ exports.patchUpdate = async function (req, res) {
  * Respond RESTfully
  * */
 exports.patchSet = async function (req, res) {
-    
+    try{
+        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
+    }
+    catch(err){
+        console.error("Could not perform PATCH set, see error below")
+        console.log(err)
+        res.json({"err":err})
+    }
 }
 
 /**
@@ -93,7 +113,14 @@ exports.patchSet = async function (req, res) {
  * Respond RESTfully
  * */
 exports.patchUnset = async function (req, res) {
-    
+    try{
+        res.status(501).send("This is not supported yet.  Nothing happened.")
+    }
+    catch(err){
+        console.error("Could not perform PATCH Unset, see error below")
+        console.log(err)
+        res.json({"err":err})
+    }
 }
 
 /**
