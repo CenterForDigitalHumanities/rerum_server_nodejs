@@ -7,7 +7,8 @@
     "stop": "node ./bin/stopApp.js",
     "devstart": "node ./bin/startApp.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
-    "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod"
+    "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod",
+    "test": "jest"
   },
   "dependencies": {
     "aws-secrets-dotenv": "^1.0.0",
@@ -15,6 +16,7 @@
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "dotenv": "^10.0.0",
+    "dotenv-expand": "^8.0.1",
     "ejs": "~2.6.1",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
@@ -26,6 +28,11 @@
     "socket.io-client": "^4.4.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.12"
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "jest": "^27.5.1",
+    "nodemon": "^2.0.12",
+    "superagent": "^7.1.1",
+    "supertest": "^6.2.2"
   }
 }
