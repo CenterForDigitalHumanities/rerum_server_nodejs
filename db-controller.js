@@ -3,7 +3,6 @@
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
-const rest = require('./rest.js')
 client.connect()
 console.log("Controller has made a mongo connection...")
 
@@ -35,16 +34,12 @@ exports.create = async function (req, res) {
 
 /**
  * Mark an object as deleted in the database.
- * Support /api/delete/{id} as well as DELETE with JSON body containing a detectable '@id'
+ * Support /v1/delete/{id}.  Note this is not v1/api/delete, that is not possible (XHR does not support DELETE with body)
+ * Note /v1/delete/{blank} does not route here.  It routes to the generic 404.
  * Respond RESTfully
  * */
 exports.delete = async function (req, res) {
     let id = req.params["_id"]?req.params["_id"]:""
-    if(id === undefined || id === ""){
-        res.status(400).send("You must provide an id as part of the /api/delete/{id} URL or in the request body with {'@id':''}.  "  
-        +"Without an ID, there is nothing to look for.")
-        return false
-    }
     res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
 }
 
@@ -135,16 +130,13 @@ exports.query = async function (req, res) {
 /**
  * Query the MongoDB for objects with the _id provided in the request body or request URL
  * Note this specifically checks for _id, the @id pattern is irrelevant.  
+ * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * Track History
  * Respond RESTfully
  * */
 exports.id = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
-    if(id === undefined || id === ""){
-        res.status(400).send("You must provide an id as part of the /v1/id/{id} URL.  Without an ID, there is nothing to look for.")
-        return false
-    }
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         res.json(match)    
@@ -175,25 +167,20 @@ async function mongoConnection(){
 /**
  * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
  * No object is returned, but the Content-Length header is set. 
+ * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * */
 exports.idHeadRequest = async function(req, res){
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
-    if(id){
-        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(match){
-            const size = Buffer.byteLength(JSON.stringify(match))
-            res.set("Content-Length", size)
-            res.sendStatus(200)    
-        }
-        else{
-            res.sendStatus(404)
-        }      
+    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    if(match){
+        const size = Buffer.byteLength(JSON.stringify(match))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
     }
     else{
-        //This is a bad request, an ID must be provided in the URL
-        res.status(400).send("You must provide an id as part of the /v1/id/{id} URL.  Without an ID, there is nothing to look for.")
-    }
+        res.sendStatus(404)
+    }      
 }
 
 /**

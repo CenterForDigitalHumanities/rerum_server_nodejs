@@ -86,7 +86,7 @@ exports.messenger = function(err, req, res, next){
                 "The requested web page or resource could not be found."
         break
         case 405:
-            //I think these are all handled in api-routes.js already.  Not sure we will do anything custom here
+            //I think these are all handled in api-routes.js already, and won't route here.  Not sure we would do anything custom here anyway.
         break
         case 500:
             //Really bad, probably not specifically caught.  
