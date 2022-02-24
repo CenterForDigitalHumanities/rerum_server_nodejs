@@ -150,6 +150,8 @@ router.route('/api/update')
  * Support PATCH requests with JSON bodies used for replacing some existing keys in some existing object in MongoDB.
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
+ * 
+ * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
 */ 
 router.route('/api/patch')
     .get((req, res) => {
@@ -179,6 +181,8 @@ router.route('/api/patch')
  * Support PATCH requests with JSON bodies used for creating new keys in some existing object in MongoDB.
  * Note that this will track history.
  * Note that keys in the body of this request that are already on the existing object are ignored.   
+ * 
+ * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
 */ 
 router.route('/api/set')
     .get((req, res) => {
@@ -201,6 +205,8 @@ router.route('/api/set')
  * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
+ * 
+ * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
 */ 
 router.route('/api/unset')
     .get((req, res) => {
@@ -219,7 +225,8 @@ router.route('/api/unset')
         res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
     })
 /**
- * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
+ * Support DELETE request.
+ * TODO support this via delete/id/abcde or a post with a body that has an '@id'
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
 */ 
@@ -240,7 +247,25 @@ router.route('/api/delete')
     .head((req, res) => {
         res.status(405).send('Improper request method for deleting, please use DELETE.')
     })
-    .delete(controller.delete)    
-   
+    .delete(controller.delete)  
+
+/*
+router.route('/delete/:_id')
+    .get(controller.id)
+    .post((req, res) => {
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+    })
+    .put((req, res) => {
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+    })
+    .patch((req, res) => {
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+    })
+    .options(rest.optionsRequest)
+    .head(controller.idHeadRequest)
+    .delete((req, res) => {
+        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+    })  
+  */ 
 // Export API routes
 module.exports = router

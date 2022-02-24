@@ -24,7 +24,6 @@ exports.create = async function (req, res) {
         const id = new ObjectID().toHexString()
         let obj = req.body //Is that JSON?  If not, then 400
         obj["_id"] = id
-        //REMEMBER in the java this is a Constant.  Maybe this is the time to make it process.env
         obj["@id"] = process.env.RERUM_ID_PREFIX+id
         console.log("Creating an object (no history or __rerum yet)")
         console.log(obj)
@@ -36,6 +35,7 @@ exports.create = async function (req, res) {
     catch(err){
         console.error("Could not perform create, see error below")
         console.log(err)
+        //rest.message(res, err)
         res.json({"err":err})
     }
 }
@@ -115,7 +115,7 @@ exports.patchSet = async function (req, res) {
  * */
 exports.patchUnset = async function (req, res) {
     try{
-        res.status(501).send("This is not supported yet.  Nothing happened.")
+        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
     }
     catch(err){
         console.error("Could not perform PATCH Unset, see error below")
@@ -231,15 +231,21 @@ exports.idHeadRequest = async function(req, res){
     res.set("Content-Type", "application/json; charset=utf-8")
     try{
         let id = req.params["_id"]
-        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(match){
-            const size = Buffer.byteLength(JSON.stringify(match))
-            res.set("Content-Length", size)
-            res.sendStatus(200)    
+        if(id){
+            let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+            if(match){
+                const size = Buffer.byteLength(JSON.stringify(match))
+                res.set("Content-Length", size)
+                res.sendStatus(200)    
+            }
+            else{
+                res.sendStatus(404)
+            }      
         }
         else{
-            res.sendStatus(404)
-        }  
+            //This is a bad request, an ID must be provided in the URL
+            res.status(400).send("You must provide an id as part of the /v1/id/{id} URL.  Without an ID, there is nothing to look for.")
+        }
     }
     catch(err){
         res.status(500).send("Could not process HEAD request.  Request was like /v1/id/abcde")
