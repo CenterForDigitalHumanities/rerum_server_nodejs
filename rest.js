@@ -3,20 +3,12 @@
  * Support OPTIONS request, which are essentially CORS enabled heartbeats.  
  * */
 exports.optionsRequest = function (req, res) {
-    try{
-        //Explicitly set these headers and this status.  It's gotta happen.  Make sure it happens.  I'm super serious.
-        res.set("Access-Control-Allow-Origin", "*")
-        res.set("Access-Control-Allow-Headers", "*")
-        res.set("Access-Control-Expose-Headers", "*")
-        res.set("Access-Control-Allow-Methods", "*")
-        res.sendStatus(200)
-    }
-    catch(err){
-        console.error("Error processing an OPTIONS method request")
-        console.log(err)
-        res.json({"err":err})
-        res.sendStatus(500)
-    }
+    //Explicitly set these headers and this status.  It's gotta happen.  Make sure it happens.  I'm super serious.
+    res.set("Access-Control-Allow-Origin", "*")
+    res.set("Access-Control-Allow-Headers", "*")
+    res.set("Access-Control-Expose-Headers", "*")
+    res.set("Access-Control-Allow-Methods", "*")
+    res.sendStatus(200)
 }
 
 /**
@@ -53,11 +45,17 @@ exports.checkPatchOverrideSupport = function(req, res){
  * REST is all about communication.  The response code and the textual body are particular.
  * RERUM is all about being clear.  It will build custom responses sometimes for certain scenarios, will remaining RESTful.
  */
-exports.messenger = function(res, err){
-    const responseCode = res.statusCode
-    const responseMessage = res.statusMessage
+exports.messenger = function(err, req, res, next){
+    if (res.headersSent) {
+        console.log("Middleware cannot control this error.  Headers are sent.")
+        return next(err)
+    }
+    const responseCode = err.statusCode
+    const responseMessage = err.statusMessage
+    console.log("I am in messenger with code '"+responseCode+"' and message '"+responseMessage+"'")
     let customResponseBody = {}
-    customResponseBody.http_response_code = responseCode
+    customResponseBody.http_response_code =  responseCode
+    customResponseBody.message = responseMessage
     switch (responseCode){
         case 400:
             //"Bad Request", most likely because the body and Content-Type are not aligned.  Could be bad JSON.
@@ -84,10 +82,11 @@ exports.messenger = function(res, err){
             }  
         break
         case 404:
-            //I think these are so self explanatory that we may not do anything custom with it.
+            customResponseBody.message = 
+                "The requested web page or resource could not be found."
         break
         case 405:
-            //I think these are all handled in api-routes.js already.  Not sure we will pass into here for the 405 messages.
+            //I think these are all handled in api-routes.js already.  Not sure we will do anything custom here
         break
         case 500:
             //Really bad, probably not specifically caught.  
@@ -98,9 +97,11 @@ exports.messenger = function(res, err){
             customResponseBody.message = "RERUM v1 is down for updates or maintenance at this time.  "  
             +"We aplologize for the inconvenience.  Try again later."
         break
-
-
+        default:
+            //Unsupported messaging scenario for this helper function.  
+            //A customized object for the original error will be sent, if res allows it.
     }
+    console.log("Messenger to send custom body")
+    console.log(customResponseBody)
+    res.status(responseCode).send(customResponseBody)
 }
-
-
