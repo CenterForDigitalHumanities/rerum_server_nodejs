@@ -96,6 +96,7 @@ exports.messenger = function(err, req, res, next){
             //RERUM is down
             customResponseBody.message = "RERUM v1 is down for updates or maintenance at this time.  "  
             +"We aplologize for the inconvenience.  Try again later."
+            res.redirect(301, "/maintenance.html")
         break
         default:
             //Unsupported messaging scenario for this helper function.  
