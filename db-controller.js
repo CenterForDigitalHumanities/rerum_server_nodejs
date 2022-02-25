@@ -47,13 +47,18 @@ exports.create = async function (req, res, next) {
  * Support /v1/delete/{id}.  Note this is not v1/api/delete, that is not possible (XHR does not support DELETE with body)
  * Note /v1/delete/{blank} does not route here.  It routes to the generic 404.
  * Respond RESTfully
+ * 
+ * The user may be trying to call /delete and pass in the obj in the body.  XHR does not support bodies in delete.
+ * If there is no id parameter, this is a 400
+ * 
+ * If there is an id parameter, we ignore body, and continue with that id
+ * 
  * */
 exports.delete = async function (req, res, next) {
     let id = req.params["_id"]?req.params["_id"]:""
-    res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
-    //res.status(501)
-    //res.statusMessage = "You will get a 204 upon success.  This is not supported yet.  Nothing happened."
-    //next()
+    res.status(501)
+    res.statusMessage = "You will get a 204 upon success.  This is not supported yet.  Nothing happened."
+    next()
 }
 
 /**
@@ -62,10 +67,9 @@ exports.delete = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.putUpdate = async function (req, res, next) {
-    res.status(501).send("You will get a 200 upon success.  This is not supported yet.  Nothing happened.")
-    //res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    //res.status(501)
-    //next()
+    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
+    res.status(501)
+    next()
 }
 
 /**
@@ -76,10 +80,9 @@ exports.putUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUpdate = async function (req, res, next) {
-    res.status(501).send("You will get a 200 upon success.  This is not supported yet.  Nothing happened.")
-    //res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    //res.status(501)
-    //next()
+    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
+    res.status(501)
+    next()
 }
 
 /**
@@ -90,10 +93,9 @@ exports.patchUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchSet = async function (req, res, next) {
-    res.status(501).send("You will get a 200 upon success.  This is not supported yet.  Nothing happened.")
-    //res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    //res.status(501)
-    //next()
+    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
+    res.status(501)
+    next()
 }
 
 /**
@@ -104,10 +106,9 @@ exports.patchSet = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUnset = async function (req, res, next) {
-    res.status(501).send("You will get a 200 upon success.  This is not supported yet.  Nothing happened.")
-    //res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    //res.status(501)
-    //next()
+    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
+    res.status(501)
+    next()
 }
 
 /**
@@ -132,10 +133,9 @@ exports.overwrite = async function (req, res, next) {
     }    
     else{
         //This is a custom one, the http module will not detect this as a 400 on its own
-        res.status(400).send("Object in request body must have the property '@id'.")
-        //res.statusMessage = "Object in request body must have the property '@id'."
-        //res.status(400)
-        //next()
+        res.statusMessage = "Object in request body must have the property '@id'."
+        res.status(400)
+        next()
     } 
 }
 
@@ -171,10 +171,9 @@ exports.id = async function (req, res, next) {
         res.json(match)    
     }
     else{
-        console.log("THERE was no object!!")
-        res.status(404).send("There is no object in the database with this id.  Check the URL.")
-        //res.statusMessage = "There is no object in the database with this id.  Check the URL."
-        //next()
+        res.statusMessage = "There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
     }  
 }
 
@@ -193,10 +192,9 @@ exports.idHeadRequest = async function(req, res, next){
         res.sendStatus(200)    
     }
     else{
-        res.status(404).send("There is no object in the database with this id.  Check the URL.")
-        //res.statusMessage = "There is no object in the database with this id.  Check the URL."
-        //res.status(404)
-        //next()
+        res.statusMessage = "There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
     }      
 }
 

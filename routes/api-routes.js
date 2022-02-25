@@ -314,10 +314,9 @@ router.route('/api/unset')
     })
 
 /**
- * Support DELETE requests like an /id/ request, where the id is the thing to delete
- * Note this needs to be separate from v1/api/delete, so it is just /v1/delete/
+ * DELETE cannot have body.  It is possible to call /delete/ without an id, which will 400.
 */ 
-router.route('/delete/:_id')
+router.route('/api/delete/:_id?')
     .get((req, res) => {
         res.statusMessage = 'Improper request method for deleting, please use DELETE.'
         res.status(405)
@@ -344,49 +343,24 @@ router.route('/delete/:_id')
         next()
     })
     .delete(controller.delete)  
- 
+
 
 /**
- * Support DELETE request where there is JSON in the body with a detectable "id"  
- * NOTE XHR DOES NOT SUPPORT THIS!!!!!
-*/ 
-router.route('/api/delete')
-    .get((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .post((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .patch((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .head((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .delete((req, res) => {
-        res.statusMessage = 'HTTP Request bodies with DELETE methods are not allowed.  Please use URL pattern /v1/delete/{id} and do not pass a body.'
-        res.status(400)
-        next()
-    }) 
-
-//catch 404 because of an invalid site path inside of /v1/
+ * Use this to catch 404s because of invalid /api/ paths and pass them to the error handler in app.js
+ * 
+ * Note while we have 501s, they will fall here.  Don't let them trick you.
+ * Detect them and send them out, don't hand up to the 404 catcher in app.js
+ */
 router.use(function(req, res, next) {
-    let msg = res.statusMessage ? res.statusMessage : "This page does not exist"
-    res.status(404).send(msg)
-    res.end()
+    if(res.statusCode === 501){
+        //We can remove this once we implement the functions, for now we have to catch it here.
+        let msg = res.statusMessage ? res.statusMessage : "This is not yet implemented"
+        res.status(501).send(msg).end()
+    }
+    else{
+        //A 404 to pass along to our 404 handler in app.js
+        next()
+    }
 })
 
 // Export API routes

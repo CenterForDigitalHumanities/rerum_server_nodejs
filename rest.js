@@ -41,8 +41,6 @@ exports.messenger = function(err, req, res, next){
         console.log("Middleware cannot control this error.  Headers are sent.")
         return next(err)
     }
-    console.log("In messenger with "+res.statusCode+" and "+res.statusMessage)
-    console.log("In messenger with "+err.statusCode+" and "+err.statusMessage)
     let customResponseBody = {}
     let statusCode = err.statusCode ? err.statusCode : res.statusCode ? res.statusCode : 500
     customResponseBody.http_response_code = statusCode
