@@ -2,9 +2,9 @@
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
-const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
-client.connect();
-console.log("Controller is made a mongo connection...")
+const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
+client.connect()
+console.log("Controller has made a mongo connection...")
 
 // Handle index actions
 exports.index = function (req, res) {
@@ -20,39 +20,27 @@ exports.index = function (req, res) {
  * */
 exports.create = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    try{
-        const id = new ObjectID().toHexString()
-        let obj = req.body //Is that JSON?  If not, then 400
-        obj["_id"] = id
-        //REMEMBER in the java this is a Constant.  Maybe this is the time to make it process.env
-        obj["@id"] = process.env.RERUM_ID_PREFIX+id
-        console.log("Creating an object (no history or __rerum yet)")
-        console.log(obj)
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj)
-        res.location(obj["@id"])
-        res.status(201)
-        res.json(obj)
-    }
-    catch(err){
-        console.error("Could not perform create, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+    const id = new ObjectID().toHexString()
+    let obj = req.body
+    obj["_id"] = id
+    obj["@id"] = process.env.RERUM_ID_PREFIX+id
+    console.log("Creating an object (no history or __rerum yet)")
+    console.log(obj)
+    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj)
+    res.location(obj["@id"])
+    res.status(201)
+    res.json(obj)
 }
 
 /**
- * Create a new Linked Open Data object in RERUM v1.
+ * Mark an object as deleted in the database.
+ * Support /v1/delete/{id}.  Note this is not v1/api/delete, that is not possible (XHR does not support DELETE with body)
+ * Note /v1/delete/{blank} does not route here.  It routes to the generic 404.
  * Respond RESTfully
  * */
 exports.delete = async function (req, res) {
-    try{
-        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
-    }
-    catch(err){
-        console.error("Could not perform delete, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+    let id = req.params["_id"]?req.params["_id"]:""
+    res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
 }
 
 /**
@@ -61,14 +49,7 @@ exports.delete = async function (req, res) {
  * Respond RESTfully
  * */
 exports.putUpdate = async function (req, res) {
-    try{
-        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
-    }
-    catch(err){
-        console.error("Could not PUT update, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+    res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
 }
 
 /**
@@ -78,14 +59,7 @@ exports.putUpdate = async function (req, res) {
  * Respond RESTfully
  * */
 exports.patchUpdate = async function (req, res) {
-    try{
-        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
-    }
-    catch(err){
-        console.error("Could not perform PATCH update, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+    res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
 }
 
 /**
@@ -96,14 +70,7 @@ exports.patchUpdate = async function (req, res) {
  * Respond RESTfully
  * */
 exports.patchSet = async function (req, res) {
-    try{
-        res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
-    }
-    catch(err){
-        console.error("Could not perform PATCH set, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+    res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")   
 }
 
 /**
@@ -114,14 +81,7 @@ exports.patchSet = async function (req, res) {
  * Respond RESTfully
  * */
 exports.patchUnset = async function (req, res) {
-    try{
-        res.status(501).send("This is not supported yet.  Nothing happened.")
-    }
-    catch(err){
-        console.error("Could not perform PATCH Unset, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+    res.status(501).send("You will get a 204 upon success.  This is not supported yet.  Nothing happened.")
 }
 
 /**
@@ -131,30 +91,25 @@ exports.patchUnset = async function (req, res) {
  * */
 exports.overwrite = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    try{
-        let obj = req.body
-        if(obj.hasOwnProperty("@id")){
-            console.log("Overwriting an object (no history or __rerum yet)")
-            const query = {"@id":obj["@id"]}
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj)
-            if(result.modifiedCount > 0){
-                res.set("Location", obj["@id"])
-                res.json(obj)
-            }
-            else{
-                res.sendStatus(304)
-            }
-        }    
+    let obj = req.body
+    if(obj.hasOwnProperty("@id")){
+        console.log("Overwriting an object (no history or __rerum yet)")
+        const query = {"@id":obj["@id"]}
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj)
+        if(result.modifiedCount > 0){
+            res.set("Location", obj["@id"])
+            res.json(obj)
+        }
         else{
-            //Can I set the 400 status here?
-            res.json({"err" : "Object in request body must have the property '@id'."})
-        } 
-    }
-    catch(err){
-        console.error("Could not perform overwrite, see error below")
-        console.log(err)
-        res.json({"err":err})
-    }
+            res.sendStatus(304)
+        }
+    }    
+    else{
+        //This is a custom one, the http module will not detect this as a 400 on its own
+        //Not sure that the error handler is coded in a way that we can pass this custom message to it
+        //If we just send() here, there is no next().  Below is a brute force erroring. 
+        rest.status(400).send({"http_response_code":400, "message":"Object in request body must have the property '@id'."})
+    } 
 }
 
 /**
@@ -166,43 +121,31 @@ exports.overwrite = async function (req, res) {
  * */
 exports.query = async function (req, res) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    try{
-        let props = req.body
-        console.log("Looking matches against props...")
-        console.log(props)
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-        console.log(matches)
-        res.json(matches)
-    }
-    catch(err){
-        console.error("Could not perform query, see error below")
-        console.log(err)
-        res.json([])
-    }
+    let props = req.body
+    console.log("Looking matches against props...")
+    console.log(props)
+    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+    console.log(matches)
+    res.json(matches)
 }
 
 /**
  * Query the MongoDB for objects with the _id provided in the request body or request URL
  * Note this specifically checks for _id, the @id pattern is irrelevant.  
+ * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * Track History
  * Respond RESTfully
  * */
 exports.id = async function (req, res) {
-    console.log("Controller.id Here...")
     res.set("Content-Type", "application/json; charset=utf-8")
-    try{
-        let id = req.params["_id"]
-        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(match){
-            res.json(match)    
-        }
-        else{
-            res.sendStatus(404)
-        }  
+    let id = req.params["_id"]
+    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    if(match){
+        res.json(match)    
     }
-    catch(err){
-        res.status(500).send("Could not perform lookup by id.")
-    }
+    else{
+        res.sendStatus(404)
+    }  
 }
 
 //Connect to a mongodb via mongodb node driver.
@@ -226,24 +169,20 @@ async function mongoConnection(){
 /**
  * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
  * No object is returned, but the Content-Length header is set. 
+ * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * */
 exports.idHeadRequest = async function(req, res){
     res.set("Content-Type", "application/json; charset=utf-8")
-    try{
-        let id = req.params["_id"]
-        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(match){
-            const size = Buffer.byteLength(JSON.stringify(match))
-            res.set("Content-Length", size)
-            res.sendStatus(200)    
-        }
-        else{
-            res.sendStatus(404)
-        }  
+    let id = req.params["_id"]
+    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    if(match){
+        const size = Buffer.byteLength(JSON.stringify(match))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
     }
-    catch(err){
-        res.status(500).send("Could not process HEAD request.  Request was like /v1/id/abcde")
-    }
+    else{
+        res.sendStatus(404)
+    }      
 }
 
 /**
@@ -252,20 +191,15 @@ exports.idHeadRequest = async function(req, res){
  * */
 exports.queryHeadRequest = async function(req, res){
     res.set("Content-Type", "application/json; charset=utf-8")
-    try{
-        let props = req.body
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-        if(matches.length){
-            const size = Buffer.byteLength(JSON.stringify(match))
-            res.set("Content-Length", size)
-            res.sendStatus(200)    
-        }
-        else{
-            res.set("Content-Length", 0)
-            res.sendStatus(204)    
-        }
+    let props = req.body
+    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+    if(matches.length){
+        const size = Buffer.byteLength(JSON.stringify(match))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
     }
-    catch(err){
-        res.status(500).send("Could not process HEAD request.  Request was like /v1/api/query")
+    else{
+        res.set("Content-Length", 0)
+        res.sendStatus(204)    
     }
 }

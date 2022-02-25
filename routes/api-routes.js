@@ -150,6 +150,8 @@ router.route('/api/update')
  * Support PATCH requests with JSON bodies used for replacing some existing keys in some existing object in MongoDB.
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
+ * 
+ * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
 */ 
 router.route('/api/patch')
     .get((req, res) => {
@@ -179,6 +181,8 @@ router.route('/api/patch')
  * Support PATCH requests with JSON bodies used for creating new keys in some existing object in MongoDB.
  * Note that this will track history.
  * Note that keys in the body of this request that are already on the existing object are ignored.   
+ * 
+ * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
 */ 
 router.route('/api/set')
     .get((req, res) => {
@@ -201,6 +205,8 @@ router.route('/api/set')
  * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
+ * 
+ * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning,)
 */ 
 router.route('/api/unset')
     .get((req, res) => {
@@ -218,10 +224,34 @@ router.route('/api/unset')
     .delete((req, res) => {
         res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
     })
+
 /**
- * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
- * Note that this will track history.
- * Note that keys in the body of this request that are not on the existing object are ignored.  
+ * Support DELETE requests like an /id/ request, where the id is the thing to delete
+ * Note this needs to be separate from v1/api/delete, so it is just /v1/delete/
+*/ 
+router.route('/delete/:_id')
+    .get((req, res) => {
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
+    })
+    .post((req, res) => {
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
+    })
+    .put((req, res) => {
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
+    })
+    .patch((req, res) => {
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
+    })
+    .options(rest.optionsRequest)
+    .head((req, res) => {
+        res.status(405).send('Improper request method for deleting, please use DELETE.')
+    })
+    .delete(controller.delete)  
+ 
+
+/**
+ * Support DELETE request where there is JSON in the body with a detectable "id"  
+ * NOTE XHR DOES NOT SUPPORT THIS!!!!!
 */ 
 router.route('/api/delete')
     .get((req, res) => {
@@ -240,7 +270,10 @@ router.route('/api/delete')
     .head((req, res) => {
         res.status(405).send('Improper request method for deleting, please use DELETE.')
     })
-    .delete(controller.delete)    
-   
+    .delete((req, res) => {
+        res.status(405).send('HTTP Request bodies with DELETE methods are not allowed.  '  
+        +'Please use URL pattern /v1/delete/{id} and do not pass a body.')
+    }) 
+
 // Export API routes
 module.exports = router

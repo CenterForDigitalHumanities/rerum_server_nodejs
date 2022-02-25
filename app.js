@@ -15,6 +15,7 @@ var indexRouter = require('./routes/index.js')
 var apiRouter = require('./routes/api-routes.js')
 
 //var utils = require('utils.js')
+const rest = require('./rest.js')
 var app = express()
 
 // view engine setup
@@ -50,21 +51,25 @@ app.all('*', (req, res, next) => {
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
 
-
-// catch 404 and forward to error handler
+// catch 404 because of an invalid site path, and error out
 app.use(function(req, res, next) {
   next(createError(404))
 })
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message
-  res.locals.error = req.app.get('env') === 'development' ? err : {}
+/**
+ * Handle API errors and warnings RESTfully.  All routes that don't end in res.send() will end up here.
+ * Important to note that res.json() will fail to here
+ * Important to note api-routes.js handles all the 405s without failing to here - they res.send()
+ * Important to note that failures in the controller from the mongo client will fail to here
+ * 
+ * */
+app.use(rest.messenger)
 
-  // render the error page
-  res.status(err.status || 500)
-  res.render('error')
+/**
+ * Not even the messenger could figure out what to do.  500 out hard. 
+ */
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
 })
-
 module.exports = app
