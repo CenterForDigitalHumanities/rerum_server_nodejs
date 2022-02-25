@@ -13,13 +13,12 @@ exports.optionsRequest = function (req, res) {
 
 /**
  * Since programming languages with HTTP packages don't all support PATCH, we have to detect the workaround.
- * There are 3 states
+ * There are 3 conditions leading to a boolean outcome.  error messaging is handled upstream.  
+ * This is routed to by a res.post() so the request method is ALWAYS POST
  *
  *  X-HTTP-Method-Override header is not present means "no", there is no override support, POST is the wrong method so 405
  *  X-HTTP-Method-Override header is present, !== PATCH means "no", you have done a POST and are not emulating it is as a PATCH, so 405
  *  X-HTTP-Method-Override header is present, == PATCH, and method request is POST means "yes", you are emulating a POST as a PATCH, correct method 200
- *
- *  REST has a different response for each.
  *
  *  The error handler sits a level up, so do not res.send() or res.render here.  Just give back a boolean
  */
