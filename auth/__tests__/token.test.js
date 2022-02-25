@@ -3,7 +3,10 @@ const express = require('express')
 const app = express()
 const auth = require("../token")
 const createJWKSMock = require("mock-jwks").default
-app.use('/authorize', auth.checkJwt, (req, res) => {
+app.get('/authorize', auth.checkJwt, (req, res) => {
+    res.status(200).send()
+})
+app.get('/open', (req, res) => {
     res.status(200).send()
 })
 
@@ -17,7 +20,7 @@ describe('Some tests for authentication for our api', () => {
     test('should not get access without correct token', async () => {
         // We start intercepting queries (see below)
         jwksMock.start()
-        const { status } = await req.get('/')
+        const { status } = await req.get('/authorize')
         expect(status).toBe(401)
     })
     test('should get access with mock token when jwksMock is running', async () => {
@@ -28,7 +31,7 @@ describe('Some tests for authentication for our api', () => {
             iss: 'master',
         })
         const { status } = await req
-            .get('/')
+            .get('/authorize')
             .set('Authorization', `Bearer ${access_token}`)
         expect(status).toBe(200)
     })
@@ -40,7 +43,7 @@ describe('Some tests for authentication for our api', () => {
             iss: 'master',
         })
         const { status } = await req
-            .get('/')
+            .get('/authorize')
             .set('Authorization', `Bearer ${access_token}`)
         expect(status).toBe(401)
     })
