@@ -382,5 +382,12 @@ router.route('/api/delete')
         next()
     }) 
 
+//catch 404 because of an invalid site path inside of /v1/
+router.use(function(req, res, next) {
+    let msg = res.statusMessage ? res.statusMessage : "This page does not exist"
+    res.status(404).send(msg)
+    res.end()
+})
+
 // Export API routes
 module.exports = router

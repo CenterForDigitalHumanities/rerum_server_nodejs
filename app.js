@@ -61,12 +61,19 @@ app.use('/v1', apiRouter)
  * */
 app.use(rest.messenger)
 
+//catch 404 because of an invalid site path outside of /v1/, and error out
+app.use(function(req, res, next) {
+    let msg = res.statusMessage ? res.statusMessage : "This page does not exist"
+    res.status(404).send(msg)  
+    res.end()
+})
+
 /**
  * Not even the messenger could figure out what to do.  500 out hard. 
  */
 app.use((err, req, res, next) => {
   console.error(err.stack)
-  res.status(500).send('Something broke!')
+  res.status(500).send('Something went wrong under the hood.')
 })
 
 module.exports = app
