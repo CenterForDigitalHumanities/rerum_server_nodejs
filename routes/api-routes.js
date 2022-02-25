@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+
+/**
+ * This module is used to define the routes of the various HITTP request that come to the app.
+ * Since this app functions as an API layer, it controls RESTful flows.  Make sure to send a RESTful
+ * status code and response message. 
+ * 
+ * It is used as middleware and so has access to the http module request and response objects, as well as next()
+ * 
+ * @author thehabes 
+ */
+
 const router = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
@@ -29,74 +40,93 @@ router.get('/', function (req, res) {
 
 /**
  * Support GET requests like v1/id/{object id}  
- * RESTfully handle bad methods and request bodies.  
- * RESTfully respond in 500 scenarios.
 */
 router.route('/id/:_id')
     .get(controller.id)
     .post((req, res) => {
-        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
     .put((req, res) => {
-        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
     .patch((req, res) => {
-        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
-    .options(rest.optionsRequest)
     .head(controller.idHeadRequest)
     .delete((req, res) => {
-        res.status(405).send('Improper method for request by id, please use GET or request for headers with HEAD.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
 
 /**
  * Support POST requests with JSON bodies used for passing queries though to the database.
- * RESTfully handle bad methods and request bodies.  
- * RESTfully respond in 500 scenarios. 
 */
 router.route('/api/query')
     .get((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
+        res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
+        res.status(405)
+        next()
     })
     .post(controller.query)
     .put((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
+        res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
+        res.status(405)
+        next()
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
-    })
-    .options(rest.optionsRequest)
-    .head((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
-    })
-    .delete((req, res) => {
-        res.status(405).send('Improper request method for requesting objects with matching properties.  Please use POST.')
+        res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
+        res.status(405)
+        next()
     })
     //Do we want to support this? Technically HEAD is only for something that could be a GET request.  
     //.head(controller.queryHeadRequest)
+    .head((req, res) => {
+        res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
+        res.status(405)
+        next()
+    })
+    .delete((req, res) => {
+        res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
+        res.status(405)
+        next()
+    })
 
 /**
  * Support POST requests with JSON bodies used for establishing new objects in the MongoDB.
- * RESTfully handle bad methods and request bodies.  
- * RESTfully respond in 500 scenarios. 
 */
 router.route('/api/create')
     .get((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
     .post(controller.create)
     .put((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('Improper request method for creating, please use POST.')
+        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.status(405)
+        next()
     })
 
 /**
@@ -105,21 +135,30 @@ router.route('/api/create')
 */
 router.route('/api/overwrite')
     .get((req, res) => {
-        res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
+        res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
+        res.status(405)
+        next()
     })
     .post((req, res) => {
-        res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
+        res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
+        res.status(405)
+        next()
     })
     .put(controller.overwrite)
     .patch((req, res) => {
-        res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
+        res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
+        res.status(405)
+        next()
     })
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
+        res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('Improper request method for overwriting, please use PUT to overwrite this object.')
+        res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
+        res.status(405)
+        next()
     })
     
 
@@ -129,21 +168,30 @@ router.route('/api/overwrite')
 */ 
 router.route('/api/update')
     .get((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PUT to update this object.')
+        res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
+        res.status(405)
+        next()
     })
     .post((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PUT to update this object.')
+        res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
+        res.status(405)
+        next()
     })
     .put(controller.putUpdate)
     .patch((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PUT to update this object.')
+        res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
+        res.status(405)
+        next()
     })
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PUT to update this object.')
+        res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PUT to update this object.')
+        res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
+        res.status(405)
+        next()
     })
 
 /**
@@ -151,30 +199,39 @@ router.route('/api/update')
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
  * 
- * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
+ * If there is nothing to PATCH, return a 200 
 */ 
 router.route('/api/patch')
     .get((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
+        res.status(405)
+        next()
     })
     .post((req, res) => {
         if(rest.checkPatchOverrideSupport()){
             controller.patchUpdate(req, resp)
         }
         else{
-            res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')    
+            res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
+            res.status(405)
+            next()    
         }
     })
     .put((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
+        res.status(405)
+        next()
     })
-    .patch(controller.patchSet)
-    .options(rest.optionsRequest)
+    .patch(controller.patchUpdate)
     .head((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to alter existing keys on this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
+        res.status(405)
+        next()
     })
 
 /**
@@ -182,23 +239,38 @@ router.route('/api/patch')
  * Note that this will track history.
  * Note that keys in the body of this request that are already on the existing object are ignored.   
  * 
- * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning)
+ * If there is nothing to PATCH, return a 200 
 */ 
 router.route('/api/set')
     .get((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
+        res.status(405)
+        next()
     })
-    .post(rest.checkPatchOverrideSupport)
+    .post((req, res) => {
+        if(rest.checkPatchOverrideSupport()){
+            controller.patchSet(req, resp)
+        }
+        else{
+            res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
+            res.status(405)
+            next()    
+        }
+    })
     .put((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
-    })
+        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
+        res.status(405)
+        next()    })
     .patch(controller.patchSet)
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to add new keys object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
+        res.status(405)
+        next()
     })
 
 /**
@@ -206,23 +278,39 @@ router.route('/api/set')
  * Note that this will track history.
  * Note that keys in the body of this request that are not on the existing object are ignored.  
  * 
- * TODO If there is nothing to PATCH, return a 204 saying as much (this is a warning,)
+ * If there is nothing to PATCH, return a 200 
 */ 
 router.route('/api/unset')
     .get((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+        res.status(405)
+        next()
     })
-    .post(rest.checkPatchOverrideSupport)
+    .post((req, res) => {
+        if(rest.checkPatchOverrideSupport()){
+            controller.patchUnset(req, resp)
+        }
+        else{
+            res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+            res.status(405)
+            next()    
+        }
+    })
     .put((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+        res.status(405)
+        next()
     })
     .patch(controller.patchUnset)
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
+        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+        res.status(405)
+        next()
     })
 
 /**
@@ -231,20 +319,29 @@ router.route('/api/unset')
 */ 
 router.route('/delete/:_id')
     .get((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .post((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .put((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .delete(controller.delete)  
  
@@ -255,24 +352,34 @@ router.route('/delete/:_id')
 */ 
 router.route('/api/delete')
     .get((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .post((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .put((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .patch((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
-    .options(rest.optionsRequest)
     .head((req, res) => {
-        res.status(405).send('Improper request method for deleting, please use DELETE.')
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next()
     })
     .delete((req, res) => {
-        res.status(405).send('HTTP Request bodies with DELETE methods are not allowed.  '  
-        +'Please use URL pattern /v1/delete/{id} and do not pass a body.')
+        res.statusMessage = 'HTTP Request bodies with DELETE methods are not allowed.  Please use URL pattern /v1/delete/{id} and do not pass a body.'
+        res.status(400)
+        next()
     }) 
 
 // Export API routes
