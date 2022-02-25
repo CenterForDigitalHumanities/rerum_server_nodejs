@@ -37,6 +37,27 @@ const generateNewAccessToken = async (req, res) => {
 }
 
 /**
+ * Used by RERUM to renew the refresh token upon user request.
+ * @param {ExpressRequest} req from registered server application.
+ * @param {ExpressResponse} res to return the new token.
+ */
+const generateNewRefreshToken = async (req, res) => {
+    console.log("Generating a new refresh token.")
+
+    const tokenObj = await got.post('https://cubap/oauth/token',
+        {
+            form: {
+                grant_type: 'authorization_code',
+                client_id: process.env.client_id,
+                client_secret: process.env.client_secret,
+                refresh_token: req.body.refresh_token,
+                code: req.body.authorization_code
+            }
+        }).json()
+    res.send(tokenObj)
+}
+
+/**
  * Upon requesting an action, confirm the request has a valid token.
  * @param {(Base64)String} secret access_token from `Bearer` header in request
  * @returns decoded payload of JWT if successful
@@ -62,6 +83,7 @@ const isBot = (generatorId) => process.env.bot_agent === generatorId
 module.exports = {
     checkJwt,
     generateNewAccessToken,
+    generateNewRefreshToken,
     verifyAccess,
     isBot
 }
