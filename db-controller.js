@@ -105,8 +105,10 @@ exports.overwrite = async function (req, res) {
         }
     }    
     else{
-        //Can I set the 400 status here?
-        res.json({"err" : "Object in request body must have the property '@id'."})
+        //This is a custom one, the http module will not detect this as a 400 on its own
+        //Not sure that the error handler is coded in a way that we can pass this custom message to it
+        //If we just send() here, there is no next().  Below is a brute force erroring. 
+        rest.status(400).send({"http_response_code":400, "message":"Object in request body must have the property '@id'."})
     } 
 }
 
