@@ -10,7 +10,6 @@ var storedEnv = dotenv.config()
 dotenvExpand.expand(storedEnv)
 var logger = require('morgan')
 const cors = require('cors')
-const rest_messenger = require("./rest.js")
 
 var indexRouter = require('./routes/index.js')
 var apiRouter = require('./routes/api-routes.js')
