@@ -12,6 +12,7 @@
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
+const _ = require("lodash")
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
 client.connect()
 console.log("Controller has made a mongo connection...")
@@ -31,15 +32,17 @@ exports.index = function (req, res, next) {
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const id = new ObjectID().toHexString()
-    let obj = req.body
-    obj["_id"] = id
-    obj["@id"] = process.env.RERUM_ID_PREFIX+id
+    //A token came in with this request.  We need the agent from it.  
+    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
+    newObject["_id"] = id
+    newObject["@id"] = process.env.RERUM_ID_PREFIX+id
     console.log("Creating an object (no history or __rerum yet)")
-    console.log(obj)
-    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(obj)
-    res.location(obj["@id"])
+    console.log(newObject)
+    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+    res.location(newObject["@id"])
     res.status(201)
-    res.json(obj)
+    res.json(newObject)
 }
 
 /**
@@ -67,9 +70,93 @@ exports.delete = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.putUpdate = async function (req, res, next) {
-    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next()
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let received = JSON.parse(JSON.stringify(req.body))
+    //A token came in with this request.  We need the agent from it.  
+    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    if(received.hasOwnProperty("@id")){
+        let updateHistoryNextID = received["@id"]
+        let id = received.replace(process.env.RERUM_PREFIX, "")
+        //Do we want to look up by _id or @id?
+        const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+        let original_copy = JSON.parse(JSON.stringify(originalObject))
+        const alreadyDeleted = false //checkIfDeleted(originalObject) //WRITE ME
+        const isReleased = false //checkIfReleased(originalObject) //WRITE ME
+        if(_.isEqual(received, originalObject)){
+            res.statusMessage("Nothing to update")
+            res.status(304)
+            return next()
+        }
+        /*
+        else if(alreadyDeleted){
+            res.statusMessage("The object you are trying to update is deleted.")
+            res.status(403)
+            next()
+        }
+        else if(isReleased){
+            res.statusMessage("The object you are trying to update is released.  Fork to make changes.")
+            res.status(403)
+            next()
+        }
+        else{
+            if(undefined !== originalObject){
+                console.log("Put Updating an object (no history or __rerum yet)")
+                //The agent from the token of this request will be the generator for this new object
+                let newObject = configureRerumOptions(generatorAgent, originalObject, true, false)
+                const newObjID = new ObjectID().toHexString()
+                newObject["_id"] = newObjID
+                newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
+                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                if(alterHistoryNext(originalObject["@id"], newObject["@id"])){
+                    //Success, the original object has been updated.
+                    res.location(newObject["@id"])
+                    res.status(200)
+                    res.json(newObject)
+                }
+                else{
+                    //error is written out, maybe.  Do nothing
+                }
+            }
+            else{
+                //This object is not in RERUM, they want to import it.  Do that automatically.  
+                updateExternalObject(received)
+            }
+        }
+        */
+
+        if(undefined !== originalObject){
+            console.log("Put Updating an object (no history or __rerum yet)")
+            //The agent from the token of this request will be the generator for this new object
+            let newObject = utils.configureRerumOptions(generatorAgent, originalObject, true, false)
+            const newObjID = new ObjectID().toHexString()
+            newObject["_id"] = newObjID
+            newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
+            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+            if(alterHistoryNext(originalObject["@id"], newObject["@id"])){
+                //Success, the original object has been updated.
+                res.location(newObject["@id"])
+                res.status(200)
+                res.json(newObject)
+            }
+            else{
+                //error is written out, maybe.  Do nothing
+            }
+        }
+        else{
+            //This object is not in RERUM, they want to import it.  Do that automatically.  
+            //updateExternalObject(received)
+            res.statusMessage = "This object is not from RERUM and will need imported.  This is not supported yet."
+            res.status(501)
+            res.next()
+        }
+       
+    }
+    else{
+        //The http module will not detect this as a 400 on its own
+        res.statusMessage = "Object in request body must have the property '@id'."
+        res.status(400)
+        next()
+    } 
 }
 
 /**
@@ -215,4 +302,40 @@ exports.queryHeadRequest = async function(req, res, next){
         res.set("Content-Length", 0)
         res.sendStatus(200)    
     }
+}
+
+/**
+ * Internal helper method to update the history.previous property of a root object.  This will occur because a new root object can be created
+ * by put_update.action on an external object.  It must mark itself as root and contain the original ID for the object in history.previous.
+ * This method only receives reliable objects from mongo.
+ * 
+ * @param newRootObj the RERUM object whose history.previous needs to be updated
+ * @param externalObjID the @id of the external object to go into history.previous
+ * @return JSONObject of the provided object with the history.previous alteration
+ */   
+exports.alterHistoryPrevious = async function(newRootObj,externalObjID){
+    //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
+    return true
+    let id = newRootObj["@id"].replace(process.env.RERUM_PREFIX, "")
+    newRootObj.["__rerum"].history.previous = externalObjID
+    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, newRootObj)
+}
+
+/**
+ * Internal helper method to update the history.next property of an object.  This will occur because updateObject will create a new object from a given object, and that
+ * given object will have a new next value of the new object.  Watch out for missing __rerum or malformed __rerum.history
+ * 
+ * @param idForUpdate the @id of the object whose history.next needs to be updated
+ * @param newNextID the @id of the newly created object to be placed in the history.next array.
+ * @return Boolean altered true on success, false on fail
+ */
+exports.alterHistoryNext = async function(idForUpdate, newNextID){
+    return true
+    //TODO maybe we could just pass in the object like alterHistoryPrevious
+    //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
+    let id = idForUpdate.replace(process.env.RERUM_PREFIX, "")
+    let originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let updatedObject = JSON.parse(JSON.stringify(originalObject))
+    updatedObject["__rerum"].history.next.push(newNextID)
+    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, updatedObject)
 }
