@@ -79,7 +79,6 @@ exports.putUpdate = async function (req, res, next) {
         let updateHistoryNextID = received["@id"]
         let id = received["@id"].replace(process.env.RERUM_ID_PREFIX, "")
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        let original_copy = JSON.parse(JSON.stringify(originalObject))
         if(undefined === originalObject){
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(received)
