@@ -13,6 +13,7 @@
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
 const _ = require("lodash")
+const utils = require('./utils.js')
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
 client.connect()
 console.log("Controller has made a mongo connection...")
@@ -76,16 +77,17 @@ exports.putUpdate = async function (req, res, next) {
     let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(received.hasOwnProperty("@id")){
         let updateHistoryNextID = received["@id"]
-        let id = received.replace(process.env.RERUM_PREFIX, "")
+        let id = received["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        console.log("put update this id "+id)
         //Do we want to look up by _id or @id?
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
         let original_copy = JSON.parse(JSON.stringify(originalObject))
         const alreadyDeleted = false //checkIfDeleted(originalObject) //WRITE ME
         const isReleased = false //checkIfReleased(originalObject) //WRITE ME
-        if(undefined !== originalObject){{
+        if(undefined === originalObject){
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(received)
-            res.statusMessage = "This object is not from RERUM and will need imported.  This is not supported yet."
+            res.statusMessage = "This object is not from RERUM and will need imported.  This is not automated yet. You can make a new object with create."
             res.status(501)
             next()
         }
@@ -94,7 +96,6 @@ exports.putUpdate = async function (req, res, next) {
             res.status(304)
             next()
         }
-        /*
         else if(alreadyDeleted){
             res.statusMessage("The object you are trying to update is deleted.")
             res.status(403)
@@ -105,16 +106,14 @@ exports.putUpdate = async function (req, res, next) {
             res.status(403)
             next()
         }
-        */
         else{
             console.log("Put Updating an object (no history or __rerum yet)")
-            //The agent from the token of this request will be the generator for this new object
             let newObject = utils.configureRerumOptions(generatorAgent, originalObject, true, false)
             const newObjID = new ObjectID().toHexString()
             newObject["_id"] = newObjID
             newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-            if(alterHistoryNext(originalObject, newObject["@id"])){
+            if(exports.alterHistoryNext(originalObject, newObject["@id"])){
                 //Success, the original object has been updated.
                 res.location(newObject["@id"])
                 res.status(200)
@@ -301,7 +300,7 @@ exports.queryHeadRequest = async function(req, res, next){
  */   
 exports.alterHistoryPrevious = async function(objToUpdate, newPrevID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
-    objToUpdate.["__rerum"].history.previous = newPrevID
+    objToUpdate["__rerum"].history.previous = newPrevID
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
     return true
 }

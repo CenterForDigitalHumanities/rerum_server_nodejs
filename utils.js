@@ -36,9 +36,13 @@ isReleased        —always ""
  */
 exports.configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = JSON.parse(JSON.stringify(received))
-    let recieved_options = received["__rerum"] ? received["__rerum"] : {}
-    let history, releases, rerumOptions = {}
-    let history_prime, history_previous, releases_previous = ""
+    let received_options = received["__rerum"] ? received["__rerum"] : {}
+    let history = {}
+    let releases = {}
+    let rerumOptions = {}
+    let history_prime = ""
+    let history_previous = ""
+    let releases_previous = ""
     rerumOptions["@context"] = process.env.RERUM_CONTEXT
     rerumOptions.alpha = true
     rerumOptions.APIversion = process.env.RERUM_API_VERSION
@@ -96,9 +100,16 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     history.previous = history_previous
     history.prime = history_prime
     rerumOptions.history = history
-    rerumOptions.releases = 
+    rerumOptions.releases = releases
     rerumOptions.generatedBy = generator
     configuredObject["__rerum"] = rerumOptions
     return configuredObject //The mongo save/update has not been called yet.  The object returned here will go into mongo.save or mongo.update
 }
 
+exports.checkIfDeleted = function(obj){
+    return obj.hasOwnProperty("__deleted")
+}
+
+exports.checkIfReleased = function(obj){
+    return obj.hasOwnProperty("__rerum") && obj["__rerum"].hasOwnProperty("isReleased") && obj["__rerum"]["isReleased"] !== ""
+}
