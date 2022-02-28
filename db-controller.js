@@ -82,10 +82,17 @@ exports.putUpdate = async function (req, res, next) {
         let original_copy = JSON.parse(JSON.stringify(originalObject))
         const alreadyDeleted = false //checkIfDeleted(originalObject) //WRITE ME
         const isReleased = false //checkIfReleased(originalObject) //WRITE ME
-        if(_.isEqual(received, originalObject)){
+        if(undefined !== originalObject){{
+            //This object is not in RERUM, they want to import it.  Do that automatically.  
+            //updateExternalObject(received)
+            res.statusMessage = "This object is not from RERUM and will need imported.  This is not supported yet."
+            res.status(501)
+            next()
+        }
+        else if(_.isEqual(received, originalObject)){
             res.statusMessage("Nothing to update")
             res.status(304)
-            return next()
+            next()
         }
         /*
         else if(alreadyDeleted){
@@ -98,32 +105,8 @@ exports.putUpdate = async function (req, res, next) {
             res.status(403)
             next()
         }
-        else{
-            if(undefined !== originalObject){
-                console.log("Put Updating an object (no history or __rerum yet)")
-                //The agent from the token of this request will be the generator for this new object
-                let newObject = configureRerumOptions(generatorAgent, originalObject, true, false)
-                const newObjID = new ObjectID().toHexString()
-                newObject["_id"] = newObjID
-                newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-                if(alterHistoryNext(originalObject["@id"], newObject["@id"])){
-                    //Success, the original object has been updated.
-                    res.location(newObject["@id"])
-                    res.status(200)
-                    res.json(newObject)
-                }
-                else{
-                    //error is written out, maybe.  Do nothing
-                }
-            }
-            else{
-                //This object is not in RERUM, they want to import it.  Do that automatically.  
-                updateExternalObject(received)
-            }
-        }
         */
-        if(undefined !== originalObject){
+        else{
             console.log("Put Updating an object (no history or __rerum yet)")
             //The agent from the token of this request will be the generator for this new object
             let newObject = utils.configureRerumOptions(generatorAgent, originalObject, true, false)
@@ -138,17 +121,11 @@ exports.putUpdate = async function (req, res, next) {
                 res.json(newObject)
             }
             else{
-                //error is written out, maybe.  Do nothing
+                res.statusMessage = "Unable to alter the history next of the originating object.  The history tree may be broken. See "+originalObject["@id"]
+                res.status(500)
+                next()
             }
         }
-        else{
-            //This object is not in RERUM, they want to import it.  Do that automatically.  
-            //updateExternalObject(received)
-            res.statusMessage = "This object is not from RERUM and will need imported.  This is not supported yet."
-            res.status(501)
-            res.next()
-        }
-       
     }
     else{
         //The http module will not detect this as a 400 on its own
@@ -210,19 +187,22 @@ exports.overwrite = async function (req, res, next) {
         let id = received["@id"].replace(process.env.RERUM_PREFIX, "")
         //Do we want to look up by _id or @id?
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(_.isEqual(received, originalObject)){
-            res.statusMessage("Nothing to overwrite")
-            res.status(304)
-            return next()
-        }
         if(undefined === originalObject){
             res.statusMessage = "No object with this id could be found in RERUM.  Cannot overwrite."
             res.status(404)
-            return next()
+            next()
         }
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, received)
-        res.set("Location", obj["@id"])
-        res.json(received)
+        else if(_.isEqual(received, originalObject)){
+            res.statusMessage("Nothing to overwrite")
+            res.status(304)
+            next()
+        }
+        else{
+            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, received)
+            res.set("Location", obj["@id"])
+            res.json(received)    
+        }
+
     }    
     else{
         //This is a custom one, the http module will not detect this as a 400 on its own
