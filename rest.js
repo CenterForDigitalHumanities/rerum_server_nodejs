@@ -21,7 +21,7 @@
  */
 exports.checkPatchOverrideSupport = function(req, res){
     const override = req.getHeader("X-HTTP-Method-Override")
-    return undefined != override && override === "PATCH"
+    return undefined !== override && override === "PATCH"
 }
 
 /**

@@ -123,7 +123,6 @@ exports.putUpdate = async function (req, res, next) {
             }
         }
         */
-
         if(undefined !== originalObject){
             console.log("Put Updating an object (no history or __rerum yet)")
             //The agent from the token of this request will be the generator for this new object
@@ -132,7 +131,7 @@ exports.putUpdate = async function (req, res, next) {
             newObject["_id"] = newObjID
             newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-            if(alterHistoryNext(originalObject["@id"], newObject["@id"])){
+            if(alterHistoryNext(originalObject, newObject["@id"])){
                 //Success, the original object has been updated.
                 res.location(newObject["@id"])
                 res.status(200)
@@ -205,18 +204,25 @@ exports.patchUnset = async function (req, res, next) {
  * */
 exports.overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let obj = req.body
-    if(obj.hasOwnProperty("@id")){
+    let received = req.body
+    if(received.hasOwnProperty("@id")){
         console.log("Overwriting an object (no history or __rerum yet)")
-        const query = {"@id":obj["@id"]}
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne(query, obj)
-        if(result.modifiedCount > 0){
-            res.set("Location", obj["@id"])
-            res.json(obj)
+        let id = received["@id"].replace(process.env.RERUM_PREFIX, "")
+        //Do we want to look up by _id or @id?
+        const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+        if(_.isEqual(received, originalObject)){
+            res.statusMessage("Nothing to overwrite")
+            res.status(304)
+            return next()
         }
-        else{
-            res.sendStatus(304)
+        if(undefined === originalObject){
+            res.statusMessage = "No object with this id could be found in RERUM.  Cannot overwrite."
+            res.status(404)
+            return next()
         }
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, received)
+        res.set("Location", obj["@id"])
+        res.json(received)
     }    
     else{
         //This is a custom one, the http module will not detect this as a 400 on its own
@@ -313,12 +319,11 @@ exports.queryHeadRequest = async function(req, res, next){
  * @param externalObjID the @id of the external object to go into history.previous
  * @return JSONObject of the provided object with the history.previous alteration
  */   
-exports.alterHistoryPrevious = async function(newRootObj,externalObjID){
+exports.alterHistoryPrevious = async function(objToUpdate, newPrevID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
+    objToUpdate.["__rerum"].history.previous = newPrevID
+    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
     return true
-    let id = newRootObj["@id"].replace(process.env.RERUM_PREFIX, "")
-    newRootObj.["__rerum"].history.previous = externalObjID
-    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, newRootObj)
 }
 
 /**
@@ -329,13 +334,9 @@ exports.alterHistoryPrevious = async function(newRootObj,externalObjID){
  * @param newNextID the @id of the newly created object to be placed in the history.next array.
  * @return Boolean altered true on success, false on fail
  */
-exports.alterHistoryNext = async function(idForUpdate, newNextID){
-    return true
-    //TODO maybe we could just pass in the object like alterHistoryPrevious
+exports.alterHistoryNext = async function(objToUpdate, newNextID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
-    let id = idForUpdate.replace(process.env.RERUM_PREFIX, "")
-    let originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    let updatedObject = JSON.parse(JSON.stringify(originalObject))
-    updatedObject["__rerum"].history.next.push(newNextID)
-    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, updatedObject)
+    objToUpdate["__rerum"].history.next.push(newNextID)
+    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
+    return true
 }

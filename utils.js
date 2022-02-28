@@ -1,4 +1,4 @@
-
+const _ = require("lodash")
 //An options request came through, give it a heartbeat of 200
 exports.checkIIIFCompliance = async function (objURL, version) {
     try{
@@ -42,6 +42,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     rerumOptions["@context"] = process.env.RERUM_CONTEXT
     rerumOptions.alpha = true
     rerumOptions.APIversion = process.env.RERUM_API_VERSION
+    //It is important for the cache workflow that these be properly formatted.  
     let creationDateTime = new Date(Date.now()).toISOString().replace("Z", "")
     rerumOptions.createdAt = creationDateTime
     rerumOptions.isOverwritten = ""
@@ -67,7 +68,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
                     history_prime = history.prime
                 }
                 //Either way, we know the previous value shold be the @id of the object received here. 
-                history_previous = received["@id"];
+                history_previous = received["@id"]
             }
             else{
                 //Hitting this means we are saving a new object and found that __rerum.history existed.  We don't trust it, act like it doesn't have it.
@@ -98,6 +99,6 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     rerumOptions.releases = 
     rerumOptions.generatedBy = generator
     configuredObject["__rerum"] = rerumOptions
-    return configuredObject; //The mongo save/update has not been called yet.  The object returned here will go into mongo.save or mongo.update
+    return configuredObject //The mongo save/update has not been called yet.  The object returned here will go into mongo.save or mongo.update
 }
 
