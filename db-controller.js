@@ -78,12 +78,8 @@ exports.putUpdate = async function (req, res, next) {
     if(received.hasOwnProperty("@id")){
         let updateHistoryNextID = received["@id"]
         let id = received["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-        console.log("put update this id "+id)
-        //Do we want to look up by _id or @id?
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
         let original_copy = JSON.parse(JSON.stringify(originalObject))
-        const alreadyDeleted = false //checkIfDeleted(originalObject) //WRITE ME
-        const isReleased = false //checkIfReleased(originalObject) //WRITE ME
         if(undefined === originalObject){
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(received)
@@ -91,17 +87,17 @@ exports.putUpdate = async function (req, res, next) {
             res.status(501)
             next()
         }
-        else if(_.isEqual(received, originalObject)){
-            res.statusMessage("Nothing to update")
-            res.status(304)
-            next()
-        }
-        else if(alreadyDeleted){
+        // else if(_.isEqual(received, originalObject)){
+        //     res.statusMessage("Nothing to update, the object in the request is the same as the one in the db.")
+        //     res.status(304)
+        //     next()
+        // }
+        else if(utils.checkIfDeleted(originalObject)){
             res.statusMessage("The object you are trying to update is deleted.")
             res.status(403)
             next()
         }
-        else if(isReleased){
+        else if(utils.checkIfReleased(originalObject)){
             res.statusMessage("The object you are trying to update is released.  Fork to make changes.")
             res.status(403)
             next()
@@ -191,9 +187,19 @@ exports.overwrite = async function (req, res, next) {
             res.status(404)
             next()
         }
-        else if(_.isEqual(received, originalObject)){
-            res.statusMessage("Nothing to overwrite")
-            res.status(304)
+        // else if(_.isEqual(received, originalObject)){
+        //     res.statusMessage("Nothing to overwrite - the object in the request is the same as the one in the db.")
+        //     res.status(304)
+        //     next()
+        // }
+        else if(utils.checkIfDeleted(originalObject)){
+            res.statusMessage("The object you are trying to overwrite is deleted.")
+            res.status(403)
+            next()
+        }
+        else if(utils.checkIfReleased(originalObject)){
+            res.statusMessage("The object you are trying to overwrite is released.  Fork to make changes.")
+            res.status(403)
             next()
         }
         else{
@@ -302,7 +308,7 @@ exports.alterHistoryPrevious = async function(objToUpdate, newPrevID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     objToUpdate["__rerum"].history.previous = newPrevID
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
-    return true
+    return result.modifiedCount > 0
 }
 
 /**
@@ -317,5 +323,17 @@ exports.alterHistoryNext = async function(objToUpdate, newNextID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     objToUpdate["__rerum"].history.next.push(newNextID)
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
-    return true
+    return result.modifiedCount > 0
+}
+
+/**
+ * Internal helper method to handle put_update.action on an external object.  The goal is to make a copy of object as denoted by the PUT request
+ * as a RERUM object (creating a new object) then have that new root object reference the @id of the external object in its history.previous. 
+ * 
+ * @param externalObj the external object as it existed in the PUT request to be saved.
+*/
+exports.updateExternalObject = async function(received){
+    res.statusMessage = "You will get a 201 upon success.  This is not supported yet.  Nothing happened."
+    res.status(501)
+    next()
 }

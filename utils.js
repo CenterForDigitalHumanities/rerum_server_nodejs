@@ -1,5 +1,5 @@
-const _ = require("lodash")
-//An options request came through, give it a heartbeat of 200
+#!/usr/bin/env node
+
 exports.checkIIIFCompliance = async function (objURL, version) {
     try{
         res.set("Access-Control-Allow-Origin", "*")
@@ -106,10 +106,16 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     return configuredObject //The mongo save/update has not been called yet.  The object returned here will go into mongo.save or mongo.update
 }
 
+/**
+ * Check this object for deleted status.  deleted objects in RERUM look like {"@id":"{some-id}", __deleted:{object properties}}
+ */ 
 exports.checkIfDeleted = function(obj){
     return obj.hasOwnProperty("__deleted")
 }
 
+/**
+ * Check this object for released status.  Released objects in RERUM look like {"@id":"{some-id}", __rerum:{"isReleased" : "ISO-DATE-TIME"}}
+ */ 
 exports.checkIfReleased = function(obj){
     return obj.hasOwnProperty("__rerum") && obj["__rerum"].hasOwnProperty("isReleased") && obj["__rerum"]["isReleased"] !== ""
 }
