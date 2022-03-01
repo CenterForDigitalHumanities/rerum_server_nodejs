@@ -27,7 +27,7 @@ isReleased        —always ""
  */
 exports.configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = JSON.parse(JSON.stringify(received))
-    let received_options = received["__rerum"] ?? {}
+    let received_options = received["__rerum"] ? JSON.parse(JSON.stringify(received["__rerum"])) : {}
     let history = {}
     let releases = {}
     let rerumOptions = {}
@@ -120,5 +120,6 @@ exports.isGenerator = function(origObj, changeAgent){
     const generatingAgent = origObj["__rerum"]["generatedBy"] ?? changeAgent 
     console.log(generatingAgent + " === " + changeAgent)
     console.log(generatingAgent === changeAgent)
+    //bots get a free pass through
     return generatingAgent === changeAgent
 }

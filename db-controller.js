@@ -35,6 +35,9 @@ exports.create = async function (req, res, next) {
     const id = new ObjectID().toHexString()
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    if(req.user){
+        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    }
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
     newObject["_id"] = id
     newObject["@id"] = process.env.RERUM_ID_PREFIX+id
@@ -105,7 +108,7 @@ exports.putUpdate = async function (req, res, next) {
             next()
         }
         else{
-            console.log("PUT UPDATE")
+            //A bit goofy here, we actually just want the resulting __rerum.  It needed data from originalObject to build itself.  
             newObjectReceived["__rerum"] = utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]
             const newObjID = new ObjectID().toHexString()
             newObjectReceived["_id"] = newObjID
