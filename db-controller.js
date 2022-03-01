@@ -13,7 +13,6 @@
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
-const _ = require("lodash")
 const utils = require('./utils.js')
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
 client.connect()
@@ -95,29 +94,25 @@ exports.putUpdate = async function (req, res, next) {
             res.status(501)
             next()
         }
-        // else if(_.isEqual(received, originalObject)){
-        //     res.statusMessage("Nothing to update, the object in the request is the same as the one in the db.")
-        //     res.status(304)
-        //     next()
-        // }
         else if(utils.isDeleted(originalObject)){
-            res.statusMessage("The object you are trying to update is deleted.")
+            res.statusMessage = "The object you are trying to update is deleted."
             res.status(403)
             next()
         }
         else if(utils.isReleased(originalObject)){
-            res.statusMessage("The object you are trying to update is released.  Fork to make changes.")
+            res.statusMessage = "The object you are trying to update is released.  Fork to make changes."
             res.status(403)
             next()
         }
         else{
-            console.log("Put Updating an object (no history or __rerum yet)")
-            let newObject = utils.configureRerumOptions(generatorAgent, originalObject, true, false)
+            console.log("PUT update...")
+            let newOptions = utils.configureRerumOptions(generatorAgent, originalObject, true, false)
+            received["__rerum"] = newOptions["__rerum"]
             const newObjID = new ObjectID().toHexString()
-            newObject["_id"] = newObjID
-            newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
+            received["_id"] = newObjID
+            received["@id"] = process.env.RERUM_ID_PREFIX+newObjID
             try{
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(received)
                 if(exports.alterHistoryNext(originalObject, newObject["@id"])){
                     //Success, the original object has been updated.
                     res.location(newObject["@id"])
@@ -193,7 +188,10 @@ exports.patchUnset = async function (req, res, next) {
 exports.overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let received = req.body
+    console.log("What does req.user have?")
+    console.log(req.user)
     let changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    console.log("Change agent is -- "+changeAgent)
     if(received.hasOwnProperty("@id")){
         console.log("Overwriting an object (no history or __rerum yet)")
         let id = received["@id"].replace(process.env.RERUM_PREFIX, "")
@@ -204,23 +202,18 @@ exports.overwrite = async function (req, res, next) {
             res.status(404)
             next()
         }
-        // else if(_.isEqual(received, originalObject)){
-        //     res.statusMessage("Nothing to overwrite - the object in the request is the same as the one in the db.")
-        //     res.status(304)
-        //     next()
-        // }
         else if(utils.isDeleted(originalObject)){
-            res.statusMessage("The object you are trying to overwrite is deleted.")
+            res.statusMessage = "The object you are trying to overwrite is deleted."
             res.status(403)
             next()
         }
         else if(utils.isReleased(originalObject)){
-            res.statusMessage("The object you are trying to overwrite is released.  Fork with /update to make changes.")
+            res.statusMessage = "The object you are trying to overwrite is released.  Fork with /update to make changes."
             res.status(403)
             next()
         }
         else if(!utils.isGenerator(originalObject, changeAgent)){
-            res.statusMessage("You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes.")
+            res.statusMessage = "You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes."
             res.status(401)
             next()
         }
@@ -267,6 +260,7 @@ exports.id = async function (req, res, next) {
     let id = req.params["_id"]?req.params["_id"]:""
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
+        delete match["_id"]
         res.json(match)    
     }
     else{

@@ -115,6 +115,8 @@ exports.isReleased = function(obj){
  * Check to see if the agent from the request (req.user had decoded token) matches the generating agent of the object in mongodb.
  */ 
 exports.isGenerator = function(origObj, changeAgent){
-    const generatingAgent = origObj["__rerum"]["generatedBy"] ?? "none"
+    //If the object in mongo does not have a generator, something wrong.  however, there is no permission to check, no generator is the same as any generator.
+    console.log("Mongo obj generator -- " + origObj["__rerum"]["generatedBy"] ?? "none")
+    const generatingAgent = origObj["__rerum"]["generatedBy"] ?? changeAgent 
     return generatingAgent === changeAgent
 }
