@@ -40,10 +40,18 @@ exports.create = async function (req, res, next) {
     newObject["@id"] = process.env.RERUM_ID_PREFIX+id
     console.log("Creating an object (no history or __rerum yet)")
     console.log(newObject)
-    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-    res.location(newObject["@id"])
-    res.status(201)
-    res.json(newObject)
+    try{
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+        res.location(newObject["@id"])
+        res.status(201)
+        res.json(newObject)  
+    }
+    catch(err){
+        //WriteError or WriteConcernError
+        res.statusMessage = "mongodb had trouble inserting this document."
+        res.status(500)
+        next()
+    }
 }
 
 /**
@@ -60,8 +68,8 @@ exports.create = async function (req, res, next) {
  * */
 exports.delete = async function (req, res, next) {
     let id = req.params["_id"]?req.params["_id"]:""
-    res.status(501)
     res.statusMessage = "You will get a 204 upon success.  This is not supported yet.  Nothing happened."
+    res.status(501)
     next()
 }
 
@@ -107,15 +115,23 @@ exports.putUpdate = async function (req, res, next) {
             const newObjID = new ObjectID().toHexString()
             newObject["_id"] = newObjID
             newObject["@id"] = process.env.RERUM_ID_PREFIX+newObjID
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-            if(exports.alterHistoryNext(originalObject, newObject["@id"])){
-                //Success, the original object has been updated.
-                res.location(newObject["@id"])
-                res.status(200)
-                res.json(newObject)
+            try{
+                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                if(exports.alterHistoryNext(originalObject, newObject["@id"])){
+                    //Success, the original object has been updated.
+                    res.location(newObject["@id"])
+                    res.status(200)
+                    res.json(newObject)
+                }
+                else{
+                    res.statusMessage = "Unable to alter the history next of the originating object.  The history tree may be broken. See "+originalObject["@id"]
+                    res.status(500)
+                    next()
+                }    
             }
-            else{
-                res.statusMessage = "Unable to alter the history next of the originating object.  The history tree may be broken. See "+originalObject["@id"]
+            catch(err){
+                //WriteError or WriteConcernError
+                res.statusMessage = "mongodb had trouble inserting this document."
                 res.status(500)
                 next()
             }
