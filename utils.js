@@ -27,7 +27,7 @@ isReleased        —always ""
  */
 exports.configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = JSON.parse(JSON.stringify(received))
-    let received_options = received["__rerum"] ? received["__rerum"] : {}
+    let received_options = received["__rerum"] ?? {}
     let history = {}
     let releases = {}
     let rerumOptions = {}
@@ -38,7 +38,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
         //We are "importing" an external object as a new object in RERUM (via an update).  It can knows its previous external self, but is a root for its existence in RERUM.
         received_options = {}
         history_prime = "root"
-        history_previous = received["@id"] ? received["@id"] : received["id"] ? received["id"] : ""
+        history_previous = received["@id"] ?? received["id"] ?? ""
     }
     else{
         //We are either updating an existing RERUM object or creating a new one.
@@ -100,13 +100,21 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
 /**
  * Check this object for deleted status.  deleted objects in RERUM look like {"@id":"{some-id}", __deleted:{object properties}}
  */ 
-exports.checkIfDeleted = function(obj){
+exports.isDeleted = function(obj){
     return obj.hasOwnProperty("__deleted")
 }
 
 /**
  * Check this object for released status.  Released objects in RERUM look like {"@id":"{some-id}", __rerum:{"isReleased" : "ISO-DATE-TIME"}}
  */ 
-exports.checkIfReleased = function(obj){
+exports.isReleased = function(obj){
     return obj.hasOwnProperty("__rerum") && obj["__rerum"].hasOwnProperty("isReleased") && obj["__rerum"]["isReleased"] !== ""
+}
+
+/**
+ * Check to see if the agent from the request (req.user had decoded token) matches the generating agent of the object in mongodb.
+ */ 
+exports.isGenerator = function(origObj, changeAgent){
+    const generatingAgent = origObj["__rerum"]["generatedBy"] ?? "none"
+    return generatingAgent === changeAgent
 }

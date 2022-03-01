@@ -9,6 +9,7 @@
  * 
  * @author thehabes 
  */
+//const auth = require("./auth/token.js")
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
@@ -99,12 +100,12 @@ exports.putUpdate = async function (req, res, next) {
         //     res.status(304)
         //     next()
         // }
-        else if(utils.checkIfDeleted(originalObject)){
+        else if(utils.isDeleted(originalObject)){
             res.statusMessage("The object you are trying to update is deleted.")
             res.status(403)
             next()
         }
-        else if(utils.checkIfReleased(originalObject)){
+        else if(utils.isReleased(originalObject)){
             res.statusMessage("The object you are trying to update is released.  Fork to make changes.")
             res.status(403)
             next()
@@ -131,7 +132,7 @@ exports.putUpdate = async function (req, res, next) {
             }
             catch(err){
                 //WriteError or WriteConcernError
-                res.statusMessage = "mongodb had trouble inserting this document."
+                res.statusMessage = err.message ?? "mongodb had trouble inserting this document."
                 res.status(500)
                 next()
             }
@@ -192,6 +193,7 @@ exports.patchUnset = async function (req, res, next) {
 exports.overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let received = req.body
+    let changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(received.hasOwnProperty("@id")){
         console.log("Overwriting an object (no history or __rerum yet)")
         let id = received["@id"].replace(process.env.RERUM_PREFIX, "")
@@ -207,14 +209,19 @@ exports.overwrite = async function (req, res, next) {
         //     res.status(304)
         //     next()
         // }
-        else if(utils.checkIfDeleted(originalObject)){
+        else if(utils.isDeleted(originalObject)){
             res.statusMessage("The object you are trying to overwrite is deleted.")
             res.status(403)
             next()
         }
-        else if(utils.checkIfReleased(originalObject)){
-            res.statusMessage("The object you are trying to overwrite is released.  Fork to make changes.")
+        else if(utils.isReleased(originalObject)){
+            res.statusMessage("The object you are trying to overwrite is released.  Fork with /update to make changes.")
             res.status(403)
+            next()
+        }
+        else if(!utils.isGenerator(originalObject, changeAgent)){
+            res.statusMessage("You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes.")
+            res.status(401)
             next()
         }
         else{
@@ -222,7 +229,6 @@ exports.overwrite = async function (req, res, next) {
             res.set("Location", obj["@id"])
             res.json(received)    
         }
-
     }    
     else{
         //This is a custom one, the http module will not detect this as a 400 on its own

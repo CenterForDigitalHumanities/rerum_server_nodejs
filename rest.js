@@ -20,7 +20,7 @@
  *  The error handler sits a level up, so do not res.send() or res.render here.  Just give back a boolean
  */
 exports.checkPatchOverrideSupport = function(req, res){
-    const override = req.getHeader("X-HTTP-Method-Override")
+    const override = req.header("X-HTTP-Method-Override")
     return undefined !== override && override === "PATCH"
 }
 
@@ -37,7 +37,7 @@ exports.messenger = function(err, req, res, next){
         return next(err)
     }
     let customResponseBody = {}
-    let statusCode = err.statusCode ? err.statusCode : res.statusCode ? res.statusCode : 500
+    let statusCode = err.statusCode ?? res.statusCode ?? 500
     customResponseBody.http_response_code = statusCode
     const msgIn = err.statusCode ? err.statusMessage : res.statusMessage
     let genericMessage = ""
@@ -55,7 +55,7 @@ exports.messenger = function(err, req, res, next){
         break
         case 403:
             //Forbidden to use this.  There may not be an Authorization header, or that header is invalid, or the Bearer is not known to RERUM.
-            if(res.getHeader("Authorization")){
+            if(res.header("Authorization")){
                 genericMessage = 
                 "RERUM could not authorize you to perform this action.  The 'Bearer' is not of RERUM.  "
                 +"Make sure you have registered at "+process.env.RERUM_PREFIX
@@ -87,6 +87,6 @@ exports.messenger = function(err, req, res, next){
             //Unsupported messaging scenario for this helper function.  
             //A customized object for the original error will be sent, if res allows it.
     }
-    customResponseBody.message = msgIn ? msgIn : genericMessage
+    customResponseBody.message = msgIn ?? genericMessage
     res.status(statusCode).send(customResponseBody)
 }
