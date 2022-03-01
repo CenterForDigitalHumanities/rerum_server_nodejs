@@ -1,20 +1,11 @@
 #!/usr/bin/env node
 
-exports.checkIIIFCompliance = async function (objURL, version) {
-    try{
-        res.set("Access-Control-Allow-Origin", "*")
-        res.set("Access-Control-Allow-Headers", "*")
-        res.set("Access-Control-Expose-Headers", "*")
-        res.set("Access-Control-Allow-Methods", "*")
-        res.sendStatus(200)
-    }
-    catch(err){
-        console.error("Error processing an OPTIONS method request")
-        console.log(err)
-        res.json({"err":err})
-        res.sendStatus(500)
-    }
-}
+/**
+ * This module is general utilities.  It should not respond to clients or manipulate the 
+ * http request/response.  
+ * 
+ * @author thehabes 
+ */
 
 /**
  * Add the __rerum properties object to a given JSONObject.If __rerum already exists, it will be overwritten because this method is only called on new objects. Properties for consideration are:
