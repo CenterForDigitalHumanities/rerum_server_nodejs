@@ -43,14 +43,6 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     let history_prime = ""
     let history_previous = ""
     let releases_previous = ""
-    rerumOptions["@context"] = process.env.RERUM_CONTEXT
-    rerumOptions.alpha = true
-    rerumOptions.APIversion = process.env.RERUM_API_VERSION
-    //It is important for the cache workflow that these be properly formatted.  
-    let creationDateTime = new Date(Date.now()).toISOString().replace("Z", "")
-    rerumOptions.createdAt = creationDateTime
-    rerumOptions.isOverwritten = ""
-    rerumOptions.isReleased = ""
     if(extUpdate){
         //We are "importing" an external object as a new object in RERUM (via an update).  It can knows its previous external self, but is a root for its existence in RERUM.
         received_options = {}
@@ -99,6 +91,14 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     history.next = []
     history.previous = history_previous
     history.prime = history_prime
+    rerumOptions["@context"] = process.env.RERUM_CONTEXT
+    rerumOptions.alpha = true
+    rerumOptions.APIversion = process.env.RERUM_API_VERSION
+    //It is important for the cache workflow that these be properly formatted.  
+    let creationDateTime = new Date(Date.now()).toISOString().replace("Z", "")
+    rerumOptions.createdAt = creationDateTime
+    rerumOptions.isOverwritten = ""
+    rerumOptions.isReleased = ""
     rerumOptions.history = history
     rerumOptions.releases = releases
     rerumOptions.generatedBy = generator
