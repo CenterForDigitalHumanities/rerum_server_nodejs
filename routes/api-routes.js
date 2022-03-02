@@ -17,7 +17,6 @@ const controller = require('../db-controller.js')
 const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
-
 /*
 const createRoute = require("./create.js")
 const putUpdateRoute = require("./putUpdate.js")
@@ -36,6 +35,27 @@ router.get('/', function (req, res) {
     res.json({
         message: 'Welcome to v1 in nodeJS!'
     })
+})
+
+// api/context.json
+router.get('/context.json', function (req, res) {
+    res.status(200)
+    res.set("Content-Type", "application/json; charset=utf-8")
+    res.sendFile("./public/context.json")
+})
+
+// api/API.html
+router.get('/API.html', function (req, res) {
+    res.status(200)
+    res.set("Content-Type", "text/html; charset=utf-8")
+    res.sendFile("./public/API.html");
+})
+
+// api/terms.txt
+router.get('/terms.txt', function (req, res) {
+    res.status(200)
+    res.set("Content-Type", "text/html; charset=utf-8")
+    res.sendFile("./public/terms.txt")
 })
 
 // Set default API response
