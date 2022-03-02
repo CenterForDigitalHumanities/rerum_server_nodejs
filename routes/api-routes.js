@@ -68,7 +68,8 @@ router.get('/api', function (req, res) {
             "/patch"  : "PATCH - Update the properties of an existing object.",
             "/set"    : "PATCH - Update the body an existing object by adding a new property.",
             "/unset"  : "PATCH - Update the body an existing object by removing an existing property.",
-            "/delete" : "DELETE - Mark an object as deleted."
+            "/delete" : "DELETE - Mark an object as deleted.",
+            "/query"  : "POST - Supply a JSON object to match on, and query the db for an array of matches."
         }
     })
 })
