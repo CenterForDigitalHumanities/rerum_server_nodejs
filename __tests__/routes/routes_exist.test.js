@@ -11,7 +11,7 @@ request = request("http://localhost:3333")
 
 describe('Top level routing -- no CRUD API checks in here.', function() {
 
-  it('Server index.  HTML page with with Express "hello world". ', function(done) {
+  it('http://{server}:{port}/ -- Server index.  HTML page with with Express "hello world". ', function(done) {
     request
       .get('/')
       .expect('Content-Type', /html/)
@@ -23,7 +23,7 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
       .catch(err => done(err))
   })
 
-  it('App index.  Responds with a JSON object as a "hello world". ', function(done) {
+  it('http://{server}:{port}/v1/ -- App index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
     .get("/v1")
     .expect("Content-Type", "application/json; charset=utf-8")
@@ -35,7 +35,7 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
     .catch(err => done(err))
   })
 
-  it('RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
+  it('http://{server}:{port}/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
     .get("/v1/api")
     .expect("Content-Type", /json/)
@@ -47,28 +47,28 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
     .catch(err => done(err))
   })
 
-  it('RERUM API maintenance page. ', function(done) {
+  it('http://{server}:{port}/maintenance.html -- RERUM API maintenance page. ', function(done) {
     request
     .get("/maintenance.html")
     .expect("Content-Type", /html/)
     .expect(200, done)
   })
 
-  it('RERUM API context.json. ', function(done) {
+  it('http://{server}:{port}/v1/context.json -- RERUM API context.json. ', function(done) {
     request
     .get("/v1/context.json")
     .expect("Content-Type", /json/)
     .expect(200, done)
   })
 
-  it('RERUM API vocabulary terms. ', function(done) {
+  it('http://{server}:{port}/v1/terms.txt -- RERUM API vocabulary terms. ', function(done) {
     request
     .get("/v1/terms.txt")
     .expect("Content-Type", /text/)
     .expect(200, done)
   })
 
-  it('RERUM API HTML page. ', function(done) {
+  it('http://{server}:{port}/API.html -- RERUM API HTML page. ', function(done) {
     request
     .get("/v1/API.html")
     .expect("Content-Type", /html/)
