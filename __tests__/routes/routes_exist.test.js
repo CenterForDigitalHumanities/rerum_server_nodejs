@@ -74,7 +74,7 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
     .expect(200, done)
   })
 
-  it('http://{server}:{port}/API.html -- RERUM API HTML page. ', function(done) {
+  it('http://{server}:{port}/v1/API.html -- RERUM API HTML page. ', function(done) {
     request
     .get("/v1/API.html")
     .expect("Content-Type", /html/)
