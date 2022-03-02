@@ -77,7 +77,7 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
 
 })
 
-describe('Checking each CRUD enpoint exists behind /api/.', function() {
+describe('Checking each CRUD enpoint exists behind /api', function() {
 
   it('/create', function(done) {
     request
