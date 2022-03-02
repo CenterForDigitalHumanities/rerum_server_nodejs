@@ -26,7 +26,6 @@
     "jwks-rsa": "^2.0.5",
     "mock-jwks": "^1.0.3",
     "mongodb": "^4.1.2",
-    "mongoose": "^6.0.7",
     "morgan": "~1.9.1",
     "nock": "^13.2.4",
     "node-fetch": "^3.0.0",

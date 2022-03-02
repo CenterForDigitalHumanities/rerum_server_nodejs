@@ -48,13 +48,9 @@ app.all('*', (req, res, next) => {
       next() //pass on to the next app.use
   }
 })
+
 app.use('/', indexRouter)
 app.use('/v1', apiRouter)
-
-// catch 404 because of an invalid site path, and error out
-app.use(function(req, res, next) {
-  next(createError(404))
-})
 
 /**
  * Handle API errors and warnings RESTfully.  All routes that don't end in res.send() will end up here.
@@ -65,11 +61,11 @@ app.use(function(req, res, next) {
  * */
 app.use(rest.messenger)
 
-/**
- * Not even the messenger could figure out what to do.  500 out hard. 
- */
-app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(500).send('Something broke!')
+//catch 404 because of an invalid site path
+app.use(function(req, res, next) {
+    let msg = res.statusMessage ?? "This page does not exist"
+    res.status(404).send(msg)  
+    res.end()
 })
+
 module.exports = app
