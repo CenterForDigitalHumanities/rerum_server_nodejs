@@ -85,11 +85,10 @@ function onError(error) {
  */
 
 async function onListening() {
-  console.log("on listening")
   jest.runCLI({"roots":["__tests__"], "verbose":true}, ["jest.config.js"]).then(({ results }) => {
     if (results.success) {
       console.log(`Tests completed`)
-      process.exit(0)
+      process.exit(1)
     } 
     else {
       console.error(`Tests failed`)

@@ -109,13 +109,13 @@ describe('Checking each CRUD enpoint exists behind /api/.', function() {
       .expect(405, done)
   })
 
-  it('/v1/api/delete', function(done) {
+  it('/delete', function(done) {
     request
       .get('/v1/api/delete')
       .expect(405, done)
   })
 
-  it('/v1/api/query', function(done) {
+  it('/query', function(done) {
     request
       .get('/v1/api/query')
       .expect(405, done)
