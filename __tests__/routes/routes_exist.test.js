@@ -47,6 +47,12 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
     .catch(err => done(err))
   })
 
+  it('http://{server}:{port}/v1/id/{_id} -- RERUM object URL GET by _id pattern.', function(done) {
+    request
+      .post('/v1/id/1111')
+      .expect(405, done)
+  })
+
   it('http://{server}:{port}/maintenance.html -- RERUM API maintenance page. ', function(done) {
     request
     .get("/maintenance.html")
