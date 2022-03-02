@@ -3,19 +3,19 @@ const express = require('express')
 const app = express()
 const auth = require("../token")
 const createJWKSMock = require("mock-jwks").default
-app.get('/authorize', auth.checkJwt, (req, res) => {
-    res.status(200).send()
-})
-app.get('/open', (req, res) => {
-    res.status(200).send()
-})
 
 describe('Some tests for authentication for our api', () => {
-    let jwksMock, server, req
+    let jwksMock, req
     beforeEach(() => {
-        ; ({ jwksMock, server, req } = createContext())
+        ; ({ jwksMock, req } = createContext())
+        app.get('/authorize', auth.checkJwt, (req, res) => {
+            res.status(200).send()
+        })
+        app.get('/open', (req, res) => {
+            res.status(200).send()
+        })
     })
-    afterEach(async () => tearDown({ jwksMock, server }))
+    afterEach(async () => tearDown({ jwksMock, app }))
 
     test('should not get access without correct token', async () => {
         // We start intercepting queries (see below)
@@ -54,20 +54,19 @@ const createContext = () => {
     const jwksMock = createJWKSMock('https://cubap.auth0.com/')
 
     // We start our app.
-    const server = createApp({
+    app({
         jwksUri: 'https://cubap.auth0.com/.well-known/jwks.json',
     }).listen()
 
-    const req = request(server)
+    const req = request(app)
     return {
         jwksMock,
-        req,
-        server,
+        req
     }
 }
 
-const tearDown = async ({ jwksMock, server }) => {
-    await server.close()
+const tearDown = async ({ jwksMock }) => {
+    await app.close()
     await jwksMock.stop()
 }
 
