@@ -38,6 +38,21 @@ router.get('/', function (req, res) {
     })
 })
 
+// Set default API response
+router.get('/api', function (req, res) {
+    res.json({
+        message: 'Welcome to v1 in nodeJS!  Below are the available endpoints, used like /v1/api/{endpoint}',
+        endpoints: {
+            "/create" : "POST - Create a new object.",
+            "/update" : "PUT - Update the body an existing object.",
+            "/patch"  : "PATCH - Update the properties of an existing object.",
+            "/set"    : "PATCH - Update the body an existing object by adding a new property.",
+            "/unset"  : "PATCH - Update the body an existing object by removing an existing property.",
+            "/delete" : "DELETE - Mark an object as deleted."
+        }
+    })
+})
+
 /**
  * Support GET requests like v1/id/{object id}  
 */

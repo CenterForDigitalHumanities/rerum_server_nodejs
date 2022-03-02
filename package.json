@@ -11,6 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "assert": "^2.0.0",
     "aws-secrets-dotenv": "^1.0.0",
     "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
