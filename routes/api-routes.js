@@ -17,6 +17,7 @@ const controller = require('../db-controller.js')
 const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
+const auth = require('../auth')
 
 /*
 const createRoute = require("./create.js")
@@ -107,7 +108,7 @@ router.route('/api/create')
         res.status(405)
         next()
     })
-    .post(controller.create)
+    .post(auth.checkJwt,controller.create)
     .put((req, res) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)
@@ -144,7 +145,7 @@ router.route('/api/overwrite')
         res.status(405)
         next()
     })
-    .put(controller.overwrite)
+    .put(auth.checkJwt,controller.overwrite)
     .patch((req, res) => {
         res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
         res.status(405)
@@ -177,7 +178,7 @@ router.route('/api/update')
         res.status(405)
         next()
     })
-    .put(controller.putUpdate)
+    .put(auth.checkJwt,controller.putUpdate)
     .patch((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
         res.status(405)
@@ -222,7 +223,7 @@ router.route('/api/patch')
         res.status(405)
         next()
     })
-    .patch(controller.patchUpdate)
+    .patch(auth.checkJwt,controller.patchUpdate)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
         res.status(405)
@@ -261,7 +262,7 @@ router.route('/api/set')
         res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
         res.status(405)
         next()    })
-    .patch(controller.patchSet)
+    .patch(auth.checkJwt,controller.patchSet)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
         res.status(405)
@@ -301,7 +302,7 @@ router.route('/api/unset')
         res.status(405)
         next()
     })
-    .patch(controller.patchUnset)
+    .patch(auth.checkJwt,controller.patchUnset)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
         res.status(405)
@@ -342,7 +343,7 @@ router.route('/api/delete/:_id?')
         res.status(405)
         next()
     })
-    .delete(controller.delete)  
+    .delete(auth.checkJwt,controller.delete)  
 
 
 /**
