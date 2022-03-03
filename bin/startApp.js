@@ -84,6 +84,7 @@ function onError(error) {
  */
 
 function onListening() {
+  console.log("LISTENING ON "+port)
   var addr = server.address()
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
@@ -99,4 +100,3 @@ io.on('connection', (socketServer) => {
     process.exit(0)
   })
 })
-

@@ -85,15 +85,21 @@ function onError(error) {
  */
 
 async function onListening() {
-  jest.runCLI({"roots":["__tests__"], "verbose":true}, ["jest.config.js"]).then(({ results }) => {
-    if (results.success) {
-      console.log(`Tests completed`)
-      process.exit(1)
-    } 
-    else {
-      console.error(`Tests failed`)
-      process.exit(0)
-    }
+  console.log("LISTENING ON "+port)
+  jest.runCLI(
+    {
+      "colors" : "true"
+    }, 
+    ["jest.config.js"])
+    .then(({ results }) => {
+      if (results.success) {
+        console.log(`Tests completed`)
+        process.exit(1)
+      } 
+      else {
+        console.error(`Tests failed`)
+        process.exit(0)
+      }
   })
 }
 
@@ -105,4 +111,3 @@ io.on('connection', (socketServer) => {
     process.exit(0)
   })
 })
-

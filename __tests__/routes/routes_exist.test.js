@@ -1,7 +1,11 @@
 let request = require("supertest")
-const app = require("../../app")
 
-//All on one host.  If not, do not use this and use request(app) syntax instead.
+//Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
+let app = require('../../app')
+
+//A super fun note.  If you do request(app), the tests will fail due to race conditions.  
+//client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
+//request = request(app)
 request = request("http://localhost:3333")
 
 /**
@@ -121,5 +125,4 @@ describe('Checking each CRUD enpoint exists behind /api', function() {
       .get('/v1/api/query')
       .expect(405, done)
   })
-
 })
