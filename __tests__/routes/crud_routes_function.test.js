@@ -106,5 +106,4 @@ describe('Checking that each CRUD endpoint behind /api/ functions with proper in
       })
       .catch(err => done(err))
   })
-
 })

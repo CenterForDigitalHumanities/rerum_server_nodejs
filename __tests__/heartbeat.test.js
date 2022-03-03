@@ -18,5 +18,3 @@ describe("Get the app index.  This is a check for life, is there a heartbeat?", 
       .expect(200, done)
   })
 })
-
-

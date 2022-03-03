@@ -125,5 +125,4 @@ describe('Checking each CRUD enpoint exists behind /api', function() {
       .get('/v1/api/query')
       .expect(405, done)
   })
-
 })
