@@ -85,11 +85,10 @@ function onError(error) {
  */
 
 async function onListening() {
+  console.log("LISTENING ON "+port)
   jest.runCLI(
     {
-      "colors":true, 
-      // "detectOpenHandles":true, 
-      // "noStackTrace":true,
+      "colors" : "true"
     }, 
     ["jest.config.js"])
     .then(({ results }) => {

@@ -16,6 +16,15 @@ module.exports = {
   // Automatically clear mock calls, instances and results before every test
   // clearMocks: false,
 
+  //This will tell you why jest couldn't close.  Right now, it will flag the client.connect() b/c there is no client.close()
+  //That is OK in the testing scenario.  In production, only one connection is made and it is closed when the app exits. 
+  detectOpenHandles : false,
+
+  displayName: {
+    name: 'RERUM v1',
+    color: 'cyan',
+  },
+
   // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
 
@@ -26,14 +35,6 @@ module.exports = {
       "**/routes/api-routes.js"
   ],
 
-  // The directory where Jest should output its coverage files
-  // coverageDirectory: undefined,
-
-  // An array of regexp pattern strings used to skip coverage collection
-  // coveragePathIgnorePatterns: [
-  //   "\\\\node_modules\\\\"
-  // ],
-
   // Indicates which provider should be used to instrument code for coverage
   coverageProvider: "v8",
 
@@ -43,6 +44,23 @@ module.exports = {
     "text",
     "html"
   ],
+
+  // Indicates whether each individual test should be reported during the run
+  verbose: true,
+
+  //Don't show console.log and console.debug from the app code
+  silent:true,
+
+  // The root directory that Jest should scan for tests and modules within
+  rootDir: "./"
+
+  // The directory where Jest should output its coverage files.  Default is /coverage/.  See /coverage/index.html.
+  // coverageDirectory: undefined,
+
+  // An array of regexp pattern strings used to skip coverage collection
+  // coveragePathIgnorePatterns: [
+  //   "\\\\node_modules\\\\"
+  // ],
 
   // An object that configures minimum threshold enforcement for coverage results
   // coverageThreshold: undefined,
@@ -116,9 +134,6 @@ module.exports = {
   // Automatically restore mock state and implementation before every test
   // restoreMocks: false,
 
-  // The root directory that Jest should scan for tests and modules within
-  rootDir: "./",
-
   // A list of paths to directories that Jest should use to search for files in
   // roots: [
   //   "./__tests__"
@@ -185,9 +200,6 @@ module.exports = {
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
   // unmockedModulePathPatterns: undefined,
-
-  // Indicates whether each individual test should be reported during the run
-  verbose: true,
 
   // An array of regexp patterns that are matched against all source file paths before re-running tests in watch mode
   // watchPathIgnorePatterns: [],

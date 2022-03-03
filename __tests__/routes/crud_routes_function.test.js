@@ -1,12 +1,8 @@
 let request = require("supertest")
-const app = require("../../app")
-
 //All on one host.  If not, do not use this and use request(app) syntax instead.
-request = request(app)
-
-/**
- * All the routes that work for GET requests or paths to HTML pages.
- */ 
+let app = require('../../app')
+//request = request(app)
+request = request("http://localhost:3333")
 
 describe('Checking that each CRUD endpoint behind /api/ functions with proper input.', function() {
 

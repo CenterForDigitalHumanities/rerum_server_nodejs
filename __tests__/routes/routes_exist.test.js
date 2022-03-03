@@ -1,8 +1,8 @@
 let request = require("supertest")
-const app = require("../../app")
-
 //All on one host.  If not, do not use this and use request(app) syntax instead.
-request = request(app)
+let app = require('../../app')
+//request = request(app)
+request = request("http://localhost:3333")
 
 /**
  * All the routes that work for GET requests or paths to HTML pages.
