@@ -85,15 +85,27 @@ function onError(error) {
  */
 
 async function onListening() {
-  jest.runCLI({"roots":["__tests__"], "verbose":true}, ["jest.config.js"]).then(({ results }) => {
-    if (results.success) {
-      console.log(`Tests completed`)
-      process.exit(1)
-    } 
-    else {
-      console.error(`Tests failed`)
-      process.exit(0)
-    }
+  jest.runCLI(
+    {
+      "roots":["__tests__"], 
+      "verbose":true, 
+      "colors":true, 
+      "coverage":true, 
+      "detectOpenHandles":true, 
+      "noStackTrace":true,
+      "silent":true,
+      "collectCoverageFrom" : "../"
+    }, 
+    ["jest.config.js"])
+    .then(({ results }) => {
+      if (results.success) {
+        console.log(`Tests completed`)
+        process.exit(1)
+      } 
+      else {
+        console.error(`Tests failed`)
+        process.exit(0)
+      }
   })
 }
 
