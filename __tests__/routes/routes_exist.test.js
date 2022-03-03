@@ -1,5 +1,4 @@
 let request = require("supertest")
-const assert = require('assert')
 const app = require("../../app")
 
 //All on one host.  If not, do not use this and use request(app) syntax instead.
@@ -16,35 +15,31 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
       .get('/')
       .expect('Content-Type', /html/)
       .expect('X-Powered-By', 'Express')
-      .expect(200)
-      .then(response => {
-        done()
-      })
-      .catch(err => done(err))
+      .expect(200, done)
   })
 
   it('http://{server}:{port}/v1/ -- App index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
-    .get("/v1")
-    .expect("Content-Type", "application/json; charset=utf-8")
-    .expect(200)
-    .then(response => {
-        assert(response.body.message, 'Welcome to v1 in nodeJS!')
-        done()
-    })
-    .catch(err => done(err))
+      .get("/v1")
+      .expect("Content-Type", "application/json; charset=utf-8")
+      .expect(200)
+      .then(response => {
+          expect(response.body.message).toBe('Welcome to v1 in nodeJS!')
+          done()
+      })
+      .catch(err => done(err))
   })
 
   it('http://{server}:{port}/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
-    .get("/v1/api")
-    .expect("Content-Type", /json/)
-    .expect(200)
-    .then(response => {
-        assert(Object.keys(response.body.endpoints).length, 7)
-        done()
-    })
-    .catch(err => done(err))
+      .get("/v1/api")
+      .expect("Content-Type", /json/)
+      .expect(200)
+      .then(response => {
+          expect(Object.keys(response.body.endpoints).length).toBe(7)
+          done()
+      })
+      .catch(err => done(err))
   })
 
   it('http://{server}:{port}/v1/id/{_id} -- RERUM object URL GET by _id pattern.', function(done) {
