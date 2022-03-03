@@ -87,14 +87,9 @@ function onError(error) {
 async function onListening() {
   jest.runCLI(
     {
-      "roots":["__tests__"], 
-      "verbose":true, 
       "colors":true, 
-      "coverage":true, 
-      "detectOpenHandles":true, 
-      "noStackTrace":true,
-      "silent":true,
-      "collectCoverageFrom" : "../"
+      // "detectOpenHandles":true, 
+      // "noStackTrace":true,
     }, 
     ["jest.config.js"])
     .then(({ results }) => {
