@@ -1,6 +1,10 @@
 let request = require("supertest")
-//All on one host.  If not, do not use this and use request(app) syntax instead.
+
+//Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
 let app = require('../../app')
+
+//A super fun note.  If you do request(app), the tests will fail due to race conditions.  
+//client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
 //request = request(app)
 request = request("http://localhost:3333")
 
