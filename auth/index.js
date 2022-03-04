@@ -3,7 +3,6 @@ const got = require('got')
 // Currently unsed, but we should consider setting scopes moving forward and this will be handy then.
 // const jwtAuthz = require('express-jwt-authz')
 const { auth } = require('express-oauth2-jwt-bearer')
-const jwt = require('jwt-simple')
 
 const dotenv = require('dotenv')
 dotenv.config()
@@ -18,10 +17,10 @@ const _tokenError = function (err, req, res, next) {
 }
 
 const _extractUser = (req, res, next) => {
-    const token = req.header("authorization").split(" ")[1]
-    req.user = jwt.decode(token,process.env.rerumSecret)
-    next(req, res, next)
+    req.user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
+    next()
 }
+
 /**
  * Use like: 
  * app.get('/api/private', checkJwt, function(req, res) {
