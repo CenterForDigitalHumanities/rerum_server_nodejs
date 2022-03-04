@@ -7,31 +7,24 @@ const { auth } = require('express-oauth2-jwt-bearer')
 const dotenv = require('dotenv')
 dotenv.config()
 
+const _processToken = function (err, req, res, next) {
+    if (err.status === 401) {
+        err.message = err.statusMessage = `This token does not have permission to perform this action. 
+        ${err.message}
+        Received token: ${req.header("authorization")}`
+        next(err)
+    } else {
+        req.user = JSON.parse(Buffer.from(token.split(".")[1], "base64url"))
+        next(req, res, next)
+    }
+}
 /**
  * Use like: 
  * app.get('/api/private', checkJwt, function(req, res) {
  *   // do authorized things
  * });
  */
-// const checkJwt = async (req, res, next) => {
-//     try {
-//         req.user = await auth()
-//         next(req, res)
-//     } catch (err) {
-//         err.statusMessage = `The token provided does not authorize this action. Token: ${req.header("Authorization")}`
-//         next(err)        
-//     }
-// }
-const _checkJwt = auth()
-
-const newMsg = function(err, req, res,next) {
-    //mannnn can we pass this up the chain to the error handler with a message somehow?  We don't have next()
-        if(err.status === 401){
-            err.statusMessage = "Who do you think you are, Mr. Big Stuff"
-            next(err)
-        }
-    }
-    const checkJwt = [_checkJwt,newMsg]
+const checkJwt = [auth(), _processToken]
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
