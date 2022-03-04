@@ -108,13 +108,7 @@ router.route('/api/create')
         res.status(405)
         next()
     })
-    // .post(auth.checkJwt,function(err,req,res,next){
-    //     if(err.statusCode === 401) {
-    //         err.statusMessage = `booched`
-    //         next()
-    //     }
-    // },controller.create)
-    .post( auth.checkJwt ,controller.create)
+    .post(auth.checkJwt, controller.create)
     .put((req, res) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)
@@ -151,7 +145,7 @@ router.route('/api/overwrite')
         res.status(405)
         next()
     })
-    .put(auth.checkJwt,controller.overwrite)
+    .put(auth.checkJwt, controller.overwrite)
     .patch((req, res) => {
         res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
         res.status(405)
@@ -167,12 +161,12 @@ router.route('/api/overwrite')
         res.status(405)
         next()
     })
-    
+
 
 /**
  * Support POST requests with JSON bodies used for replacing some existing object in MongoDB.
  * Note that this will track history. 
-*/ 
+*/
 router.route('/api/update')
     .get((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
@@ -184,7 +178,7 @@ router.route('/api/update')
         res.status(405)
         next()
     })
-    .put(auth.checkJwt,controller.putUpdate)
+    .put(auth.checkJwt, controller.putUpdate)
     .patch((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
         res.status(405)
@@ -207,21 +201,21 @@ router.route('/api/update')
  * Note that keys in the body of this request that are not on the existing object are ignored.  
  * 
  * If there is nothing to PATCH, return a 200 
-*/ 
+*/
 router.route('/api/patch')
     .get((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
         res.status(405)
         next()
     })
-    .post((req, res) => {
-        if(rest.checkPatchOverrideSupport()){
+    .post(auth.checkJwt, (req, res) => {
+        if (rest.checkPatchOverrideSupport()) {
             controller.patchUpdate(req, resp)
         }
-        else{
+        else {
             res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
             res.status(405)
-            next()    
+            next()
         }
     })
     .put((req, res) => {
@@ -229,7 +223,7 @@ router.route('/api/patch')
         res.status(405)
         next()
     })
-    .patch(auth.checkJwt,controller.patchUpdate)
+    .patch(auth.checkJwt, auth.checkJwt, controller.patchUpdate)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
         res.status(405)
@@ -247,28 +241,29 @@ router.route('/api/patch')
  * Note that keys in the body of this request that are already on the existing object are ignored.   
  * 
  * If there is nothing to PATCH, return a 200 
-*/ 
+*/
 router.route('/api/set')
     .get((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
         res.status(405)
         next()
     })
-    .post((req, res) => {
-        if(rest.checkPatchOverrideSupport()){
+    .post(auth.checkJwt, (req, res) => {
+        if (rest.checkPatchOverrideSupport()) {
             controller.patchSet(req, resp)
         }
-        else{
+        else {
             res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
             res.status(405)
-            next()    
+            next()
         }
     })
     .put((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
         res.status(405)
-        next()    })
-    .patch(auth.checkJwt,controller.patchSet)
+        next()
+    })
+    .patch(auth.checkJwt, controller.patchSet)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
         res.status(405)
@@ -286,21 +281,21 @@ router.route('/api/set')
  * Note that keys in the body of this request that are not on the existing object are ignored.  
  * 
  * If there is nothing to PATCH, return a 200 
-*/ 
+*/
 router.route('/api/unset')
     .get((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
         res.status(405)
         next()
     })
-    .post((req, res) => {
-        if(rest.checkPatchOverrideSupport()){
+    .post(auth.checkJwt, (req, res) => {
+        if (rest.checkPatchOverrideSupport()) {
             controller.patchUnset(req, resp)
         }
-        else{
+        else {
             res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
             res.status(405)
-            next()    
+            next()
         }
     })
     .put((req, res) => {
@@ -308,7 +303,7 @@ router.route('/api/unset')
         res.status(405)
         next()
     })
-    .patch(auth.checkJwt,controller.patchUnset)
+    .patch(auth.checkJwt, controller.patchUnset)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
         res.status(405)
@@ -322,7 +317,7 @@ router.route('/api/unset')
 
 /**
  * DELETE cannot have body.  It is possible to call /delete/ without an id, which will 400.
-*/ 
+*/
 router.route('/api/delete/:_id?')
     .get((req, res) => {
         res.statusMessage = 'Improper request method for deleting, please use DELETE.'
@@ -349,7 +344,7 @@ router.route('/api/delete/:_id?')
         res.status(405)
         next()
     })
-    .delete(auth.checkJwt,controller.delete)  
+    .delete(auth.checkJwt, controller.delete)
 
 
 /**
@@ -358,13 +353,13 @@ router.route('/api/delete/:_id?')
  * Note while we have 501s, they will fall here.  Don't let them trick you.
  * Detect them and send them out, don't hand up to the 404 catcher in app.js
  */
-router.use(function(req, res, next) {
-    if(res.statusCode === 501){
+router.use(function (req, res, next) {
+    if (res.statusCode === 501) {
         //We can remove this once we implement the functions, for now we have to catch it here.
         let msg = res.statusMessage ? res.statusMessage : "This is not yet implemented"
         res.status(501).send(msg).end()
     }
-    else{
+    else {
         //A 404 to pass along to our 404 handler in app.js
         next()
     }
