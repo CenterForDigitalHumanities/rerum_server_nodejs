@@ -3,20 +3,24 @@ const got = require('got')
 // Currently unsed, but we should consider setting scopes moving forward and this will be handy then.
 // const jwtAuthz = require('express-jwt-authz')
 const { auth } = require('express-oauth2-jwt-bearer')
+const jwt = require('jwt-simple')
 
 const dotenv = require('dotenv')
 dotenv.config()
 
-const _processToken = function (err, req, res, next) {
+const _tokenError = function (err, req, res, next) {
     if (err.status === 401) {
         err.message = err.statusMessage = `This token does not have permission to perform this action. 
         ${err.message}
         Received token: ${req.header("authorization")}`
         next(err)
-    } else {
-        req.user = JSON.parse(Buffer.from(token.split(".")[1], "base64url"))
-        next(req, res, next)
     }
+}
+
+const _extractUser = (req, res, next) => {
+    const token = req.header("authorization").split(" ")[1]
+    req.user = jwt.decode(token,process.env.rerumSecret)
+    next(req, res, next)
 }
 /**
  * Use like: 
@@ -24,7 +28,7 @@ const _processToken = function (err, req, res, next) {
  *   // do authorized things
  * });
  */
-const checkJwt = [auth(), _processToken]
+const checkJwt = [auth(), _tokenError, _extractUser]
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
@@ -106,7 +110,6 @@ const isBot = (generatorId) => process.env.bot_agent === generatorId
 
 module.exports = {
     checkJwt,
-    newMsg,
     generateNewAccessToken,
     generateNewRefreshToken,
     verifyAccess,
