@@ -115,11 +115,10 @@ router.route('/api/create')
     //     }
     // },controller.create)
     .post(auth.checkJwt,
-        function(req, res,next) {
+        function(err, req, res,next) {
         //mannnn can we pass this up the chain to the error handler with a message somehow?  We don't have next()
-            if(res.statusCode === 401){
-                res.statusMessage = "Who do you think you are, Mr. Big Stuff"
-                res.status(401)
+            if(err.code === 401){
+                err.statusMessage = "Who do you think you are, Mr. Big Stuff"
                 next()
             }
         },
