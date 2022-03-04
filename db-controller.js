@@ -9,7 +9,6 @@
  * 
  * @author thehabes 
  */
-//const auth = require("./auth/token.js")
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID

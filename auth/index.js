@@ -1,8 +1,11 @@
 const got = require('got')
-const jwt = require('express-jwt')
+// const jwt = require('express-jwt')
 // Currently unsed, but we should consider setting scopes moving forward and this will be handy then.
 // const jwtAuthz = require('express-jwt-authz')
-// const { auth } = require('express-oauth2-jwt-bearer');
+const { auth } = require('express-oauth2-jwt-bearer')
+
+const dotenv = require('dotenv')
+dotenv.config()
 
 /**
  * Use like: 
@@ -10,11 +13,16 @@ const jwt = require('express-jwt')
  *   // do authorized things
  * });
  */
-const checkJwt = jwt({
-    audience: 'http://rerum.io/api',
-    issuerBaseURL: `https://cubap.auth0.com/`,
-})
-
+// const checkJwt = async (req, res, next) => {
+//     try {
+//         req.user = await auth()
+//         next(req, res)
+//     } catch (err) {
+//         err.statusMessage = `The token provided does not authorize this action. Token: ${req.header("Authorization")}`
+//         next(err)        
+//     }
+// }
+const checkJwt = auth()
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
@@ -80,7 +88,7 @@ const verifyAccess = (secret) => {
  */
 const isGenerator = (obj, token) => {
     const claimKey = process.env.RERUM_AGENT_CLAIM
-    
+
     const reqGenerator = token.claimKey
 
     return reqGenerator === obj.__rerum.generatedBy

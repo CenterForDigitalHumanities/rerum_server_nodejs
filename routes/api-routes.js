@@ -108,7 +108,22 @@ router.route('/api/create')
         res.status(405)
         next()
     })
-    .post(auth.checkJwt,controller.create)
+    // .post(auth.checkJwt,function(err,req,res,next){
+    //     if(err.statusCode === 401) {
+    //         err.statusMessage = `booched`
+    //         next()
+    //     }
+    // },controller.create)
+    .post(auth.checkJwt,
+        function(req, res,next) {
+        //mannnn can we pass this up the chain to the error handler with a message somehow?  We don't have next()
+            if(res.statusCode === 401){
+                res.statusMessage = "Who do you think you are, Mr. Big Stuff"
+                res.status(401)
+                next()
+            }
+        },
+        controller.create)
     .put((req, res) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)

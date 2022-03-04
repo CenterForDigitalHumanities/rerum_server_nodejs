@@ -50,6 +50,7 @@ app.all('*', (req, res, next) => {
 })
 
 app.use('/', indexRouter)
+
 app.use('/v1', apiRouter)
 
 /**
