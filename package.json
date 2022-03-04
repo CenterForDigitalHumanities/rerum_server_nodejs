@@ -8,9 +8,11 @@
     "devstart": "node ./bin/startApp.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
     "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod",
-    "test": "jest"
+    "test": "jest",
+    "runtest": "node ./bin/testApp.js"
   },
   "dependencies": {
+    "assert": "^2.0.0",
     "aws-secrets-dotenv": "^1.0.0",
     "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
@@ -20,6 +22,8 @@
     "ejs": "~2.6.1",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
+    "jest-cli": "^27.5.1",
+    "jest-config": "^27.5.1",
     "mongodb": "^4.1.2",
     "morgan": "~1.9.1",
     "node-fetch": "^3.0.0",

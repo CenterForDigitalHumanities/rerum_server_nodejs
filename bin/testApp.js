@@ -3,9 +3,10 @@
 /**
  * Module dependencies.
  */
-
+const jest = require('jest')
+const runCLI = require('jest-cli')
+//const defaults = require('../jest.config.js')
 var app = require('../app')
-var debug = require('debug')('rerum_server_nodejs:server')
 var http = require('http')
 
 
@@ -13,7 +14,7 @@ var http = require('http')
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000')
+var port = normalizePort(process.env.PORT || '3333')
 app.set('port', port)
 
 /**
@@ -83,13 +84,23 @@ function onError(error) {
  * Event listener for HTTP server "listening" event.
  */
 
-function onListening() {
+async function onListening() {
   console.log("LISTENING ON "+port)
-  var addr = server.address()
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port
-  debug('Listening on ' + bind)
+  jest.runCLI(
+    {
+      "colors" : "true"
+    }, 
+    ["jest.config.js"])
+    .then(({ results }) => {
+      if (results.success) {
+        console.log(`Tests completed`)
+        process.exit(1)
+      } 
+      else {
+        console.error(`Tests failed`)
+        process.exit(0)
+      }
+  })
 }
 
 /**
