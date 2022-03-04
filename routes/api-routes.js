@@ -17,8 +17,6 @@ const controller = require('../db-controller.js')
 const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
-const auth = require('../auth')
-
 /*
 const createRoute = require("./create.js")
 const putUpdateRoute = require("./putUpdate.js")
@@ -36,6 +34,43 @@ const auxRoute = "TODO"
 router.get('/', function (req, res) {
     res.json({
         message: 'Welcome to v1 in nodeJS!'
+    })
+})
+
+// api/context.json
+router.get('/context.json', function (req, res) {
+    res.status(200)
+    res.set("Content-Type", "application/json; charset=utf-8")
+    res.sendFile("./public/context.json")
+})
+
+// api/API.html
+router.get('/API.html', function (req, res) {
+    res.status(200)
+    res.set("Content-Type", "text/html; charset=utf-8")
+    res.sendFile("./public/API.html");
+})
+
+// api/terms.txt
+router.get('/terms.txt', function (req, res) {
+    res.status(200)
+    res.set("Content-Type", "text/html; charset=utf-8")
+    res.sendFile("./public/terms.txt")
+})
+
+// Set default API response
+router.get('/api', function (req, res) {
+    res.json({
+        message: 'Welcome to v1 in nodeJS!  Below are the available endpoints, used like /v1/api/{endpoint}',
+        endpoints: {
+            "/create" : "POST - Create a new object.",
+            "/update" : "PUT - Update the body an existing object.",
+            "/patch"  : "PATCH - Update the properties of an existing object.",
+            "/set"    : "PATCH - Update the body an existing object by adding a new property.",
+            "/unset"  : "PATCH - Update the body an existing object by removing an existing property.",
+            "/delete" : "DELETE - Mark an object as deleted.",
+            "/query"  : "POST - Supply a JSON object to match on, and query the db for an array of matches."
+        }
     })
 })
 
@@ -223,7 +258,7 @@ router.route('/api/patch')
         res.status(405)
         next()
     })
-    .patch(auth.checkJwt, auth.checkJwt, controller.patchUpdate)
+    .patch(auth.checkJwt, controller.patchUpdate)
     .head((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
         res.status(405)

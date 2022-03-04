@@ -1,16 +1,20 @@
-const request = require("supertest")
-const app = require("../app")
+let request = require("supertest")
+//All on one host.  If not, do not use this and use request(app) syntax instead.
 
-describe("Always true sanity check", ()=>{
-    test('adds 1 + 2 to equal 3', () => {
-        expect(1+2).toBe(3)
-      })
-})
+//Fun fact, if you don't require app, you don't get coverage. 
+let app = require('../app')
 
-describe("Test the root path", () => {
-  test("It should response the GET method", async () => {
-    const response = await request(app).get("/")
-    expect(response.statusCode).toBe(200)
+//A super fun note.  If you do request(app), the tests will fail due to race conditions.  
+//client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
+//request = request(app)
+request = request("http://localhost:3333")
+
+describe("Get the app index.  This is a check for life, is there a heartbeat?", ()=>{
+    it('http://{server}:{port}/ -- Server index.  HTML page with with Express "hello world". ', function(done) {
+    request
+      .get('/')
+      .expect('Content-Type', /html/)
+      .expect('X-Powered-By', 'Express')
+      .expect(200, done)
   })
 })
-
