@@ -22,7 +22,16 @@ dotenv.config()
 //         next(err)        
 //     }
 // }
-const checkJwt = auth()
+const _checkJwt = auth()
+
+const newMsg = function(err, req, res,next) {
+    //mannnn can we pass this up the chain to the error handler with a message somehow?  We don't have next()
+        if(err.status === 401){
+            err.statusMessage = "Who do you think you are, Mr. Big Stuff"
+            next(err)
+        }
+    }
+    const checkJwt = [_checkJwt,newMsg]
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
@@ -104,6 +113,7 @@ const isBot = (generatorId) => process.env.bot_agent === generatorId
 
 module.exports = {
     checkJwt,
+    newMsg,
     generateNewAccessToken,
     generateNewRefreshToken,
     verifyAccess,
