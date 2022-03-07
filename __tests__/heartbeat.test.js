@@ -10,7 +10,7 @@ let app = require('../app')
 request = request("http://localhost:3333")
 
 describe("Get the app index.  This is a check for life, is there a heartbeat?", ()=>{
-    it('http://{server}:{port}/ -- Server index.  HTML page with with Express "hello world". ', function(done) {
+    it('Server index.  Check for express header to confirm that the app is up and running. ', function(done) {
     request
       .get('/')
       .expect('Content-Type', /html/)
