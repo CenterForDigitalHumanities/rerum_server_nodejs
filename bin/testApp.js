@@ -93,11 +93,11 @@ async function onListening() {
     ["jest.config.js"])
     .then(({ results }) => {
       if (results.success) {
-        console.log(`Tests completed`)
+        console.log('Tests completed')
         process.exit(1)
       } 
       else {
-        console.error(`Tests failed`)
+        console.error('Tests failed')
         process.exit(0)
       }
   })

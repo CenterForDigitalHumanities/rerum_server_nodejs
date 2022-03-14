@@ -12,9 +12,10 @@ request = request("http://localhost:3333")
  * All the routes that work for GET requests or paths to HTML pages.
  */ 
 
-describe('Top level routing -- no CRUD API checks in here.', function() {
+describe('Check to see that all expected routes exists.', function() {
 
-  it('http://{server}:{port}/ -- Server index.  HTML page with with Express "hello world". ', function(done) {
+  it('/ -- Server index.  It should return 200 and an html page.  ', 
+    function(done) {
     request
       .get('/')
       .expect('Content-Type', /html/)
@@ -22,7 +23,7 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
       .expect(200, done)
   })
 
-  it('http://{server}:{port}/v1/ -- App index.  Responds with a JSON object as a "hello world". ', function(done) {
+  it('/v1/ -- App index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
       .get("/v1")
       .expect("Content-Type", "application/json; charset=utf-8")
@@ -34,7 +35,7 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
       .catch(err => done(err))
   })
 
-  it('http://{server}:{port}/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
+  it('/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
       .get("/v1/api")
       .expect("Content-Type", /json/)
@@ -46,34 +47,34 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
       .catch(err => done(err))
   })
 
-  it('http://{server}:{port}/v1/id/{_id} -- RERUM object URL GET by _id pattern.', function(done) {
+  it('/v1/id/{_id} -- RERUM object URL GET by _id pattern.  It should return a 405.', function(done) {
     request
       .post('/v1/id/1111')
       .expect(405, done)
   })
 
-  it('http://{server}:{port}/maintenance.html -- RERUM API maintenance page. ', function(done) {
+  it('/maintenance.html -- RERUM API maintenance page.  It should return a 200 and a HTML page. ', function(done) {
     request
     .get("/maintenance.html")
     .expect("Content-Type", /html/)
     .expect(200, done)
   })
 
-  it('http://{server}:{port}/v1/context.json -- RERUM API context.json. ', function(done) {
+  it('context.json -- It should return a 200 and a JSON file.  ', function(done) {
     request
     .get("/v1/context.json")
     .expect("Content-Type", /json/)
     .expect(200, done)
   })
 
-  it('http://{server}:{port}/v1/terms.txt -- RERUM API vocabulary terms. ', function(done) {
+  it('/v1/terms.txt -- It should return a 200 and a plain text file. ', function(done) {
     request
     .get("/v1/terms.txt")
     .expect("Content-Type", /text/)
     .expect(200, done)
   })
 
-  it('http://{server}:{port}/v1/API.html -- RERUM API HTML page. ', function(done) {
+  it('/v1/API.html -- RERUM API HTML page.  It should return a 200 and an HTML page. ', function(done) {
     request
     .get("/v1/API.html")
     .expect("Content-Type", /html/)
@@ -82,7 +83,9 @@ describe('Top level routing -- no CRUD API checks in here.', function() {
 
 })
 
-describe('Checking each CRUD enpoint exists behind /api', function() {
+describe('Checking each CRUD enpoint exists behind /api.  '+  
+  'Each one should return a 405, which lets us know it is registered and being listened for.', 
+  function() {
 
   it('/create', function(done) {
     request
