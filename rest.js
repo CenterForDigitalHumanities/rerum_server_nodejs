@@ -37,7 +37,7 @@ exports.messenger = function(err, req, res, next){
         return next(err)
     }
     let customResponseBody = {}
-    let statusCode = err.statusCode ? err.statusCode : res.statusCode ? res.statusCode : 500
+    let statusCode = err.statusCode ?? res.statusCode ?? 500
     customResponseBody.http_response_code = statusCode
     const msgIn = err.statusCode ? err.statusMessage : res.statusMessage
     let genericMessage = ""
@@ -87,6 +87,6 @@ exports.messenger = function(err, req, res, next){
             //Unsupported messaging scenario for this helper function.  
             //A customized object for the original error will be sent, if res allows it.
     }
-    customResponseBody.message = msgIn ? msgIn : genericMessage
+    customResponseBody.message = msgIn ?? genericMessage
     res.status(statusCode).send(customResponseBody)
 }

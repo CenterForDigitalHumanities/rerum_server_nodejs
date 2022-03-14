@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/startApp.js",
+    "start": "node ./bin/startApp.js > stdout.txt 2> stderr.txt &",
     "stop": "node ./bin/stopApp.js",
     "devstart": "node ./bin/startApp.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
