@@ -23,15 +23,15 @@ jobs:
           envkey_RERUM_AGENT_CLAIM: ${{ secrets.RERUM_AGENT_CLAIM }}
           envkey_RERUM_CONTEXT: ${{ secrets.RERUM_CONTEXT }}
           envkey_RERUM_API_DOC: ${{ secrets.RERUM_API_DOC }}
-          envkey_rerumSecret: ${{ secrets.RERUMSECRET }}
-          envkey_bot_agent: ${{ secrets.BOT_AGENT }}
-          envkey_bot_token_dev: ${{ secrets.BOT_TOKEN_DEV }}
-          envkey_bot_token_prod: "unknown"
+          envkey_RERUMSECRET: ${{ secrets.RERUMSECRET }}
+          envkey_BOT_AGENT: ${{ secrets.BOT_AGENT }}
+          envkey_BOT_TOKEN_DEV: ${{ secrets.BOT_TOKEN_DEV }}
+          envkey_BOT_TOKEN_PROD: "unknown"
           envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING }}
           envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
           envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
-          envkey_down: ${{ secrets.DOWN }}
-          envkey_clientID: ${{ secrets.CLIENTID }}
+          envkey_DOWN: ${{ secrets.DOWN }}
+          envkey_CLIENTID: ${{ secrets.CLIENTID }}
       # Set up NodeJS
       - name: Setup Node.js
         uses: actions/setup-node@v1
