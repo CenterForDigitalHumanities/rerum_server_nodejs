@@ -7,11 +7,6 @@ let app = require('../../app')
 //client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
 //request = request(app)
 request = request("http://localhost:3333")
-console.log("bot token is")
-console.log(process.env.BOT_TOKEN_DEV)
-
-console.log("prefix is")
-console.log(process.env.RERUM_ID_PREFIX)
 describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
