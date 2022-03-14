@@ -38,7 +38,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
         //We are "importing" an external object as a new object in RERUM (via an update).  It can knows its previous external self, but is a root for its existence in RERUM.
         received_options = {}
         history_prime = "root"
-        history_previous = received["@id"] ?? received["id"] ?? : ""
+        history_previous = received["@id"] ?? received["id"] ?? ""
     }
     else{
         //We are either updating an existing RERUM object or creating a new one.
