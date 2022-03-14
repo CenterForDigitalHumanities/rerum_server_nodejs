@@ -8,7 +8,7 @@ let app = require('../../app')
 //request = request(app)
 request = request("http://localhost:3333")
 console.log("bot token is")
-console.log(process.env.bot_token_dev)
+console.log(process.env.BOT_TOKEN_DEV)
 
 console.log("prefix is")
 console.log(process.env.RERUM_ID_PREFIX)
