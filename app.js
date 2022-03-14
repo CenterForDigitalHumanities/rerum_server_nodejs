@@ -63,7 +63,7 @@ app.use(rest.messenger)
 
 //catch 404 because of an invalid site path
 app.use(function(req, res, next) {
-    let msg = res.statusMessage ?? "This page does not exist"
+    let msg = res.statusMessage ? res.statusMessage : "This page does not exist"
     res.status(404).send(msg)  
     res.end()
 })

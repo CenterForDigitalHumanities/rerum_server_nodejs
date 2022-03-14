@@ -128,7 +128,7 @@ exports.putUpdate = async function (req, res, next) {
             }
             catch(err){
                 //WriteError or WriteConcernError
-                res.statusMessage = err.message ?? "mongodb had trouble inserting this document."
+                res.statusMessage = err.message ? err.message : "mongodb had trouble inserting this document."
                 res.status(500)
                 next()
             }
@@ -191,7 +191,7 @@ exports.overwrite = async function (req, res, next) {
     let newObjectReceived = req.body
     let changeAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
     if(newObjectReceived.hasOwnProperty("@id")){
         console.log("OVERWRITE")
