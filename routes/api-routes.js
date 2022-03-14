@@ -390,7 +390,7 @@ router.route('/api/delete/:_id?')
 router.use(function(req, res, next) {
     if(res.statusCode === 501){
         //We can remove this once we implement the functions, for now we have to catch it here.
-        let msg = res.statusMessage ? res.statusMessage : "This is not yet implemented"
+        let msg = res.statusMessage ?? "This is not yet implemented"
         res.status(501).send(msg).end()
     }
     else{

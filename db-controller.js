@@ -128,7 +128,7 @@ exports.putUpdate = async function (req, res, next) {
             }
             catch(err){
                 //WriteError or WriteConcernError
-                res.statusMessage = err.message ? err.message : "mongodb had trouble inserting this document."
+                res.statusMessage = err.message ?? "mongodb had trouble inserting this document."
                 res.status(500)
                 next()
             }
