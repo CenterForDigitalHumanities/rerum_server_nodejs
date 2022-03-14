@@ -42,7 +42,7 @@ describe(
     function(done) {
       request
         .put('/v1/api/update')
-        .send({"_id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":new Date(Date.now()).toISOString().replace("Z", "")})
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":new Date(Date.now()).toISOString().replace("Z", "")})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
