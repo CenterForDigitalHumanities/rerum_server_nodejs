@@ -9,6 +9,9 @@ let app = require('../../app')
 request = request("http://localhost:3333")
 console.log("bot token is")
 console.log(process.env.bot_token_dev)
+
+console.log("prefix is")
+console.log(process.env.RERUM_ID_PREFIX)
 describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
@@ -39,7 +42,7 @@ describe(
     function(done) {
       request
         .put('/v1/api/update')
-        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":new Date(Date.now()).toISOString().replace("Z", "")})
+        .send({"_id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":new Date(Date.now()).toISOString().replace("Z", "")})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.bot_token_dev)
         .expect(200)
