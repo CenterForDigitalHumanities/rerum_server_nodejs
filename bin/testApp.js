@@ -98,11 +98,11 @@ async function onListening() {
     .then(({ results }) => {
       if (results.success) {
         console.log('Tests completed')
-        process.exit(1)
+        process.exit(0)
       } 
       else {
         console.error('Tests failed')
-        process.exit(0)
+        process.exit(1)
       }
   })
 }
