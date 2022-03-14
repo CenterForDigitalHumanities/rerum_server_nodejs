@@ -42,9 +42,6 @@ exports.create = async function (req, res, next) {
     newObject["_id"] = id
     newObject["@id"] = process.env.RERUM_ID_PREFIX+id
     console.log("CREATE")
-    console.log(process.env.MONGODBNAME)
-    console.log(process.env.MONGODBCOLLECTION)
-    console.log(newObject)
     try{
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
         res.location(newObject["@id"])
