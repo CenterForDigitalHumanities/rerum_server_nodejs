@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 /**
+ * @author bhaberbe
+ * */
+
+/**
  * Module dependencies.
  */
 const jest = require('jest')
