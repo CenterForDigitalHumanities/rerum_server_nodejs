@@ -12,26 +12,24 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Create .env from secrets
-        run: |
-          touch .env
-          echo RERUM_API_VERSION=${{ secrets.RERUM_API_VERSION }} >> .env
-          echo COLLECTION_ACCEPTEDSERVER=${{ secrets.COLLECTION_ACCEPTEDSERVER }} >> .env
-          echo COLLECTION_V0=${{ secrets.COLLECTION_V0 }} >> .env
-          echo RERUM_BASE=${{ secrets.RERUM_BASE }} >> .env
-          echo RERUM_PREFIX=${{ secrets.RERUM_PREFIX }} >> .env
-          echo RERUM_ID_PREFIX=${{ secrets.RERUM_ID_PREFIX }} >> .env
-          echo RERUM_AGENT_CLAIM=${{ secrets.RERUM_AGENT_CLAIM }} >> .env
-          echo RERUM_CONTEXT=${{ secrets.RERUM_CONTEXT }} >> .env
-          echo RERUM_API_DOC=${{ secrets.RERUM_API_DOC }} >> .env
-          echo rerumSecret=${{ secrets.rerumSecret }} >> .env
-          echo bot_agent=${{ secrets.bot_agent }} >> .env
-          echo MONGO_CONNECTION_STRING=${{ secrets.MONGO_CONNECTION_STRING }} >> .env
-          echo MONGODBNAME=${{ secrets.MONGODBNAME }} >> .env
-          echo MONGODBCOLLECTION=${{ secrets.MONGODBCOLLECTION }} >> .env
-          echo down=${{ secrets.down }} >> .env
-          echo clientID=${{ secrets.clientID }} >> .env
-          cat .env
-
+        uses: SpicyPizza/create-envfile@v1.3
+        with:
+          envkey_RERUM_API_VERSION: ${{ secrets.RERUM_API_VERSION }}
+          envkey_COLLECTION_ACCEPTEDSERVER: ${{ secrets.COLLECTION_ACCEPTEDSERVER }}
+          envkey_COLLECTION_V0: ${{ secrets.COLLECTION_V0 }}
+          envkey_RERUM_BASE: ${{ secrets.RERUM_BASE }}
+          envkey_RERUM_PREFIX: ${{ secrets.RERUM_PREFIX }}
+          envkey_RERUM_ID_PREFIX: ${{ secrets.RERUM_ID_PREFIX }}
+          envkey_RERUM_AGENT_CLAIM: ${{ secrets.RERUM_AGENT_CLAIM }}
+          envkey_RERUM_CONTEXT: ${{ secrets.RERUM_CONTEXT }}
+          envkey_RERUM_API_DOC: ${{ secrets.RERUM_API_DOC }}
+          envkey_rerumSecret: ${{ secrets.rerumSecret }}
+          envkey_bot_agent: ${{ secrets.bot_agent }}
+          envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING }}
+          envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
+          envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
+          envkey_down: ${{ secrets.down }}
+          envkey_clientID: ${{ secrets.clientID }}
       # Set up NodeJS
       - name: Setup Node.js
         uses: actions/setup-node@v1
