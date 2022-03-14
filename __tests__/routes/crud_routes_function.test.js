@@ -17,6 +17,8 @@ describe(
     'It should respond with a 201 with enough JSON in the response body to discern the "@id".  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id".',
     function(done) {
+      console.log("create token is")
+      console.log(process.env.bot_token_dev)
       request
         .post('/v1/api/create')
         .send({"RERUM Create Test" : new Date(Date.now()).toISOString().replace("Z", "")})
@@ -37,6 +39,8 @@ describe(
     'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
     function(done) {
+      console.log("update token is")
+      console.log(process.env.bot_token_dev)
       request
         .put('/v1/api/update')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":new Date(Date.now()).toISOString().replace("Z", "")})
