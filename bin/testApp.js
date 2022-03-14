@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @author bhaberbe
+ * @author thehabes
  * */
 
 /**
