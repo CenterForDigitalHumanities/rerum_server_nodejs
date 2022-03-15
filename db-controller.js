@@ -342,6 +342,40 @@ exports.history = async function (req, res, next) {
     res.json(ancestors)
 }
 
+exports.sinceHeadRequest = async function(req, res, next){
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let all = await getAllVersions(obj)
+    let descendants = getAllDescendants(all, obj, [])
+    if(descendants.length){
+        const size = Buffer.byteLength(JSON.stringify(descendants))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
+    }
+    else{
+        res.set("Content-Length", 0)
+        res.sendStatus(200)    
+    }
+}
+
+exports.historyHeadRequest = async function(req, res, next){
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let all = await getAllVersions(obj)
+    let ancestors = getAllAncestors(all, obj, [])
+    if(ancestors.length){
+        const size = Buffer.byteLength(JSON.stringify(ancestors))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
+    }
+    else{
+        res.set("Content-Length", 0)
+        res.sendStatus(200)    
+    }
+}
+
 async function getAllVersions(obj){
     let ls_versions = null
     let rootObj = null
