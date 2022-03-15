@@ -411,10 +411,10 @@ async function getAllVersions(obj){
     delete rootObj["_id"]
     //All the children of this object will have its @id in __rerum.history.prime
     ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({"__rerum.history.prime":primeID}).toArray()
-    ls_versions = ls_versions.map(o => {
-        delete o["_id"]
-        return o
-    }).unshift(rootObj)
+    //Get rid of _id, for display
+    ls_versions.map(o => delete o["_id"])
+    //The root object is a version, prepend it in
+    ls_versions.unshift(rootObj)
     return ls_versions
 }
 
@@ -449,7 +449,7 @@ function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
             else{
                 discoveredAncestors.push(v)
                 //Recurse with what you have discovered so far and this object as the new keyObj
-                getAllAncestors(ls_versions, thisObject, discoveredAncestors)
+                getAllAncestors(ls_versions, v, discoveredAncestors)
                 break
             }
         }                  
@@ -466,6 +466,8 @@ function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
  * @return All the objects that were deemed descendants in a JSONArray
  */
 function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
+    console.log("Get all descendants versions...")
+    console.log(ls_versions.length)
     let nextIDarr = []
     if(keyObj["__rerum"]["history"]["next"].length === 0){
         //essentially, do nothing.  This branch is done.
@@ -476,10 +478,12 @@ function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
     }
     for(nextID of nextIDarr){
         for(v of ls_versions){
+            console.log("Is this a descendant?")
+            console.log(v["@id"] +" === " + nextID)
             if(v["@id"] === nextID){ //If it is equal, add it to the known descendants
                 //Recurse with what you have discovered so far and this object as the new keyObj
                 discoveredDescendants.push(v)
-                getAllDescendants(ls_versions, thisObject, discoveredDescendants);
+                getAllDescendants(ls_versions, v, discoveredDescendants);
                 break
             }
         }
