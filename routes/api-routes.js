@@ -80,23 +80,77 @@ router.get('/api', function (req, res) {
 router.route('/id/:_id')
     .get(controller.id)
     .post((req, res) => {
-        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.statusMessage = 'Improper request method, please use GET.'
         res.status(405)
         next()
     })
     .put((req, res) => {
-        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.statusMessage = 'Improper request method, please use GET.'
         res.status(405)
         next()
     })
     .patch((req, res) => {
-        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.statusMessage = 'Improper request method, please use GET.'
         res.status(405)
         next()
     })
     .head(controller.idHeadRequest)
     .delete((req, res) => {
-        res.statusMessage = 'Improper request method for creating, please use POST.'
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+
+    /**
+ * Support GET requests like v1/id/{object id}  
+*/
+router.route('/since/:_id')
+    .get(controller.since)
+    .post((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+    .put((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+    .patch((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+    .head(controller.sinceHeadRequest)
+    .delete((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+
+    /**
+ * Support GET requests like v1/id/{object id}  
+*/
+router.route('/history/:_id')
+    .get(controller.history)
+    .post((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+    .put((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+    .patch((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
+        res.status(405)
+        next()
+    })
+    .head(controller.historyHeadRequest)
+    .delete((req, res) => {
+        res.statusMessage = 'Improper request method, please use GET.'
         res.status(405)
         next()
     })
