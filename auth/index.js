@@ -41,7 +41,7 @@ const generateNewAccessToken = async (req, res) => {
         {
             form: {
                 grant_type: 'refresh_token',
-                client_id: process.env.client_id,
+                client_id: process.env.CLIENT_ID,
                 CLIENT_SECRET: process.env.CLIENT_SECRET,
                 refresh_token: req.body.refresh_token
             }
@@ -61,7 +61,7 @@ const generateNewRefreshToken = async (req, res) => {
         {
             form: {
                 grant_type: 'authorization_code',
-                client_id: process.env.client_id,
+                client_id: process.env.CLIENT_ID,
                 CLIENT_SECRET: process.env.CLIENT_SECRET,
                 refresh_token: req.body.refresh_token,
                 code: req.body.authorization_code
