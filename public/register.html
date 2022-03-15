@@ -284,7 +284,7 @@
 
     }
 
-    $("#register").click(ev => location.href = `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
+    $("#register").click(ev => fetch('/client/register').then(res=>res.text()).then(url=>location.href = url))// `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
 
     $("#request_token").click(function () {
         var r_t = $("#r_t_4_a_t").val();

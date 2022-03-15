@@ -17,6 +17,7 @@ const controller = require('../db-controller.js')
 const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
+const auth = require('../auth')
 /*
 const createRoute = require("./create.js")
 const putUpdateRoute = require("./putUpdate.js")
