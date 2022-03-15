@@ -11,6 +11,56 @@ describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
     
+    it('End to end /v1/since/{_id}. Do a properly formatted /since call by GETting for an existing _id. '+
+      'It should respond 200 with a body that is of type Array.',
+    function(done) {
+      request
+        .get('/v1/since/622f7f0a0249b8ac889b2e2c')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(200)
+        .then(response => {
+            expect(Array.isArray(response.body).toBe(true)
+            done()
+        })
+        .catch(err => done(err))
+      }
+    )
+
+    it('End to end /v1/history/{_id}. Do a properly formatted /history call by GETting for an existing _id.  '+
+      'It should respond 200 with a body that is of type Array.',
+    function(done) {
+      request
+        .get('/v1/history/622f7f0a0249b8ac889b2e2c')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(200)
+        .then(response => {
+            expect(Array.isArray(response.body).toBe(true)
+            done()
+        })
+        .catch(err => done(err))
+      }
+    )
+
+    it('End to end /v1/api/create. Do a properly formatted /create call by POSTing a JSON body.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 201 with enough JSON in the response body to discern the "@id".  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".',
+    function(done) {
+      request
+        .post('/v1/api/create')
+        .send({"RERUM Create Test" : new Date(Date.now()).toISOString().replace("Z", "")})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .expect(201)
+        .then(response => {
+            expect(response.body["@id"]).toBeTruthy()
+            done()
+        })
+        .catch(err => done(err))
+      }
+    )
+
+
     it('End to end /v1/api/create. Do a properly formatted /create call by POSTing a JSON body.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+
     'It should respond with a 201 with enough JSON in the response body to discern the "@id".  '+
@@ -92,7 +142,6 @@ describe(
         .get('/v1/api/unset')
         .expect(405, done)
     })
-
 
     it('/delete -- not written.  Expect a 405 for now.', function(done) {
       request
