@@ -319,9 +319,11 @@ exports.queryHeadRequest = async function(req, res, next){
  * */
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let props = req.body
-    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-    res.json(matches)
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let all = await getAllVersions(obj)
+    let descendants = getAllDescendants(all, obj, [])
+    res.json(descendants)
 }
 
 /**
@@ -332,10 +334,12 @@ exports.since = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.history = async function (req, res, next) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    let props = req.body
-    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-    res.json(matches)
+ res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let all = await getAllVersions(obj)
+    let ancestors = getAllAncestors(all, obj, [])
+    res.json(ancestors)
 }
 
 async function getAllVersions(obj){
