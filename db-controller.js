@@ -238,8 +238,6 @@ exports.overwrite = async function (req, res, next) {
  * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
  * This will support wildcards and mongo params like {"key":{$exists:true}}
  * The return is always an array, even if 0 or 1 objects in the return.
- * Track History
- * Respond RESTfully
  * */
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
@@ -252,8 +250,6 @@ exports.query = async function (req, res, next) {
  * Query the MongoDB for objects with the _id provided in the request body or request URL
  * Note this specifically checks for _id, the @id pattern is irrelevant.  
  * Note /v1/id/{blank} does not route here.  It routes to the generic 404
- * Track History
- * Respond RESTfully
  * */
 exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
@@ -311,12 +307,11 @@ exports.queryHeadRequest = async function(req, res, next){
 }
 
 /**
- * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
- * This will support wildcards and mongo params like {"key":{$exists:true}}
- * The return is always an array, even if 0 or 1 objects in the return.
- * Track History
- * Respond RESTfully
- * */
+ * Public facing servlet to gather for all versions downstream from a provided `key object`.
+ * @param oid variable assigned by urlrewrite rule for /id in urlrewrite.xml
+ * @throws java.lang.Exception
+ * @respond JSONArray to the response out for parsing by the client application.
+ */
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
@@ -326,15 +321,16 @@ exports.since = async function (req, res, next) {
     res.json(descendants)
 }
 
+
 /**
- * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
- * This will support wildcards and mongo params like {"key":{$exists:true}}
- * The return is always an array, even if 0 or 1 objects in the return.
- * Track History
- * Respond RESTfully
- * */
+ * Public facing servlet action to find all upstream versions of an object.  This is the action the user hits with the API.
+ * If this object is `prime`, it will be the only object in the array.
+ * @param oid variable assigned by urlrewrite rule for /id in urlrewrite.xml
+ * @respond JSONArray to the response out for parsing by the client application.
+ * @throws Exception 
+ */
 exports.history = async function (req, res, next) {
- res.set("Content-Type", "application/json; charset=utf-8")
+    res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     let all = await getAllVersions(obj)
@@ -342,6 +338,10 @@ exports.history = async function (req, res, next) {
     res.json(ancestors)
 }
 
+/**
+ * Allow for HEAD requests via the RERUM since pattern /v1/since/:_id
+ * No objects are returned, but the Content-Length header is set. 
+ * */
 exports.sinceHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
@@ -359,6 +359,10 @@ exports.sinceHeadRequest = async function(req, res, next){
     }
 }
 
+/**
+ * Allow for HEAD requests via the RERUM since pattern /v1/history/:_id
+ * No objects are returned, but the Content-Length header is set. 
+ * */
 exports.historyHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
@@ -376,6 +380,14 @@ exports.historyHeadRequest = async function(req, res, next){
     }
 }
 
+/**
+ * Internal private method to loads all derivative versions from the `root` object. It should always receive a reliable object, not one from the user.
+ * Used to resolve the history tree for storing into memory.
+ * @param  obj A JSONObject to find all versions of.  If it is root, make sure to prepend it to the result.  If it isn't root, query for root from the ID
+ * found in prime using that result as a reliable root object. 
+ * @return All versions from the store of the object in the request
+ * @throws Exception 
+ */
 async function getAllVersions(obj){
     let ls_versions = null
     let rootObj = null
@@ -406,6 +418,19 @@ async function getAllVersions(obj){
     return ls_versions
 }
 
+/**
+ * Internal method to filter ancestors upstream from `key object` until `root`. It should always receive a reliable object, not one from the user.
+ * This list WILL NOT contains the keyObj.
+ * 
+ *  "Get requests can't have body"
+ *  In fact in the standard they can (at least nothing says they can't). But lot of servers and firewall implementation suppose they can't 
+ *  and drop them so using body in get request is a very bad idea.
+ * 
+ * @param ls_versions all the versions of the key object on all branches
+ * @param keyObj The object from which to start looking for ancestors.  It is not included in the return. 
+ * @param discoveredAncestors The array storing the ancestor objects discovered by the recursion.
+ * @return array of objects
+ */
 function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
     let previousID = keyObj["__rerum"]["history"]["previous"] //The first previous to look for
     for (let v of ls_versions) {
@@ -432,6 +457,14 @@ function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
     return discoveredAncestors
 }
 
+/**
+ * Internal method to find all downstream versions of an object.  It should always receive a reliable object, not one from the user.
+ * If this object is the last, the return will be an empty JSONArray.  The keyObj WILL NOT be a part of the array.  
+ * @param  ls_versions All the given versions, including root, of a provided object.
+ * @param  keyObj The provided object
+ * @param  discoveredDescendants The array storing the descendants objects discovered by the recursion.
+ * @return All the objects that were deemed descendants in a JSONArray
+ */
 function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
     let nextIDarr = []
     if(keyObj["__rerum"]["history"]["next"].length === 0){
