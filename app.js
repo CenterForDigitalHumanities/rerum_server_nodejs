@@ -13,6 +13,7 @@ const cors = require('cors')
 
 var indexRouter = require('./routes/index.js')
 var apiRouter = require('./routes/api-routes.js')
+const clientRouter = require('./routes/client.js')
 
 //var utils = require('utils.js')
 const rest = require('./rest.js')
@@ -52,6 +53,8 @@ app.all('*', (req, res, next) => {
 app.use('/', indexRouter)
 
 app.use('/v1', apiRouter)
+
+app.use('/client', clientRouter)
 
 /**
  * Handle API errors and warnings RESTfully.  All routes that don't end in res.send() will end up here.
