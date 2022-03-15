@@ -10,6 +10,22 @@ request = request("http://localhost:3333")
 describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
+
+    it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  '+
+      'It should respond 200 with a body that is a JSON object with an "@id" property.',
+    function(done) {
+      request
+        .get('/v1/id/622f7f0a0249b8ac889b2e2c')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(200)
+        .then(response => {
+            expect(response.headers["location"]).toBeTruthy()
+            expect(response.body["@id"]).toBeTruthy()
+            done()
+        })
+        .catch(err => done(err))
+      }
+    )
     
     it('End to end /v1/since/{_id}. Do a properly formatted /since call by GETting for an existing _id. '+
       'It should respond 200 with a body that is of type Array.',
@@ -19,7 +35,7 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            expect(Array.isArray(response.body).toBe(true)
+            expect(Array.isArray(response.body)).toBe(true)
             done()
         })
         .catch(err => done(err))
@@ -34,7 +50,7 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            expect(Array.isArray(response.body).toBe(true)
+            expect(Array.isArray(response.body)).toBe(true)
             done()
         })
         .catch(err => done(err))
@@ -92,8 +108,8 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
-            expect(response.headers['location']).toBeTruthy()
-            expect(response.headers['location']).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
+            expect(response.headers["location"]).toBeTruthy()
+            expect(response.headers["location"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body["@id"]).toBeTruthy()
             expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             done()

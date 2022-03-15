@@ -49,19 +49,19 @@ describe('Check to see that all expected routes exists.', function() {
 
   it('/v1/id/{_id} -- RERUM object URL GET by _id pattern.  It should return a 405.', function(done) {
     request
+      .post('/v1/id/1111')
+      .expect(405, done)
+  })
+
+  it('/v1/since/{_id} -- RERUM /since/:_id pattern.  It should return a 405.', function(done) {
+    request
       .post('/v1/since/1111')
       .expect(405, done)
   })
 
-  it('/v1/id/{_id} -- RERUM object URL GET by _id pattern.  It should return a 405.', function(done) {
+  it('/v1/history/{_id} -- RERUM /history/:_id pattern.  It should return a 405.', function(done) {
     request
       .post('/v1/history/1111')
-      .expect(405, done)
-  })
-
-  it('/v1/id/{_id} -- RERUM object URL GET by _id pattern.  It should return a 405.', function(done) {
-    request
-      .post('/v1/id/1111')
       .expect(405, done)
   })
 

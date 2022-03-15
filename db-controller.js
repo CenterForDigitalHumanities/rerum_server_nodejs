@@ -112,6 +112,7 @@ exports.putUpdate = async function (req, res, next) {
             const newObjID = new ObjectID().toHexString()
             newObjectReceived["_id"] = newObjID
             newObjectReceived["@id"] = process.env.RERUM_ID_PREFIX+newObjID
+            console.log("UPDATE")
             try{
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObjectReceived)
                 if(exports.alterHistoryNext(originalObject, newObjectReceived["@id"])){
@@ -257,6 +258,7 @@ exports.id = async function (req, res, next) {
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         delete match["_id"]
+        res.location(match["@id"])
         res.json(match)    
     }
     else{
@@ -466,8 +468,6 @@ function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
  * @return All the objects that were deemed descendants in a JSONArray
  */
 function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
-    console.log("Get all descendants versions...")
-    console.log(ls_versions.length)
     let nextIDarr = []
     if(keyObj["__rerum"]["history"]["next"].length === 0){
         //essentially, do nothing.  This branch is done.
@@ -478,8 +478,6 @@ function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
     }
     for(nextID of nextIDarr){
         for(v of ls_versions){
-            console.log("Is this a descendant?")
-            console.log(v["@id"] +" === " + nextID)
             if(v["@id"] === nextID){ //If it is equal, add it to the known descendants
                 //Recurse with what you have discovered so far and this object as the new keyObj
                 discoveredDescendants.push(v)
