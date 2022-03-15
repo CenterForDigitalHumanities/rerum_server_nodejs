@@ -49,7 +49,7 @@ module.exports = {
   verbose: true,
 
   //Don't show console.log and console.debug from the app code
-  silent:true,
+  silent: true,
 
   // The root directory that Jest should scan for tests and modules within
   rootDir: "./"

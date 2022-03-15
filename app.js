@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-//test it
+// test it
 var createError = require('http-errors')
 var express = require('express')
 var path = require('path')
@@ -40,7 +40,7 @@ app.use(express.static(path.join(__dirname, 'public')))
  * This is without middleware
  */ 
 app.all('*', (req, res, next) => {
-  if(process.env.down=="true"){
+  if(process.env.DOWN=="true"){
       res.status(503).send("RERUM v1 is down for updates or maintenance at this time.  We aplologize for the inconvenience.  Try again later.")
       res.redirect(301, "/maintenance.html")
   }

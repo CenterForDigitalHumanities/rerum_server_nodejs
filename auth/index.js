@@ -42,7 +42,7 @@ const generateNewAccessToken = async (req, res) => {
             form: {
                 grant_type: 'refresh_token',
                 client_id: process.env.client_id,
-                client_secret: process.env.client_secret,
+                CLIENT_SECRET: process.env.CLIENT_SECRET,
                 refresh_token: req.body.refresh_token
             }
         }).json()
@@ -62,7 +62,7 @@ const generateNewRefreshToken = async (req, res) => {
             form: {
                 grant_type: 'authorization_code',
                 client_id: process.env.client_id,
-                client_secret: process.env.client_secret,
+                CLIENT_SECRET: process.env.CLIENT_SECRET,
                 refresh_token: req.body.refresh_token,
                 code: req.body.authorization_code
             }
@@ -105,7 +105,7 @@ const isGenerator = (obj, token) => {
  * @param {URI} generatorId Agent ID of a known Auth0 bot to automatically approve.
  * @returns Boolean for matching ID.
  */
-const isBot = (generatorId) => process.env.bot_agent === generatorId
+const isBot = (generatorId) => process.env.BOT_AGENT === generatorId
 
 module.exports = {
     checkJwt,

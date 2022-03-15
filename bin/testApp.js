@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 /**
+ * @author thehabes
+ * */
+
+/**
  * Module dependencies.
  */
 const jest = require('jest')
@@ -14,7 +18,7 @@ var http = require('http')
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3333')
+var port = normalizePort('3333')
 app.set('port', port)
 
 /**
@@ -94,11 +98,11 @@ async function onListening() {
     .then(({ results }) => {
       if (results.success) {
         console.log('Tests completed')
-        process.exit(1)
+        process.exit(0)
       } 
       else {
         console.error('Tests failed')
-        process.exit(0)
+        process.exit(1)
       }
   })
 }

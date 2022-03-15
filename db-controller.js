@@ -35,7 +35,7 @@ exports.create = async function (req, res, next) {
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
     newObject["_id"] = id
@@ -190,7 +190,7 @@ exports.overwrite = async function (req, res, next) {
     let newObjectReceived = req.body
     let changeAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
     if(newObjectReceived.hasOwnProperty("@id")){
         console.log("OVERWRITE")
