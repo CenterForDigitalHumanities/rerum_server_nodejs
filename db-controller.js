@@ -35,13 +35,12 @@ exports.create = async function (req, res, next) {
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
     newObject["_id"] = id
     newObject["@id"] = process.env.RERUM_ID_PREFIX+id
     console.log("CREATE")
-    console.log(newObject)
     try{
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
         res.location(newObject["@id"])
@@ -189,13 +188,10 @@ exports.patchUnset = async function (req, res, next) {
 exports.overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let newObjectReceived = req.body
-    console.log("What does req.user have?")
-    console.log(req.user)
     let changeAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
-    console.log("Change agent is -- "+changeAgent)
     if(newObjectReceived.hasOwnProperty("@id")){
         console.log("OVERWRITE")
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -247,8 +243,6 @@ exports.overwrite = async function (req, res, next) {
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    console.log("Looking matches against props...")
-    console.log(props)
     let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
     res.json(matches)
 }
