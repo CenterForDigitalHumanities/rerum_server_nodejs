@@ -311,6 +311,112 @@ exports.queryHeadRequest = async function(req, res, next){
 }
 
 /**
+ * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
+ * This will support wildcards and mongo params like {"key":{$exists:true}}
+ * The return is always an array, even if 0 or 1 objects in the return.
+ * Track History
+ * Respond RESTfully
+ * */
+exports.since = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let props = req.body
+    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+    res.json(matches)
+}
+
+/**
+ * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
+ * This will support wildcards and mongo params like {"key":{$exists:true}}
+ * The return is always an array, even if 0 or 1 objects in the return.
+ * Track History
+ * Respond RESTfully
+ * */
+exports.history = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let props = req.body
+    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+    res.json(matches)
+}
+
+async function getAllVersions(obj){
+    let ls_versions = null
+    let rootObj = null
+    let primeID = ""
+    if(obj["__rerum"]){
+        primeID = obj["__rerum"]["history"]["prime"]
+    }
+    else{
+        // No __rerum property...
+        return []
+    }
+    if(primeID === "root"){
+        //The obj passed in is root.  So it is the rootObj we need.
+        primeID = obj["@id"]
+        rootObj = JSON.parse(JSON.stringify(obj))
+    }
+    else{
+        //The obj passed in knows the ID of root, grab it from Mongo
+        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"@id":primeID})
+    }
+    delete rootObj["_id"]
+    //All the children of this object will have its @id in __rerum.history.prime
+    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({"__rerum.history.prime":primeID}).toArray()
+    ls_versions = ls_versions.map(o => {
+        delete o["_id"]
+        return o
+    }).unshift(rootObj)
+    return ls_versions
+}
+
+function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
+    let previousID = keyObj["__rerum"]["history"]["previous"] //The first previous to look for
+    for (let v of ls_versions) {
+        if(keyObj["__rerum"]["history"]["prime"] === "root"){
+            //Check if we found root when we got the last object out of the list.  If so, we are done.  If keyObj was root, it will be detected here.  Break out. 
+            break
+        }
+        else if(v["@id"] === previousID){
+            //If this object's @id is equal to the previous from the last object we found, its the one we want.  Look to its previous to keep building the ancestors Array.   
+            previousID = v["__rerum"]["history"]["previous"]
+            if(previousID === "" && v["__rerum"]["history"]["prime"] !== "root"){
+                //previous is blank and this object is not the root.  This is gunna trip it up.  
+                //@cubap Yikes this is a problem.  This branch on the tree is broken...what should we tell the user?  How should we handle?
+                break
+            }
+            else{
+                discoveredAncestors.push(v)
+                //Recurse with what you have discovered so far and this object as the new keyObj
+                getAllAncestors(ls_versions, thisObject, discoveredAncestors)
+                break
+            }
+        }                  
+    }
+    return discoveredAncestors
+}
+
+function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
+    let nextIDarr = []
+    if(keyObj["__rerum"]["history"]["next"].length === 0){
+        //essentially, do nothing.  This branch is done.
+    }
+    else{
+        //The provided object has nexts, get them to add them to known descendants then check their descendants.
+        nextIDarr = keyObj["__rerum"]["history"]["next"]
+    }
+    for(nextID of nextIDarr){
+        for(v of ls_versions){
+            if(v["@id"] === nextID){ //If it is equal, add it to the known descendants
+                //Recurse with what you have discovered so far and this object as the new keyObj
+                discoveredDescendants.push(v)
+                getAllDescendants(ls_versions, thisObject, discoveredDescendants);
+                break
+            }
+        }
+    }      
+    return discoveredDescendants
+}
+
+/**
  * Internal helper method to update the history.previous property of a root object.  This will occur because a new root object can be created
  * by put_update.action on an external object.  It must mark itself as root and contain the original ID for the object in history.previous.
  * This method only receives reliable objects from mongo.
