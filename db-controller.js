@@ -115,7 +115,7 @@ exports.putUpdate = async function (req, res, next) {
             console.log("UPDATE")
             try{
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObjectReceived)
-                if(exports.alterHistoryNext(originalObject, newObjectReceived["@id"])){
+                if(alterHistoryNext(originalObject, newObjectReceived["@id"])){
                     //Success, the original object has been updated.
                     res.location(newObjectReceived["@id"])
                     res.status(200)
@@ -542,7 +542,7 @@ function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
  * @param externalObjID the @id of the external object to go into history.previous
  * @return JSONObject of the provided object with the history.previous alteration
  */   
-exports.alterHistoryPrevious = async function(objToUpdate, newPrevID){
+async function alterHistoryPrevious(objToUpdate, newPrevID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     objToUpdate["__rerum"].history.previous = newPrevID
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
@@ -557,7 +557,7 @@ exports.alterHistoryPrevious = async function(objToUpdate, newPrevID){
  * @param newNextID the @id of the newly created object to be placed in the history.next array.
  * @return Boolean altered true on success, false on fail
  */
-exports.alterHistoryNext = async function(objToUpdate, newNextID){
+async function alterHistoryNext(objToUpdate, newNextID){
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     objToUpdate["__rerum"].history.next.push(newNextID)
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id":objToUpdate["_id"]}, objToUpdate)
