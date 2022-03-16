@@ -112,6 +112,7 @@ exports.putUpdate = async function (req, res, next) {
             const newObjID = new ObjectID().toHexString()
             newObjectReceived["_id"] = newObjID
             newObjectReceived["@id"] = process.env.RERUM_ID_PREFIX+newObjID
+            console.log("UPDATE")
             try{
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObjectReceived)
                 if(exports.alterHistoryNext(originalObject, newObjectReceived["@id"])){
@@ -238,8 +239,6 @@ exports.overwrite = async function (req, res, next) {
  * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
  * This will support wildcards and mongo params like {"key":{$exists:true}}
  * The return is always an array, even if 0 or 1 objects in the return.
- * Track History
- * Respond RESTfully
  * */
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
@@ -252,8 +251,6 @@ exports.query = async function (req, res, next) {
  * Query the MongoDB for objects with the _id provided in the request body or request URL
  * Note this specifically checks for _id, the @id pattern is irrelevant.  
  * Note /v1/id/{blank} does not route here.  It routes to the generic 404
- * Track History
- * Respond RESTfully
  * */
 exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
@@ -261,6 +258,7 @@ exports.id = async function (req, res, next) {
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         delete match["_id"]
+        res.location(match["@id"])
         res.json(match)    
     }
     else{
@@ -308,6 +306,216 @@ exports.queryHeadRequest = async function(req, res, next){
         res.set("Content-Length", 0)
         res.sendStatus(200)    
     }
+}
+
+/**
+ * Public facing servlet to gather for all versions downstream from a provided `key object`.
+ * @param oid variable assigned by urlrewrite rule for /id in urlrewrite.xml
+ * @throws java.lang.Exception
+ * @respond JSONArray to the response out for parsing by the client application.
+ */
+exports.since = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    if(undefined === obj){
+        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
+    }
+    else{
+        let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+        let descendants = getAllDescendants(all, obj, [])
+        res.json(descendants)
+    }
+}
+
+
+/**
+ * Public facing servlet action to find all upstream versions of an object.  This is the action the user hits with the API.
+ * If this object is `prime`, it will be the only object in the array.
+ * @param oid variable assigned by urlrewrite rule for /id in urlrewrite.xml
+ * @respond JSONArray to the response out for parsing by the client application.
+ * @throws Exception 
+ */
+exports.history = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    if(undefined === obj){
+        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
+    }
+    else{
+        let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+        let ancestors = getAllAncestors(all, obj, [])
+        res.json(ancestors)   
+    }
+}
+
+/**
+ * Allow for HEAD requests via the RERUM since pattern /v1/since/:_id
+ * No objects are returned, but the Content-Length header is set. 
+ * */
+exports.sinceHeadRequest = async function(req, res, next){
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let all = await getAllVersions(obj)
+    .catch(err => {
+        console.error(err)
+        return []
+    })
+    let descendants = getAllDescendants(all, obj, [])
+    if(descendants.length){
+        const size = Buffer.byteLength(JSON.stringify(descendants))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
+    }
+    else{
+        res.set("Content-Length", 0)
+        res.sendStatus(200)    
+    }
+}
+
+/**
+ * Allow for HEAD requests via the RERUM since pattern /v1/history/:_id
+ * No objects are returned, but the Content-Length header is set. 
+ * */
+exports.historyHeadRequest = async function(req, res, next){
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let id = req.params["_id"]
+    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    let all = await getAllVersions(obj)
+    .catch(err => {
+        console.error(err)
+        return []
+    })
+    let ancestors = getAllAncestors(all, obj, [])
+    if(ancestors.length){
+        const size = Buffer.byteLength(JSON.stringify(ancestors))
+        res.set("Content-Length", size)
+        res.sendStatus(200)    
+    }
+    else{
+        res.set("Content-Length", 0)
+        res.sendStatus(200)    
+    }
+}
+
+/**
+ * Internal private method to loads all derivative versions from the `root` object. It should always receive a reliable object, not one from the user.
+ * Used to resolve the history tree for storing into memory.
+ * @param  obj A JSONObject to find all versions of.  If it is root, make sure to prepend it to the result.  If it isn't root, query for root from the ID
+ * found in prime using that result as a reliable root object. 
+ * @return All versions from the store of the object in the request
+ * @throws Exception when a JSONObject with no '__rerum' property is provided.
+ */
+async function getAllVersions(obj){
+    let ls_versions = null
+    let rootObj = null
+    let primeID = ""
+    if(obj["__rerum"]){
+        primeID = obj["__rerum"]["history"]["prime"]
+    }
+    else{
+        throw new Error("This object has no history because it has no '__rerum' property.  This will result in an empty array.")
+    }
+    if(primeID === "root"){
+        //The obj passed in is root.  So it is the rootObj we need.
+        primeID = obj["@id"]
+        rootObj = JSON.parse(JSON.stringify(obj))
+    }
+    else{
+        //The obj passed in knows the ID of root, grab it from Mongo
+        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"@id":primeID})
+    }
+    delete rootObj["_id"]
+    //All the children of this object will have its @id in __rerum.history.prime
+    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({"__rerum.history.prime":primeID}).toArray()
+    //Get rid of _id, for display
+    ls_versions.map(o => delete o["_id"])
+    //The root object is a version, prepend it in
+    ls_versions.unshift(rootObj)
+    return ls_versions
+}
+
+/**
+ * Internal method to filter ancestors upstream from `key object` until `root`. It should always receive a reliable object, not one from the user.
+ * This list WILL NOT contains the keyObj.
+ * 
+ *  "Get requests can't have body"
+ *  In fact in the standard they can (at least nothing says they can't). But lot of servers and firewall implementation suppose they can't 
+ *  and drop them so using body in get request is a very bad idea.
+ * 
+ * @param ls_versions all the versions of the key object on all branches
+ * @param keyObj The object from which to start looking for ancestors.  It is not included in the return. 
+ * @param discoveredAncestors The array storing the ancestor objects discovered by the recursion.
+ * @return All the objects that were deemed ancestors in a JSONArray
+ */
+function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
+    let previousID = keyObj["__rerum"]["history"]["previous"] //The first previous to look for
+    for (let v of ls_versions) {
+        if(keyObj["__rerum"]["history"]["prime"] === "root"){
+            //Check if we found root when we got the last object out of the list.  If so, we are done.  If keyObj was root, it will be detected here.  Break out. 
+            break
+        }
+        else if(v["@id"] === previousID){
+            //If this object's @id is equal to the previous from the last object we found, its the one we want.  Look to its previous to keep building the ancestors Array.   
+            previousID = v["__rerum"]["history"]["previous"]
+            if(previousID === "" && v["__rerum"]["history"]["prime"] !== "root"){
+                //previous is blank and this object is not the root.  This is gunna trip it up.  
+                //@cubap Yikes this is a problem.  This branch on the tree is broken...what should we tell the user?  How should we handle?
+                break
+            }
+            else{
+                discoveredAncestors.push(v)
+                //Recurse with what you have discovered so far and this object as the new keyObj
+                getAllAncestors(ls_versions, v, discoveredAncestors)
+                break
+            }
+        }                  
+    }
+    return discoveredAncestors
+}
+
+/**
+ * Internal method to find all downstream versions of an object.  It should always receive a reliable object, not one from the user.
+ * If this object is the last, the return will be an empty JSONArray.  The keyObj WILL NOT be a part of the array.  
+ * @param  ls_versions All the given versions, including root, of a provided object.
+ * @param  keyObj The provided object
+ * @param  discoveredDescendants The array storing the descendants objects discovered by the recursion.
+ * @return All the objects that were deemed descendants in a JSONArray
+ */
+function getAllDescendants(ls_versions, keyObj, discoveredDescendants){
+    let nextIDarr = []
+    if(keyObj["__rerum"]["history"]["next"].length === 0){
+        //essentially, do nothing.  This branch is done.
+    }
+    else{
+        //The provided object has nexts, get them to add them to known descendants then check their descendants.
+        nextIDarr = keyObj["__rerum"]["history"]["next"]
+    }
+    for(nextID of nextIDarr){
+        for(v of ls_versions){
+            if(v["@id"] === nextID){ //If it is equal, add it to the known descendants
+                //Recurse with what you have discovered so far and this object as the new keyObj
+                discoveredDescendants.push(v)
+                getAllDescendants(ls_versions, v, discoveredDescendants);
+                break
+            }
+        }
+    }      
+    return discoveredDescendants
 }
 
 /**
