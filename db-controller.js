@@ -370,20 +370,27 @@ exports.sinceHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    let all = await getAllVersions(obj)
-    .catch(err => {
-        console.error(err)
-        return []
-    })
-    let descendants = getAllDescendants(all, obj, [])
-    if(descendants.length){
-        const size = Buffer.byteLength(JSON.stringify(descendants))
-        res.set("Content-Length", size)
-        res.sendStatus(200)    
+    if(null === obj){
+        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
     }
     else{
-        res.set("Content-Length", 0)
-        res.sendStatus(200)    
+        let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+        let descendants = getAllDescendants(all, obj, [])
+        if(descendants.length){
+            const size = Buffer.byteLength(JSON.stringify(descendants))
+            res.set("Content-Length", size)
+            res.sendStatus(200)    
+        }
+        else{
+            res.set("Content-Length", 0)
+            res.sendStatus(200)    
+        }
     }
 }
 
@@ -395,21 +402,29 @@ exports.historyHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    let all = await getAllVersions(obj)
-    .catch(err => {
-        console.error(err)
-        return []
-    })
-    let ancestors = getAllAncestors(all, obj, [])
-    if(ancestors.length){
-        const size = Buffer.byteLength(JSON.stringify(ancestors))
-        res.set("Content-Length", size)
-        res.sendStatus(200)    
+    if(null === obj){
+        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
     }
     else{
-        res.set("Content-Length", 0)
-        res.sendStatus(200)    
+       let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+        let ancestors = getAllAncestors(all, obj, [])
+        if(ancestors.length){
+            const size = Buffer.byteLength(JSON.stringify(ancestors))
+            res.set("Content-Length", size)
+            res.sendStatus(200)    
+        }
+        else{
+            res.set("Content-Length", 0)
+            res.sendStatus(200)    
+        } 
     }
+    
 }
 
 /**
