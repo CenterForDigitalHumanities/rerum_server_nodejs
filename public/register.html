@@ -61,8 +61,6 @@
         word-break: break-word;
     }
 
-    .handHoldy {}
-
     .status_header {
         color: gray;
     }
@@ -284,84 +282,65 @@
 
     }
 
-    $("#register").click(ev => fetch('/client/register').then(res=>res.text()).then(url=>location.href = url))// `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
+    $("#register").click(ev => fetch('/client/register').then(res => res.text()).then(url => location.href = url))// `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
 
     $("#request_token").click(function () {
-        var r_t = $("#r_t_4_a_t").val();
-        var statusElem = $("#natStatus");
-        if (r_t) {
-            $("#r_t_4_a_t").css("border", "none");
-            $("#r_t_4_a_t").val();
-            var params = {
-                "refresh_token": r_t
-            };
-            var postURL = R_P + "api/accessToken.action";
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function () {
-                if (this.readyState === XMLHttpRequest.DONE) {
-                    var resp = this.response;
-                    if (typeof resp == "string") {
-                        resp = JSON.parse(resp);
-                    }
-                    if (this.status < 300) {
-                        $("#a_t").val(resp.access_token);
-                        statusElem.html("The refresh token was accepted.");
-                    }
-                    else {
-                        $("#r_t_4_a_t").css("border", "2px solid red");
-                        statusElem.html("The refresh token was invalid.  Get a new refresh token or try again.");
-                    }
-                }
-            };
-            xhr.open("POST", postURL, true);
-            xhr.setRequestHeader("Content-type", "application/json");
-            xhr.send(JSON.stringify(params));
+        const refresh_token = $("#r_t_4_a_t").val()
+        if (!refresh_token) {
+            $("#r_t_4_a_t").attr("placeholder", "You must supply a refresh token here!")
+            $("#r_t_4_a_t").css("border", "2px solid yellow")
+            return false
         }
-        else {
-            $("#r_t_4_a_t").attr("placeholder", "You must supply a refresh token here!");
-            $("#r_t_4_a_t").css("border", "2px solid yellow");
-        }
-    });
+        fetch('/client/request-new-access-token', {
+            method: 'post',
+            json: { refresh_token }
+        }).then(resp => {
+            var statusElem = $("#natStatus");
+            if (resp.status < 300) {
+                statusElem.html("The refresh token was accepted.")
+                return resp.json()
+            } else {
+                $("#r_t_4_a_t").css("border", "2px solid red")
+                statusElem.html("The refresh token was invalid.  Get a new refresh token or try again.")
+                return Promise.reject("Invalid refresh token.")
+            }
+        })
+            .then(token => {
+                $("#a_t").val(token.access_token)
+            })
+    })
 
     $("#refresh_token").click(function () {
         //The user would like to request a new access token using the refresh token.  Send them off to log in. 
-        var authCode = $("#code_for_refresh_token").val();
-        var statusElem = $("#nrtStatus");
-        if (authCode) {
-            $("#code_for_refresh_token").css("border", "none");
-            $("#new_refresh_token").css("border", "none");
-            $("#new_refresh_token").val("");
-            var params = {
-                "authorization_code": authCode
-            };
-            var postURL = R_P + "api/refreshToken.action";
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function () {
-                if (this.readyState === XMLHttpRequest.DONE) {
-                    var resp = this.response;
-                    if (typeof resp == "string") {
-                        resp = JSON.parse(resp);
-                    }
-                    if (this.status < 300) {
-                        $("#new_refresh_token").val(resp.refresh_token);
-                        $("#a_t").val(resp.access_token);
-                        statusElem.html("Auth0 accepted the code.");
-                    }
-                    else {
-                        $("#code_for_refresh_token").css("border", "2px solid red");
-                        statusElem.html("Auth0 rejected the code.  Check your status to get a new code and try again.");
-                    }
-                }
-            };
-            xhr.open("POST", postURL, true);
-            xhr.setRequestHeader("Content-type", "application/json");
-            xhr.send(JSON.stringify(params));
+        var authorization_code = $("#code_for_refresh_token").val()
+        if (!authorization_code) {
+            $("#code_for_refresh_token").attr("placeholder", "You must supply a code here!")
+            $("#code_for_refresh_token").css("border", "2px solid yellow")
+            return false
         }
-        else {
-            $("#code_for_refresh_token").attr("placeholder", "You must supply a code here!");
-            $("#code_for_refresh_token").css("border", "2px solid yellow");
-        }
-    });
+        $("#code_for_refresh_token").css("border", "none")
+        $("#new_refresh_token").css("border", "none")
+        $("#new_refresh_token").val("")
+
+        fetch('/client/request-new-access-token', {
+            method: 'post',
+            json: { authorization_code }
+        }).then(resp => {
+            var statusElem = $("#nrtStatus")
+            if (resp.status < 300) {
+                statusElem.html("Auth0 accepted the code.")
+                return resp.json()
+            } else {
+                $("#code_for_refresh_token").css("border", "2px solid red")
+                statusElem.html("Auth0 rejected the code.  Check your status to get a new code and try again.")
+                return Promise.reject("Invalid authorization code.")
+            }
+        })
+            .then(token => {
+                $("#new_refresh_token").val(token.refresh_token)
+                $("#a_t").val(token.access_token)
+            })
+    })
 
     $("#check_status").click(function () {
         //This means they just want to see if they are registered with the RERUM Server Auth0 client (just need an auth code).  If they are no logged in, they will see a prompt to log in.
