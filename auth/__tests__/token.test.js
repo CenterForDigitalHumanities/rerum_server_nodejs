@@ -1,7 +1,7 @@
 const request = require("supertest")
 const express = require('express')
 const app = express()
-const auth = require("../token")
+const auth = require("../../auth")
 const createJWKSMock = require("mock-jwks").default
 
 describe('Some tests for authentication for our api', () => {
