@@ -20,5 +20,6 @@ router.get('/register', function(req,res,next){
 
   router.post('/request-new-access-token',auth.generateNewAccessToken)
   router.post('/request-new-refresh-token',auth.generateNewRefreshToken)
+  router.get('/verify',auth.checkJwt)
 
 module.exports = router
