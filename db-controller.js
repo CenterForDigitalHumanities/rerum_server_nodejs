@@ -404,7 +404,7 @@ exports.historyHeadRequest = async function(req, res, next){
  * @param  obj A JSONObject to find all versions of.  If it is root, make sure to prepend it to the result.  If it isn't root, query for root from the ID
  * found in prime using that result as a reliable root object. 
  * @return All versions from the store of the object in the request
- * @throws Exception 
+ * @throws Exception when a JSONObject with no '__rerum' property is provided.
  */
 async function getAllVersions(obj){
     let ls_versions = null
@@ -446,7 +446,7 @@ async function getAllVersions(obj){
  * @param ls_versions all the versions of the key object on all branches
  * @param keyObj The object from which to start looking for ancestors.  It is not included in the return. 
  * @param discoveredAncestors The array storing the ancestor objects discovered by the recursion.
- * @return array of objects
+ * @return All the objects that were deemed ancestors in a JSONArray
  */
 function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
     let previousID = keyObj["__rerum"]["history"]["previous"] //The first previous to look for
