@@ -53,6 +53,18 @@ describe('Check to see that all expected routes exists.', function() {
       .expect(405, done)
   })
 
+  it('/v1/since/{_id} -- RERUM /since/:_id pattern.  It should return a 405.', function(done) {
+    request
+      .post('/v1/since/1111')
+      .expect(405, done)
+  })
+
+  it('/v1/history/{_id} -- RERUM /history/:_id pattern.  It should return a 405.', function(done) {
+    request
+      .post('/v1/history/1111')
+      .expect(405, done)
+  })
+
   it('/maintenance.html -- RERUM API maintenance page.  It should return a 200 and a HTML page. ', function(done) {
     request
     .get("/maintenance.html")
