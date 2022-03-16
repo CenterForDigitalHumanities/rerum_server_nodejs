@@ -318,13 +318,20 @@ exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    let all = await getAllVersions(obj)
-    .catch(err => {
-        console.error(err)
-        return []
-    })
-    let descendants = getAllDescendants(all, obj, [])
-    res.json(descendants)
+    if(undefined === obj){
+        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
+    }
+    else{
+        let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+        let descendants = getAllDescendants(all, obj, [])
+        res.json(descendants)
+    }
 }
 
 
@@ -339,13 +346,20 @@ exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    let all = await getAllVersions(obj)
-    .catch(err => {
-        console.error(err)
-        return []
-    })
-    let ancestors = getAllAncestors(all, obj, [])
-    res.json(ancestors)
+    if(undefined === obj){
+        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
+        res.status(404)
+        next()
+    }
+    else{
+        let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+        let ancestors = getAllAncestors(all, obj, [])
+        res.json(ancestors)   
+    }
 }
 
 /**
