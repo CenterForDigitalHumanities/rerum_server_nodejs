@@ -89,7 +89,7 @@ exports.putUpdate = async function (req, res, next) {
         let updateHistoryNextID = newObjectReceived["@id"]
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(undefined === originalObject){
+        if(null === originalObject){
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(newObjectReceived)
             res.statusMessage = "This object is not from RERUM and will need imported.  This is not automated yet. You can make a new object with create."
@@ -199,7 +199,7 @@ exports.overwrite = async function (req, res, next) {
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
         //Do we want to look up by _id or @id?
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-        if(undefined === originalObject){
+        if(null === originalObject){
             res.statusMessage = "No object with this id could be found in RERUM.  Cannot overwrite."
             res.status(404)
             next()
@@ -318,7 +318,7 @@ exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    if(undefined === obj){
+    if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
         res.status(404)
         next()
@@ -346,7 +346,7 @@ exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
-    if(undefined === obj){
+    if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
         res.status(404)
         next()
