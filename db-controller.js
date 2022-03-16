@@ -319,6 +319,10 @@ exports.since = async function (req, res, next) {
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     let all = await getAllVersions(obj)
+    .catch(err => {
+        console.error(err)
+        return []
+    })
     let descendants = getAllDescendants(all, obj, [])
     res.json(descendants)
 }
@@ -336,6 +340,10 @@ exports.history = async function (req, res, next) {
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     let all = await getAllVersions(obj)
+    .catch(err => {
+        console.error(err)
+        return []
+    })
     let ancestors = getAllAncestors(all, obj, [])
     res.json(ancestors)
 }
@@ -349,6 +357,10 @@ exports.sinceHeadRequest = async function(req, res, next){
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     let all = await getAllVersions(obj)
+    .catch(err => {
+        console.error(err)
+        return []
+    })
     let descendants = getAllDescendants(all, obj, [])
     if(descendants.length){
         const size = Buffer.byteLength(JSON.stringify(descendants))
@@ -370,6 +382,10 @@ exports.historyHeadRequest = async function(req, res, next){
     let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     let all = await getAllVersions(obj)
+    .catch(err => {
+        console.error(err)
+        return []
+    })
     let ancestors = getAllAncestors(all, obj, [])
     if(ancestors.length){
         const size = Buffer.byteLength(JSON.stringify(ancestors))
@@ -398,8 +414,7 @@ async function getAllVersions(obj){
         primeID = obj["__rerum"]["history"]["prime"]
     }
     else{
-        // No __rerum property...
-        return []
+        throw new Error("This object has no history because it has no '__rerum' property.  This will result in an empty array.")
     }
     if(primeID === "root"){
         //The obj passed in is root.  So it is the rootObj we need.
