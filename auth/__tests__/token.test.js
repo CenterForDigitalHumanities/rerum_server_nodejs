@@ -14,11 +14,24 @@ describe('Authorization middleware',()=>{
         }
     })
 
+    // screwy middleware is an array, which I am not sure how to test...
     test('reject empty request without headers',async ()=>{
-        await auth.checkJwt[0](mockRequest,mockResponse,nextFunction)
+        nextFunction = auth.checkJwt[2]
+        auth.checkJwt[0](mockRequest,mockResponse,nextFunction)
         .catch(auth.checkJwt[1])
-        .then(auth.checkJwt[2])
         expect(mockResponse.json).toThrow()
+    })
+
+    test('with "authorization" header', async () => {
+        nextFunction = auth.checkJwt[2]
+        mockRequest = {
+            headers: {
+                'authorization': 'Bearer blahblah'
+            }
+        }
+        authorizationMiddleware(mockRequest, mockResponse, nextFunction);
+
+        expect(nextFunction).toBeCalledTimes(1);
     })
 })
 
