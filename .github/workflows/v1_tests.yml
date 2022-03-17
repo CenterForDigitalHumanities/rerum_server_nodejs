@@ -32,6 +32,8 @@ jobs:
           envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
           envkey_DOWN: ${{ secrets.DOWN }}
           envkey_CLIENTID: ${{ secrets.CLIENTID }}
+          envkey_AUDIENCE: ${{ secrets.AUDIENCE }}
+          envkey_ISSUER_BASE_URL: ${{ secrets.ISSUER_BASE_URL }}
       # Set up NodeJS
       - name: Setup Node.js
         uses: actions/setup-node@v1
