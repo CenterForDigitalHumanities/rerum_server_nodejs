@@ -30,32 +30,12 @@ const queryRoute = require("./query.js")
 const deleteRoute = require("./delete.js")
 const auxRoute = "TODO"
 */
+const staticRouter = require('./static.js')
+router.use(staticRouter)
 
-// Set default API response
-router.get('/(register.html)?', function (req, res) {
-    res.sendFile('./public/register.html') // welcome page for new applications on V1
-})
-
-// api/context.json
-router.get('/context.json', function (req, res) {
-    res.status(200)
-    res.set("Content-Type", "application/json; charset=utf-8")
-    res.sendFile("./public/context.json")
-})
-
-// api/API.html
-router.get('/API.html', function (req, res) {
-    res.status(200)
-    res.set("Content-Type", "text/html; charset=utf-8")
-    res.sendFile("./public/API.html");
-})
-
-// api/terms.txt
-router.get('/terms.txt', function (req, res) {
-    res.status(200)
-    res.set("Content-Type", "text/html; charset=utf-8")
-    res.sendFile("./public/terms.txt")
-})
+// Support GET requests like v1/id/{object id}  
+const idRouter = require('./id.js')
+router.use(idRouter)
 
 // Set default API response
 router.get('/api', function (req, res) {
@@ -72,33 +52,6 @@ router.get('/api', function (req, res) {
         }
     })
 })
-
-/**
- * Support GET requests like v1/id/{object id}  
-*/
-router.route('/id/:_id')
-    .get(controller.id)
-    .post((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .patch((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .head(controller.idHeadRequest)
-    .delete((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
 
     /**
  * Support GET requests like v1/id/{object id}  
