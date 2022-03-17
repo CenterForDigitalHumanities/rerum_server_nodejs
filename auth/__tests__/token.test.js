@@ -27,8 +27,8 @@ describe('Authorization middleware',()=>{
                 'authorization': 'Bearer blahblah'
             }
         }
-        auth.checkJwt[0](mockRequest, mockResponse, nextFunction);
+        auth.checkJwt[0](mockRequest, mockResponse, nextFunction)
 
-        expect(nextFunction).toBeCalledTimes(1);
+        expect(nextFunction);
     })
 })
