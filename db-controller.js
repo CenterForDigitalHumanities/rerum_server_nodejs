@@ -747,7 +747,6 @@ async function healHistoryTree(obj){
 * @param obj A new prime object whose descendants must take on its id
 */
 async function newTreePrime(obj){
-    boolean success = true;
     if(obj["@id"]){
         let primeID = obj["@id"]
         let ls_versions = await getAllVersions(obj)
