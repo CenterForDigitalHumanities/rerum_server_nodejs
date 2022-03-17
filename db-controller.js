@@ -736,7 +736,7 @@ async function healHistoryTree(obj){
         }
     }
     else{
-        //System.out.println("The value of history.previous was an external URI or was not present.  Nothing to heal.  URI:"+previous_id);  
+        //console.log("The value of history.previous was an external URI or was not present.  Nothing to heal.  URI:"+previous_id);  
     }
     return true
 }
@@ -746,23 +746,27 @@ async function healHistoryTree(obj){
 * This should only be fed a reliable object from mongo
 * @param obj A new prime object whose descendants must take on its id
 */
-function newTreePrime(obj){
+async function newTreePrime(obj){
     boolean success = true;
     if(obj["@id"]){
         let primeID = obj["@id"]
-        let ls_versions = getAllVersions(obj)
-        let descendants = getAllDescendants(ls_versions, obj, new JSONArray());
+        let ls_versions = await getAllVersions(obj)
+        let descendants = getAllDescendants(ls_versions, obj, [])
         for(d of descendants){
             let objWithUpdate = JSON.parse(JSON.stringify(d))
             objWithUpdate["__rerum"]["history"]["prime"] = primeID
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : d["_id"]}, objWithUpdate)
             if(result.modifiedCount === 0){
-                //result didn't error out, but it also didn't succeed...
+                console.error("Could not update all descendants with their new prime value: newTreePrime failed")
+                return false
+                //throw new Error("Could not update all descendants with their new prime value: newTreePrime failed")
             }
         }
     }
     else{
-        throw new Error("Could not assign new prime object @id to all descendants history.prime")
+        console.error("newTreePrime failed.  Obj did not have '@id'.")
+        return false
+        //throw new Error("newTreePrime failed.  Obj did not have '@id'.")
     }
     return true
 }
