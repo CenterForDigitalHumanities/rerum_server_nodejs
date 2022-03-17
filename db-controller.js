@@ -652,7 +652,9 @@ async function healHistoryTree(obj){
         next_ids = obj["__rerum"]["history"]["next"] 
     }
     else{
-        throw new Error("This object has no history because it has no '__rerum' property.  There is nothing to heal.")
+        console.error("This object has no history because it has no '__rerum' property.  There is nothing to heal.")
+        return false
+        //throw new Error("This object has no history because it has no '__rerum' property.  There is nothing to heal.")
     }
     let objToDeleteisRoot = (prime_id === "root")
     //Update the history.previous of all the next ids in the array of the deleted object
@@ -670,7 +672,9 @@ async function healHistoryTree(obj){
                     fixHistory["__rerum"]["history"]["previous"] = previous_id
                 }
                 else{
-                    throw new Error("Could not update all descendants with their new prime value")
+                    console.error("Could not update all descendants with their new prime value")
+                    return false
+                    //throw new Error("Could not update all descendants with their new prime value")
                 }
             }
             else if(!previous_id.equals("")){ 
@@ -678,20 +682,26 @@ async function healHistoryTree(obj){
                 fixHistory["__rerum"]["history"]["previous"] = previous_id
             }
             else{
-                System.out.println("object did not have previous and was not root.  Weird...")
+                console.log("object did not have previous and was not root.  Weird...")
                 // @cubap @theHabes TODO Yikes this is some kind of error...it is either root or has a previous, this case means neither are true.
                 // cubap: Since this is a __rerum error and it means that the object is already not well-placed in a tree, maybe it shouldn't fail to delete?
                 // theHabes: Are their bad implications on the relevant nodes in the tree that reference this one if we allow it to delete?  Will their account of the history be correct?
-                // throw new Error("object did not have previous and was not root.")
+                //console.error("object did not have previous and was not root.")
+                //return false
+                //throw new Error("object did not have previous and was not root.")
             }
             //Does this have to be async?
             let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : objToUpdate["_id"]}, fixHistory)
             if(verify.modifiedCount === 0){
                 //verify didn't error out, but it also didn't succeed...
+                console.error("Could not update all descendants with their new prime value")
+                return false
             }
         }
         else{
-            throw new Error("Could not update all descendants with their new prime value")
+            console.error("Could not update all descendants with their new prime value: cannot find descendant.")
+            return false
+            //throw new Error("Could not update all descendants with their new prime value")
         }
     }
     //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
@@ -704,7 +714,7 @@ async function healHistoryTree(obj){
             let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
             let origNextArray = fixHistory2["__rerum"]["history"]["next"]
             let newNextArray = [...origNextArray]
-            //This next should no longer have obj["@id"].
+            //This next should no longer have obj["@id"]
             newNextArray.splice(obj["@id"], 1)
             //This next needs to contain the nexts from the deleted object
             newNextArray = [...newNextArray, ...next_ids]
@@ -712,13 +722,17 @@ async function healHistoryTree(obj){
             //Does this have to be async
             let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : objToUpdate2["_id"]}, fixHistory2)
             if(verify2.modifiedCount === 0){
-                //verify2 didn't error out, but it also didn't succeed...
+                //verify didn't error out, but it also didn't succeed...
+                console.error("Could not update all ancestors with their altered next value")
+                return false
             }
         }
         else{
             //The history.previous object could not be found in this RERUM Database.  
             //It has this APIs id pattern, that means we expected to find it.  This is an error.
-            throw new Error("Could not update all descendants with their new prime value")
+            //throw new Error("Could not update all descendants with their new prime value")
+            console.error("Could not update all ancestors with their altered next value: cannot find ancestor.")
+            return false
         }
     }
     else{
