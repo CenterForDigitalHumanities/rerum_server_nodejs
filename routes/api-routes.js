@@ -32,10 +32,8 @@ const auxRoute = "TODO"
 */
 
 // Set default API response
-router.get('/', function (req, res) {
-    res.json({
-        message: 'Welcome to v1 in nodeJS!'
-    })
+router.get('/(register.html)?', function (req, res) {
+    res.sendFile('./public/register.html') // welcome page for new applications on V1
 })
 
 // api/context.json
