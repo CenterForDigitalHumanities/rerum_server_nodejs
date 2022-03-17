@@ -1,12 +1,8 @@
 const router = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
-//Utility functions
-const utilities = require('../utils.js')
-//RESTful behavior
-const rest = require('../rest.js')
 
-router.route('/id/:_id')
+router.route('/:_id')
     .get(controller.id)
     .head(controller.idHeadRequest)
     .all((req, res) => {
