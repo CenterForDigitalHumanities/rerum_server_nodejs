@@ -26,8 +26,7 @@ describe('Check to see that all expected routes exists.', function() {
   it('/v1/ -- App index. ', function(done) {
     request
       .get("/v1")
-      .expect("Content-Type", "text/html; charset=UTF-8")
-      .expect(200, done)
+      .expect("Content-Type", "text/html; charset=UTF-8", done)
       .catch(err => done(err))
   })
 
