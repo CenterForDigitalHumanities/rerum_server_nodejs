@@ -68,7 +68,7 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
-    let id = req.params["_id"]?req.params["_id"]:""
+    let id = req.params["_id"] ?? ""
     let agentRequestingDelete = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
         agentRequestingDelete = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
@@ -86,7 +86,7 @@ exports.delete = async function (req, res, next) {
             res.status(403)
             return next()
         }
-        if(!utils.isGenerator(safe_received, agentRequestingOverwrite)){
+        if(!utils.isGenerator(safe_received, agentRequestingDelete)){
             res.statusMessage = "You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes."
             res.status(401)
             return next()
@@ -111,8 +111,8 @@ exports.delete = async function (req, res, next) {
             else{
                 //200 if you want to return other info with it, like a representation of the deleted object
                 //204 to say it is deleted and there is nothing in the body
-                console.log("Object deleted:"+preserveID);
-                res.status(204)
+                console.log("Object deleted: "+preserveID);
+                res.sendStatus(204)
                 next()
             }
         }
@@ -313,7 +313,7 @@ exports.query = async function (req, res, next) {
  * */
 exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]?req.params["_id"]:""
+    let id = req.params["_id"] ?? ""
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         delete match["_id"]
@@ -334,7 +334,7 @@ exports.id = async function (req, res, next) {
  * */
 exports.idHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         const size = Buffer.byteLength(JSON.stringify(match))
@@ -375,7 +375,7 @@ exports.queryHeadRequest = async function(req, res, next){
  */
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -403,7 +403,7 @@ exports.since = async function (req, res, next) {
  */
 exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -427,7 +427,7 @@ exports.history = async function (req, res, next) {
  * */
 exports.sinceHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -459,7 +459,7 @@ exports.sinceHeadRequest = async function(req, res, next){
  * */
 exports.historyHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -667,7 +667,7 @@ async function healHistoryTree(obj){
                 //This means this next object must become root. 
                 //Strictly, all history trees must have num(root) > 0.  
                 if(newTreePrime(fixHistory)){
-                    fixHistory["__rerum"]["history"]["next"] = "root"
+                    fixHistory["__rerum"]["history"]["prime"] = "root"
                     //The previous always inherited in this case, even if it isn't there.
                     fixHistory["__rerum"]["history"]["previous"] = previous_id
                 }
@@ -677,7 +677,7 @@ async function healHistoryTree(obj){
                     //throw new Error("Could not update all descendants with their new prime value")
                 }
             }
-            else if(!previous_id.equals("")){ 
+            else if(previous_id !== ""){ 
                 //The object being deleted had a previous.  That is now absorbed by this next object to mend the gap.  
                 fixHistory["__rerum"]["history"]["previous"] = previous_id
             }
