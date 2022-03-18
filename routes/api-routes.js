@@ -28,11 +28,11 @@ router.use('/id',idRouter)
 
 // Support POST requests with JSON bodies used for passing queries though to the database.
 const queryRouter = require('./query.js')
-router.use('api/query', queryRouter)
+router.use('/api/query', queryRouter)
 
 // Support POST requests with JSON bodies used for establishing new objects.
 const createRouter = require('./create.js')
-router.use('api/create', createRouter)
+router.use('/api/create', createRouter)
 
 // Support DELETE requests like v1/delete/{object id} to mark an object as __deleted.
 const deleteRouter = require('./delete.js')
@@ -44,19 +44,19 @@ router.use('/api/overwrite', overwriteRouter)
 
 // Support PUT requests with JSON bodies used for versioning an existing object through replacement.
 const updateRouter = require('./putUpdate.js')
-router.use('api/update', updateRouter)
+router.use('/api/update', updateRouter)
 
 // Support PATCH requests with JSON bodies used for versioning an existing object through key/value setting.
 const patchRouter = require('./patchUpdate.js')
-router.use('api/patch', patchRouter)
+router.use('/api/patch', patchRouter)
 
 // Support PATCH requests with JSON bodies used for creating new keys in some existing object.
 const setRouter = require('./patchSet.js')
-router.use('api/set', setRouter)
+router.use('/api/set', setRouter)
 
 // Support PATCH requests with JSON bodies used for removing keys in some existing object.
 const unsetRouter = require('./patchUnset.js')
-router.use('api/unset', unsetRouter)
+router.use('/api/unset', unsetRouter)
 
 // Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
 const sinceRouter = require('./since.js')
