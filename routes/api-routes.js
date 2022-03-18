@@ -18,18 +18,7 @@ const utilities = require('../utils.js')
 //RESTful behavior
 const rest = require('../rest.js')
 const auth = require('../auth')
-/*
-const createRoute = require("./create.js")
-const putUpdateRoute = require("./putUpdate.js")
-const overwriteRoute = require("./overwrite.js")
-const patchUpdateRoute = require("./patchUpdate.js")
-const patchSetRoute = require("./patchSet.js")
-const patchUnsetRoute = require("./patchUnset.js")
-const getByIdRoute = require("./id.js")
-const queryRoute = require("./query.js")
-const deleteRoute = require("./delete.js")
-const auxRoute = "TODO"
-*/
+
 const staticRouter = require('./static.js')
 router.use(staticRouter)
 
@@ -45,9 +34,13 @@ router.use('api/query', queryRouter)
 const createRouter = require('./create.js')
 router.use('api/create', createRouter)
 
+// Support DELETE requests like v1/delete/{object id} to mark an object as __deleted.
+const deleteRouter = require('./delete.js')
+router.use('/api/delete', deleteRouter)
+
 // Support POST requests with JSON bodies used for replacing some existing object.
 const overwriteRouter = require('./overwrite.js')
-router.use('api/overwrite', overwriteRouter)
+router.use('/api/overwrite', overwriteRouter)
 
 // Support PUT requests with JSON bodies used for versioning an existing object through replacement.
 const updateRouter = require('./putUpdate.js')
@@ -56,6 +49,22 @@ router.use('api/update', updateRouter)
 // Support PATCH requests with JSON bodies used for versioning an existing object through key/value setting.
 const patchRouter = require('./patchUpdate.js')
 router.use('api/patch', patchRouter)
+
+// Support PATCH requests with JSON bodies used for creating new keys in some existing object.
+const setRouter = require('./patchSet.js')
+router.use('api/set', setRouter)
+
+// Support PATCH requests with JSON bodies used for removing keys in some existing object.
+const unsetRouter = require('./patchUnset.js')
+router.use('api/unset', unsetRouter)
+
+// Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
+const sinceRouter = require('./since.js')
+router.use('/since', sinceRouter)
+
+// Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
+const historyRouter = require('./history.js')
+router.use('/history', historyRouter)
 
 // Set default API response
 router.get('/api', function (req, res) {
@@ -72,172 +81,6 @@ router.get('/api', function (req, res) {
         }
     })
 })
-
-/**
-* Support GET requests like v1/id/{object id}  
-*/
-router.route('/since/:_id')
-    .get(controller.since)
-    .post((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .patch((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .head(controller.sinceHeadRequest)
-    .delete((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-
-/**
-* Support GET requests like v1/id/{object id}  
-*/
-router.route('/history/:_id')
-    .get(controller.history)
-    .post((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .patch((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-    .head(controller.historyHeadRequest)
-    .delete((req, res) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next()
-    })
-
-/**
- * Support PATCH requests with JSON bodies used for creating new keys in some existing object in MongoDB.
- * Note that this will track history.
- * Note that keys in the body of this request that are already on the existing object are ignored.   
- * 
- * If there is nothing to PATCH, return a 200 
-*/
-router.route('/api/set')
-    .get((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
-        res.status(405)
-        next()
-    })
-    .post(auth.checkJwt, (req, res) => {
-        if (rest.checkPatchOverrideSupport()) {
-            controller.patchSet(req, resp)
-        }
-        else {
-            res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
-            res.status(405)
-            next()
-        }
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
-        res.status(405)
-        next()
-    })
-    .patch(auth.checkJwt, controller.patchSet)
-    .head((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
-        res.status(405)
-        next()
-    })
-    .delete((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
-        res.status(405)
-        next()
-    })
-
-/**
- * Support PATCH requests with JSON bodies like 'key:null' used for removing existing keys from some existing object in MongoDB.
- * Note that this will track history.
- * Note that keys in the body of this request that are not on the existing object are ignored.  
- * 
- * If there is nothing to PATCH, return a 200 
-*/
-router.route('/api/unset')
-    .get((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
-        res.status(405)
-        next()
-    })
-    .post(auth.checkJwt, (req, res) => {
-        if (rest.checkPatchOverrideSupport()) {
-            controller.patchUnset(req, resp)
-        }
-        else {
-            res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
-            res.status(405)
-            next()
-        }
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
-        res.status(405)
-        next()
-    })
-    .patch(auth.checkJwt, controller.patchUnset)
-    .head((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
-        res.status(405)
-        next()
-    })
-    .delete((req, res) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
-        res.status(405)
-        next()
-    })
-
-/**
- * DELETE cannot have body.  It is possible to call /delete/ without an id, which will 400.
-*/
-router.route('/api/delete/:_id?')
-    .get((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .post((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .put((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .patch((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .head((req, res) => {
-        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next()
-    })
-    .delete(auth.checkJwt, controller.delete)
-
 
 /**
  * Use this to catch 404s because of invalid /api/ paths and pass them to the error handler in app.js
