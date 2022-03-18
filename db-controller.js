@@ -144,6 +144,7 @@ exports.delete = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.putUpdate = async function (req, res, next) {
+    let err={message:``}
     res.set("Content-Type", "application/json; charset=utf-8")
     let newObjectReceived = JSON.parse(JSON.stringify(req.body))
     //A token came in with this request.  We need the agent from it.  
@@ -155,22 +156,19 @@ exports.putUpdate = async function (req, res, next) {
         if (null === originalObject) {
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(newObjectReceived)
-            res.statusMessage = "This object is not from RERUM and will need imported.  This is not automated yet. You can make a new object with create."
-            res.status(501)
-            next()
+            err = Object.assign(err, {
+                message: `This object is not from RERUM and will need imported. This is not automated yet. You can make a new object with create. ${err.message}`,
+                status: 501
+            })
         }
         else if (utils.isDeleted(originalObject)) {
-            res.statusMessage = "The object you are trying to update is deleted."
-            res.status(403)
-            next()
-        }
-        else if (utils.isReleased(originalObject)) {
-            res.statusMessage = "The object you are trying to update is released.  Fork to make changes."
-            res.status(403)
-            next()
+            err = Object.assign(err, {
+                message: `The object you are trying to update is deleted. ${err.message}`,
+                status: 403
+            })
         }
         else {
-            //A bit goofy here, we actually just want the resulting __rerum.  It needed data from originalObject to build itself.  
+            //A bit goofy here, we actually just want the resulting __rerum. It needed data from originalObject to build itself.  
             newObjectReceived["__rerum"] = utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]
             const newObjID = new ObjectID().toHexString()
             newObjectReceived["_id"] = newObjID
@@ -183,27 +181,32 @@ exports.putUpdate = async function (req, res, next) {
                     res.location(newObjectReceived["@id"])
                     res.status(200)
                     res.json(newObjectReceived)
+                    return
                 }
-                else {
-                    res.statusMessage = "Unable to alter the history next of the originating object.  The history tree may be broken. See " + originalObject["@id"]
-                    res.status(500)
-                    next()
-                }
+                err = Object.assign(err, {
+                    message: `Unable to alter the history next of the originating object.  The history tree may be broken. See ${originalObject["@id"]}. ${err.message}`,
+                    status: 500
+                })
             }
-            catch (err) {
+            catch (error) {
                 //WriteError or WriteConcernError
-                res.statusMessage = err.message ?? "mongodb had trouble inserting this document."
-                res.status(500)
-                next()
+                err = Object.assign(err, {
+                    message: `Database had trouble inserting this document. ${err.message}`,
+                    status: 500
+                })
+                next(createDatabaseError(err,error))
+                return
             }
         }
     }
     else {
         //The http module will not detect this as a 400 on its own
-        res.statusMessage = "Object in request body must have the property '@id'."
-        res.status(400)
-        next()
+        err = Object.assign(err, {
+            message: `Object in request body must have the property '@id'. ${err.message}`,
+            status: 400
+        })
     }
+    next(createDatabaseError(err))
 }
 
 /**
@@ -214,9 +217,9 @@ exports.putUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUpdate = async function (req, res, next) {
-    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
+    res.message = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
     res.status(501)
-    next()
+    next(createDatabaseError(res)) // holding a place to call errors
 }
 
 /**
@@ -227,9 +230,9 @@ exports.patchUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchSet = async function (req, res, next) {
-    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
+    res.message = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
     res.status(501)
-    next()
+    next(createDatabaseError(res)) // holding a place to call errors
 }
 
 /**
@@ -242,7 +245,7 @@ exports.patchSet = async function (req, res, next) {
 exports.patchUnset = async function (req, res, next) {
     res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
     res.status(501)
-    next()
+    next(createDatabaseError(res)) // holding a place to call errors
 }
 
 /**
@@ -251,36 +254,37 @@ exports.patchUnset = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.overwrite = async function (req, res, next) {
+    let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let newObjectReceived = req.body
-    let agentRequestingOverwrite = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    if (req.user) {
-        agentRequestingOverwrite = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    }
+    let agentRequestingOverwrite = req.user?.[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (newObjectReceived["@id"]) {
         console.log("OVERWRITE")
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-        //Do we want to look up by _id or @id?
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (null === originalObject) {
-            res.statusMessage = "No object with this id could be found in RERUM.  Cannot overwrite."
-            res.status(404)
-            next()
+            err = Object.assign(err, {
+                message: `No object with this id could be found in RERUM. Cannot overwrite. ${err.message}`,
+                status: 404
+            })
         }
         else if (utils.isDeleted(originalObject)) {
-            res.statusMessage = "The object you are trying to overwrite is deleted."
-            res.status(403)
-            next()
+            err = Object.assign(err, {
+                message: `The object you are trying to overwrite is deleted. ${err.message}`,
+                status: 403
+            })
         }
         else if (utils.isReleased(originalObject)) {
-            res.statusMessage = "The object you are trying to overwrite is released.  Fork with /update to make changes."
-            res.status(403)
-            next()
+            err = Object.assign(err, {
+                message: `The object you are trying to overwrite is released.  Fork with /update to make changes. ${err.message}`,
+                status: 403
+            })
         }
         else if (!utils.isGenerator(originalObject, agentRequestingOverwrite)) {
-            res.statusMessage = "You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes."
-            res.status(401)
-            next()
+            err = Object.assign(err, {
+                message: `You are not the generating agent for this object. You cannot overwrite it. Fork with /update to make changes. ${err.message}`,
+                status: 401
+            })
         }
         else {
             newObjectReceived["__rerum"] = originalObject["__rerum"]
@@ -291,14 +295,17 @@ exports.overwrite = async function (req, res, next) {
             }
             res.location(newObjectReceived["@id"])
             res.json(newObjectReceived)
+            return
         }
     }
     else {
         //This is a custom one, the http module will not detect this as a 400 on its own
-        res.statusMessage = "Object in request body must have the property '@id'."
-        res.status(400)
-        next()
+        err = Object.assign(err, {
+            message: `Object in request body must have the property '@id'. ${err.message}`,
+            status: 400
+        })
     }
+    next(createDatabaseError(err))
 }
 
 /**
