@@ -116,7 +116,6 @@ exports.delete = async function (req, res, next) {
             }
         }
         else{
-            //Not sure we can get here, as healHistoryTree might throw and error.
             res.statusMessage = "The history tree for the object being deleted could not be mended."
             res.status(500)
             next()
