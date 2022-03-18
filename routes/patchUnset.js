@@ -1,23 +1,25 @@
-#!/usr/bin/env node
-const patchUnSetUpdateRoute = require('express').Router()
+const router = require('express').Router()
 //This controller will handle all MongoDB interactions.
 const controller = require('../db-controller.js')
-//Utility functions
-const utilities = require('../utils.js')
-//RESTful behavior
+const auth = require('../auth')
 const rest = require('../rest.js')
 
-  patchUnSetUpdateRoute
-    .get((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
+router.route('/')
+.patch(auth.checkJwt, controller.patchUnset)
+.post(auth.checkJwt, (req, res) => {
+    if (rest.checkPatchOverrideSupport()) {
+        controller.patchUnset(req, resp)
+    }
+    else {
+        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+        res.status(405)
+        next()
+    }
+})
+    .all((req, res) => {
+        res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
+        res.status(405)
+        next()
     })
-    .post(rest.checkPatchOverrideSupport)
-    .put((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
-    })
-    .patch(controller.patchUnset)
-    .options(rest.optionsRequest)
-    .head((req, res) => {
-        res.status(405).send('Improper request method for updating, please use PATCH to remove keys from this object.')
-    })
-module.exports = patchUnSetUpdateRoute
+
+module.exports = router
