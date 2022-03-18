@@ -144,7 +144,7 @@ exports.delete = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.putUpdate = async function (req, res, next) {
-    let err={message:``}
+    let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let newObjectReceived = JSON.parse(JSON.stringify(req.body))
     //A token came in with this request.  We need the agent from it.  
@@ -194,7 +194,7 @@ exports.putUpdate = async function (req, res, next) {
                     message: `Database had trouble inserting this document. ${err.message}`,
                     status: 500
                 })
-                next(createDatabaseError(err,error))
+                next(createDatabaseError(err, error))
                 return
             }
         }
@@ -316,8 +316,12 @@ exports.overwrite = async function (req, res, next) {
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-    res.json(matches)
+    try {
+        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+        res.json(matches)
+    } catch (error) {
+        next(createDatabaseError({ message: `Database query failed.` }, error))
+    }
 }
 
 /**
@@ -327,17 +331,20 @@ exports.query = async function (req, res, next) {
  * */
 exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"] ?? ""
-    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
-    if (match) {
-        delete match["_id"]
-        res.location(match["@id"])
-        res.json(match)
-    }
-    else {
-        res.statusMessage = "There is no object in the database with this id.  Check the URL."
-        res.status(404)
-        next()
+    let id = req.params["_id"]
+    try {
+        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+        if (match) {
+            delete match["_id"]
+            res.location(match["@id"])
+            res.json(match)
+            return
+        }
+        let err = Error("There is no object in the database with this id. Check the URL.")
+        err.code = 404
+        throw err
+    } catch (error) {
+        next(createDatabaseError(error))
     }
 }
 
@@ -348,36 +355,43 @@ exports.id = async function (req, res, next) {
  * */
 exports.idHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"] ?? ""
-    let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
-    if (match) {
-        const size = Buffer.byteLength(JSON.stringify(match))
-        res.set("Content-Length", size)
-        res.sendStatus(200)
-    }
-    else {
-        res.statusMessage = "There is no object in the database with this id.  Check the URL."
-        res.status(404)
-        next()
+    let id = req.params["_id"]
+    try {
+        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+        if (match) {
+            const size = Buffer.byteLength(JSON.stringify(match))
+            res.set("Content-Length", size)
+            res.sendStatus(200)
+            return
+        }
+        let err = Error("There is no object in the database with this id. Check the URL.")
+        err.code = 404
+        throw err
+    } catch (error) {
+        next(createDatabaseError(error))
     }
 }
 
 /**
  * Allow for HEAD requests via the RERUM getByProperties pattern /v1/api/query
  * No objects are returned, but the Content-Length header is set. 
- * */
+ */
 exports.queryHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-    if (matches.length) {
-        const size = Buffer.byteLength(JSON.stringify(match))
-        res.set("Content-Length", size)
-        res.sendStatus(200)
-    }
-    else {
-        res.set("Content-Length", 0)
-        res.sendStatus(200)
+    try {
+        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+        if (matches.length) {
+            const size = Buffer.byteLength(JSON.stringify(match))
+            res.set("Content-Length", size)
+            res.sendStatus(200)
+            return
+        }
+        let err = Error("There is no object in the database with this id. Check the URL.")
+        err.code = 404
+        throw err
+    } catch (error) {
+        next(error)
     }
 }
 
@@ -389,22 +403,21 @@ exports.queryHeadRequest = async function (req, res, next) {
  */
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"] ?? ""
+    let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     if (null === obj) {
-        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
-        res.status(404)
-        next()
+        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
+        err.status = 404
+        next(err)
+        return
     }
-    else {
-        let all = await getAllVersions(obj)
-            .catch(err => {
-                console.error(err)
-                return []
-            })
-        let descendants = getAllDescendants(all, obj, [])
-        res.json(descendants)
-    }
+    let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+    let descendants = getAllDescendants(all, obj, [])
+    res.json(descendants)
 }
 
 
@@ -417,22 +430,21 @@ exports.since = async function (req, res, next) {
  */
 exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"] ?? ""
+    let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     if (null === obj) {
-        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
-        res.status(404)
-        next()
+        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
+        err.status = 404
+        next(err)
+        return
     }
-    else {
-        let all = await getAllVersions(obj)
-            .catch(err => {
-                console.error(err)
-                return []
-            })
-        let ancestors = getAllAncestors(all, obj, [])
-        res.json(ancestors)
-    }
+    let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+    let ancestors = getAllAncestors(all, obj, [])
+    res.json(ancestors)
 }
 
 /**
@@ -441,30 +453,28 @@ exports.history = async function (req, res, next) {
  * */
 exports.sinceHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"] ?? ""
+    let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     if (null === obj) {
-        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
-        res.status(404)
-        next()
+        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
+        err.status = 404
+        next(err)
+        return
     }
-    else {
-        let all = await getAllVersions(obj)
-            .catch(err => {
-                console.error(err)
-                return []
-            })
-        let descendants = getAllDescendants(all, obj, [])
-        if (descendants.length) {
-            const size = Buffer.byteLength(JSON.stringify(descendants))
-            res.set("Content-Length", size)
-            res.sendStatus(200)
-        }
-        else {
-            res.set("Content-Length", 0)
-            res.sendStatus(200)
-        }
+    let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+    let descendants = getAllDescendants(all, obj, [])
+    if (descendants.length) {
+        const size = Buffer.byteLength(JSON.stringify(descendants))
+        res.set("Content-Length", size)
+        res.sendStatus(200)
+        return
     }
+    res.set("Content-Length", 0)
+    res.sendStatus(200)
 }
 
 /**
@@ -473,31 +483,28 @@ exports.sinceHeadRequest = async function (req, res, next) {
  * */
 exports.historyHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"] ?? ""
+    let id = req.params["_id"]
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     if (null === obj) {
-        res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
-        res.status(404)
-        next()
+        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
+        err.status = 404
+        next(err)
+        return
     }
-    else {
-        let all = await getAllVersions(obj)
-            .catch(err => {
-                console.error(err)
-                return []
-            })
-        let ancestors = getAllAncestors(all, obj, [])
-        if (ancestors.length) {
-            const size = Buffer.byteLength(JSON.stringify(ancestors))
-            res.set("Content-Length", size)
-            res.sendStatus(200)
-        }
-        else {
-            res.set("Content-Length", 0)
-            res.sendStatus(200)
-        }
+    let all = await getAllVersions(obj)
+        .catch(err => {
+            console.error(err)
+            return []
+        })
+    let ancestors = getAllAncestors(all, obj, [])
+    if (ancestors.length) {
+        const size = Buffer.byteLength(JSON.stringify(ancestors))
+        res.set("Content-Length", size)
+        res.sendStatus(200)
+        return
     }
-
+    res.set("Content-Length", 0)
+    res.sendStatus(200)
 }
 
 /**
@@ -512,8 +519,8 @@ async function getAllVersions(obj) {
     let ls_versions = null
     let rootObj = null
     let primeID = ""
-    if (obj["__rerum"]) {
-        primeID = obj["__rerum"]["history"]["prime"]
+    if (obj.__rerum) {
+        primeID = obj.__rerum.history.prime
     }
     else {
         throw new Error("This object has no history because it has no '__rerum' property.  This will result in an empty array.")
@@ -551,16 +558,16 @@ async function getAllVersions(obj) {
  * @return All the objects that were deemed ancestors in a JSONArray
  */
 function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
-    let previousID = keyObj["__rerum"]["history"]["previous"] //The first previous to look for
+    let previousID = keyObj.__rerum.history.previous //The first previous to look for
     for (let v of ls_versions) {
-        if (keyObj["__rerum"]["history"]["prime"] === "root") {
+        if (keyObj.__rerum.history.prime === "root") {
             //Check if we found root when we got the last object out of the list.  If so, we are done.  If keyObj was root, it will be detected here.  Break out. 
             break
         }
         else if (v["@id"] === previousID) {
             //If this object's @id is equal to the previous from the last object we found, its the one we want.  Look to its previous to keep building the ancestors Array.   
-            previousID = v["__rerum"]["history"]["previous"]
-            if (previousID === "" && v["__rerum"]["history"]["prime"] !== "root") {
+            previousID = v.__rerum.history.previous
+            if (previousID === "" && v.__rerum.history.prime !== "root") {
                 //previous is blank and this object is not the root.  This is gunna trip it up.  
                 //@cubap Yikes this is a problem.  This branch on the tree is broken...what should we tell the user?  How should we handle?
                 break
@@ -586,15 +593,15 @@ function getAllAncestors(ls_versions, keyObj, discoveredAncestors) {
  */
 function getAllDescendants(ls_versions, keyObj, discoveredDescendants) {
     let nextIDarr = []
-    if (keyObj["__rerum"]["history"]["next"].length === 0) {
+    if (keyObj.__rerum.history.next.length === 0) {
         //essentially, do nothing.  This branch is done.
     }
     else {
         //The provided object has nexts, get them to add them to known descendants then check their descendants.
-        nextIDarr = keyObj["__rerum"]["history"]["next"]
+        nextIDarr = keyObj.__rerum.history.next
     }
-    for (nextID of nextIDarr) {
-        for (v of ls_versions) {
+    for (let nextID of nextIDarr) {
+        for (let v of ls_versions) {
             if (v["@id"] === nextID) { //If it is equal, add it to the known descendants
                 //Recurse with what you have discovered so far and this object as the new keyObj
                 discoveredDescendants.push(v)
@@ -617,7 +624,7 @@ function getAllDescendants(ls_versions, keyObj, discoveredDescendants) {
  */
 async function alterHistoryPrevious(objToUpdate, newPrevID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
-    objToUpdate["__rerum"].history.previous = newPrevID
+    objToUpdate.__rerum.history.previous = newPrevID
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
     return result.modifiedCount > 0
 }
@@ -632,7 +639,7 @@ async function alterHistoryPrevious(objToUpdate, newPrevID) {
  */
 async function alterHistoryNext(objToUpdate, newNextID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
-    objToUpdate["__rerum"].history.next.push(newNextID)
+    objToUpdate.__rerum.history.next.push(newNextID)
     let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
     return result.modifiedCount > 0
 }
@@ -644,9 +651,9 @@ async function alterHistoryNext(objToUpdate, newNextID) {
  * @param externalObj the external object as it existed in the PUT request to be saved.
 */
 async function updateExternalObject(received) {
-    res.statusMessage = "You will get a 201 upon success.  This is not supported yet.  Nothing happened."
+    res.message = "You will get a 201 upon success.  This is not supported yet.  Nothing happened."
     res.status(501)
-    next()
+    next(createDatabaseError(res))
 }
 
 /**
