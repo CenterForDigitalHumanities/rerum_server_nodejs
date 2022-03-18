@@ -23,15 +23,11 @@ describe('Check to see that all expected routes exists.', function() {
       .expect(200, done)
   })
 
-  it('/v1/ -- App index.  Responds with a JSON object as a "hello world". ', function(done) {
+  it('/v1/ -- App index. ', function(done) {
     request
       .get("/v1")
-      .expect("Content-Type", "application/json; charset=utf-8")
-      .expect(200)
-      .then(response => {
-          expect(response.body.message).toBe('Welcome to v1 in nodeJS!')
-          done()
-      })
+      .expect("Content-Type", "text/html; charset=UTF-8")
+      .expect(200, done)
       .catch(err => done(err))
   })
 
