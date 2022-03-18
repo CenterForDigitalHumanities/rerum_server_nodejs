@@ -113,7 +113,6 @@ exports.delete = async function (req, res, next) {
                 //204 to say it is deleted and there is nothing in the body
                 console.log("Object deleted: "+preserveID);
                 res.sendStatus(204)
-                next()
             }
         }
         else{
