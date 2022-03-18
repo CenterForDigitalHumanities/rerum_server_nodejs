@@ -35,7 +35,7 @@ exports.create = async function (req, res, next) {
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
     newObject["_id"] = id
@@ -68,11 +68,67 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
-    let id = req.params["_id"]?req.params["_id"]:""
-    res.statusMessage = "You will get a 204 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next()
+    let id = req.params["_id"] ?? ""
+    let agentRequestingDelete = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    if(req.user){
+        agentRequestingDelete = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    }
+    const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
+    if(null !== originalObject){
+        let safe_received = JSON.parse(JSON.stringify(originalObject))
+        if(utils.isDeleted(safe_received)){
+            res.statusMessage = "The object you are trying to update is deleted."
+            res.status(403)
+            return next()
+        }
+        if(utils.isReleased(safe_received)){
+            res.statusMessage = "The object you are trying to update is released.  Fork to make changes."
+            res.status(403)
+            return next()
+        }
+        if(!utils.isGenerator(safe_received, agentRequestingDelete)){
+            res.statusMessage = "You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes."
+            res.status(401)
+            return next()
+        }
+        let preserveID = safe_received["@id"]
+        let deletedFlag = {} //The __deleted flag is a JSONObject
+        deletedFlag["object"] = JSON.parse(JSON.stringify(originalObject))
+        deletedFlag["deletor"] = agentRequestingDelete
+        deletedFlag["time"] = new Date(Date.now()).toISOString().replace("Z", "")
+        let deletedObject = {
+            "@id" : preserveID,
+            "__deleted" : deletedFlag
+        }
+        if(healHistoryTree(safe_received)){
+            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : originalObject["_id"]}, deletedObject)
+            if(result.modifiedCount === 0){
+                //result didn't error out, but it also didn't succeed...
+                res.statusMessage = "The original object was not replaced with the deleted object in the database."
+                res.status(500)
+                next()
+            }
+            else{
+                //200 if you want to return other info with it, like a representation of the deleted object
+                //204 to say it is deleted and there is nothing in the body
+                console.log("Object deleted: "+preserveID);
+                res.sendStatus(204)
+            }
+        }
+        else{
+            //Not sure we can get here, as healHistoryTree might throw and error.
+            res.statusMessage = "The history tree for the object being deleted could not be mended."
+            res.status(500)
+            next()
+        }
+    }
+    else{
+        res.statusMessage = "No object with this id could be found in RERUM.  Cannot delete."
+        res.status(404)
+        next()
+    }
 }
+
 
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
@@ -84,7 +140,7 @@ exports.putUpdate = async function (req, res, next) {
     let newObjectReceived = JSON.parse(JSON.stringify(req.body))
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    if(newObjectReceived.hasOwnProperty("@id")){
+    if(newObjectReceived["@id"]){
         let updateHistoryNextID = newObjectReceived["@id"]
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
         const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
@@ -189,11 +245,11 @@ exports.patchUnset = async function (req, res, next) {
 exports.overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let newObjectReceived = req.body
-    let changeAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let agentRequestingOverwrite = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if(req.user){
-        changeAgent = req.user[process.env.RERUM_AGENT_CLAIM] ? req.user[process.env.RERUM_AGENT_CLAIM] : "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+        agentRequestingOverwrite = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     }
-    if(newObjectReceived.hasOwnProperty("@id")){
+    if(newObjectReceived["@id"]){
         console.log("OVERWRITE")
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
         //Do we want to look up by _id or @id?
@@ -213,7 +269,7 @@ exports.overwrite = async function (req, res, next) {
             res.status(403)
             next()
         }
-        else if(!utils.isGenerator(originalObject, changeAgent)){
+        else if(!utils.isGenerator(originalObject, agentRequestingOverwrite)){
             res.statusMessage = "You are not the generating agent for this object.  You cannot overwrite it.  Fork with /update to make changes."
             res.status(401)
             next()
@@ -222,6 +278,9 @@ exports.overwrite = async function (req, res, next) {
             newObjectReceived["__rerum"] = originalObject["__rerum"]
             newObjectReceived["__rerum"]["isOverwritten"] = new Date(Date.now()).toISOString().replace("Z", "")
             let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : id}, newObjectReceived)
+            if(result.modifiedCount == 0){
+                //result didn't error out, but it also didn't succeed...
+            }
             res.location(newObjectReceived["@id"])
             res.json(newObjectReceived)    
         }
@@ -253,7 +312,7 @@ exports.query = async function (req, res, next) {
  * */
 exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]?req.params["_id"]:""
+    let id = req.params["_id"] ?? ""
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         delete match["_id"]
@@ -274,7 +333,7 @@ exports.id = async function (req, res, next) {
  * */
 exports.idHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(match){
         const size = Buffer.byteLength(JSON.stringify(match))
@@ -315,7 +374,7 @@ exports.queryHeadRequest = async function(req, res, next){
  */
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -343,7 +402,7 @@ exports.since = async function (req, res, next) {
  */
 exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -367,7 +426,7 @@ exports.history = async function (req, res, next) {
  * */
 exports.sinceHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -399,7 +458,7 @@ exports.sinceHeadRequest = async function(req, res, next){
  * */
 exports.historyHeadRequest = async function(req, res, next){
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
     let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id" : id})
     if(null === obj){
         res.statusMessage = "Cannot produce a history.  There is no object in the database with this id.  Check the URL."
@@ -569,8 +628,143 @@ async function alterHistoryNext(objToUpdate, newNextID){
  * 
  * @param externalObj the external object as it existed in the PUT request to be saved.
 */
-exports.updateExternalObject = async function(received){
+async function updateExternalObject(received){
     res.statusMessage = "You will get a 201 upon success.  This is not supported yet.  Nothing happened."
     res.status(501)
     next()
+}
+
+/**
+* An internal method to handle when an object is deleted and the history tree around it will need amending.  
+* This function should only be handed a reliable object from mongo.
+* 
+* @param obj A JSONObject of the object being deleted.
+* @return A boolean representing whether or not this function succeeded. 
+*/
+async function healHistoryTree(obj){
+    let previous_id = ""
+    let prime_id = ""
+    let next_ids = []
+    if(obj["__rerum"]){
+        previous_id = obj["__rerum"]["history"]["previous"] 
+        prime_id = obj["__rerum"]["history"]["prime"] 
+        next_ids = obj["__rerum"]["history"]["next"] 
+    }
+    else{
+        console.error("This object has no history because it has no '__rerum' property.  There is nothing to heal.")
+        return false
+        //throw new Error("This object has no history because it has no '__rerum' property.  There is nothing to heal.")
+    }
+    let objToDeleteisRoot = (prime_id === "root")
+    //Update the history.previous of all the next ids in the array of the deleted object
+    for(nextID of next_ids){
+        let objWithUpdate = {}
+        const objToUpdate = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"@id":nextID})
+        if(null !== objToUpdate){
+            let fixHistory = JSON.parse(JSON.stringify(objToUpdate))
+            if(objToDeleteisRoot){ 
+                //This means this next object must become root. 
+                //Strictly, all history trees must have num(root) > 0.  
+                if(newTreePrime(fixHistory)){
+                    fixHistory["__rerum"]["history"]["prime"] = "root"
+                    //The previous always inherited in this case, even if it isn't there.
+                    fixHistory["__rerum"]["history"]["previous"] = previous_id
+                }
+                else{
+                    console.error("Could not update all descendants with their new prime value")
+                    return false
+                    //throw new Error("Could not update all descendants with their new prime value")
+                }
+            }
+            else if(previous_id !== ""){ 
+                //The object being deleted had a previous.  That is now absorbed by this next object to mend the gap.  
+                fixHistory["__rerum"]["history"]["previous"] = previous_id
+            }
+            else{
+                console.log("object did not have previous and was not root.  Weird...")
+                // @cubap @theHabes TODO Yikes this is some kind of error...it is either root or has a previous, this case means neither are true.
+                // cubap: Since this is a __rerum error and it means that the object is already not well-placed in a tree, maybe it shouldn't fail to delete?
+                // theHabes: Are their bad implications on the relevant nodes in the tree that reference this one if we allow it to delete?  Will their account of the history be correct?
+                //console.error("object did not have previous and was not root.")
+                //return false
+                //throw new Error("object did not have previous and was not root.")
+            }
+            //Does this have to be async?
+            let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : objToUpdate["_id"]}, fixHistory)
+            if(verify.modifiedCount === 0){
+                //verify didn't error out, but it also didn't succeed...
+                console.error("Could not update all descendants with their new prime value")
+                return false
+            }
+        }
+        else{
+            console.error("Could not update all descendants with their new prime value: cannot find descendant.")
+            return false
+            //throw new Error("Could not update all descendants with their new prime value")
+        }
+    }
+    //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
+    if(previous_id.indexOf(process.env.RERUM_PREFIX) > -1){ 
+        //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
+        //For external objects, do nothing is the right thing to do here.
+        let objWithUpdate2 = {}
+        const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"@id":previous_id})
+        if(null !== objToUpdate2){
+            let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
+            let origNextArray = fixHistory2["__rerum"]["history"]["next"]
+            let newNextArray = [...origNextArray]
+            //This next should no longer have obj["@id"]
+            newNextArray.splice(obj["@id"], 1)
+            //This next needs to contain the nexts from the deleted object
+            newNextArray = [...newNextArray, ...next_ids]
+            fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
+            //Does this have to be async
+            let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : objToUpdate2["_id"]}, fixHistory2)
+            if(verify2.modifiedCount === 0){
+                //verify didn't error out, but it also didn't succeed...
+                console.error("Could not update all ancestors with their altered next value")
+                return false
+            }
+        }
+        else{
+            //The history.previous object could not be found in this RERUM Database.  
+            //It has this APIs id pattern, that means we expected to find it.  This is an error.
+            //throw new Error("Could not update all descendants with their new prime value")
+            console.error("Could not update all ancestors with their altered next value: cannot find ancestor.")
+            return false
+        }
+    }
+    else{
+        //console.log("The value of history.previous was an external URI or was not present.  Nothing to heal.  URI:"+previous_id);  
+    }
+    return true
+}
+
+/**
+* An internal method to make all descendants of this JSONObject take on a new history.prime = this object's @id
+* This should only be fed a reliable object from mongo
+* @param obj A new prime object whose descendants must take on its id
+*/
+async function newTreePrime(obj){
+    if(obj["@id"]){
+        let primeID = obj["@id"]
+        let ls_versions = await getAllVersions(obj)
+        let descendants = getAllDescendants(ls_versions, obj, [])
+        for(d of descendants){
+            let objWithUpdate = JSON.parse(JSON.stringify(d))
+            objWithUpdate["__rerum"]["history"]["prime"] = primeID
+            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({"_id" : d["_id"]}, objWithUpdate)
+            if(result.modifiedCount === 0){
+                console.error("Could not update all descendants with their new prime value: newTreePrime failed")
+                return false
+                //throw new Error("Could not update all descendants with their new prime value: newTreePrime failed")
+            }
+        }
+    }
+    else{
+        console.error("newTreePrime failed.  Obj did not have '@id'.")
+        return false
+        //throw new Error("newTreePrime failed.  Obj did not have '@id'.")
+    }
+    return true
 }
