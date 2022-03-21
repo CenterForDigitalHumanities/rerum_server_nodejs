@@ -159,9 +159,10 @@ describe(
         .expect(405, done)
     })
 
+    //Note that /api/delete/ is a 404.
     it('/delete -- not written.  Expect a 405 for now.', function(done) {
       request
-        .get('/v1/api/delete')
+        .get('/v1/api/delete/potato')
         .expect(405, done)
     })
 
