@@ -67,10 +67,16 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
-    let id = req.params["_id"] ?? ""
+    let id = req.params["_id"]
     let err = { message: `` }
     let agentRequestingDelete = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    let originalObject
+    try {
+        originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    } catch (error) {
+        next(error)
+        return
+    }
     if (null !== originalObject) {
         let safe_received = JSON.parse(JSON.stringify(originalObject))
         if (utils.isDeleted(safe_received)) {
@@ -107,7 +113,13 @@ exports.delete = async function (req, res, next) {
             "__deleted": deletedFlag
         }
         if (healHistoryTree(safe_received)) {
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": originalObject["_id"] }, deletedObject)
+            let result
+            try {
+                result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": originalObject["_id"] }, deletedObject)
+            } catch (error) {
+                next(error)
+                return
+            }
             if (result.modifiedCount === 0) {
                 //result didn't error out, but it also didn't succeed...
                 err.message = "The original object was not replaced with the deleted object in the database."
@@ -146,7 +158,13 @@ exports.putUpdate = async function (req, res, next) {
     if (newObjectReceived["@id"]) {
         let updateHistoryNextID = newObjectReceived["@id"]
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-        const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+        let originalObject
+        try {
+            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+        } catch (error) {
+            next(error)
+            return
+        }
         if (null === originalObject) {
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(newObjectReceived)
@@ -255,7 +273,13 @@ exports.overwrite = async function (req, res, next) {
     if (newObjectReceived["@id"]) {
         console.log("OVERWRITE")
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-        const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+        let originalObject
+        try {
+            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+        } catch (error) {
+            next(error)
+            return
+        }
         if (null === originalObject) {
             err = Object.assign(err, {
                 message: `No object with this id could be found in RERUM. Cannot overwrite. ${err.message}`,
@@ -283,7 +307,12 @@ exports.overwrite = async function (req, res, next) {
         else {
             newObjectReceived["__rerum"] = originalObject["__rerum"]
             newObjectReceived["__rerum"]["isOverwritten"] = new Date(Date.now()).toISOString().replace("Z", "")
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, newObjectReceived)
+            let result
+            try {
+                result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, newObjectReceived)
+            } catch (error) {
+                next(error)
+            }
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
             }
@@ -398,7 +427,13 @@ exports.queryHeadRequest = async function (req, res, next) {
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
-    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    let obj
+    try {
+        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    } catch (error) {
+        next(error)
+        return
+    }
     if (null === obj) {
         let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
         err.status = 404
@@ -425,7 +460,13 @@ exports.since = async function (req, res, next) {
 exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
-    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    let obj
+    try {
+        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    } catch (error) {
+        next(error)
+        return
+    }
     if (null === obj) {
         let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
         err.status = 404
@@ -448,7 +489,13 @@ exports.history = async function (req, res, next) {
 exports.sinceHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
-    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    let obj
+    try {
+        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    } catch (error) {
+        next(error)
+        return
+    }
     if (null === obj) {
         let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
         err.status = 404
@@ -478,7 +525,13 @@ exports.sinceHeadRequest = async function (req, res, next) {
 exports.historyHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
-    let obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    let obj
+    try {
+        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
+    } catch (error) {
+        next(error)
+        return
+    }
     if (null === obj) {
         let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
         err.status = 404
@@ -764,8 +817,14 @@ async function healHistoryTree(obj) {
 async function newTreePrime(obj) {
     if (obj["@id"]) {
         let primeID = obj["@id"]
-        let ls_versions = await getAllVersions(obj)
-        let descendants = getAllDescendants(ls_versions, obj, [])
+        let ls_versions = []
+        let descendants = []
+        try{
+            ls_versions = await getAllVersions(obj)
+            descendants = getAllDescendants(ls_versions, obj, [])
+        } catch(error) {
+            // fail silently
+        }
         for (d of descendants) {
             let objWithUpdate = JSON.parse(JSON.stringify(d))
             objWithUpdate["__rerum"]["history"]["prime"] = primeID
