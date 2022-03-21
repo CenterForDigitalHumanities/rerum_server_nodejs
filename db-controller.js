@@ -33,10 +33,7 @@ exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const id = new ObjectID().toHexString()
     //A token came in with this request.  We need the agent from it.  
-    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    if (req.user) {
-        generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM]
-    }
+    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
     newObject["_id"] = id
     newObject["@id"] = process.env.RERUM_ID_PREFIX + id
@@ -72,10 +69,7 @@ exports.create = async function (req, res, next) {
 exports.delete = async function (req, res, next) {
     let id = req.params["_id"] ?? ""
     let err = { message: `` }
-    let agentRequestingDelete = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    if (req.user) {
-        agentRequestingDelete = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    }
+    let agentRequestingDelete = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     if (null !== originalObject) {
         let safe_received = JSON.parse(JSON.stringify(originalObject))
