@@ -32,7 +32,7 @@ module.exports = {
   collectCoverageFrom: [
       //"**/*.js",
       "**/db-controller.js",
-      "**/routes/api-routes.js"
+      "**/routes/*.js"
   ],
 
   // Indicates which provider should be used to instrument code for coverage
