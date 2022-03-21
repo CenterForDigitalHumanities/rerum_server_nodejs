@@ -726,85 +726,90 @@ async function healHistoryTree(obj) {
     }
     let objToDeleteisRoot = (prime_id === "root")
     //Update the history.previous of all the next ids in the array of the deleted object
-    for (nextID of next_ids) {
-        let objWithUpdate = {}
-        const objToUpdate = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": nextID })
-        if (null !== objToUpdate) {
-            let fixHistory = JSON.parse(JSON.stringify(objToUpdate))
-            if (objToDeleteisRoot) {
-                //This means this next object must become root. 
-                //Strictly, all history trees must have num(root) > 0.  
-                if (newTreePrime(fixHistory)) {
-                    fixHistory["__rerum"]["history"]["prime"] = "root"
-                    //The previous always inherited in this case, even if it isn't there.
+    try {
+        for (nextID of next_ids) {
+            let objWithUpdate = {}
+            const objToUpdate = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": nextID })
+            if (null !== objToUpdate) {
+                let fixHistory = JSON.parse(JSON.stringify(objToUpdate))
+                if (objToDeleteisRoot) {
+                    //This means this next object must become root. 
+                    //Strictly, all history trees must have num(root) > 0.  
+                    if (newTreePrime(fixHistory)) {
+                        fixHistory["__rerum"]["history"]["prime"] = "root"
+                        //The previous always inherited in this case, even if it isn't there.
+                        fixHistory["__rerum"]["history"]["previous"] = previous_id
+                    }
+                    else {
+                        console.error("Could not update all descendants with their new prime value")
+                        return false
+                        //throw new Error("Could not update all descendants with their new prime value")
+                    }
+                }
+                else if (previous_id !== "") {
+                    //The object being deleted had a previous.  That is now absorbed by this next object to mend the gap.  
                     fixHistory["__rerum"]["history"]["previous"] = previous_id
                 }
                 else {
+                    console.log("object did not have previous and was not root.  Weird...")
+                    // @cubap @theHabes TODO Yikes this is some kind of error...it is either root or has a previous, this case means neither are true.
+                    // cubap: Since this is a __rerum error and it means that the object is already not well-placed in a tree, maybe it shouldn't fail to delete?
+                    // theHabes: Are their bad implications on the relevant nodes in the tree that reference this one if we allow it to delete?  Will their account of the history be correct?
+                    //console.error("object did not have previous and was not root.")
+                    //return false
+                    //throw new Error("object did not have previous and was not root.")
+                }
+                //Does this have to be async?
+                let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, fixHistory)
+                if (verify.modifiedCount === 0) {
+                    //verify didn't error out, but it also didn't succeed...
                     console.error("Could not update all descendants with their new prime value")
                     return false
-                    //throw new Error("Could not update all descendants with their new prime value")
                 }
             }
-            else if (previous_id !== "") {
-                //The object being deleted had a previous.  That is now absorbed by this next object to mend the gap.  
-                fixHistory["__rerum"]["history"]["previous"] = previous_id
+            else {
+                console.error("Could not update all descendants with their new prime value: cannot find descendant.")
+                return false
+                //throw new Error("Could not update all descendants with their new prime value")
+            }
+        }
+        //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
+        if (previous_id.indexOf(process.env.RERUM_PREFIX) > -1) {
+            //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
+            //For external objects, do nothing is the right thing to do here.
+            let objWithUpdate2 = {}
+            const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": previous_id })
+            if (null !== objToUpdate2) {
+                let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
+                let origNextArray = fixHistory2["__rerum"]["history"]["next"]
+                let newNextArray = [...origNextArray]
+                //This next should no longer have obj["@id"]
+                newNextArray.splice(obj["@id"], 1)
+                //This next needs to contain the nexts from the deleted object
+                newNextArray = [...newNextArray, ...next_ids]
+                fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
+                //Does this have to be async
+                let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
+                if (verify2.modifiedCount === 0) {
+                    //verify didn't error out, but it also didn't succeed...
+                    console.error("Could not update all ancestors with their altered next value")
+                    return false
+                }
             }
             else {
-                console.log("object did not have previous and was not root.  Weird...")
-                // @cubap @theHabes TODO Yikes this is some kind of error...it is either root or has a previous, this case means neither are true.
-                // cubap: Since this is a __rerum error and it means that the object is already not well-placed in a tree, maybe it shouldn't fail to delete?
-                // theHabes: Are their bad implications on the relevant nodes in the tree that reference this one if we allow it to delete?  Will their account of the history be correct?
-                //console.error("object did not have previous and was not root.")
-                //return false
-                //throw new Error("object did not have previous and was not root.")
-            }
-            //Does this have to be async?
-            let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, fixHistory)
-            if (verify.modifiedCount === 0) {
-                //verify didn't error out, but it also didn't succeed...
-                console.error("Could not update all descendants with their new prime value")
+                //The history.previous object could not be found in this RERUM Database.  
+                //It has this APIs id pattern, that means we expected to find it.  This is an error.
+                //throw new Error("Could not update all descendants with their new prime value")
+                console.error("Could not update all ancestors with their altered next value: cannot find ancestor.")
                 return false
             }
         }
         else {
-            console.error("Could not update all descendants with their new prime value: cannot find descendant.")
-            return false
-            //throw new Error("Could not update all descendants with their new prime value")
+            //console.log("The value of history.previous was an external URI or was not present.  Nothing to heal.  URI:"+previous_id);  
         }
-    }
-    //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
-    if (previous_id.indexOf(process.env.RERUM_PREFIX) > -1) {
-        //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
-        //For external objects, do nothing is the right thing to do here.
-        let objWithUpdate2 = {}
-        const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": previous_id })
-        if (null !== objToUpdate2) {
-            let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
-            let origNextArray = fixHistory2["__rerum"]["history"]["next"]
-            let newNextArray = [...origNextArray]
-            //This next should no longer have obj["@id"]
-            newNextArray.splice(obj["@id"], 1)
-            //This next needs to contain the nexts from the deleted object
-            newNextArray = [...newNextArray, ...next_ids]
-            fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
-            //Does this have to be async
-            let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
-            if (verify2.modifiedCount === 0) {
-                //verify didn't error out, but it also didn't succeed...
-                console.error("Could not update all ancestors with their altered next value")
-                return false
-            }
-        }
-        else {
-            //The history.previous object could not be found in this RERUM Database.  
-            //It has this APIs id pattern, that means we expected to find it.  This is an error.
-            //throw new Error("Could not update all descendants with their new prime value")
-            console.error("Could not update all ancestors with their altered next value: cannot find ancestor.")
-            return false
-        }
-    }
-    else {
-        //console.log("The value of history.previous was an external URI or was not present.  Nothing to heal.  URI:"+previous_id);  
+    } catch (error) {
+        // something threw so the history tree isn't resolved
+        return false
     }
     return true
 }
@@ -819,10 +824,10 @@ async function newTreePrime(obj) {
         let primeID = obj["@id"]
         let ls_versions = []
         let descendants = []
-        try{
+        try {
             ls_versions = await getAllVersions(obj)
             descendants = getAllDescendants(ls_versions, obj, [])
-        } catch(error) {
+        } catch (error) {
             // fail silently
         }
         for (d of descendants) {
@@ -844,8 +849,19 @@ async function newTreePrime(obj) {
     return true
 }
 
+/**
+ * 
+ * @param {Object} update `message` and `status` for creating a custom Error
+ * @param {Error} originalError `source` for tracing this Error
+ * @returns Error for use in Express.next(err)
+ */
 function createDatabaseError(update, originalError) {
     let err = Error(update.message, { cause: originalError })
     err.status = update.status
     return err
+}
+
+function expressCallbackForMongoDriver(err){
+    if(err) { next(err) }
+    // This does not stop the flow of the code after this, so it is not implemented anywhere yet.
 }
