@@ -2,9 +2,7 @@ let request = require("supertest")
 //Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
 let app = require('../../app')
 
-let controller = require("../../db-controller")
-jest.mock("../../db-controller") // Allows an individual test access to a mock controller
-jest.mock('./__mocks__/id') // A mock /v1/id/ endpoint that returns a promise
+//let idMock = require('../../__mocks__/id')
 
 //A super fun note.  If you do request(app), the tests will fail due to race conditions.  
 //client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
@@ -13,16 +11,16 @@ request = request("http://localhost:3333")
 describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
-    
-    it('MOCK an end to end /v1/id/{_id}',
-    function(done) {
-      controller.id("abcde")
-      .then(response => {
-        expect(response.body["_id"]).toBe("abcde")
-        done()
-      })
-      .catch(err => done(err))
-    })
+    //One way to mock.  However, what we really want is to mock 'request'
+    // it('MOCK an end to end /v1/id/{_id}',
+    // function(done) {
+    //   idMock.id("abcde")
+    //   .then(response => {
+    //     expect(response.body["_id"]).toBe("abcde")
+    //     done()
+    //   })
+    //   .catch(err => done(err))
+    // })
 
     it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  '+
       'It should respond 200 with a body that is a JSON object with an "@id" property.',

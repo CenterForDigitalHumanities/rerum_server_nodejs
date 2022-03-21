@@ -18,15 +18,19 @@ const bucket = [
   }
 ]
 
-export default function id(_id) {
+exports.id = async function(_id) {
+  let r = {}
   return new Promise((resolve, reject) => {
-    let obj = bucket.filter(o=>o["_id"]===_id)
-    process.nextTick(() =>
+    let obj = bucket.filter(o=>o["_id"]===_id)[0]
+    r.body = obj
+    process.nextTick(() =>{
       Object.keys(obj).length
-        ? resolve(obj)
+        ? resolve(r)
         : reject({
             error: `There was no object with _id "${_id}"`,
           })
+      }
     )
   })
+  
 }
