@@ -741,9 +741,7 @@ async function healHistoryTree(obj) {
                         fixHistory["__rerum"]["history"]["previous"] = previous_id
                     }
                     else {
-                        console.error("Could not update all descendants with their new prime value")
-                        return false
-                        //throw new Error("Could not update all descendants with their new prime value")
+                        throw Error("Could not update all descendants with their new prime value")
                     }
                 }
                 else if (previous_id !== "") {
@@ -751,26 +749,20 @@ async function healHistoryTree(obj) {
                     fixHistory["__rerum"]["history"]["previous"] = previous_id
                 }
                 else {
-                    console.log("object did not have previous and was not root.  Weird...")
                     // @cubap @theHabes TODO Yikes this is some kind of error...it is either root or has a previous, this case means neither are true.
                     // cubap: Since this is a __rerum error and it means that the object is already not well-placed in a tree, maybe it shouldn't fail to delete?
                     // theHabes: Are their bad implications on the relevant nodes in the tree that reference this one if we allow it to delete?  Will their account of the history be correct?
-                    //console.error("object did not have previous and was not root.")
-                    //return false
-                    //throw new Error("object did not have previous and was not root.")
+                    throw Error("object did not have previous and was not root.")
                 }
                 //Does this have to be async?
                 let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, fixHistory)
                 if (verify.modifiedCount === 0) {
                     //verify didn't error out, but it also didn't succeed...
-                    console.error("Could not update all descendants with their new prime value")
-                    return false
+                    throw Error("Could not update all descendants with their new prime value")
                 }
             }
             else {
-                console.error("Could not update all descendants with their new prime value: cannot find descendant.")
-                return false
-                //throw new Error("Could not update all descendants with their new prime value")
+                throw Error("Could not update all descendants with their new prime value")
             }
         }
         //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
@@ -792,16 +784,14 @@ async function healHistoryTree(obj) {
                 let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
                 if (verify2.modifiedCount === 0) {
                     //verify didn't error out, but it also didn't succeed...
-                    console.error("Could not update all ancestors with their altered next value")
-                    return false
+                    throw Error("Could not update all ancestors with their altered next value")
                 }
             }
             else {
                 //The history.previous object could not be found in this RERUM Database.  
                 //It has this APIs id pattern, that means we expected to find it.  This is an error.
                 //throw new Error("Could not update all descendants with their new prime value")
-                console.error("Could not update all ancestors with their altered next value: cannot find ancestor.")
-                return false
+                throw Error("Could not update all ancestors with their altered next value: cannot find ancestor.")
             }
         }
         else {
@@ -809,6 +799,7 @@ async function healHistoryTree(obj) {
         }
     } catch (error) {
         // something threw so the history tree isn't resolved
+        console.error(error)
         return false
     }
     return true
