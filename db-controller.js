@@ -157,7 +157,6 @@ exports.putUpdate = async function (req, res, next) {
     if (newObjectReceived["@id"]) {
         let updateHistoryNextID = newObjectReceived["@id"]
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-<<<<<<< HEAD
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
