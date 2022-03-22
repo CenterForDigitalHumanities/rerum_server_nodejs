@@ -29,6 +29,7 @@ describe('Check to see that all expected routes exists.', function() {
   //     .catch(err => done(err))
   // })
 
+
   it('/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
     request
       .get("/v1/api")
