@@ -15,7 +15,7 @@ router.use(express.static(path.join(__dirname, '../public')))
 
 // Set default API response
 router.get('/', function (req, res) {
-    res.redirect('register.html') // welcome page for new applications on V1
+    res.redirect(301, 'register.html') // welcome page for new applications on V1
 })
 
 // Export API routes
