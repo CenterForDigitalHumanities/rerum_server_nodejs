@@ -14,21 +14,21 @@ request = request("http://localhost:3333")
 
 describe('Check to see that all expected routes exists.', function() {
 
-  it('/ -- Server index.  It should return 200 and an html page.  ', 
-    function(done) {
-    request
-      .get('/')
-      .expect('Content-Type', /html/)
-      .expect('X-Powered-By', 'Express')
-      .expect(200, done)
-  })
+  // it('/ -- Server index.  It should return 200 and an html page.  ', 
+  //   function(done) {
+  //   request
+  //     .get('/')
+  //     .expect('X-Powered-By', 'Express', done)
+  //     .catch(err => done(err))
+  // })
 
-  it('/v1/ -- App index. ', function(done) {
-    request
-      .get("/v1")
-      .expect("Content-Type", "text/html; charset=UTF-8", done)
-      .catch(err => done(err))
-  })
+  // it('/v1/ -- App index. ', function(done) {
+  //   request
+  //     .get("/v1")
+  //     .expect(301, done)
+  //     .catch(err => done(err))
+  // })
+
 
   it('/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
     request

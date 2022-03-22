@@ -102,7 +102,6 @@ exports.delete = async function (req, res, next) {
             next(createDatabaseError(err))
             return
         }
-
         let preserveID = safe_received["@id"]
         let deletedFlag = {} //The __deleted flag is a JSONObject
         deletedFlag["object"] = JSON.parse(JSON.stringify(originalObject))
@@ -158,6 +157,7 @@ exports.putUpdate = async function (req, res, next) {
     if (newObjectReceived["@id"]) {
         let updateHistoryNextID = newObjectReceived["@id"]
         let id = newObjectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+<<<<<<< HEAD
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
@@ -165,6 +165,7 @@ exports.putUpdate = async function (req, res, next) {
             next(error)
             return
         }
+        const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (null === originalObject) {
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(newObjectReceived)
@@ -802,6 +803,40 @@ async function healHistoryTree(obj) {
         console.error(error)
         return false
     }
+    //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
+    if (previous_id.indexOf(process.env.RERUM_PREFIX) > -1) {
+        //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
+        //For external objects, do nothing is the right thing to do here.
+        let objWithUpdate2 = {}
+        const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": previous_id })
+        if (null !== objToUpdate2) {
+            let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
+            let origNextArray = fixHistory2["__rerum"]["history"]["next"]
+            let newNextArray = [...origNextArray]
+            //This next should no longer have obj["@id"]
+            newNextArray.splice(obj["@id"], 1)
+            //This next needs to contain the nexts from the deleted object
+            newNextArray = [...newNextArray, ...next_ids]
+            fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
+            //Does this have to be async
+            let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
+            if (verify2.modifiedCount === 0) {
+                //verify didn't error out, but it also didn't succeed...
+                console.error("Could not update all ancestors with their altered next value")
+                return false
+            }
+        }
+        else {
+            //The history.previous object could not be found in this RERUM Database.  
+            //It has this APIs id pattern, that means we expected to find it.  This is an error.
+            //throw new Error("Could not update all descendants with their new prime value")
+            console.error("Could not update all ancestors with their altered next value: cannot find ancestor.")
+            return false
+        }
+    }
+    else {
+        //console.log("The value of history.previous was an external URI or was not present.  Nothing to heal.  URI:"+previous_id);  
+    }
     return true
 }
 
@@ -856,3 +891,4 @@ function expressCallbackForMongoDriver(err){
     if(err) { next(err) }
     // This does not stop the flow of the code after this, so it is not implemented anywhere yet.
 }
+
