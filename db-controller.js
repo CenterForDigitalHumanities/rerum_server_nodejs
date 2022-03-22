@@ -164,7 +164,6 @@ exports.putUpdate = async function (req, res, next) {
             next(error)
             return
         }
-        const originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (null === originalObject) {
             //This object is not in RERUM, they want to import it.  Do that automatically.  
             //updateExternalObject(newObjectReceived)
