@@ -120,3 +120,45 @@ exports.isGenerator = function(origObj, changeAgent){
     //bots get a free pass through
     return generatingAgent === changeAgent
 }
+
+/**
+ * Creates and appends headers to the HTTP response required by Web Annotation standards.
+ * Headers are attached and read from {@link #response}. 
+ * 
+ * @param isContainerType A boolean noting whether or not the object is a container type.
+ * @param isLD  the object is either plain JSON or is JSON-LD ("ld+json")
+ */
+exports.applyWebAnnoHeaders = function(express_obj, isContainerType, isLD){
+    if(isLD){
+        express_obj.set("Content-Type", "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\"")
+    }
+    if(isContainerType){
+        express_obj.set("Link", "<http://www.w3.org/TR/annotation-protocol/>; rel=\"http://www.w3.org/ns/ldp#constrainedBy\"") 
+    }
+    else{
+        express_obj.set("Link", "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\"")
+    }
+    //express_obj.set("Allow", "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST")
+    return http_obj
+}
+
+/**
+ * Creates and appends headers to the HTTP response required by JSON-LD. 
+ * This is specifically for responses that are not Web Annotation compliant (getByProperties, getAllDescendants(), getAllAncestors()).
+ * They still need the JSON-LD support headers.
+ * Headers are attached and read from {@link #response}. 
+ * 
+ * @param etag A unique fingerprint for the object for the Etag header.
+ * @param isContainerType A boolean noting whether or not the object is a container type.
+ * @param isLD  the object is either plain JSON or is JSON-LD ("ld+json")
+ */
+exports.applyLDHeaders = function(express_obj, isLD){
+    if(isLD){
+        express_obj.set("Content-Type", "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\"")
+    }
+    else{
+        express_obj.set("Link", "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\"")
+    }
+    express_obj.set("Link", "<http://store.rerum.io/v1/context.json>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\"");
+    return express_obj
+}
