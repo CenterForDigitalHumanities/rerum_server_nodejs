@@ -18,6 +18,7 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.headers["location"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
             done()
@@ -34,6 +35,8 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            expect(response.headers["last-modified"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             done()
         })
@@ -49,6 +52,7 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             done()
         })
@@ -68,6 +72,7 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(201)
         .then(response => {
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
             done()
         })
@@ -88,6 +93,7 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(201)
         .then(response => {
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
             done()
         })
@@ -107,6 +113,7 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.headers["location"]).toBeTruthy()
             expect(response.headers["location"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body["@id"]).toBeTruthy()
@@ -175,6 +182,7 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             expect(response.body.length).toBeTruthy()
             done()

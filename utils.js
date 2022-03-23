@@ -128,37 +128,49 @@ exports.isGenerator = function(origObj, changeAgent){
  * @param isContainerType A boolean noting whether or not the object is a container type.
  * @param isLD  the object is either plain JSON or is JSON-LD ("ld+json")
  */
-exports.applyWebAnnoHeaders = function(express_obj, isContainerType, isLD){
-    if(isLD){
-        express_obj.set("Content-Type", "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\"")
+exports.configureWebAnnoHeadersFor = function(obj){
+    let headers = {}
+    if(exports.isLD(obj)){
+        headers["Content-Type"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
-    if(isContainerType){
-        express_obj.set("Link", "<http://www.w3.org/TR/annotation-protocol/>; rel=\"http://www.w3.org/ns/ldp#constrainedBy\"") 
+    if(exports.isContainerType(obj)){
+        headers["Link"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
     else{
-        express_obj.set("Link", "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\"")
+        headers["Link"] = "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\""
     }
-    //express_obj.set("Allow", "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST")
-    return http_obj
+    return headers
 }
 
 /**
  * Creates and appends headers to the HTTP response required by JSON-LD. 
- * This is specifically for responses that are not Web Annotation compliant (getByProperties, getAllDescendants(), getAllAncestors()).
- * They still need the JSON-LD support headers.
+ * This is specifically for responses that are not Web Annotation compliant (getByProperties, getAllDescendants, getAllAncestors)
+ * They respond with Arrays (which have no @context), but they still need the JSON-LD support headers.
  * Headers are attached and read from {@link #response}. 
- * 
- * @param etag A unique fingerprint for the object for the Etag header.
- * @param isContainerType A boolean noting whether or not the object is a container type.
- * @param isLD  the object is either plain JSON or is JSON-LD ("ld+json")
  */
-exports.applyLDHeaders = function(express_obj, isLD){
-    express_obj.set("Content-Type", "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\"")
-    express_obj.set("Link", "<http://store.rerum.io/v1/context.json>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\"");
-    return express_obj
+exports.configureLDHeadersFor = function(obj){
+    console.log("APPLY LD HEADERS")
+    /**
+    //Note that the idea situation would be to be able to detect the LD-ness of this object
+    //What we have are the arrays returned from the aformentioned getters (/query, /since, /history)
+    let headers = {}
+    if(exports.isLD(obj)){
+        headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
+    } 
+    else {
+        // This breaks Web Annotation compliance, but allows us to return requested
+        // objects without misrepresenting the content.
+        headers["Content-Type"] = "application/json;charset=utf-8;"
+    }
+    */
+    return {
+        "Content-Type":'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"',
+        "Link":'<http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+    }
 }
 
-function isContainerType(obj){
+exports.isContainerType = function(obj){
+    let answer = false
     let typestring = obj.type ?? obj["@type"] ?? ""
     const knownContainerTypes = [
         "ItemList",
@@ -168,9 +180,41 @@ function isContainerType(obj){
         "Range",
         "Canvas"
     ]
-    return knownContainerTypes.includes(typestring)
+    for(const t of knownContainerTypes){
+        //Dang those pesky prefixes...circumventing exact match for now
+        if(typestring.includes(t)){
+            answer = true
+            break
+        }
+    }
+    return answer
+    //return knownContainerTypes.includes(typestring)
 }
 
-function isLD(obj){
-    return obj["@context"] ? true : false
+exports.isLD = function(obj){
+    //Note this is always false if obj is an array, like /since, /history or /query provide as a return.
+    return Array.isArray(obj) ? false : obj["@context"] ? true : false
 }
+
+exports.configureLastModifiedHeader = function(obj){
+    let date = ""
+    if(obj["__rerum"]){
+        if(!obj["__rerum"]["isOverwritten"] === ""){
+            date = obj["__rerum"]["isOverwritten"]
+        }
+        else{
+            date = obj["__rerum"]["createdAt"]
+        }
+    }
+    else if(obj["__deleted"]){
+        date = obj["__deleted"]["time"]
+    }
+    //Note that dates like 2021-05-26T10:39:19.328 have been rounded to 2021-05-26T10:39:19.328 in browser headers.  Account for that here.
+    if(date.includes(".")){
+        //If-Modified-Since and Last-Modified headers are rounded.  Wed, 26 May 2021 10:39:19.629 GMT becomes Wed, 26 May 2021 10:39:19 GMT.
+        date = date.split(".")[0]
+    }
+    return new Date(date).toUTCString()
+}
+
+   
