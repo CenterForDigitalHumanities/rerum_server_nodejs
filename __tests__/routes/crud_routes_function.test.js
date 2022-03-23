@@ -18,6 +18,8 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            expect(response.headers["cache-control"]).toBeTruthy()
+            expect(response.headers["last-modified"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(response.headers["location"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
@@ -35,7 +37,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            expect(response.headers["last-modified"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             done()
