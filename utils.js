@@ -153,12 +153,24 @@ exports.applyWebAnnoHeaders = function(express_obj, isContainerType, isLD){
  * @param isLD  the object is either plain JSON or is JSON-LD ("ld+json")
  */
 exports.applyLDHeaders = function(express_obj, isLD){
-    if(isLD){
-        express_obj.set("Content-Type", "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\"")
-    }
-    else{
-        express_obj.set("Link", "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\"")
-    }
+    express_obj.set("Content-Type", "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\"")
     express_obj.set("Link", "<http://store.rerum.io/v1/context.json>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\"");
     return express_obj
+}
+
+function isContainerType(obj){
+    let typestring = obj.type ?? obj["@type"] ?? ""
+    const knownContainerTypes = [
+        "ItemList",
+        "AnnotationList",
+        "Collection",
+        "Sequence",
+        "Range",
+        "Canvas"
+    ]
+    return knownContainerTypes.includes(typestring)
+}
+
+function isLD(obj){
+    return obj["@context"] ? true : false
 }

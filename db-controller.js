@@ -40,7 +40,7 @@ exports.create = async function (req, res, next) {
     console.log("CREATE")
     try {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-        res = utils.applyWebAnnoHeaders(res)
+        res = utils.applyWebAnnoHeaders(res, utils.isContainerType(newObject), utils.isLD(nextObject))
         res.location(newObject["@id"])
         res.status(201)
         res.json(newObject)
@@ -190,7 +190,7 @@ exports.putUpdate = async function (req, res, next) {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObjectReceived)
                 if (alterHistoryNext(originalObject, newObjectReceived["@id"])) {
                     //Success, the original object has been updated.
-                    res = utils.applyWebAnnoHeaders(res)
+                    res = utils.applyWebAnnoHeaders(res, utils.isContainerType(newObjectReceived), utils.isLD(newObjectReceived))
                     res.location(newObjectReceived["@id"])
                     res.status(200)
                     res.json(newObjectReceived)
@@ -317,7 +317,7 @@ exports.overwrite = async function (req, res, next) {
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
             }
-            res = utils.applyWebAnnoHeaders(res)
+            res = applyWebAnnoHeaders(res, utils.isContainerType(newObjectReceived), utils.isLD(newObjectReceived))
             res.location(newObjectReceived["@id"])
             res.json(newObjectReceived)
             return
@@ -362,7 +362,7 @@ exports.id = async function (req, res, next) {
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (match) {
             delete match["_id"]
-            res = utils.applyWebAnnoHeaders(res)
+            res = utils.applyWebAnnoHeaders(res, utils.isContainerType(newObjectReceived), utils.isLD(newObjectReceived))
             res.location(match["@id"])
             res.json(match)
             return
