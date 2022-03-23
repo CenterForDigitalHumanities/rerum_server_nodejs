@@ -12,37 +12,24 @@
     "runtest": "node ./bin/testApp.js"
   },
   "dependencies": {
-    "assert": "^2.0.0",
     "aws-secrets-dotenv": "^1.0.0",
-    "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "dotenv": "^10.0.0",
     "dotenv-expand": "^8.0.1",
-    "ejs": "~2.6.1",
     "express": "^4.16.4",
-    "express-jwt": "^6.1.1",
-    "express-jwt-authz": "^2.4.1",
     "express-oauth2-jwt-bearer": "^1.1.0",
+    "got": "^11.8.3",
     "http-errors": "~1.6.3",
-    "jwks-rsa": "^2.0.5",
-    "jwt-simple": "^0.5.6",
-    "mock-jwks": "^1.0.3",
     "jest-cli": "^27.5.1",
-    "jest-config": "^27.5.1",
     "mongodb": "^4.1.2",
     "morgan": "~1.9.1",
     "nock": "^13.2.4",
-    "node-fetch": "^3.0.0",
     "socket.io": "^4.4.1",
     "socket.io-client": "^4.4.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
     "jest": "^27.5.1",
-    "nodemon": "^2.0.12",
-    "superagent": "^7.1.1",
     "supertest": "^6.2.2"
   }
 }
