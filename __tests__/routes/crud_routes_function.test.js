@@ -161,7 +161,7 @@ describe(
 
     it('/patch -- not written.  Expect a 405 for now.', function(done) {
       request
-        .get('/v1/api/set')
+        .get('/v1/api/patch')
         .expect(405, done)
         // .patch('/v1/api/patch')
         // .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test":new Date(Date.now()).toISOString().replace("Z", "")})
