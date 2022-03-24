@@ -40,10 +40,7 @@ exports.create = async function (req, res, next) {
     console.log("CREATE")
     try {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-        const headersToSet = utils.configureWebAnnoHeadersFor(newObject)
-        for(const h in headersToSet){
-            res.set(h, headersToSet[h])
-        }
+        res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(201)
         res.json(newObject)
