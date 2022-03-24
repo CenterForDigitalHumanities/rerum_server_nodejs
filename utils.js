@@ -125,7 +125,7 @@ exports.isGenerator = function(origObj, changeAgent){
 }
 
 /**
- * Mint the HTTP response headers required by Web Annotation standards.
+ * Mint the HTTP response headers required by REST best practices and/or Web Annotation standards.
  * return a JSON object.  keys are header names, values are header values.
  */
 exports.configureWebAnnoHeadersFor = function(obj){
@@ -144,7 +144,7 @@ exports.configureWebAnnoHeadersFor = function(obj){
 }
 
 /**
- * Mint the HTTP response headers required by Linked Data standards.
+ * Mint the HTTP response headers required by REST best practices and/or Linked Data standards.
  * This is specifically for responses that are not Web Annotation compliant (getByProperties, getAllDescendants, getAllAncestors)
  * They respond with Arrays (which have no @context), but they still need the JSON-LD support headers.
  * return a JSON object.  keys are header names, values are header values.
