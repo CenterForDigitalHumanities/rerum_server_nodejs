@@ -181,11 +181,13 @@ exports.isContainerType = function(obj){
     const knownContainerTypes = [
         "ItemList",
         "AnnotationList",
-        'AnnotationCollection',
-        "Collection",
+        "AnnotationCollection",
         "Sequence",
         "Range",
-        "Canvas"
+        "Canvas",
+        "List",
+        "Set",
+        "Collection"
     ]
     for(const t of knownContainerTypes){
         //Dang those pesky prefixes...circumventing exact match for now
