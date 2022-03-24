@@ -193,10 +193,7 @@ exports.putUpdate = async function (req, res, next) {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObjectReceived)
                 if (alterHistoryNext(originalObject, newObjectReceived["@id"])) {
                     //Success, the original object has been updated.
-                    const headersToSet = utils.configureWebAnnoHeadersFor(newObjectReceived)
-                    for(const h in headersToSet){
-                        res.set(h, headersToSet[h])
-                    }
+                    res.set(utils.configureWebAnnoHeadersFor(newObjectReceived))
                     res.location(newObjectReceived["@id"])
                     res.status(200)
                     res.json(newObjectReceived)
@@ -323,10 +320,7 @@ exports.overwrite = async function (req, res, next) {
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
             }
-            const headersToSet = utils.configureWebAnnoHeadersFor(newObjectReceived)
-            for(const h in headersToSet){
-                res.set(h, headersToSet[h])
-            }
+            res.set(utils.configureWebAnnoHeadersFor(newObjectReceived))
             res.location(newObjectReceived["@id"])
             res.json(newObjectReceived)
             return
@@ -352,10 +346,7 @@ exports.query = async function (req, res, next) {
     let props = req.body
     try {
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-        const headersToSet = utils.configureLDHeadersFor(matches)
-        for(const h in headersToSet){
-            res.set(h, headersToSet[h])
-        }
+        res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
         next(createDatabaseError({ message: `Database query failed.` }, error))
@@ -374,14 +365,11 @@ exports.id = async function (req, res, next) {
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (match) {
             delete match["_id"]
-            const headersToSet = utils.configureWebAnnoHeadersFor(match)
-            for(const h in headersToSet){
-                res.set(h, headersToSet[h])
-            }
+            res.set(utils.configureWebAnnoHeadersFor(match))
             //Support built in browser caching
             res.set("Cache-Control", "max-age=86400, must-revalidate")
             //Support requests with 'If-Modified_Since' headers
-            res.set("Last-Modified", utils.configureLastModifiedHeader(match))
+            res.set(utils.configureLastModifiedHeader(match))
             res.location(match["@id"])
             res.json(match)
             return
@@ -469,10 +457,7 @@ exports.since = async function (req, res, next) {
             return []
         })
     let descendants = getAllDescendants(all, obj, [])
-    const headersToSet = utils.configureLDHeadersFor(descendants)
-    for(const h in headersToSet){
-        res.set(h, headersToSet[h])
-    }
+    res.set(utils.configureLDHeadersFor(descendants))
     res.json(descendants)
 }
 
@@ -506,10 +491,7 @@ exports.history = async function (req, res, next) {
             return []
         })
     let ancestors = getAllAncestors(all, obj, [])
-    const headersToSet = utils.configureLDHeadersFor(ancestors)
-    for(const h in headersToSet){
-        res.set(h, headersToSet[h])
-    }
+    res.set(utils.configureLDHeadersFor(ancestors))
     res.json(ancestors)
 }
 

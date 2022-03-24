@@ -27,7 +27,7 @@ isReleased        —always ""
  */
 exports.configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = JSON.parse(JSON.stringify(received))
-    let received_options = received["__rerum"] ? JSON.parse(JSON.stringify(received["__rerum"])) : {}
+    let received_options = received.__rerum ? JSON.parse(JSON.stringify(received.__rerum)) : {}
     let history = {}
     let releases = {}
     let rerumOptions = {}
@@ -38,7 +38,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
         //We are "importing" an external object as a new object in RERUM (via an update).  It can knows its previous external self, but is a root for its existence in RERUM.
         received_options = {}
         history_prime = "root"
-        history_previous = received["@id"] ?? received["id"] ?? ""
+        history_previous = received["@id"] ?? received.id ?? ""
     }
     else{
         //We are either updating an existing RERUM object or creating a new one.
@@ -48,14 +48,14 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
                 //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
                 if(history.prime === "root"){
                     //Hitting this case means we are updating from the prime object, so we can't pass "root" on as the prime value
-                    history_prime = received["@id"]
+                    history_prime = received["@id"] ?? received.id ?? ""
                 }
                 else{
                     //Hitting this means we are updating an object that already knows its prime, so we can pass on the prime value
                     history_prime = history.prime
                 }
                 //Either way, we know the previous value shold be the @id of the object received here. 
-                history_previous = received["@id"]
+                history_previous = received["@id"] ?? received.id ?? ""
             }
             else{
                 //Hitting this means we are saving a new object and found that __rerum.history existed.  We don't trust it, act like it doesn't have it.
@@ -93,7 +93,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     rerumOptions.history = history
     rerumOptions.releases = releases
     rerumOptions.generatedBy = generator
-    configuredObject["__rerum"] = rerumOptions
+    configuredObject.__rerum = rerumOptions
     return configuredObject //The mongo save/update has not been called yet.  The object returned here will go into mongo.save or mongo.update
 }
 
@@ -108,7 +108,10 @@ exports.isDeleted = function(obj){
  * Check this object for released status.  Released objects in RERUM look like {"@id":"{some-id}", __rerum:{"isReleased" : "ISO-DATE-TIME"}}
  */ 
 exports.isReleased = function(obj){
-    return obj.hasOwnProperty("__rerum") && obj["__rerum"].hasOwnProperty("isReleased") && obj["__rerum"]["isReleased"] !== ""
+    return 
+        obj.hasOwnProperty("__rerum") && 
+        obj.__rerum.hasOwnProperty("isReleased") && 
+        obj.__rerum.isReleased !== ""
 }
 
 /**
@@ -116,17 +119,14 @@ exports.isReleased = function(obj){
  */ 
 exports.isGenerator = function(origObj, changeAgent){
     //If the object in mongo does not have a generator, something wrong.  however, there is no permission to check, no generator is the same as any generator.
-    const generatingAgent = origObj["__rerum"]["generatedBy"] ?? changeAgent 
+    const generatingAgent = origObj.__rerum.generatedBy ?? changeAgent 
     //bots get a free pass through
     return generatingAgent === changeAgent
 }
 
 /**
- * Creates and appends headers to the HTTP response required by Web Annotation standards.
- * Headers are attached and read from {@link #response}. 
- * 
- * @param isContainerType A boolean noting whether or not the object is a container type.
- * @param isLD  the object is either plain JSON or is JSON-LD ("ld+json")
+ * Mint the HTTP response headers required by Web Annotation standards.
+ * return a JSON object.  keys are header names, values are header values.
  */
 exports.configureWebAnnoHeadersFor = function(obj){
     let headers = {}
@@ -139,21 +139,23 @@ exports.configureWebAnnoHeadersFor = function(obj){
     else{
         headers["Link"] = "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\""
     }
+    headers["Access-Control-Expose-Headers"] = "*"
+    headers["Allow"] = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
     return headers
 }
 
 /**
- * Creates and appends headers to the HTTP response required by JSON-LD. 
+ * Mint the HTTP response headers required by Linked Data standards.
  * This is specifically for responses that are not Web Annotation compliant (getByProperties, getAllDescendants, getAllAncestors)
  * They respond with Arrays (which have no @context), but they still need the JSON-LD support headers.
- * Headers are attached and read from {@link #response}. 
+ * return a JSON object.  keys are header names, values are header values.
  */
 exports.configureLDHeadersFor = function(obj){
-    console.log("APPLY LD HEADERS")
-    /**
-    //Note that the idea situation would be to be able to detect the LD-ness of this object
+    //Note that the optimal situation would be to be able to detect the LD-ness of this object
     //What we have are the arrays returned from the aformentioned getters (/query, /since, /history)
+    //We know we want them to be LD and that they likely contain LD things, but the arrays don't have an @context
     let headers = {}
+    /**
     if(exports.isLD(obj)){
         headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
     } 
@@ -163,15 +165,21 @@ exports.configureLDHeadersFor = function(obj){
         headers["Content-Type"] = "application/json;charset=utf-8;"
     }
     */
-    return {
-        "Content-Type":'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"',
-        "Link":'<http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
-    }
+    headers["Access-Control-Expose-Headers"] = "*"
+    headers["Allow"] = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
+    headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
+    headers["Link"] = '<http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+    return headers
 }
 
+/**
+ * Check if this object is of a known container type.  
+ * If so, it requires a different header than a stand-alone resource object.
+ * return boolean
+ */ 
 exports.isContainerType = function(obj){
     let answer = false
-    let typestring = obj.type ?? obj["@type"] ?? ""
+    let typestring = obj["@type"] ?? obj.type ?? ""
     const knownContainerTypes = [
         "ItemList",
         "AnnotationList",
@@ -191,30 +199,41 @@ exports.isContainerType = function(obj){
     //return knownContainerTypes.includes(typestring)
 }
 
+/**
+ * Check if this object is a Linked Data object.
+ * If so, it will have an @context -(TODO) that resolves!
+ * return boolean
+ */ 
 exports.isLD = function(obj){
     //Note this is always false if obj is an array, like /since, /history or /query provide as a return.
     return Array.isArray(obj) ? false : obj["@context"] ? true : false
 }
 
+/**
+ * Mint the Last-Modified header for /v1/id/ responses.
+ * It should be displayed like Mon, 14 Mar 2022 22:44:42 GMT
+ * The data knows it like 2022-03-14T17:44:42.721
+ * return a JSON object.  keys are header names, values are header values.
+ */ 
 exports.configureLastModifiedHeader = function(obj){
     let date = ""
-    if(obj["__rerum"]){
-        if(!obj["__rerum"]["isOverwritten"] === ""){
-            date = obj["__rerum"]["isOverwritten"]
+    if(obj.__rerum){
+        if(!obj.__rerum.isOverwritten === ""){
+            date = obj.__rerum.isOverwritten
         }
         else{
-            date = obj["__rerum"]["createdAt"]
+            date = obj.__rerum.createdAt
         }
     }
-    else if(obj["__deleted"]){
-        date = obj["__deleted"]["time"]
+    else if(obj.__deleted){
+        date = obj.__deleted.time
     }
-    //Note that dates like 2021-05-26T10:39:19.328 have been rounded to 2021-05-26T10:39:19.328 in browser headers.  Account for that here.
+    //Note that dates like 2021-05-26T10:39:19.328 have been rounded to 2021-05-26T10:39:19 in browser headers.  Account for that here.
     if(date.includes(".")){
         //If-Modified-Since and Last-Modified headers are rounded.  Wed, 26 May 2021 10:39:19.629 GMT becomes Wed, 26 May 2021 10:39:19 GMT.
         date = date.split(".")[0]
     }
-    return new Date(date).toUTCString()
+    return {"Last-Modified":new Date(date).toUTCString()}
 }
 
    
