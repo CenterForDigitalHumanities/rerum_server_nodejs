@@ -181,6 +181,7 @@ exports.isContainerType = function(obj){
     const knownContainerTypes = [
         "ItemList",
         "AnnotationList",
+        'AnnotationCollection',
         "Collection",
         "Sequence",
         "Range",
