@@ -139,7 +139,6 @@ exports.configureWebAnnoHeadersFor = function(obj){
     else{
         headers["Link"] = "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\""
     }
-    headers["Access-Control-Expose-Headers"] = "*"
     headers["Allow"] = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
     return headers
 }
@@ -165,7 +164,6 @@ exports.configureLDHeadersFor = function(obj){
         headers["Content-Type"] = "application/json;charset=utf-8;"
     }
     */
-    headers["Access-Control-Expose-Headers"] = "*"
     headers["Allow"] = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
     headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
     headers["Link"] = '<http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
@@ -235,5 +233,3 @@ exports.configureLastModifiedHeader = function(obj){
     }
     return {"Last-Modified":new Date(date).toUTCString()}
 }
-
-   

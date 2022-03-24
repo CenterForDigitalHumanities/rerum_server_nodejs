@@ -24,7 +24,39 @@ app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
 
 //Middleware to use
-app.use(cors())
+
+/**
+ * Get the various CORS headers right
+ * "methods" : Allow 
+ * "allowedMethods" : Access-Control-Allow-Methods  (Allow ALL the methods)
+ * "allowedHeaders" : Access-Control-Allow-Headers  (Allow custom headers)
+ * "exposedHeaders" : Access-Control-Expose-Headers (Expose the custom headers)
+ * "origin" : "*"   : Access-Control-Allow-Origin   (Allow ALL the origins)
+ * "maxAge" : "600" : Access-Control-Max-Age        (how long to cache preflight requests, 10 mins)
+ */ 
+app.use(
+  cors({
+    "methods" : "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST",
+    "allowedHeaders" : [
+      'Content-Type',
+      'Content-Length',
+      'Allow',
+      'Authorization',
+      'Location',
+      'ETag',
+      'Connection',
+      'Keep-Alive',
+      'Date',
+      'Cache-Control',
+      'Last-Modified',
+      'Link',
+      'X-HTTP-Method-Override'
+    ],
+    "exposedHeaders" : "*",
+    "origin" : "*",
+    "maxAge" : "600"
+  })
+)
 app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
