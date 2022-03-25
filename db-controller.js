@@ -12,7 +12,7 @@
 
 const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectID
-const utils = require('./utils.js')
+const utils = require('./utils')
 let client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
 client.connect()
 console.log("DB controller was required by a module, so a connection must be made.  We would like there to only be one of these.")
@@ -40,6 +40,7 @@ exports.create = async function (req, res, next) {
     console.log("CREATE")
     try {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+        res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(201)
         res.json(newObject)
@@ -189,6 +190,7 @@ exports.putUpdate = async function (req, res, next) {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObjectReceived)
                 if (alterHistoryNext(originalObject, newObjectReceived["@id"])) {
                     //Success, the original object has been updated.
+                    res.set(utils.configureWebAnnoHeadersFor(newObjectReceived))
                     res.location(newObjectReceived["@id"])
                     res.status(200)
                     res.json(newObjectReceived)
@@ -315,6 +317,7 @@ exports.overwrite = async function (req, res, next) {
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
             }
+            res.set(utils.configureWebAnnoHeadersFor(newObjectReceived))
             res.location(newObjectReceived["@id"])
             res.json(newObjectReceived)
             return
@@ -340,6 +343,7 @@ exports.query = async function (req, res, next) {
     let props = req.body
     try {
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+        res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
         next(createDatabaseError({ message: `Database query failed.` }, error))
@@ -358,6 +362,11 @@ exports.id = async function (req, res, next) {
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (match) {
             delete match["_id"]
+            res.set(utils.configureWebAnnoHeadersFor(match))
+            //Support built in browser caching
+            res.set("Cache-Control", "max-age=86400, must-revalidate")
+            //Support requests with 'If-Modified_Since' headers
+            res.set(utils.configureLastModifiedHeader(match))
             res.location(match["@id"])
             res.json(match)
             return
@@ -445,6 +454,7 @@ exports.since = async function (req, res, next) {
             return []
         })
     let descendants = getAllDescendants(all, obj, [])
+    res.set(utils.configureLDHeadersFor(descendants))
     res.json(descendants)
 }
 
@@ -478,6 +488,7 @@ exports.history = async function (req, res, next) {
             return []
         })
     let ancestors = getAllAncestors(all, obj, [])
+    res.set(utils.configureLDHeadersFor(ancestors))
     res.json(ancestors)
 }
 
@@ -889,4 +900,3 @@ function expressCallbackForMongoDriver(err){
     if(err) { next(err) }
     // This does not stop the flow of the code after this, so it is not implemented anywhere yet.
 }
-

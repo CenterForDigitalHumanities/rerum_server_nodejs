@@ -37,6 +37,14 @@ server.on('error', onError)
 server.on('listening', onListening)
 
 /**
+ * Control the keep alive header
+ */ 
+// Ensure all inactive connections are terminated by the ALB, by setting this a few seconds higher than the ALB idle timeout
+server.keepAliveTimeout = 8 * 1000 //8 seconds
+// Ensure the headersTimeout is set higher than the keepAliveTimeout due to this nodejs regression bug: https://github.com/nodejs/node/issues/27363
+server.headersTimeout = 8.5 * 1000 //8 seconds
+
+/**
  * Normalize a port into a number, string, or false.
  */
 

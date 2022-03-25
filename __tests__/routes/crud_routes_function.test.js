@@ -18,6 +18,20 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["cache-control"]).toBeTruthy()
+            expect(response.headers["last-modified"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.headers["location"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
             done()
@@ -34,6 +48,18 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             done()
         })
@@ -49,6 +75,18 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             done()
         })
@@ -68,26 +106,19 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(201)
         .then(response => {
-            expect(response.body["@id"]).toBeTruthy()
-            done()
-        })
-        .catch(err => done(err))
-      }
-    )
-
-
-    it('End to end /v1/api/create. Do a properly formatted /create call by POSTing a JSON body.  '+
-    'The Authorization header is set, it is an access token encoded with the bot.  '+
-    'It should respond with a 201 with enough JSON in the response body to discern the "@id".  '+
-    'The Location header in the response should be present and populated and not equal the originating entity "@id".',
-    function(done) {
-      request
-        .post('/v1/api/create')
-        .send({"RERUM Create Test" : new Date(Date.now()).toISOString().replace("Z", "")})
-        .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
-        .expect(201)
-        .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["location"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
             done()
         })
@@ -107,6 +138,18 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(response.headers["location"]).toBeTruthy()
             expect(response.headers["location"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body["@id"]).toBeTruthy()
@@ -118,7 +161,7 @@ describe(
 
     it('/patch -- not written.  Expect a 405 for now.', function(done) {
       request
-        .get('/v1/api/set')
+        .get('/v1/api/patch')
         .expect(405, done)
         // .patch('/v1/api/patch')
         // .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test":new Date(Date.now()).toISOString().replace("Z", "")})
@@ -175,6 +218,18 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             expect(response.body.length).toBeTruthy()
             done()

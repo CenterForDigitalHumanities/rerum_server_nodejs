@@ -13,7 +13,7 @@ it('Mocks /v1/id/abcde request.  Should return a JSON object with "_id" abcde.  
     .get('/v1/id/abcde')
     .expect(200)
     .then(response => {
-      expect(response.header["location"]).toBeTruthy()
+      expect(response.headers["location"]).toBeTruthy()
       expect(response.body["@id"]).toBeTruthy()
       done()
     })
