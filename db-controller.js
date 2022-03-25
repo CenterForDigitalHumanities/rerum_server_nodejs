@@ -35,6 +35,7 @@ exports.create = async function (req, res, next) {
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
+    let err = {message:``}
     newObject["_id"] = id
     newObject["@id"] = process.env.RERUM_ID_PREFIX + id
     console.log("CREATE")
@@ -45,13 +46,13 @@ exports.create = async function (req, res, next) {
         res.status(201)
         res.json(newObject)
     }
-    catch (err) {
+    catch (error) {
         //WriteError or WriteConcernError
-        err = createDatabaseError({
+        err = {
             message: "mongodb had trouble inserting this document.",
             status: 500
-        }, err)
-        next(err)
+        }
+        next(createDatabaseError(err, error))
     }
 }
 
@@ -75,7 +76,11 @@ exports.delete = async function (req, res, next) {
     try {
         originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        err = {
+            message: "mongodb had trouble deleting this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
         return
     }
     if (null !== originalObject) {
@@ -117,7 +122,11 @@ exports.delete = async function (req, res, next) {
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": originalObject["_id"] }, deletedObject)
             } catch (error) {
-                next(error)
+                err = {
+                    message: "mongodb had trouble deleting this document.",
+                    status: 500
+                }
+                next(createDatabaseError(err, error))
                 return
             }
             if (result.modifiedCount === 0) {
@@ -162,7 +171,11 @@ exports.putUpdate = async function (req, res, next) {
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         } catch (error) {
-            next(error)
+            err = {
+                message: "mongodb had trouble updating this document.",
+                status: 500
+            }
+            next(createDatabaseError(err, error))
             return
         }
         if (null === originalObject) {
@@ -284,7 +297,11 @@ exports.overwrite = async function (req, res, next) {
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         } catch (error) {
-            next(error)
+            err = {
+                message: "mongodb had trouble overwriting this document.",
+                status: 500
+            }
+            next(createDatabaseError(err, error))
             return
         }
         if (null === originalObject) {
@@ -318,7 +335,11 @@ exports.overwrite = async function (req, res, next) {
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, newObjectReceived)
             } catch (error) {
-                next(error)
+                err = {
+                    message: "mongodb had trouble overwriting this document.",
+                    status: 500
+                }
+                next(createDatabaseError(err, error))
             }
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
@@ -361,7 +382,11 @@ exports.query = async function (req, res, next) {
             res.set(utils.configureLDHeadersFor(matches))
             res.json(matches)
         } catch (error) {
-            next(createDatabaseError({status:500, message: `Database query failed.` }, error))
+            err = {
+                message: "mongodb had trouble querying this document.",
+                status: 500
+            }
+            next(createDatabaseError(err, error))
         }
     }
 }
@@ -374,6 +399,7 @@ exports.query = async function (req, res, next) {
 exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
+    let err = {message:``}
     try {
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (match) {
@@ -387,13 +413,17 @@ exports.id = async function (req, res, next) {
             res.json(match)
             return
         }
-        let err = {
+        err = {
             message: `No RERUM object with id '${id}'`,
             status: 404
         }
         next(createDatabaseError(err))
     } catch (error) {
-        next(createDatabaseError(error))
+        err = {
+            message: "mongodb had trouble querying this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
     }
 }
 
@@ -405,6 +435,7 @@ exports.id = async function (req, res, next) {
 exports.idHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
+    let err = {message:``}
     try {
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (match) {
@@ -413,13 +444,17 @@ exports.idHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = {
+        err = {
             message: `No RERUM object with id '${id}'`,
             status: 404
         }
         next(createDatabaseError(err))
     } catch (error) {
-        next(createDatabaseError(error))
+        err = {
+            message: "mongodb had trouble querying this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
     }
 }
 
@@ -428,6 +463,7 @@ exports.idHeadRequest = async function (req, res, next) {
  * No objects are returned, but the Content-Length header is set. 
  */
 exports.queryHeadRequest = async function (req, res, next) {
+    let err = {message: ``}
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
     try {
@@ -438,13 +474,17 @@ exports.queryHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = {
+        err = {
             message: `There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
         next(createDatabaseError(err))
     } catch (error) {
-        next(error)
+        err = {
+            message: "mongodb had trouble querying this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
     }
 }
 
@@ -457,15 +497,20 @@ exports.queryHeadRequest = async function (req, res, next) {
 exports.since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
+    let err = {message:``}
     let obj
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        err = {
+            message: "mongodb had trouble finding this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
         return
     }
     if (null === obj) {
-        let err = {
+        err = {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
@@ -493,11 +538,16 @@ exports.since = async function (req, res, next) {
 exports.history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
+    let err = {message:``}
     let obj
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        err = {
+            message: "mongodb had trouble finding this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
         return
     }
     if (null === obj) {
@@ -525,15 +575,20 @@ exports.history = async function (req, res, next) {
 exports.sinceHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
+    let err = {messages:``}
     let obj
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        err = {
+            message: "mongodb had trouble finding this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
         return
     }
     if (null === obj) {
-        let err = {
+        err = {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
@@ -563,15 +618,20 @@ exports.sinceHeadRequest = async function (req, res, next) {
 exports.historyHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
+    let err = {messages:``}
     let obj
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        err = {
+            message: "mongodb had trouble finding this document.",
+            status: 500
+        }
+        next(createDatabaseError(err, error))
         return
     }
     if (null === obj) {
-        let err = {
+        err = {
             message: "Cannot produce a history. There is no object in the database with this id. Check the URL.",
             status: 404
         }
