@@ -341,12 +341,20 @@ exports.overwrite = async function (req, res, next) {
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    try {
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-        res.set(utils.configureLDHeadersFor(matches))
-        res.json(matches)
-    } catch (error) {
-        next(createDatabaseError({ message: `Database query failed.` }, error))
+    if(props === "" || Object.keys(props).length === 0){
+        //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
+        res.message = "Detected empty JSON object.  You must provide at least one property in the /query request body JSON."
+        res.status(400)
+        next(createDatabaseError(res))
+    }
+    else{
+        try {
+            let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+            res.set(utils.configureLDHeadersFor(matches))
+            res.json(matches)
+        } catch (error) {
+            next(createDatabaseError({ message: `Database query failed.` }, error))
+        }
     }
 }
 
@@ -371,9 +379,10 @@ exports.id = async function (req, res, next) {
             res.json(match)
             return
         }
-        let err = Error("There is no object in the database with this id. Check the URL.")
-        err.code = 404
-        throw err
+        console.log("404 in /id")
+        res.message = `No RERUM object with id '${id}'`
+        res.status = 404
+        next(createDatabaseError(res))
     } catch (error) {
         next(createDatabaseError(error))
     }
@@ -395,9 +404,9 @@ exports.idHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = Error("There is no object in the database with this id. Check the URL.")
-        err.code = 404
-        throw err
+        res.message = `No RERUM object with id '${id}'`
+        res.status = 404
+        next(createDatabaseError(res))
     } catch (error) {
         next(createDatabaseError(error))
     }
