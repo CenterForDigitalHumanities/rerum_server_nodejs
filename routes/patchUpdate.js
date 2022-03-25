@@ -6,17 +6,8 @@ const rest = require('../rest.js')
 const auth = require('../auth')
 
 router.route('/')
-.post(auth.checkJwt, (req, res) => {
-    if (rest.checkPatchOverrideSupport()) {
-        controller.patchUpdate(req, resp)
-    }
-    else {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
-        res.status(405)
-        next()
-    }
-})  
-  .all((req, res) => {
+    .patch(auth.checkJwt, controller.patchUpdate)  
+    .all((req, res) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
         res.status(405)
         next()
