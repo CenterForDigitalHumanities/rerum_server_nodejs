@@ -39,6 +39,26 @@ describe(
         .catch(err => done(err))
       }
     )
+
+    it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  '+
+      'It should respond 404, this object does not exist.',
+    function(done) {
+      request
+        .get('/v1/id/potato')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
+    it('End to end /v1/id/. Forget the _id in the URL pattern.  '+
+      'It should respond 404, this page/object does not exist.',
+    function(done) {
+      request
+        .get('/v1/id/')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
     
     it('End to end /v1/since/{_id}. Do a properly formatted /since call by GETting for an existing _id. '+
       'It should respond 200 with a body that is of type Array.',
