@@ -10,8 +10,7 @@ describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
 
-    it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  '+
-      'It should respond 404, this object does not exist.',
+    it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id. It should respond 404, this object does not exist.',
     function(done) {
       request
         .get('/v1/id/potato')
