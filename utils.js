@@ -180,6 +180,7 @@ exports.isContainerType = function(obj){
     let typestring = obj["@type"] ?? obj.type ?? ""
     const knownContainerTypes = [
         "ItemList",
+        "AnnotationPage",
         "AnnotationList",
         "AnnotationCollection",
         "Sequence",
