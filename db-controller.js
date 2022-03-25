@@ -230,9 +230,11 @@ exports.putUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUpdate = async function (req, res, next) {
-    res.message = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res)) // holding a place to call errors
+    let err = {
+        message: "You will get a 200 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createDatabaseError(err))
 }
 
 /**
@@ -243,9 +245,11 @@ exports.patchUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchSet = async function (req, res, next) {
-    res.message = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res)) // holding a place to call errors
+    let err = {
+        message: "You will get a 200 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createDatabaseError(err))
 }
 
 /**
@@ -256,9 +260,11 @@ exports.patchSet = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUnset = async function (req, res, next) {
-    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res)) // holding a place to call errors
+    let err = {
+        message: "You will get a 200 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createDatabaseError(err))
 }
 
 /**
@@ -343,9 +349,11 @@ exports.query = async function (req, res, next) {
     let props = req.body
     if(props === "" || Object.keys(props).length === 0){
         //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
-        res.message = "Detected empty JSON object.  You must provide at least one property in the /query request body JSON."
-        res.status(400)
-        next(createDatabaseError(res))
+        let err = {
+            message: "Detected empty JSON object.  You must provide at least one property in the /query request body JSON.",
+            status: 400
+        }
+        next(createDatabaseError(err))
     }
     else{
         try {
@@ -379,9 +387,11 @@ exports.id = async function (req, res, next) {
             res.json(match)
             return
         }
-        res.message = `No RERUM object with id '${id}'`
-        res.status(404)
-        next(createDatabaseError(res))
+        let err = {
+            message: `No RERUM object with id '${id}'`,
+            status: 404
+        }
+        next(createDatabaseError(err))
     } catch (error) {
         next(createDatabaseError(error))
     }
@@ -403,9 +413,11 @@ exports.idHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        res.message = `No RERUM object with id '${id}'`
-        res.status(404)
-        next(createDatabaseError(res))
+        let err = {
+            message: `No RERUM object with id '${id}'`,
+            status: 404
+        }
+        next(createDatabaseError(err))
     } catch (error) {
         next(createDatabaseError(error))
     }
@@ -716,9 +728,11 @@ async function alterHistoryNext(objToUpdate, newNextID) {
  * @param externalObj the external object as it existed in the PUT request to be saved.
 */
 async function updateExternalObject(received) {
-    res.message = "You will get a 201 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res))
+    let err = {
+        message: "You will get a 201 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createDatabaseError(err))
 }
 
 /**
@@ -900,7 +914,8 @@ async function newTreePrime(obj) {
  */
 function createDatabaseError(update, originalError) {
     let err = Error(update.message, { cause: originalError })
-    err.status = update.status
+    err.statusMessage = update.message
+    err.statusCode = update.status
     return err
 }
 
