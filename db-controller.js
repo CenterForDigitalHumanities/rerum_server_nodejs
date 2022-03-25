@@ -502,7 +502,7 @@ exports.history = async function (req, res, next) {
     }
     if (null === obj) {
         let err = {
-            message: message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
+            message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
         next(createDatabaseError(err))
@@ -534,7 +534,7 @@ exports.sinceHeadRequest = async function (req, res, next) {
     }
     if (null === obj) {
         let err = {
-            message: message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
+            message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
         next(createDatabaseError(err))
