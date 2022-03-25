@@ -379,9 +379,8 @@ exports.id = async function (req, res, next) {
             res.json(match)
             return
         }
-        console.log("404 in /id")
         res.message = `No RERUM object with id '${id}'`
-        res.status = 404
+        res.status(404)
         next(createDatabaseError(res))
     } catch (error) {
         next(createDatabaseError(error))
@@ -405,7 +404,7 @@ exports.idHeadRequest = async function (req, res, next) {
             return
         }
         res.message = `No RERUM object with id '${id}'`
-        res.status = 404
+        res.status(404)
         next(createDatabaseError(res))
     } catch (error) {
         next(createDatabaseError(error))
