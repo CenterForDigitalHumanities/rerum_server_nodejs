@@ -258,11 +258,31 @@ describe(
         .expect(405, done)
     })
 
-    //Note that /api/delete/ is a 404.
-    it('/delete -- not written.  Expect a 405 for now.', function(done) {
+    it('End to end /v1/api/delete. Do a properly formatted /delete call by DELETEing an existing object.  '+
+    'It will need to create an object first, then delete that object, and so must complete a /create call first.  '+
+    'It will check the response to /create is 201 and the response to /delete is 204.', function(done) {
+      /**
+       * We cannot delete the same object over and over again, so we need to create an object to delete. 
+       * A mock delete function would be nice, or a form of controller.delete that took an object and did the delete logic to it.
+       */ 
       request
-        .get('/v1/api/delete/potato')
-        .expect(405, done)
+        .post("/v1/api/create/")
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .send({"testing_delete":"Delete Me"})
+        .expect(201)
+        .then(response => {
+          const objToDelete = response.body
+          request
+          .delete('/v1/api/delete/'+objToDelete._id)
+          .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+          .expect(204)
+          .then(r => {
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            done()
+          })
+        })
     })
 
     it('End to end /v1/api/query. Do a properly formatted /query call by POSTing a JSON query object.  '+

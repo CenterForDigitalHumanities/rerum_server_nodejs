@@ -103,7 +103,6 @@ exports.delete = async function (req, res, next) {
                 status: 401
             })
         }
-
         if (err.status) {
             next(createDatabaseError(err))
             return
@@ -114,6 +113,7 @@ exports.delete = async function (req, res, next) {
         deletedFlag["deletor"] = agentRequestingDelete
         deletedFlag["time"] = new Date(Date.now()).toISOString().replace("Z", "")
         let deletedObject = {
+            "_id" : id,
             "@id": preserveID,
             "__deleted": deletedFlag
         }
