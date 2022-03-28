@@ -75,10 +75,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -105,10 +101,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -132,10 +124,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -164,10 +152,6 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(201)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -197,10 +181,6 @@ describe(
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -342,10 +322,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
