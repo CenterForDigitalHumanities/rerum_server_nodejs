@@ -378,11 +378,9 @@ exports.id = async function (req, res, next) {
             res.json(match)
             return
         }
-        let err = {
-            message: `No RERUM object with id '${id}'`,
-            status: 404
-        }
-        next(createExpressError(err))
+        let err = new Error(`No RERUM object with id '${id}'`)
+        err.status = 404
+        throw err
     } catch (error) {
         next(createExpressError(error))
     }
