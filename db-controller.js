@@ -45,13 +45,9 @@ exports.create = async function (req, res, next) {
         res.status(201)
         res.json(newObject)
     }
-    catch (err) {
+    catch (error) {
         //WriteError or WriteConcernError
-        err = createDatabaseError({
-            message: "mongodb had trouble inserting this document.",
-            status: 500
-        }, err)
-        next(err)
+        next(createExpressError(error))
     }
 }
 
@@ -75,7 +71,7 @@ exports.delete = async function (req, res, next) {
     try {
         originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        next(createExpressError(error))
         return
     }
     if (null !== originalObject) {
@@ -100,7 +96,7 @@ exports.delete = async function (req, res, next) {
         }
 
         if (err.status) {
-            next(createDatabaseError(err))
+            next(createExpressError(err))
             return
         }
         let preserveID = safe_received["@id"]
@@ -117,14 +113,14 @@ exports.delete = async function (req, res, next) {
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": originalObject["_id"] }, deletedObject)
             } catch (error) {
-                next(error)
+                next(createExpressError(error))
                 return
             }
             if (result.modifiedCount === 0) {
                 //result didn't error out, but it also didn't succeed...
                 err.message = "The original object was not replaced with the deleted object in the database."
                 err.status = 500
-                next(createDatabaseError(err))
+                next(createExpressError(err))
                 return
             }
             //204 to say it is deleted and there is nothing in the body
@@ -135,12 +131,12 @@ exports.delete = async function (req, res, next) {
         //Not sure we can get here, as healHistoryTree might throw and error.
         err.message = "The history tree for the object being deleted could not be mended."
         err.status = 500
-        next(createDatabaseError(err))
+        next(createExpressError(err))
         return
     }
     err.message = "No object with this id could be found in RERUM.  Cannot delete."
     err.status = 404
-    next(createDatabaseError(err))
+    next(createExpressError(err))
 }
 
 
@@ -162,7 +158,7 @@ exports.putUpdate = async function (req, res, next) {
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         } catch (error) {
-            next(error)
+            next(createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -203,11 +199,7 @@ exports.putUpdate = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                err = Object.assign(err, {
-                    message: `Database had trouble inserting this document. ${err.message}`,
-                    status: 500
-                })
-                next(createDatabaseError(err, error))
+                next(createExpressError(error))
                 return
             }
         }
@@ -219,7 +211,7 @@ exports.putUpdate = async function (req, res, next) {
             status: 400
         })
     }
-    next(createDatabaseError(err))
+    next(createExpressError(err))
 }
 
 /**
@@ -230,9 +222,11 @@ exports.putUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUpdate = async function (req, res, next) {
-    res.message = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res)) // holding a place to call errors
+    let err = {
+        message: "You will get a 200 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createExpressError(err))
 }
 
 /**
@@ -243,9 +237,11 @@ exports.patchUpdate = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchSet = async function (req, res, next) {
-    res.message = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res)) // holding a place to call errors
+    let err = {
+        message: "You will get a 200 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createExpressError(err))
 }
 
 /**
@@ -256,9 +252,11 @@ exports.patchSet = async function (req, res, next) {
  * Respond RESTfully
  * */
 exports.patchUnset = async function (req, res, next) {
-    res.statusMessage = "You will get a 200 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res)) // holding a place to call errors
+    let err = {
+        message: "You will get a 200 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createExpressError(err))
 }
 
 /**
@@ -278,7 +276,7 @@ exports.overwrite = async function (req, res, next) {
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         } catch (error) {
-            next(error)
+            next(createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -306,13 +304,13 @@ exports.overwrite = async function (req, res, next) {
             })
         }
         else {
-            newObjectReceived["__rerum"] = originalObject["__rerum"]
-            newObjectReceived["__rerum"]["isOverwritten"] = new Date(Date.now()).toISOString().replace("Z", "")
+            newObjectReceived.__rerum = originalObject.__rerum
+            newObjectReceived.__rerum.isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
             let result
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, newObjectReceived)
             } catch (error) {
-                next(error)
+                next(createExpressError(error))
             }
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
@@ -330,7 +328,7 @@ exports.overwrite = async function (req, res, next) {
             status: 400
         })
     }
-    next(createDatabaseError(err))
+    next(createExpressError(err))
 }
 
 /**
@@ -341,12 +339,21 @@ exports.overwrite = async function (req, res, next) {
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
+    if (Object.keys(props).length === 0) {
+        //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
+        let err = {
+            message: "Detected empty JSON object.  You must provide at least one property in the /query request body JSON.",
+            status: 400
+        }
+        next(createExpressError(err))
+        return
+    }
     try {
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
         res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
-        next(createDatabaseError({ message: `Database query failed.` }, error))
+        next(createExpressError(error))
     }
 }
 
@@ -371,11 +378,11 @@ exports.id = async function (req, res, next) {
             res.json(match)
             return
         }
-        let err = Error("There is no object in the database with this id. Check the URL.")
-        err.code = 404
+        let err = new Error(`No RERUM object with id '${id}'`)
+        err.status = 404
         throw err
     } catch (error) {
-        next(createDatabaseError(error))
+        next(createExpressError(error))
     }
 }
 
@@ -395,11 +402,11 @@ exports.idHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = Error("There is no object in the database with this id. Check the URL.")
-        err.code = 404
+        let err = new Error(`No RERUM object with id '${id}'`)
+        err.status = 404
         throw err
     } catch (error) {
-        next(createDatabaseError(error))
+        next(createExpressError(error))
     }
 }
 
@@ -418,11 +425,11 @@ exports.queryHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = Error("There is no object in the database with this id. Check the URL.")
-        err.code = 404
+        let err = new Error(`There is no object in the database with id '${id}'.  Check the URL.`)
+        err.status = 404
         throw err
     } catch (error) {
-        next(error)
+        next(createExpressError(error))
     }
 }
 
@@ -439,18 +446,20 @@ exports.since = async function (req, res, next) {
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        next(createExpressError(error))
         return
     }
     if (null === obj) {
-        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
-        err.status = 404
-        next(err)
+        let err = {
+            message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
+            status: 404
+        }
+        next(createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
-        .catch(err => {
-            console.error(err)
+        .catch(error => {
+            console.error(error)
             return []
         })
     let descendants = getAllDescendants(all, obj, [])
@@ -473,18 +482,20 @@ exports.history = async function (req, res, next) {
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        next(createExpressError(error))
         return
     }
     if (null === obj) {
-        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
-        err.status = 404
-        next(err)
+        let err = {
+            message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
+            status: 404
+        }
+        next(createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
-        .catch(err => {
-            console.error(err)
+        .catch(error => {
+            console.error(error)
             return []
         })
     let ancestors = getAllAncestors(all, obj, [])
@@ -503,18 +514,20 @@ exports.sinceHeadRequest = async function (req, res, next) {
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        next(createExpressError(error))
         return
     }
     if (null === obj) {
-        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
-        err.status = 404
-        next(err)
+        let err = {
+            message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
+            status: 404
+        }
+        next(createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
-        .catch(err => {
-            console.error(err)
+        .catch(error => {
+            console.error(error)
             return []
         })
     let descendants = getAllDescendants(all, obj, [])
@@ -539,18 +552,20 @@ exports.historyHeadRequest = async function (req, res, next) {
     try {
         obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
     } catch (error) {
-        next(error)
+        next(createExpressError(error))
         return
     }
     if (null === obj) {
-        let err = Error("Cannot produce a history. There is no object in the database with this id. Check the URL.")
-        err.status = 404
-        next(err)
+        let err = {
+            message: "Cannot produce a history. There is no object in the database with this id. Check the URL.",
+            status: 404
+        }
+        next(createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
-        .catch(err => {
-            console.error(err)
+        .catch(error => {
+            console.error(error)
             return []
         })
     let ancestors = getAllAncestors(all, obj, [])
@@ -708,9 +723,11 @@ async function alterHistoryNext(objToUpdate, newNextID) {
  * @param externalObj the external object as it existed in the PUT request to be saved.
 */
 async function updateExternalObject(received) {
-    res.message = "You will get a 201 upon success.  This is not supported yet.  Nothing happened."
-    res.status(501)
-    next(createDatabaseError(res))
+    let err = {
+        message: "You will get a 201 upon success.  This is not supported yet.  Nothing happened.",
+        status: 501
+    }
+    next(createExpressError(err))
 }
 
 /**
@@ -890,13 +907,15 @@ async function newTreePrime(obj) {
  * @param {Error} originalError `source` for tracing this Error
  * @returns Error for use in Express.next(err)
  */
-function createDatabaseError(update, originalError) {
-    let err = Error(update.message, { cause: originalError })
-    err.status = update.status
+function createExpressError(update, originalError) {
+    let err = Error("detected error", { cause: originalError })
+    update.statusMessage = update.message
+    update.statusCode = update.status
+    Object.assign(err,update)
     return err
 }
 
-function expressCallbackForMongoDriver(err){
-    if(err) { next(err) }
+function expressCallbackForMongoDriver(err) {
+    if (err) { next(err) }
     // This does not stop the flow of the code after this, so it is not implemented anywhere yet.
 }

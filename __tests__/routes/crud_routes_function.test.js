@@ -10,6 +10,63 @@ describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.', 
   function() {
 
+    it('End to end /v1/id/{_id}. It should respond 404, this object does not exist.',
+    function(done) {
+      request
+        .get('/v1/id/potato')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
+    it('End to end /v1/since/{_id}. It should respond 404, this object does not exist.',
+    function(done) {
+      request
+        .get('/v1/since/potato')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
+    it('End to end /v1/history/{_id}. It should respond 404, this object does not exist.',
+    function(done) {
+      request
+        .get('/v1/history/potato')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
+    it('End to end /v1/id/. Forget the _id in the URL pattern.  '+
+      'It should respond 404, this page/object does not exist.',
+    function(done) {
+      request
+        .get('/v1/id/')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
+    it('End to end /v1/since/. Forget the _id in the URL pattern.  '+
+      'It should respond 404, this page/object does not exist.',
+    function(done) {
+      request
+        .get('/v1/since/')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
+    it('End to end /v1/history/. Forget the _id in the URL pattern.  '+
+      'It should respond 404, this page/object does not exist.',
+    function(done) {
+      request
+        .get('/v1/history/')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(404, done)
+      }
+    )
+
     it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  '+
       'It should respond 200 with a body that is a JSON object with an "@id" property.',
     function(done) {
@@ -37,26 +94,6 @@ describe(
             done()
         })
         .catch(err => done(err))
-      }
-    )
-
-    it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  '+
-      'It should respond 404, this object does not exist.',
-    function(done) {
-      request
-        .get('/v1/id/potato')
-        .set('Content-Type', 'application/json; charset=utf-8')
-        .expect(404, done)
-      }
-    )
-
-    it('End to end /v1/id/. Forget the _id in the URL pattern.  '+
-      'It should respond 404, this page/object does not exist.',
-    function(done) {
-      request
-        .get('/v1/id/')
-        .set('Content-Type', 'application/json; charset=utf-8')
-        .expect(404, done)
       }
     )
     
