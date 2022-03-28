@@ -486,7 +486,7 @@ exports.patchUnset = async function (req, res, next) {
             console.log("PATCH UNSET")
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(patchedObject)
-                if (alterHistoryNext(originalObject, objectReceived["@id"])) {
+                if (alterHistoryNext(originalObject, patchedObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(patchedObject))
                     res.location(patchedObject["@id"])
