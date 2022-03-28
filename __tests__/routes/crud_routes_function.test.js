@@ -239,7 +239,7 @@ describe(
             expect(response.headers["access-control-expose-headers"]).toBe("*")
             expect(response.headers["allow"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
-            expect(typeof response.body["test_object"]).toBe("string")
+            expect(typeof response.body["test_obj"]).toBe("string")
             expect(response.body["@id"]).toBeTruthy()
             expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             done()
@@ -257,7 +257,7 @@ describe(
         .patch('/v1/api/set')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_set":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer RERUM")
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -276,7 +276,7 @@ describe(
         .catch(err => done(err))
     })
 
-    it('End to end /v1/api/set. Do a properly formatted /set call by PATCHing an existing entity.  '+
+    it('End to end /v1/api/unset. Do a properly formatted /unset call by PATCHing an existing entity.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+
     'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the absence of the unset property.  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
@@ -285,7 +285,7 @@ describe(
         .patch('/v1/api/unset')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":null})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer RERUM")
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
