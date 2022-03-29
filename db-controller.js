@@ -11,7 +11,7 @@
  */
 
 const { MongoClient } = require('mongodb')
-var ObjectID = require('mongodb').ObjectID
+var ObjectID = require('mongodb').ObjectId
 const utils = require('./utils')
 let client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
 client.connect()
