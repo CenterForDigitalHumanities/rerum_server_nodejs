@@ -75,10 +75,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -105,10 +101,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -132,10 +124,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -156,17 +144,14 @@ describe(
     'It should respond with a 201 with enough JSON in the response body to discern the "@id".  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id".',
     function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
         .post('/v1/api/create')
-        .send({"RERUM Create Test" : new Date(Date.now()).toISOString().replace("Z", "")})
+        .send({"RERUM Create Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(201)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -188,17 +173,14 @@ describe(
     'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
     function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
         .put('/v1/api/update')
-        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":new Date(Date.now()).toISOString().replace("Z", "")})
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -216,53 +198,118 @@ describe(
         .catch(err => done(err))
     })
 
-    it('/patch -- not written.  Expect a 405 for now.', function(done) {
-      request
-        .get('/v1/api/patch')
-        .expect(405, done)
-        // .patch('/v1/api/patch')
-        // .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test":new Date(Date.now()).toISOString().replace("Z", "")})
-        // .set('Content-Type', 'application/json; charset=utf-8')
-        // .set('Authorization', "Bearer RERUM")
-        // .expect(200)
-        // .then(response => {
-        //     expect(response.body["@id"]).toBeTruthy()
-        //     expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
-        //     done()
-        // })
-        // .catch(err => done(err))
-    })
-
-    it('/set -- not written.  Expect a 405 for now', function(done) {
-      //Note unique will probably have a '.'
+    it('End to end /v1/api/patch. Do a properly formatted /patch call by PATCHing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
-        .get('/v1/api/set')
-        .expect(405, done)
-        // .patch('/v1/api/set')
-        // .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", unique:true})
-        // .set('Content-Type', 'application/json; charset=utf-8')
-        // .set('Authorization', "Bearer RERUM")
-        // .expect(200)
-        // .then(response => {
-        //     expect(response.body["@id"]).toBeTruthy()
-        //     expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
-        //     done()
-        // })
-        // .catch(err => done(err))
+        .patch('/v1/api/patch')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .expect(200)
+        .then(response => {
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
+            expect(response.body["@id"]).toBeTruthy()
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
+            expect(response.body["test_obj"]).toBe(unique)
+            done()
+        })
+        .catch(err => done(err))
     })
 
-    it('/unset -- not written.  Expect a 405 for now.', function(done) {
+    it('End to end /v1/api/set. Do a properly formatted /set call by PATCHing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the property that was set.  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
-        .get('/v1/api/unset')
-        .expect(405, done)
+        .patch('/v1/api/set')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_set":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .expect(200)
+        .then(response => {
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
+            expect(response.body["@id"]).toBeTruthy()
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
+            expect(response.body["test_set"]).toBe(unique)
+            done()
+        })
+        .catch(err => done(err))
     })
 
-    //Note that /api/delete/ is a 404.
-    it('/delete -- not written.  Expect a 405 for now.', function(done) {
+    it('End to end /v1/api/unset. Do a properly formatted /unset call by PATCHing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the absence of the unset property.  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
       request
-        .get('/v1/api/delete/potato')
-        .expect(405, done)
+        .patch('/v1/api/unset')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":null})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .expect(200)
+        .then(response => {
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
+            expect(response.body["@id"]).toBeTruthy()
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
+            expect(response.body.hasOwnProperty("test_obj")).toBe(false)
+            done()
+        })
+    })
+
+    it('End to end /v1/api/delete. Do a properly formatted /delete call by DELETEing an existing object.  '+
+    'It will need to create an object first, then delete that object, and so must complete a /create call first.  '+
+    'It will check the response to /create is 201 and the response to /delete is 204.', function(done) {
+      request
+        .post("/v1/api/create/")
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .send({"testing_delete":"Delete Me"})
+        .expect(201)
+        .then(response => {
+          /**
+           * We cannot delete the same object over and over again, so we need to create an object to delete. 
+           * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with delete.
+           * TODO optimize
+           */ 
+          const objToDelete = response.body
+          request
+          .delete('/v1/api/delete/'+objToDelete._id)
+          .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+          .expect(204)
+          .then(r => {
+            //To be really strict, we could get the object and make sure it has __deleted.
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            done()
+          })
+        })
     })
 
     it('End to end /v1/api/query. Do a properly formatted /query call by POSTing a JSON query object.  '+
@@ -275,10 +322,6 @@ describe(
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
-            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
-            //expect(response.headers["connection"]).toBe("Keep-Alive)
-            //expect(response.headers["keep-alive"]).toBeTruthy()
-            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
