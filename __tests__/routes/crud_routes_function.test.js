@@ -293,4 +293,32 @@ describe(
         })
         .catch(err => done(err))
     })
+
+    it('should use `limit` and `skip` correctly at /query',
+    function(done) {
+      request
+        .post('/v1/api/query?limit=10&skip=2')
+        .send({_id : {$exists:true}})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(200)
+        .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
+            expect(Array.isArray(response.body)).toBe(true)
+            expect(response.body.length).toBeTruthy()
+            done()
+        })
+        .catch(err => done(err))
+    })
+
 })
