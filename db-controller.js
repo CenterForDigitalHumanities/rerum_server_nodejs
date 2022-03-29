@@ -47,7 +47,18 @@ exports.create = async function (req, res, next) {
         res.json(newObject)
     }
     catch (error) {
-        //WriteError or WriteConcernError
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
+        if(error.code){
+            if(error.code === 11000){
+                //Duplicate _id key error, specific to SLUG support.  This is a Conflict or a Bad Request.
+                let err = {
+                    "status":409,
+                    "message":`The id provided in the Slug header ${id} already exists.  Please use a different Slug.`
+                }
+                next(createExpressError(err))
+                return
+            }
+        }
         next(createExpressError(error))
     }
 }
