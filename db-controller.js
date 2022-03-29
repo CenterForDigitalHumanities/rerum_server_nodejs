@@ -38,7 +38,6 @@ exports.create = async function (req, res, next) {
     let rerumProp = utils.configureRerumOptions(generatorAgent, provided, false, false)
     let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, provided, rerumProp, {"_id":id})
     console.log("CREATE")
-    console.log(newObject)
     try {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
