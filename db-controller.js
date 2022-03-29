@@ -31,13 +31,14 @@ exports.index = function (req, res, next) {
  * */
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    const id = new ObjectID().toHexString()
-    //A token came in with this request.  We need the agent from it.  
+    const id = req.get("Slug") ?? new ObjectID().toHexString()
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
-    let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
-    newObject["_id"] = id
-    newObject["@id"] = process.env.RERUM_ID_PREFIX + id
+    let context = req.body["@context"]?{"@context":req.body["@context"]}:{}
+    let provided = JSON.parse(JSON.stringify(req.body))
+    let rerumProp = utils.configureRerumOptions(generatorAgent, provided, false, false)
+    let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, provided, rerumProp, {"_id":id})
     console.log("CREATE")
+    console.log(newObject)
     try {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
