@@ -92,6 +92,20 @@ describe(
         .catch(err => done(err))
       }
     )
+
+    it('End to end HEAD request to /v1/id/{_id}.'+
+      'It should respond 200 and the Content-Length response header should be set.',
+    function(done) {
+      request
+        .head('/v1/id/622f7f0a0249b8ac889b2e2c')
+        .expect(200)
+        .then(response => {
+            expect(response.headers["content-length"]).toBeTruthy()
+            done()
+        })
+        .catch(err => done(err))
+      }
+    )
     
     it('End to end /v1/since/{_id}. Do a properly formatted /since call by GETting for an existing _id. '+
       'It should respond 200 with a body that is of type Array.',
@@ -116,6 +130,22 @@ describe(
       }
     )
 
+    it('End to end HEAD request to /v1/since/{_id}.'+
+      'It should respond 200 and the Content-Length response header should be set.',
+    function(done) {
+      request
+        .head('/v1/since/622f7f0a0249b8ac889b2e2c')
+        .expect(200)
+        .then(response => {
+          expect(response.headers["access-control-allow-origin"]).toBe("*")
+          expect(response.headers["access-control-expose-headers"]).toBe("*")
+          expect(response.headers["content-length"]).toBeTruthy()
+          done()
+        })
+        .catch(err => done(err))
+      }
+    )
+
     it('End to end /v1/history/{_id}. Do a properly formatted /history call by GETting for an existing _id.  '+
       'It should respond 200 with a body that is of type Array.',
     function(done) {
@@ -134,6 +164,22 @@ describe(
             expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             done()
+        })
+        .catch(err => done(err))
+      }
+    )
+
+    it('End to end HEAD request to /v1/history/{_id}.'+
+      'It should respond 200 and the Content-Length response header should be set.',
+    function(done) {
+      request
+        .head('/v1/history/622f7f0a0249b8ac889b2e2c')
+        .expect(200)
+        .then(response => {
+          expect(response.headers["access-control-allow-origin"]).toBe("*")
+          expect(response.headers["access-control-expose-headers"]).toBe("*")
+          expect(response.headers["content-length"]).toBeTruthy()
+          done()
         })
         .catch(err => done(err))
       }
@@ -336,4 +382,22 @@ describe(
         })
         .catch(err => done(err))
     })
+
+    /*
+    * Under consideration, but not implemented in the API.  HEAD requests can't have bodies.
+    it('End to end HEAD request to /v1/api/query.  '+
+    'It should respond 200 and the Content-Length response header should be set.',
+    function(done) {
+      request
+        .head('/v1/api/query')
+        .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .expect(200)
+        .then(response => {
+            expect(response.headers["content-length"]).toBeTruthy()
+            done()
+        })
+        .catch(err => done(err))
+    })
+    */
 })
