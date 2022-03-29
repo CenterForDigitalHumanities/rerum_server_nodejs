@@ -31,7 +31,7 @@ exports.index = function (req, res, next) {
  * */
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    const id = new ObjectId().toHexString()
+    const id = new ObjectID().toHexString()
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
