@@ -31,7 +31,7 @@ exports.index = function (req, res, next) {
  * */
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    const id = new ObjectID().toHexString()
+    const id = new ObjectId().toHexString()
     //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     let newObject = utils.configureRerumOptions(generatorAgent, req.body, false, false)
@@ -261,7 +261,12 @@ exports.patchUpdate = async function (req, res, next) {
             //A patch only alters existing keys.  Remove non-existent keys from the object received in the request body.
             for(let k in objectReceived){
                 if(originalObject.hasOwnProperty(k)){
-                    patchedObject[k] = objectReceived[k]
+                    if(objectReceived[k] === null){
+                        delete patchedObject[k]
+                    }
+                    else{
+                        patchedObject[k] = objectReceived[k]
+                    }
                 }
                 else{
                     //Note the possibility of notifying the user that these keys were not processed.
