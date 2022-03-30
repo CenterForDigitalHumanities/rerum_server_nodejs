@@ -110,7 +110,6 @@ exports.delete = async function (req, res, next) {
                 status: 401
             })
         }
-
         if (err.status) {
             next(createExpressError(err))
             return
@@ -167,7 +166,6 @@ exports.putUpdate = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
-    //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
@@ -196,7 +194,6 @@ exports.putUpdate = async function (req, res, next) {
         else {
             const id = new ObjectID().toHexString()            
             let context = objectReceived["@context"]?{"@context":objectReceived["@context"]}:{}
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
             let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
             delete objectReceived["_rerum"]
             delete objectReceived["_id"]
@@ -249,7 +246,6 @@ exports.patchUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
-    //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
@@ -306,7 +302,6 @@ exports.patchUpdate = async function (req, res, next) {
             }
             const id = new ObjectID().toHexString()            
             let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
             let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
@@ -359,7 +354,6 @@ exports.patchSet = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
-    //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
@@ -408,7 +402,6 @@ exports.patchSet = async function (req, res, next) {
             }
             const id = new ObjectID().toHexString()            
             let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
             let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
@@ -460,7 +453,6 @@ exports.patchUnset = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
-    //A token came in with this request.  We need the agent from it.  
     let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
@@ -516,7 +508,6 @@ exports.patchUnset = async function (req, res, next) {
             }
             const id = new ObjectID().toHexString()            
             let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
             let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
@@ -603,9 +594,8 @@ exports.overwrite = async function (req, res, next) {
         }
         else {
             let context = objectReceived["@context"]?{"@context":objectReceived["@context"]}:{}
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
             let rerumProp = {"__rerum":originalObject["__rerum"]}
-            rerumProp.isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
+            rerumProp["__rerum"].isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
             const id = originalObject["_id"]        
             //Get rid of them so we can enforce the order
             delete objectReceived["@id"]
