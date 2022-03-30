@@ -117,8 +117,8 @@ exports.delete = async function (req, res, next) {
         deletedFlag["time"] = new Date(Date.now()).toISOString().replace("Z", "")
         let deletedObject = {
             "@id": preserveID,
-            "__deleted": deletedFlag
-            "_id" : id,
+            "__deleted": deletedFlag,
+            "_id" : id
         }
         if (healHistoryTree(safe_received)) {
             let result
