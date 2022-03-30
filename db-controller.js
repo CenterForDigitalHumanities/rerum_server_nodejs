@@ -117,8 +117,8 @@ exports.delete = async function (req, res, next) {
         deletedFlag["time"] = new Date(Date.now()).toISOString().replace("Z", "")
         let deletedObject = {
             "@id": preserveID,
-            "_id" : id,
             "__deleted": deletedFlag
+            "_id" : id,
         }
         if (healHistoryTree(safe_received)) {
             let result
@@ -162,7 +162,7 @@ exports.putUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     //A token came in with this request.  We need the agent from it.  
-    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -188,14 +188,14 @@ exports.putUpdate = async function (req, res, next) {
             })
         }
         else {
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from originalObject to build itself.  
-            objectReceived["__rerum"] = utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]
-            const newObjID = new ObjectID().toHexString()
-            objectReceived["_id"] = newObjID
-            objectReceived["@id"] = process.env.RERUM_ID_PREFIX + newObjID
+            const id = new ObjectID().toHexString()            
+            let context = objectReceived["@context"]?{"@context":objectReceived["@context"]}:{}
+            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
+            let rerumProp = utils.configureRerumOptions(generatorAgent, objectReceived, false, false)
+            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, objectReceived, rerumProp, {"_id":id})
             console.log("UPDATE")
             try {
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(objectReceived)
+                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
                 if (alterHistoryNext(originalObject, objectReceived["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(objectReceived))
@@ -239,7 +239,7 @@ exports.patchUpdate = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
     //A token came in with this request.  We need the agent from it.  
-    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -293,11 +293,11 @@ exports.patchUpdate = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from originalObject to build itself.  
-            patchedObject["__rerum"] = utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]
-            const newObjID = new ObjectID().toHexString()
-            patchedObject["_id"] = newObjID
-            patchedObject["@id"] = process.env.RERUM_ID_PREFIX + newObjID
+            const id = new ObjectID().toHexString()            
+            let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
+            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
+            let rerumProp = utils.configureRerumOptions(generatorAgent, patchedObject, false, false)
+            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, patchedObject, rerumProp, {"_id":id})
             console.log("PATCH UPDATE")
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(patchedObject)
@@ -344,7 +344,7 @@ exports.patchSet = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
     //A token came in with this request.  We need the agent from it.  
-    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -390,12 +390,11 @@ exports.patchSet = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from originalObject to build itself.  
-            patchedObject["__rerum"] = utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]
-            const newObjID = new ObjectID().toHexString()
-            patchedObject["_id"] = newObjID
-            patchedObject["@id"] = process.env.RERUM_ID_PREFIX + newObjID
-            console.log("PATCH SET")
+            const id = new ObjectID().toHexString()            
+            let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
+            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
+            let rerumProp = utils.configureRerumOptions(generatorAgent, patchedObject, false, false)
+            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, patchedObject, rerumProp, {"_id":id})
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(patchedObject)
                 if (alterHistoryNext(originalObject, patchedObject["@id"])) {
@@ -441,7 +440,7 @@ exports.patchUnset = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
     //A token came in with this request.  We need the agent from it.  
-    let generatorAgent = "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -494,11 +493,11 @@ exports.patchUnset = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            //A bit goofy here, we actually just want the resulting __rerum. It needed data from originalObject to build itself.  
-            patchedObject["__rerum"] = utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]
-            const newObjID = new ObjectID().toHexString()
-            patchedObject["_id"] = newObjID
-            patchedObject["@id"] = process.env.RERUM_ID_PREFIX + newObjID
+            const id = new ObjectID().toHexString()            
+            let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
+            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
+            let rerumProp = utils.configureRerumOptions(generatorAgent, patchedObject, false, false)
+            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, patchedObject, rerumProp, {"_id":id})
             console.log("PATCH UNSET")
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(patchedObject)
@@ -541,7 +540,7 @@ exports.overwrite = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = req.body
-    let agentRequestingOverwrite = req.user?.[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let agentRequestingOverwrite = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
     if (objectReceived["@id"]) {
         console.log("OVERWRITE")
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -577,8 +576,17 @@ exports.overwrite = async function (req, res, next) {
             })
         }
         else {
-            objectReceived.__rerum = originalObject.__rerum
-            objectReceived.__rerum.isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
+            let context = objectReceived["@context"]?{"@context":objectReceived["@context"]}:{}
+            //A bit goofy here, we actually just want the resulting __rerum. It needed data from objectReceived to build itself.  
+            let rerumProp = originalObject["__rerum"]
+            rerumProp.isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
+            const id = originalObject["_id"]        
+            //Get rid of them so we can enforce the order
+            delete objectReceived["@id"]
+            delete objectReceived["@context"]
+            delete objectReceived["_id"]
+            delete objectReceived["__rerum"]
+            let newObject = Object.assign(context, {"@id":originalObject["@id"]}, objectReceived, rerumProp, {"_id":originalObject["_id"]})
             let result
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, objectReceived)
