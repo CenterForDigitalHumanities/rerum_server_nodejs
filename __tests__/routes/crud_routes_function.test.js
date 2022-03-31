@@ -298,7 +298,7 @@ describe(
     function(done) {
       request
         .post('/v1/api/query?limit=10&skip=2')
-        .send({_id : {$exists:true}})
+        .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
