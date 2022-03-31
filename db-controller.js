@@ -52,18 +52,7 @@ exports.create = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        if(error.code){
-            if(error.code === 11000){
-                //Duplicate _id key error, specific to SLUG support.  This is a Conflict or a Bad Request.
-                let err = {
-                    "status":409,
-                    "message":`The id provided in the Slug header ${id} already exists.  Please use a different Slug.`
-                }
-                next(createExpressError(err))
-                return
-            }
-        }
-        next(createExpressError(error))
+        next(createExpressError(err, error))
     }
 }
 
@@ -1202,12 +1191,28 @@ async function newTreePrime(obj) {
  * 
  * @param {Object} update `message` and `status` for creating a custom Error
  * @param {Error} originalError `source` for tracing this Error
+ * If originalError is a MongoDB Error from the client, it will be like
+ *      {"index":"something", "code":11000, "keyPattern":"something", "keyValue":"something"}
  * @returns Error for use in Express.next(err)
  */
 function createExpressError(update, originalError) {
     let err = Error("detected error", { cause: originalError })
-    update.statusMessage = update.message
-    update.statusCode = update.status
+    if(originalError.code){
+        switch(originalError.code){
+            case 11000:
+                //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
+                update.statusMessage = `The id provided in the Slug header already exists.  Please use a different Slug.`
+                update.statusCode = 409
+            break
+            default:
+                update.statusMessage = "There was a mongo error that prevented this request from completing successfully."
+                update.statusCode = 500
+        }
+    }
+    else{
+        update.statusMessage = update.message ?? "An error has occurred."
+        update.statusCode = update.status ?? 500
+    }
     Object.assign(err,update)
     return err
 }
