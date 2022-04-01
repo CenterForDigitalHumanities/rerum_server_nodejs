@@ -647,10 +647,11 @@ exports.query = async function (req, res, next) {
     }
     try {
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-        matches = matches.map(o=>{
-            delete o._id
-            return o
-        })
+        matches = 
+            matches.map(o=>{
+                delete o._id
+                return o
+            })
         res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
