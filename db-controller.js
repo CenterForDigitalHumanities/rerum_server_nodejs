@@ -647,6 +647,11 @@ exports.query = async function (req, res, next) {
     }
     try {
         let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+        matches = 
+            matches.map(o=>{
+                delete o._id
+                return o
+            })
         res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
@@ -760,6 +765,11 @@ exports.since = async function (req, res, next) {
             return []
         })
     let descendants = getAllDescendants(all, obj, [])
+    descendants = 
+        descendants.map(o=>{
+            delete o._id
+            return o
+        })
     res.set(utils.configureLDHeadersFor(descendants))
     res.json(descendants)
 }
@@ -796,6 +806,11 @@ exports.history = async function (req, res, next) {
             return []
         })
     let ancestors = getAllAncestors(all, obj, [])
+    ancestors = 
+        ancestors.map(o=>{
+            delete o._id
+            return o
+        })
     res.set(utils.configureLDHeadersFor(ancestors))
     res.json(ancestors)
 }
