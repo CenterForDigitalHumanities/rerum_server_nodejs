@@ -227,7 +227,10 @@ describe(
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
       const slug = "1123rcgslu1123"
-      request
+      //It is slightly possible this thing already exists, there could have been an error.
+      //Let's be super cautious and remove it first, then move on.  That way we don't have to manually fix it.
+      controller.remove(slug).then(r => {
+        request
         .post('/v1/api/create')
         .send({"RERUM Slug Support Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
@@ -237,11 +240,11 @@ describe(
         .then(response => {
             expect(response.headers["location"]).toBe(process.env.RERUM_ID_PREFIX+slug)
             expect(response.body["@id"]).toBe(process.env.RERUM_ID_PREFIX+slug)
-            controller.remove(slug).then(r => done())
+            controller.remove(slug).then(s => done())
         })
-        .catch(err => done(err))
-      }
-    )
+        .catch(err => done(err))  
+      })
+    })
 
     it('End to end /v1/api/update. Do a properly formatted /update call by PUTing an existing entity.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+

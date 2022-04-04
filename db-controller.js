@@ -1275,16 +1275,14 @@ exports.remove = async function(id){
     try {
         const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({"_id":id})
         if (!result.deletedCount === 1) {
-          console.error("Could not delete object made from Slug test!")
           console.log(result)
-          return false
+          throw Error("Could not delete object made from Slug test!")
         }
         return true
     }
     catch (error) {
-        console.error("Could not delete object made from Slug test!")
-        console.error(error)
-        return false
+        console.log(error)
+        throw Error("Could not delete object made from Slug test!")
     }
 }
 
