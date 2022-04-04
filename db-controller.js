@@ -10,6 +10,21 @@
  * @author thehabes 
  */
 
+const { MongoClient } = require('mongodb')
+var ObjectID = require('mongodb').ObjectId
+const utils = require('./utils')
+let client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
+client.connect()
+console.log("DB controller was required by a module, so a connection must be made.  We would like there to only be one of these.")
+
+// Handle index actions
+exports.index = function (req, res, next) {
+    res.json({
+        status: "connected",
+        message: "Not sure what to do"
+    })
+}
+
 /**
  * Create a new Linked Open Data object in RERUM v1.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
