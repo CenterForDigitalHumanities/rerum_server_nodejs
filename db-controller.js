@@ -10,36 +10,6 @@
  * @author thehabes 
  */
 
-const { MongoClient } = require('mongodb')
-var ObjectID = require('mongodb').ObjectId
-const utils = require('./utils')
-let client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
-client.connect()
-console.log("DB controller was required by a module, so a connection must be made.  We would like there to only be one of these.")
-
-function getAgent(req, next){
-    const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
-    let agent = ""
-    for(claimKey of claimKeys){
-        agent = req.user[claimKey]
-        if(agent){
-            return agent
-        }
-    }
-    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
-    //I do not know you, so you are forbidden.
-    err.status = 403
-    next(createExpressError(err))  
-}
-
-// Handle index actions
-exports.index = function (req, res, next) {
-    res.json({
-        status: "connected",
-        message: "Not sure what to do"
-    })
-}
-
 /**
  * Create a new Linked Open Data object in RERUM v1.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
@@ -1241,37 +1211,6 @@ async function newTreePrime(obj) {
  * 
  * @param {Object} update `message` and `status` for creating a custom Error
  * @param {Error} originalError `source` for tracing this Error
- * If originalError is a MongoDB Error from the mongodb nodejs client, it will be like
- *      {"index":"something", "code":11000, "keyPattern":"something", "keyValue":"something"}
- * @returns Error for use in Express.next(err)
- */
-// function createExpressError(update, originalError = {}) {
-//     console.log
-//     let err = Error("detected error", { cause: originalError })
-//     if(originalError.code){
-//         switch(originalError.code){
-//             case 11000:
-//                 //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
-//                 update.statusMessage = `The id provided in the Slug header already exists.  Please use a different Slug.`
-//                 update.statusCode = 409
-//             break
-//             default:
-//                 update.statusMessage = "There was a mongo error that prevented this request from completing successfully."
-//                 update.statusCode = 500
-//         }
-//     }
-//     else{
-//         update.statusMessage = update.message ?? "An error has occurred."
-//         update.statusCode = update.status ?? 500
-//     }
-//     Object.assign(err,update)
-//     return err
-// }
-
-/**
- * 
- * @param {Object} update `message` and `status` for creating a custom Error
- * @param {Error} originalError `source` for tracing this Error
  * @returns Error for use in Express.next(err)
  */
 function createExpressError(update, originalError={}) {
@@ -1332,4 +1271,24 @@ exports.remove = async function(id){
         console.error(error)
         return false
     }
+}
+
+/**
+ * Internal helper function to pull an agent from req.user.
+ * If you do not find an agent, the API does not know this requestor.
+ * The app is forbidden until registered with RERUM.
+ */  
+function getAgent(req, next){
+    const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
+    let agent = ""
+    for(claimKey of claimKeys){
+        agent = req.user[claimKey]
+        if(agent){
+            return agent
+        }
+    }
+    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
+    //I do not know you, so you are forbidden.
+    err.status = 403
+    next(createExpressError(err))  
 }
