@@ -48,6 +48,7 @@ exports.create = async function (req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(201)
+        delete newObject._id
         res.json(newObject)
     }
     catch (error) {
@@ -208,6 +209,7 @@ exports.putUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
+                    delete newObject._id
                     res.json(newObject)
                     return
                 }
@@ -297,6 +299,7 @@ exports.patchUpdate = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
+                delete originalObject._id
                 res.json(originalObject)
                 return
             }
@@ -316,6 +319,7 @@ exports.patchUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
+                    delete newObject._id
                     res.json(newObject)
                     return
                 }
@@ -397,6 +401,7 @@ exports.patchSet = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
+                delete originalObject._id
                 res.json(originalObject)
                 return
             }
@@ -415,6 +420,7 @@ exports.patchSet = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
+                    delete newObject._id
                     res.json(newObject)
                     return
                 }
@@ -503,6 +509,7 @@ exports.patchUnset = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
+                delete originalObject._id
                 res.json(originalObject)
                 return
             }
@@ -522,6 +529,7 @@ exports.patchUnset = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
+                    delete newObject._id
                     res.json(newObject)
                     return
                 }
@@ -614,6 +622,7 @@ exports.overwrite = async function (req, res, next) {
             }
             res.set(utils.configureWebAnnoHeadersFor(newObject))
             res.location(newObject["@id"])
+            delete newObject._id
             res.json(newObject)
             return
         }
@@ -670,13 +679,13 @@ exports.id = async function (req, res, next) {
     try {
         let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
         if (match) {
-            delete match["_id"]
             res.set(utils.configureWebAnnoHeadersFor(match))
             //Support built in browser caching
             res.set("Cache-Control", "max-age=86400, must-revalidate")
             //Support requests with 'If-Modified_Since' headers
             res.set(utils.configureLastModifiedHeader(match))
             res.location(match["@id"])
+            delete match._id
             res.json(match)
             return
         }
