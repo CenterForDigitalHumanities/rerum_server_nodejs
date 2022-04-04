@@ -213,6 +213,7 @@ describe(
             expect(response.headers["location"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
+            expect(response.body._id).toBeUndefined()
             done()
         })
         .catch(err => done(err))
@@ -244,6 +245,7 @@ describe(
             expect(response.headers["location"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body["@id"]).toBeTruthy()
             expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
+            expect(response.body._id).toBeUndefined()
             done()
         })
         .catch(err => done(err))
@@ -273,6 +275,7 @@ describe(
             expect(response.body["@id"]).toBeTruthy()
             expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body["test_obj"]).toBe(unique)
+            expect(response.body._id).toBeUndefined()
             done()
         })
         .catch(err => done(err))
@@ -302,6 +305,7 @@ describe(
             expect(response.body["@id"]).toBeTruthy()
             expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body["test_set"]).toBe(unique)
+            expect(response.body._id).toBeUndefined()
             done()
         })
         .catch(err => done(err))
@@ -330,6 +334,7 @@ describe(
             expect(response.body["@id"]).toBeTruthy()
             expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c")
             expect(response.body.hasOwnProperty("test_obj")).toBe(false)
+            expect(response.body._id).toBeUndefined()
             done()
         })
     })
@@ -349,9 +354,9 @@ describe(
            * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with delete.
            * TODO optimize
            */ 
-          const objToDelete = response.body
+          const idToDelete = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
           request
-          .delete('/v1/api/delete/'+objToDelete._id)
+          .delete('/v1/api/delete/'+idToDelete)
           .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
           .expect(204)
           .then(r => {
