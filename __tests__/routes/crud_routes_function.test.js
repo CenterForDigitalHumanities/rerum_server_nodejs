@@ -222,7 +222,7 @@ describe(
       }
     )
 
-    it('End to end SLUG header support verification. Do a properly formatted /create call by POSTing a JSON body.  '+
+    it('End to end Slug header support verification. Do a properly formatted /create call by POSTing a JSON body.  '+
     'The Location header in the response should be present and have the SLUG id.',
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
@@ -244,6 +244,7 @@ describe(
         })
         .catch(err => done(err))  
       })
+      .catch(err => done(err)) 
     })
 
     it('End to end /v1/api/update. Do a properly formatted /update call by PUTing an existing entity.  '+
