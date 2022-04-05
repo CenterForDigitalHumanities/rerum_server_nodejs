@@ -1,6 +1,8 @@
 let request = require("supertest")
 //Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
 let app = require('../../app')
+//This is so we can do Mongo specific things with the objects in this test, like actually remove them from the db.
+const controller = require('../../db-controller.js')
 
 //A super fun note.  If you do request(app), the tests will fail due to race conditions.  
 //request = request(app)
@@ -193,7 +195,7 @@ describe(
     it('End to end /v1/api/create. Do a properly formatted /create call by POSTing a JSON body.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+
     'It should respond with a 201 with enough JSON in the response body to discern the "@id".  '+
-    'The Location header in the response should be present and populated and not equal the originating entity "@id".',
+    'The Location header in the response should be present and populated.',
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
@@ -219,6 +221,31 @@ describe(
         .catch(err => done(err))
       }
     )
+
+    it('End to end Slug header support verification. Do a properly formatted /create call by POSTing a JSON body.  '+
+    'The Location header in the response should be present and have the SLUG id.',
+    function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
+      const slug = "1123rcgslu1123"
+      //It is slightly possible this thing already exists, there could have been an error.
+      //Let's be super cautious and remove it first, then move on.  That way we don't have to manually fix it.
+      controller.remove(slug).then(r => {
+        request
+        .post('/v1/api/create')
+        .send({"RERUM Slug Support Test":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Slug', '1123rcgslu1123')
+        .expect(201)
+        .then(response => {
+            expect(response.headers["location"]).toBe(process.env.RERUM_ID_PREFIX+slug)
+            expect(response.body["@id"]).toBe(process.env.RERUM_ID_PREFIX+slug)
+            controller.remove(slug).then(s => done())
+        })
+        .catch(err => done(err))  
+      })
+      .catch(err => done(err)) 
+    })
 
     it('End to end /v1/api/update. Do a properly formatted /update call by PUTing an existing entity.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+

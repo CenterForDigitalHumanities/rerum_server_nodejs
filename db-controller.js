@@ -2,8 +2,8 @@
 
 /**
  * This module is used to connect to a mongodb instance and perform the necessary unit actions
- * to complete an API action.  This is connected to a RESTful API.  Known database misteps, like NOT FOUND,
- * should pass a RESTful message downstream.
+ * to complete an API action.  The implementation is intended to be a RESTful API.  
+ * Known database misteps, like NOT FOUND, should pass a RESTful message downstream.
  * 
  * It is used as middleware and so has access to the http module request and response objects, as well as next() 
  * 
@@ -33,7 +33,7 @@ exports.index = function (req, res, next) {
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const id = req.get("Slug") ?? new ObjectID().toHexString()
-    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"]?{"@context":req.body["@context"]}:{}
     let provided = JSON.parse(JSON.stringify(req.body))
     let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"]}
@@ -53,17 +53,6 @@ exports.create = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        // if(error.code){
-        //     if(error.code === 11000){
-        //         //Duplicate _id key error, specific to SLUG support.  This is a Conflict or a Bad Request.
-        //         let err = {
-        //             "status":409,
-        //             "message":`The id provided in the Slug header ${id} already exists.  Please use a different Slug.`
-        //         }
-        //         next(createExpressError(err, error))
-        //         return
-        //     }
-        // }
         next(createExpressError(error))
     }
 }
@@ -83,7 +72,7 @@ exports.create = async function (req, res, next) {
 exports.delete = async function (req, res, next) {
     let id = req.params["_id"]
     let err = { message: `` }
-    let agentRequestingDelete = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
     try {
         originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "_id": id })
@@ -167,7 +156,7 @@ exports.putUpdate = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
-    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -248,7 +237,7 @@ exports.patchUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
-    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -358,7 +347,7 @@ exports.patchSet = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
-    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -459,7 +448,7 @@ exports.patchUnset = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
-    let generatorAgent = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -565,7 +554,7 @@ exports.overwrite = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = req.body
-    let agentRequestingOverwrite = req.user[process.env.RERUM_AGENT_CLAIM] ?? "http://dev.rerum.io/agent/CANNOTBESTOPPED"
+    let agentRequestingOverwrite = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         console.log("OVERWRITE")
         let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -1226,37 +1215,6 @@ async function newTreePrime(obj) {
  * 
  * @param {Object} update `message` and `status` for creating a custom Error
  * @param {Error} originalError `source` for tracing this Error
- * If originalError is a MongoDB Error from the mongodb nodejs client, it will be like
- *      {"index":"something", "code":11000, "keyPattern":"something", "keyValue":"something"}
- * @returns Error for use in Express.next(err)
- */
-// function createExpressError(update, originalError = {}) {
-//     console.log
-//     let err = Error("detected error", { cause: originalError })
-//     if(originalError.code){
-//         switch(originalError.code){
-//             case 11000:
-//                 //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
-//                 update.statusMessage = `The id provided in the Slug header already exists.  Please use a different Slug.`
-//                 update.statusCode = 409
-//             break
-//             default:
-//                 update.statusMessage = "There was a mongo error that prevented this request from completing successfully."
-//                 update.statusCode = 500
-//         }
-//     }
-//     else{
-//         update.statusMessage = update.message ?? "An error has occurred."
-//         update.statusCode = update.status ?? 500
-//     }
-//     Object.assign(err,update)
-//     return err
-// }
-
-/**
- * 
- * @param {Object} update `message` and `status` for creating a custom Error
- * @param {Error} originalError `source` for tracing this Error
  * @returns Error for use in Express.next(err)
  */
 function createExpressError(update, originalError={}) {
@@ -1292,7 +1250,42 @@ function createExpressError(update, originalError={}) {
     return err
 }
 
-function expressCallbackForMongoDriver(err) {
-    if (err) { next(err) }
-    // This does not stop the flow of the code after this, so it is not implemented anywhere yet.
+/**
+ * An internal helper for removing a document from the database using a known _id.
+ * This is not exposed over the http request and response.
+ * Use it internally where necessary.  Ex. end to end Slug test
+ */ 
+exports.remove = async function(id){
+    try {
+        const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({"_id":id})
+        if (!result.deletedCount === 1) {
+          console.log(result)
+          throw Error("Could not remove object")
+        }
+        return true
+    }
+    catch (error) {
+        console.log(error)
+        throw Error("Could not remove object")
+    }
+}
+
+/**
+ * An internal helper for getting the agent from req.user
+ * If you do not find an agent, the API does not know this requestor.
+ * This means attribution is not possible, regardless of the state of the token.
+ * The app is forbidden until registered with RERUM.  Access tokens are encoded with the agent.
+ */  
+function getAgentClaim(req, next){
+    const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
+    let agent = ""
+    for(claimKey of claimKeys){
+        agent = req.user[claimKey]
+        if(agent){
+            return agent
+        }
+    }
+    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
+    err.status = 403
+    next(createExpressError(err))  
 }
