@@ -425,25 +425,26 @@ describe(
     /*
     * Under consideration, but not implemented in the API.  HEAD requests can't have bodies.
     it('End to end HEAD request to /v1/api/query.  '+
-    'It should respond 200 and the Content-Length response header should be set.',
-    function(done) {
-      request
-        .head('/v1/api/query')
-        .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
-        .set('Content-Type', 'application/json; charset=utf-8')
-        .expect(200)
-        .then(response => {
-            expect(response.headers["content-length"]).toBeTruthy()
-            done()
-        })
-        .catch(err => done(err))
-    })
+    */
+    // 'It should respond 200 and the Content-Length response header should be set.',
+    // function(done) {
+    //   request
+    //     .head('/v1/api/query')
+    //     .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
+    //     .set('Content-Type', 'application/json; charset=utf-8')
+    //     .expect(200)
+    //     .then(response => {
+    //         expect(response.headers["content-length"]).toBeTruthy()
+    //         done()
+    //     })
+    //     .catch(err => done(err))
+    // })
 
     it('should use `limit` and `skip` correctly at /query',
     function(done) {
       request
         .post('/v1/api/query?limit=10&skip=2')
-        .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
+        .send({"@id" : {$exists:true}})
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
@@ -460,7 +461,7 @@ describe(
             expect(response.headers["allow"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
-            expect(response.body.length).toBeTruthy()
+            expect(response.body.length).toBeLessThanOrEqual(10)
             done()
         })
         .catch(err => done(err))
