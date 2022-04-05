@@ -11,13 +11,6 @@
  */
 
 const router = require('express').Router()
-//This controller will handle all MongoDB interactions.
-const controller = require('../db-controller.js')
-//Utility functions
-const utilities = require('../utils.js')
-//RESTful behavior
-const rest = require('../rest.js')
-const auth = require('../auth')
 
 const staticRouter = require('./static.js')
 router.use(staticRouter)
