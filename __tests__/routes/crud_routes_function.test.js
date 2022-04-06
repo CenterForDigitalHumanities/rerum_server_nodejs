@@ -425,18 +425,46 @@ describe(
     /*
     * Under consideration, but not implemented in the API.  HEAD requests can't have bodies.
     it('End to end HEAD request to /v1/api/query.  '+
-    'It should respond 200 and the Content-Length response header should be set.',
+    */
+    // 'It should respond 200 and the Content-Length response header should be set.',
+    // function(done) {
+    //   request
+    //     .head('/v1/api/query')
+    //     .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
+    //     .set('Content-Type', 'application/json; charset=utf-8')
+    //     .expect(200)
+    //     .then(response => {
+    //         expect(response.headers["content-length"]).toBeTruthy()
+    //         done()
+    //     })
+    //     .catch(err => done(err))
+    // })
+
+    it('should use `limit` and `skip` correctly at /query',
     function(done) {
       request
-        .head('/v1/api/query')
-        .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
+        .post('/v1/api/query?limit=10&skip=2')
+        .send({"@id" : {$exists:true}})
         .set('Content-Type', 'application/json; charset=utf-8')
         .expect(200)
         .then(response => {
+            //The following commented out headers are not what they are expected to be. TODO investigate if it matters.
+            //expect(response.headers["connection"]).toBe("Keep-Alive)
+            //expect(response.headers["keep-alive"]).toBeTruthy()
+            //expect(response.headers["access-control-allow-methods"]).toBeTruthy()
             expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
+            expect(Array.isArray(response.body)).toBe(true)
+            expect(response.body.length).toBeLessThanOrEqual(10)
             done()
         })
         .catch(err => done(err))
     })
-    */
+
 })

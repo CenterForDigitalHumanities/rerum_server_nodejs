@@ -34,14 +34,14 @@ exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const id = req.get("Slug") ?? new ObjectID().toHexString()
     let generatorAgent = getAgentClaim(req, next)
-    let context = req.body["@context"]?{"@context":req.body["@context"]}:{}
+    let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
-    let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"]}
+    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     delete provided["_rerum"]
     delete provided["_id"]
     delete provided["@id"]
     delete provided["@context"]
-    let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, provided, rerumProp, {"_id":id})
+    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
     try {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
@@ -112,7 +112,7 @@ exports.delete = async function (req, res, next) {
         let deletedObject = {
             "@id": preserveID,
             "__deleted": deletedFlag,
-            "_id" : id
+            "_id": id
         }
         if (healHistoryTree(safe_received)) {
             let result
@@ -182,14 +182,14 @@ exports.putUpdate = async function (req, res, next) {
             })
         }
         else {
-            const id = new ObjectID().toHexString()            
-            let context = objectReceived["@context"]?{"@context":objectReceived["@context"]}:{}
-            let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
+            const id = new ObjectID().toHexString()
+            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["_rerum"]
             delete objectReceived["_id"]
             delete objectReceived["@id"]
             delete objectReceived["@context"]
-            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, objectReceived, rerumProp, {"_id":id})
+            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             console.log("UPDATE")
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
@@ -268,21 +268,21 @@ exports.patchUpdate = async function (req, res, next) {
             delete objectReceived._id //can't patch this
             delete objectReceived["@id"] //can't patch this
             //A patch only alters existing keys.  Remove non-existent keys from the object received in the request body.
-            for(let k in objectReceived){
-                if(originalObject.hasOwnProperty(k)){
-                    if(objectReceived[k] === null){
+            for (let k in objectReceived) {
+                if (originalObject.hasOwnProperty(k)) {
+                    if (objectReceived[k] === null) {
                         delete patchedObject[k]
                     }
-                    else{
+                    else {
                         patchedObject[k] = objectReceived[k]
                     }
                 }
-                else{
+                else {
                     //Note the possibility of notifying the user that these keys were not processed.
                     delete objectReceived[k]
                 }
             }
-            if(Object.keys(objectReceived).length === 0){
+            if (Object.keys(objectReceived).length === 0) {
                 //Then you aren't actually changing anything...only @id came through
                 //Just hand back the object.  The resulting of patching nothing is the object unchanged.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
@@ -292,14 +292,14 @@ exports.patchUpdate = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            const id = new ObjectID().toHexString()            
-            let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
-            let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
+            const id = new ObjectID().toHexString()
+            let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
+            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
             delete patchedObject["@context"]
-            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, patchedObject, rerumProp, {"_id":id})
+            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
@@ -375,16 +375,16 @@ exports.patchSet = async function (req, res, next) {
         else {
             patchedObject = JSON.parse(JSON.stringify(originalObject))
             //A set only adds new keys.  If the original object had the key, it is ignored here.
-            for(let k in objectReceived){
-                if(originalObject.hasOwnProperty(k)){
+            for (let k in objectReceived) {
+                if (originalObject.hasOwnProperty(k)) {
                     //Note the possibility of notifying the user that these keys were not processed.
                     delete objectReceived[k]
                 }
-                else{
+                else {
                     patchedObject[k] = objectReceived[k]
                 }
             }
-            if(Object.keys(objectReceived).length === 0){
+            if (Object.keys(objectReceived).length === 0) {
                 //Then you aren't actually changing anything...there are no new properties
                 //Just hand back the object.  The resulting of setting nothing is the object from the request body.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
@@ -394,14 +394,14 @@ exports.patchSet = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            const id = new ObjectID().toHexString()            
-            let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
-            let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
+            const id = new ObjectID().toHexString()
+            let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
+            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
             delete patchedObject["@context"]
-            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, patchedObject, rerumProp, {"_id":id})
+            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
@@ -482,17 +482,17 @@ exports.patchUnset = async function (req, res, next) {
              * unset does not alter an existing key.  It removes an existing key.
              * The request payload had {key:null} to flag keys to be removed.
              * Everything else is ignored.
-            */ 
-            for(let k in objectReceived){
-                if(originalObject.hasOwnProperty(k) && objectReceived[k] === null){
+            */
+            for (let k in objectReceived) {
+                if (originalObject.hasOwnProperty(k) && objectReceived[k] === null) {
                     delete patchedObject[k]
                 }
-                else{
+                else {
                     //Note the possibility of notifying the user that these keys were not processed.
                     delete objectReceived[k]
                 }
             }
-            if(Object.keys(objectReceived).length === 0){
+            if (Object.keys(objectReceived).length === 0) {
                 //Then you aren't actually changing anything...no properties in the request body were removed from the original object.
                 //Just hand back the object.  The resulting of unsetting nothing is the object.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
@@ -502,14 +502,14 @@ exports.patchUnset = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            const id = new ObjectID().toHexString()            
-            let context = patchedObject["@context"]?{"@context":patchedObject["@context"]}:{}
-            let rerumProp = {"__rerum":utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"]}
+            const id = new ObjectID().toHexString()
+            let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
+            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
             delete patchedObject["@context"]
-            let newObject = Object.assign(context, {"@id":process.env.RERUM_ID_PREFIX + id}, patchedObject, rerumProp, {"_id":id})
+            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UNSET")
             try {
                 let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
@@ -590,16 +590,16 @@ exports.overwrite = async function (req, res, next) {
             })
         }
         else {
-            let context = objectReceived["@context"]?{"@context":objectReceived["@context"]}:{}
-            let rerumProp = {"__rerum":originalObject["__rerum"]}
+            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+            let rerumProp = { "__rerum": originalObject["__rerum"] }
             rerumProp["__rerum"].isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
-            const id = originalObject["_id"]        
+            const id = originalObject["_id"]
             //Get rid of them so we can enforce the order
             delete objectReceived["@id"]
             delete objectReceived["@context"]
             delete objectReceived["_id"]
             delete objectReceived["__rerum"]
-            let newObject = Object.assign(context, {"@id":originalObject["@id"]}, objectReceived, rerumProp, {"_id":id})
+            let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
             let result
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, newObject)
@@ -634,6 +634,8 @@ exports.overwrite = async function (req, res, next) {
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
+    const limit = parseInt(req.query.limit ?? 100)
+    const skip = parseInt(req.query.skip ?? 0)
     if (Object.keys(props).length === 0) {
         //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
         let err = {
@@ -644,9 +646,9 @@ exports.query = async function (req, res, next) {
         return
     }
     try {
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
-        matches = 
-            matches.map(o=>{
+        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).limit(limit).skip(skip).toArray()
+        matches =
+            matches.map(o => {
                 delete o._id
                 return o
             })
@@ -763,8 +765,8 @@ exports.since = async function (req, res, next) {
             return []
         })
     let descendants = getAllDescendants(all, obj, [])
-    descendants = 
-        descendants.map(o=>{
+    descendants =
+        descendants.map(o => {
             delete o._id
             return o
         })
@@ -804,8 +806,8 @@ exports.history = async function (req, res, next) {
             return []
         })
     let ancestors = getAllAncestors(all, obj, [])
-    ancestors = 
-        ancestors.map(o=>{
+    ancestors =
+        ancestors.map(o => {
             delete o._id
             return o
         })
@@ -1217,9 +1219,9 @@ async function newTreePrime(obj) {
  * @param {Error} originalError `source` for tracing this Error
  * @returns Error for use in Express.next(err)
  */
-function createExpressError(update, originalError={}) {
+function createExpressError(update, originalError = {}) {
     let err = Error("detected error", { cause: originalError })
-    if(update.code){
+    if (update.code) {
         /**
          * Detection that createExpressError(error) passed in a mongo client error.
          * IMPORTANT!  If you try to write to 'update' when it comes in as a mongo error...
@@ -1229,24 +1231,24 @@ function createExpressError(update, originalError={}) {
          *
          * If you do update.statusMessage or update.statusCode YOU WILL CAUSE THIS ERROR.
          * Make sure you write to err instead.  Object.assign() will have the same result.
-         */ 
-        switch(update.code){
+         */
+        switch (update.code) {
             case 11000:
                 //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
                 err.statusMessage = `The id provided in the Slug header already exists.  Please use a different Slug.`
                 err.statusCode = 409
-            break
+                break
             default:
                 err.statusMessage = "There was a mongo error that prevented this request from completing successfully."
                 err.statusCode = 500
         }
     }
-    else{
+    else {
         //Warning!  If 'update' is considered sent, this will cause a 500.  See notes above.
         update.statusMessage = update.message
         update.statusCode = update.status
     }
-    Object.assign(err,update)
+    Object.assign(err, update)
     return err
 }
 
@@ -1254,13 +1256,13 @@ function createExpressError(update, originalError={}) {
  * An internal helper for removing a document from the database using a known _id.
  * This is not exposed over the http request and response.
  * Use it internally where necessary.  Ex. end to end Slug test
- */ 
-exports.remove = async function(id){
+ */
+exports.remove = async function (id) {
     try {
-        const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({"_id":id})
+        const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({ "_id": id })
         if (!result.deletedCount === 1) {
-          console.log(result)
-          throw Error("Could not remove object")
+            console.log(result)
+            throw Error("Could not remove object")
         }
         return true
     }
@@ -1275,17 +1277,17 @@ exports.remove = async function(id){
  * If you do not find an agent, the API does not know this requestor.
  * This means attribution is not possible, regardless of the state of the token.
  * The app is forbidden until registered with RERUM.  Access tokens are encoded with the agent.
- */  
-function getAgentClaim(req, next){
+ */
+function getAgentClaim(req, next) {
     const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
     let agent = ""
-    for(claimKey of claimKeys){
+    for (claimKey of claimKeys) {
         agent = req.user[claimKey]
-        if(agent){
+        if (agent) {
             return agent
         }
     }
     let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
     err.status = 403
-    next(createExpressError(err))  
+    next(createExpressError(err))
 }
