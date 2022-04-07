@@ -761,6 +761,7 @@ exports.release = async function (req, res, next) {
                 // releases.next[] and releases.previous are already correct.
                 console.log("Releases tree is healed, release it")
                 let releasedObject = safe_original
+                console.log("release with slug "+releasedObject.__rerum.slug)
                 let result
                 try {
                     result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, releasedObject)
@@ -1506,8 +1507,8 @@ async function establishReleasesTree(releasing){
         }
         if (result.modifiedCount == 0) {
             //result didn't error out, but it also didn't succeed...
-            console.log("nothing modified...")
-            success = false
+            //console.log("nothing modified...")
+            //success = false
         }  
     }
     for(const a of ancestors){
@@ -1527,7 +1528,8 @@ async function establishReleasesTree(releasing){
         }
         if (result.modifiedCount == 0) {
             //result didn't error out, but it also didn't succeed...
-            success = false
+            //console.log("nothing modified...")
+            //success = false
         }  
     }
     return success
@@ -1580,8 +1582,8 @@ async function healReleasesTree(releasing) {
             }
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
-                console.log("nothing modified")
-                success = false
+                //console.log("nothing modified")
+                //success = false
             }
         }    
     }
@@ -1639,7 +1641,7 @@ async function healReleasesTree(releasing) {
         }
         if (result.modifiedCount == 0) {
             //result didn't error out, but it also didn't succeed...
-            success = false
+            //success = false
         }
     
     }
