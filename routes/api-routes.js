@@ -35,12 +35,12 @@ router.use('/api/delete', deleteRouter)
 const overwriteRouter = require('./overwrite.js')
 router.use('/api/overwrite', overwriteRouter)
 
-// Support POST requests with JSON bodies used for replacing some existing object.
-const overwriteRouter = require('./release.js')
+// Support PATCH requests (with a Slug header or ?slug variable) to release an object.
+const releaseRouter = require('./release.js')
 router.use('/api/release', releaseRouter)
 
 // Support PUT requests with JSON bodies used for versioning an existing object through replacement.
-const updateRouter = require('./putUpdate.js')
+const releaseRouter = require('./putUpdate.js')
 router.use('/api/update', updateRouter)
 
 // Support PATCH requests with JSON bodies used for versioning an existing object through key/value setting.
