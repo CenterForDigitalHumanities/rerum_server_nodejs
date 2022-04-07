@@ -34,29 +34,24 @@ exports.index = function (req, res, next) {
  * 
  */  
 exports.generateSlugId = async function(slug_id="", next){
+    let slug_return = {"slug_id":"", "code":0}
     let slug
     if(slug_id){
+        slug_return.slug_id = slug_id
         try {
             slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
         } 
         catch (error) {
             //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
             console.error(error)
-            return slug_id
+            //slug_return.code = error.code
         }
-        if(null === slug){
-            //Ok this one is good, you can use this as an _id
-            return slug_id
-        }
-        else{
-            //An object already has this _id or __rerum.slug
-            next(createExpressError({"code" : 11000}))
-            return
+        if(null !== slug){
+            //This already exist, give the mongodb error code.
+            slug_return.code = 11000
         }
     } 
-    else{
-        return ""
-    }
+    return slug_return
 }
 
 /**
@@ -68,9 +63,20 @@ exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let slug = ""
     if(req.get("Slug")){
-        slug = await exports.generateSlugId(req.get("Slug"), next)
+        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
+        console.log("slug json is")
+        console.log(slug_json)
+        if(slug_json.code){
+            next(createExpressError(slug_json))
+            return
+        }
+        else{
+            slug = slug_json.slug_id
+        }
     }
     const id = new ObjectID().toHexString()
+    console.log("_id is "+id)
+    console.log("slug is "+slug)
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
@@ -120,20 +126,20 @@ exports.delete = async function (req, res, next) {
         return
     }
     if (null !== originalObject) {
-        let safe_received = JSON.parse(JSON.stringify(originalObject))
-        if (utils.isDeleted(safe_received)) {
+        let safe_original = JSON.parse(JSON.stringify(originalObject))
+        if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to update is deleted. ${err.message}`,
                 status: 403
             })
         }
-        if (utils.isReleased(safe_received)) {
+        if (utils.isReleased(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to update is released. Fork to make changes. ${err.message}`,
                 status: 403
             })
         }
-        if (!utils.isGenerator(safe_received, agentRequestingDelete)) {
+        if (!utils.isGenerator(safe_original, agentRequestingDelete)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object. Fork with /update to make changes. ${err.message}`,
                 status: 401
@@ -143,7 +149,7 @@ exports.delete = async function (req, res, next) {
             next(createExpressError(err))
             return
         }
-        let preserveID = safe_received["@id"]
+        let preserveID = safe_original["@id"]
         let deletedFlag = {} //The __deleted flag is a JSONObject
         deletedFlag["object"] = JSON.parse(JSON.stringify(originalObject))
         deletedFlag["deletor"] = agentRequestingDelete
@@ -153,7 +159,7 @@ exports.delete = async function (req, res, next) {
             "__deleted": deletedFlag,
             "_id": id
         }
-        if (healHistoryTree(safe_received)) {
+        if (healHistoryTree(safe_original)) {
             let result
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": originalObject["_id"] }, deletedObject)
@@ -670,23 +676,32 @@ exports.overwrite = async function (req, res, next) {
  * perform history tree updates, but rather releases tree updates.
  * (AKA a new node in the history tree is NOT CREATED here.)
  * 
- * @respond with new state of the object in the body.
- * @throws java.io.IOException
- * @throws javax.servlet.ServletException
+ * The id is on the URL already like, ?_id=.
+ * 
+ * The user may request the release resource take on a new Slug id.  They can do this
+ * with the HTTP Request header 'Slug' or via a url parameter like ?slug=
  */
 exports.release = async function (req, res, next) {
     console.log("Release object")
     let agentRequestingRelease = getAgentClaim(req, next)
-    let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let id = req.params["_id"]
     let slug = ""
+    let err = {"message":""}
     if(req.get("Slug")){
-        slug = await exports.generateSlugId(req.get("Slug"), next)
+        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
+        console.log("slug json is")
+        console.log(slug_json)
+        if(slug_json.code){
+            next(createExpressError(slug_json))
+            return
+        }
+        else{
+            slug = slug_json.slug_id
+        }
     }
-    else if(req.params["slug"]){
-        slug = await exports.generateSlugId(req.params["slug"], next)
-    }
-    if (objectReceived["@id"]){
-        id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+    console.log("_id is "+id)
+    console.log("slug is "+slug)
+    if (id){
         let originalObject 
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -699,19 +714,19 @@ exports.release = async function (req, res, next) {
         let previousReleasedID = safe_original.__rerum.releases.previous
         let nextReleases = safe_original.__rerum.releases.next
         
-        if (utils.isDeleted(safe_received)) {
+        if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to release is deleted. ${err.message}`,
                 status: 403
             })
         }
-        if (utils.isReleased(safe_received)) {
-            err = Object.assign(err, {
-                message: `The object you are trying to release is already released. ${err.message}`,
-                status: 403
-            })
-        }
-        if (!utils.isGenerator(safe_received, agentRequestingRelease)) {
+        // if (utils.isReleased(safe_original)) {
+        //     err = Object.assign(err, {
+        //         message: `The object you are trying to release is already released. ${err.message}`,
+        //         status: 403
+        //     })
+        // }
+        if (!utils.isGenerator(safe_original, agentRequestingRelease)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object. You cannot release it. ${err.message}`,
                 status: 401
@@ -724,26 +739,27 @@ exports.release = async function (req, res, next) {
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
             safe_original["__rerum"].releases.replaces = previousReleasedID
-            safe_original["__rerum.slug"] = slug
+            safe_original["__rerum"].slug = slug
             if (previousReleasedID !== "") {
                 // A releases tree exists and an ancestral object is being released.
-                treeHealed = healReleasesTree(safe_original)
+                treeHealed = await healReleasesTree(safe_original)
             } 
             else { 
                 // There was no releases previous value.
-                if (nextReleases.size() > 0) { 
+                if (nextReleases.length > 0) { 
                     // The release tree has been established and a descendant object is now being released.
-                    treeHealed = healReleasesTree(safe_original)
+                    treeHealed = await healReleasesTree(safe_original)
                 } 
                 else { 
                     // The release tree has not been established
-                    treeHealed = establishReleasesTree(safe_original)
+                    treeHealed = await establishReleasesTree(safe_original)
                 }
             }
             if (treeHealed) { 
                 // If the tree was established/healed
                 // perform the update to isReleased of the object being released. Its
                 // releases.next[] and releases.previous are already correct.
+                console.log("Releases tree is healed, release it")
                 let releasedObject = safe_original
                 let result
                 try {
@@ -763,7 +779,16 @@ exports.release = async function (req, res, next) {
                 return
             } 
         }
-    } 
+    }
+    else{
+        //This was a bad request
+        err = {
+            message: "You must provide the id of an object to release.  Use /release/id-here or release?_id=id-here.",
+            status: 400
+        }
+        next(createExpressError(err))
+        return
+    }
 }
 
 /**
@@ -1045,7 +1070,8 @@ async function getAllVersions(obj) {
     let primeID = ""
     let primeURL = ""
     if (obj.__rerum) {
-        primeID = obj.__rerum.history.prime
+        primeURL = obj.__rerum.history.prime
+        primeID = primeURL.replace(process.env.RERUM_ID_PREFIX, "")
     }
     else {
         throw new Error("This object has no history because it has no '__rerum' property.  This will result in an empty array.")
@@ -1053,23 +1079,20 @@ async function getAllVersions(obj) {
     if (primeID === "root") {
         //The obj passed in is root.  So it is the rootObj we need.
         primeURL = obj["@id"]
-        primeID = obj["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        primeID = primeURL.replace(process.env.RERUM_ID_PREFIX, "")
         rootObj = JSON.parse(JSON.stringify(obj))
     }
     else {
         //The obj passed in knows the ID of root, grab it from Mongo
-        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": primeID })
+        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": primeURL })
         /**
          * Note that if you attempt the following code, it will cause  Cannot convert undefined or null to object in getAllVersions.
          * rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
          * This is the because some of the @ids have different RERUM URL patterns on them.
          **/
     }
-    delete rootObj["_id"]
     //All the children of this object will have its @id in __rerum.history.prime
     ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({ "__rerum.history.prime": primeURL }).toArray()
-    //Get rid of _id, for display
-    ls_versions.map(o => delete o["_id"])
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
@@ -1170,9 +1193,12 @@ async function alterHistoryPrevious(objToUpdate, newPrevID) {
  */
 async function alterHistoryNext(objToUpdate, newNextID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
-    objToUpdate.__rerum.history.next.push(newNextID)
-    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
-    return result.modifiedCount > 0
+    if(objToUpdate.__rerum.history.next.indexOf(newNextID) === -1){
+        objToUpdate.__rerum.history.next.push(newNextID)
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
+        return result.modifiedCount > 0
+    }
+    return true
 }
 
 /**
@@ -1455,15 +1481,18 @@ function getAgentClaim(req, next) {
  * @return Boolean sucess or some kind of Exception
  */
 async function establishReleasesTree(releasing){
-    let success = true;
-    const all = await getAllVersions(obj)
+    console.log("Establish releases tree for "+releasing["@id"])
+    let success = true
+    const all = await getAllVersions(releasing)
     .catch(error => {
         console.error(error)
         return []
     })
-    const descendants = getAllDescendants(all, obj, [])
-    const ancestors = getAllAncestors(all, obj, [])
+    console.log("All "+all.length+" of them...")
+    const descendants = getAllDescendants(all, releasing, [])
+    const ancestors = getAllAncestors(all, releasing, [])
     for(const d of descendants){
+        console.log("on desc")
         let safe_descendant = JSON.parse(JSON.stringify(d))
         let d_id = safe_descendant._id
         safe_descendant.__rerum.releases.previous = releasing["@id"]
@@ -1477,13 +1506,17 @@ async function establishReleasesTree(releasing){
         }
         if (result.modifiedCount == 0) {
             //result didn't error out, but it also didn't succeed...
+            console.log("nothing modified...")
             success = false
         }  
     }
     for(const a of ancestors){
+        console.log("on ans")
         let safe_ancestor = JSON.parse(JSON.stringify(a))
-        let a_id = safe_descendant._id
-        safe_ancestor.__rerum.releases.next.push(releasing["@id"])
+        let a_id = safe_ancestor._id
+        if(safe_ancestor.__rerum.releases.next.indexOf(releasing["@id"]) === -1){
+            safe_ancestor.__rerum.releases.next.push(releasing["@id"])    
+        }
         let result
         try {
             result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": a_id }, safe_ancestor)
@@ -1511,18 +1544,21 @@ async function establishReleasesTree(releasing){
  * @return Boolean success or some kind of Exception
  */
 async function healReleasesTree(releasing) {
-    let success = true;
-    const all = await getAllVersions(obj)
+    console.log("Heal releases tree")
+    let success = true
+    const all = await getAllVersions(releasing)
     .catch(error => {
         console.error(error)
         return []
     })
-    const descendants = getAllDescendants(all, obj, [])
-    const ancestors = getAllAncestors(all, obj, [])
+    console.log("All "+all.length+" of them...")
+    const descendants = getAllDescendants(all, releasing, [])
+    const ancestors = getAllAncestors(all, releasing, [])
     for(const d of descendants){
+        console.log("on desc")
         let safe_descendant = JSON.parse(JSON.stringify(d))
         let d_id = safe_descendant._id
-        if(d.__rerum.releases.previous === releasing.releases.previous){
+        if(d.__rerum.releases.previous === releasing.__rerum.releases.previous){
             // If the descendant's previous matches the node I am releasing's
             // releases.previous, swap the descendant releses.previous with node I am
             // releasing's @id.
@@ -1534,6 +1570,7 @@ async function healReleasesTree(releasing) {
                 }
             }
             let result
+            console.log("try for "+d_id)
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": d_id }, safe_descendant)
             } 
@@ -1543,63 +1580,68 @@ async function healReleasesTree(releasing) {
             }
             if (result.modifiedCount == 0) {
                 //result didn't error out, but it also didn't succeed...
+                console.log("nothing modified")
                 success = false
             }
         }    
     }
     let origNextArray = releasing.__rerum.releases.next
     for (const a of ancestors){
+        console.log("on ans")
         let safe_ancestor = JSON.parse(JSON.stringify(a))
         let a_id = safe_ancestor._id
         let ancestorNextArray = safe_ancestor.__rerum.releases.next
-        if(ancestorNextArray.length){
+        if (ancestorNextArray.length == 0) {
             // The releases.next on the node I am releasing is empty. This means only other
-            // ancestors with empty releases.next[] are between me and the next ancenstral
-            // released node
-            if (ancestorNextArray.size() == 0) {
-                // Add the id of the node I am releasing into the ancestor's releases.next array.
-                ancestorNextArray.add(releasing["@id"])
+            // ancestors with empty releases.next[] are between me and the next ancenstral released node
+            // Add the id of the node I am releasing into the ancestor's releases.next array.
+            if(ancestorNextArray.indexOf(releasing["@id"]) === -1){
+                ancestorNextArray.push(releasing["@id"])
             }
-            else{
-                // The releases.next on the node I am releasing has 1 - infinity entries. I need
-                // to check if any of the entries of that array exist in the releases.next of my
-                // ancestors and remove them before
-                // adding the @id of the released node into the acenstral releases.next array.  
-                for(const i of origNextArray){
-                    for(const j of ancestorNextArray){
-                        // For each id in the ancestor's releases.next array
-                        if (i === j) {
-                            // If the id is in the next array of the object I am releasing and in the
-                            // releases.next array of the ancestor
-                            const index = ancestorNextArray.indexOf(j)
-                            if (index > -1) {
-                                // remove that id.
-                              ancestorNextArray.splice(index, 1)
-                            }
+        }
+        else{
+            // The releases.next on the node I am releasing has 1 - infinity entries. I need
+            // to check if any of the entries of that array exist in the releases.next of my
+            // ancestors and remove them before
+            // adding the @id of the released node into the acenstral releases.next array.  
+            for(const i of origNextArray){
+                for(const j of ancestorNextArray){
+                    // For each id in the ancestor's releases.next array
+                    if (i === j) {
+                        // If the id is in the next array of the object I am releasing and in the
+                        // releases.next array of the ancestor
+                        const index = ancestorNextArray.indexOf(j)
+                        if (index > -1) {
+                            // remove that id.
+                          ancestorNextArray.splice(index, 1)
                         }
                     }
                 }
-                // Whether or not the ancestral node replaces the node I am releasing or not
-                // happens in releaseObject() when I make the node I am releasing isReleased
-                // because I can use the releases.previous there.
-                // Once I have checked against all id's in the ancestor node releases.next[] and removed the ones I needed to
-                // Add the id of the node I am releasing into the ancestor's releases.next array.
+            }
+            // Whether or not the ancestral node replaces the node I am releasing or not
+            // happens in releaseObject() when I make the node I am releasing isReleased
+            // because I can use the releases.previous there.
+            // Once I have checked against all id's in the ancestor node releases.next[] and removed the ones I needed to
+            // Add the id of the node I am releasing into the ancestor's releases.next array.
+            if(ancestorNextArray.indexOf(releasing["@id"]) === -1){
                 ancestorNextArray.push(releasing["@id"])
             }
-            safe_ancestor.__rerum.releases.next = ancestorNextArray
-            let result
-            try {
-                result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": a_id }, safe_ancestor)
-            } 
-            catch (error) {
-                next(createExpressError(error))
-                return
-            }
-            if (result.modifiedCount == 0) {
-                //result didn't error out, but it also didn't succeed...
-                success = false
-            }
         }
+        safe_ancestor.__rerum.releases.next = ancestorNextArray
+        let result
+        console.log("try for "+a_id)
+        try {
+            result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": a_id }, safe_ancestor)
+        } 
+        catch (error) {
+            next(createExpressError(error))
+            return
+        }
+        if (result.modifiedCount == 0) {
+            //result didn't error out, but it also didn't succeed...
+            success = false
+        }
+    
     }
     return success
 }
