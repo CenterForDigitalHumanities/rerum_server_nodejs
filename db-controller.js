@@ -1058,7 +1058,12 @@ async function getAllVersions(obj) {
     }
     else {
         //The obj passed in knows the ID of root, grab it from Mongo
-        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
+        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": primeID })
+        /**
+         * Note that if you attempt the following code, it will cause  Cannot convert undefined or null to object in getAllVersions.
+         * rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
+         * This is the because some of the @ids have different RERUM URL patterns on them.
+         **/
     }
     delete rootObj["_id"]
     //All the children of this object will have its @id in __rerum.history.prime
@@ -1397,13 +1402,13 @@ function createExpressError(update, originalError = {}) {
 }
 
 /**
- * An internal helper for removing a document from the database using a known _id.
+ * An internal helper for removing a document from the database using a known _id or __rerums.slug.
  * This is not exposed over the http request and response.
  * Use it internally where necessary.  Ex. end to end Slug test
  */
 exports.remove = async function (id) {
     try {
-        const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({ "_id": id })
+        const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (!result.deletedCount === 1) {
             console.log(result)
             throw Error("Could not remove object")

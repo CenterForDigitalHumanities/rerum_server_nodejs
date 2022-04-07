@@ -238,8 +238,8 @@ describe(
         .set('Slug', '1123rcgslu1123')
         .expect(201)
         .then(response => {
-            expect(response.headers["location"]).toBe(process.env.RERUM_ID_PREFIX+slug)
-            expect(response.body["@id"]).toBe(process.env.RERUM_ID_PREFIX+slug)
+            expect(response.headers["location"]).toBe(response.body["@id"])
+            expect(response.body.__rerum.slug).toBe(slug)
             controller.remove(slug).then(s => done())
         })
         .catch(err => done(err))  
