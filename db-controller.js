@@ -33,24 +33,29 @@ exports.index = function (req, res, next) {
  * @param slug_id A proposed _id.  
  * 
  */  
-exports.generateSlugId = async function(slug_id, next){
-    let slug 
-    try {
-        slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
+exports.generateSlugId = async function(slug_id="", next){
+    let slug
+    if(slug_id){
+        try {
+            slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
+        } 
+        catch (error) {
+            //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
+            console.error(error)
+            return slug_id
+        }
+        if(null === slug){
+            //Ok this one is good, you can use this as an _id
+            return slug_id
+        }
+        else{
+            //An object already has this _id or __rerum.slug
+            next(createExpressError({"code" : 11000}))
+            return
+        }
     } 
-    catch (error) {
-        //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
-        console.error(error)
-        return slug_id
-    }
-    if(null === slug){
-        //Ok this one is good, you can use this as an _id
-        return slug_id
-    }
     else{
-        //An object with this _id already exists
-        next(createExpressError({"code" : 11000}))
-        return
+        return ""
     }
 }
 
@@ -63,14 +68,14 @@ exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let slug = ""
     if(req.get("Slug")){
-        slug = await exports.generateSlugId(req.get("Slug"))
+        slug = await exports.generateSlugId(req.get("Slug"), next)
     }
     const id = new ObjectID().toHexString()
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
-    rerumProp.slug = slug
+    rerumProp.__rerum.slug = slug
     delete provided["_rerum"]
     delete provided["_id"]
     delete provided["@id"]
@@ -675,10 +680,10 @@ exports.release = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let slug = ""
     if(req.get("Slug")){
-        slug = await exports.generateSlugId(req.get("Slug"))
+        slug = await exports.generateSlugId(req.get("Slug"), next)
     }
     else if(req.params["slug"]){
-        slug = await exports.generateSlugId(req.params["slug"])
+        slug = await exports.generateSlugId(req.params["slug"], next)
     }
     if (objectReceived["@id"]){
         id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
@@ -693,7 +698,7 @@ exports.release = async function (req, res, next) {
         let safe_original = JSON.parse(JSON.stringify(originalObject))
         let previousReleasedID = safe_original.__rerum.releases.previous
         let nextReleases = safe_original.__rerum.releases.next
-        safe_original.__rerum.slug = slug
+        
         if (utils.isDeleted(safe_received)) {
             err = Object.assign(err, {
                 message: `The object you are trying to release is deleted. ${err.message}`,
@@ -719,6 +724,7 @@ exports.release = async function (req, res, next) {
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
             safe_original["__rerum"].releases.replaces = previousReleasedID
+            safe_original["__rerum.slug"] = slug
             if (previousReleasedID !== "") {
                 // A releases tree exists and an ancestral object is being released.
                 treeHealed = healReleasesTree(safe_original)
