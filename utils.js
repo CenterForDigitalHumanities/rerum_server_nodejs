@@ -108,10 +108,11 @@ exports.isDeleted = function(obj){
  * Check this object for released status.  Released objects in RERUM look like {"@id":"{some-id}", __rerum:{"isReleased" : "ISO-DATE-TIME"}}
  */ 
 exports.isReleased = function(obj){
-    return 
-        obj.hasOwnProperty("__rerum") && 
+    let bool = 
+    (obj.hasOwnProperty("__rerum") && 
         obj.__rerum.hasOwnProperty("isReleased") && 
-        obj.__rerum.isReleased !== ""
+        obj.__rerum.isReleased !== "")
+    return bool
 }
 
 /**
