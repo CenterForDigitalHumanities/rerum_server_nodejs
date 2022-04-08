@@ -64,8 +64,6 @@ exports.create = async function (req, res, next) {
     let slug = ""
     if(req.get("Slug")){
         let slug_json = await exports.generateSlugId(req.get("Slug"), next)
-        console.log("slug json is")
-        console.log(slug_json)
         if(slug_json.code){
             next(createExpressError(slug_json))
             return
@@ -75,8 +73,6 @@ exports.create = async function (req, res, next) {
         }
     }
     const id = new ObjectID().toHexString()
-    console.log("_id is "+id)
-    console.log("slug is "+slug)
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
@@ -168,7 +164,7 @@ exports.delete = async function (req, res, next) {
                 return
             }
             if (result.modifiedCount === 0) {
-                //result didn't error out, but it also didn't succeed...
+                //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 err.message = "The original object was not replaced with the deleted object in the database."
                 err.status = 500
                 next(createExpressError(err))
@@ -652,7 +648,7 @@ exports.overwrite = async function (req, res, next) {
                 next(createExpressError(error))
             }
             if (result.modifiedCount == 0) {
-                //result didn't error out, but it also didn't succeed...
+                //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
             }
             res.set(utils.configureWebAnnoHeadersFor(newObject))
             res.location(newObject["@id"])
@@ -682,15 +678,12 @@ exports.overwrite = async function (req, res, next) {
  * with the HTTP Request header 'Slug' or via a url parameter like ?slug=
  */
 exports.release = async function (req, res, next) {
-    console.log("Release object")
     let agentRequestingRelease = getAgentClaim(req, next)
     let id = req.params["_id"]
     let slug = ""
     let err = {"message":""}
     if(req.get("Slug")){
         let slug_json = await exports.generateSlugId(req.get("Slug"), next)
-        console.log("slug json is")
-        console.log(slug_json)
         if(slug_json.code){
             next(createExpressError(slug_json))
             return
@@ -699,8 +692,6 @@ exports.release = async function (req, res, next) {
             slug = slug_json.slug_id
         }
     }
-    console.log("_id is "+id)
-    console.log("slug is "+slug)
     if (id){
         let originalObject 
         try {
@@ -720,12 +711,12 @@ exports.release = async function (req, res, next) {
                 status: 403
             })
         }
-        // if (utils.isReleased(safe_original)) {
-        //     err = Object.assign(err, {
-        //         message: `The object you are trying to release is already released. ${err.message}`,
-        //         status: 403
-        //     })
-        // }
+        if (utils.isReleased(safe_original)) {
+            err = Object.assign(err, {
+                message: `The object you are trying to release is already released. ${err.message}`,
+                status: 403
+            })
+        }
         if (!utils.isGenerator(safe_original, agentRequestingRelease)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object. You cannot release it. ${err.message}`,
@@ -736,6 +727,7 @@ exports.release = async function (req, res, next) {
             next(createExpressError(err))
             return
         }
+        console.log("RELEASE")
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
             safe_original["__rerum"].releases.replaces = previousReleasedID
@@ -759,9 +751,7 @@ exports.release = async function (req, res, next) {
                 // If the tree was established/healed
                 // perform the update to isReleased of the object being released. Its
                 // releases.next[] and releases.previous are already correct.
-                console.log("Releases tree is healed, release it")
                 let releasedObject = safe_original
-                console.log("release with slug "+releasedObject.__rerum.slug)
                 let result
                 try {
                     result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, releasedObject)
@@ -771,10 +761,11 @@ exports.release = async function (req, res, next) {
                     return
                 }
                 if (result.modifiedCount == 0) {
-                    //result didn't error out, but it also didn't succeed...
+                    //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
                 res.set(utils.configureWebAnnoHeadersFor(releasedObject))
                 res.location(releasedObject["@id"])
+                console.log(releasedObject._id+" has been released")
                 delete releasedObject._id
                 res.json(releasedObject)
                 return
@@ -1271,7 +1262,7 @@ async function healHistoryTree(obj) {
                 //Does this have to be async?
                 let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, fixHistory)
                 if (verify.modifiedCount === 0) {
-                    //verify didn't error out, but it also didn't succeed...
+                    //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                     throw Error("Could not update all descendants with their new prime value")
                 }
             }
@@ -1290,7 +1281,7 @@ async function healHistoryTree(obj) {
                 let origNextArray = fixHistory2["__rerum"]["history"]["next"]
                 let newNextArray = [...origNextArray]
                 //This next should no longer have obj["@id"]
-                newNextArray.splice(obj["@id"], 1)
+                newNextArray = newNextArray.splice(obj["@id"], 1)
                 //This next needs to contain the nexts from the deleted object
                 newNextArray = [...newNextArray, ...next_ids]
                 fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
@@ -1328,14 +1319,14 @@ async function healHistoryTree(obj) {
             let origNextArray = fixHistory2["__rerum"]["history"]["next"]
             let newNextArray = [...origNextArray]
             //This next should no longer have obj["@id"]
-            newNextArray.splice(obj["@id"], 1)
+            newNextArray = newNextArray.splice(obj["@id"], 1)
             //This next needs to contain the nexts from the deleted object
             newNextArray = [...newNextArray, ...next_ids]
             fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
             //Does this have to be async
             let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
             if (verify2.modifiedCount === 0) {
-                //verify didn't error out, but it also didn't succeed...
+                //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 console.error("Could not update all ancestors with their altered next value")
                 return false
             }
@@ -1482,18 +1473,15 @@ function getAgentClaim(req, next) {
  * @return Boolean sucess or some kind of Exception
  */
 async function establishReleasesTree(releasing){
-    console.log("Establish releases tree for "+releasing["@id"])
     let success = true
     const all = await getAllVersions(releasing)
     .catch(error => {
         console.error(error)
         return []
     })
-    console.log("All "+all.length+" of them...")
     const descendants = getAllDescendants(all, releasing, [])
     const ancestors = getAllAncestors(all, releasing, [])
     for(const d of descendants){
-        console.log("on desc")
         let safe_descendant = JSON.parse(JSON.stringify(d))
         let d_id = safe_descendant._id
         safe_descendant.__rerum.releases.previous = releasing["@id"]
@@ -1506,13 +1494,12 @@ async function establishReleasesTree(releasing){
             return
         }
         if (result.modifiedCount == 0) {
-            //result didn't error out, but it also didn't succeed...
+            //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
             //console.log("nothing modified...")
             //success = false
         }  
     }
     for(const a of ancestors){
-        console.log("on ans")
         let safe_ancestor = JSON.parse(JSON.stringify(a))
         let a_id = safe_ancestor._id
         if(safe_ancestor.__rerum.releases.next.indexOf(releasing["@id"]) === -1){
@@ -1527,7 +1514,7 @@ async function establishReleasesTree(releasing){
             return
         }
         if (result.modifiedCount == 0) {
-            //result didn't error out, but it also didn't succeed...
+            //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
             //console.log("nothing modified...")
             //success = false
         }  
@@ -1546,25 +1533,21 @@ async function establishReleasesTree(releasing){
  * @return Boolean success or some kind of Exception
  */
 async function healReleasesTree(releasing) {
-    console.log("Heal releases tree")
     let success = true
     const all = await getAllVersions(releasing)
     .catch(error => {
         console.error(error)
         return []
     })
-    console.log("All "+all.length+" of them...")
     const descendants = getAllDescendants(all, releasing, [])
     const ancestors = getAllAncestors(all, releasing, [])
     for(const d of descendants){
-        console.log("on desc")
         let safe_descendant = JSON.parse(JSON.stringify(d))
         let d_id = safe_descendant._id
         if(d.__rerum.releases.previous === releasing.__rerum.releases.previous){
             // If the descendant's previous matches the node I am releasing's
-            // releases.previous, swap the descendant releses.previous with node I am
-            // releasing's @id.
-            safe_descendant.__rerum.releases.previous = releasing.__rerum.releases.previous
+            // releases.previous, swap the descendant releses.previous with node I am releasing's @id.
+            safe_descendant.__rerum.releases.previous = releasing["@id"]
             if(d.__rerum.isReleased !== ""){
                 // If this descendant is released, it replaces the node being released
                 if(d.__rerum.releases.previous === releasing["@id"]){
@@ -1572,7 +1555,6 @@ async function healReleasesTree(releasing) {
                 }
             }
             let result
-            console.log("try for "+d_id)
             try {
                 result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": d_id }, safe_descendant)
             } 
@@ -1581,15 +1563,13 @@ async function healReleasesTree(releasing) {
                 return
             }
             if (result.modifiedCount == 0) {
-                //result didn't error out, but it also didn't succeed...
-                //console.log("nothing modified")
+                //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 //success = false
             }
         }    
     }
     let origNextArray = releasing.__rerum.releases.next
     for (const a of ancestors){
-        console.log("on ans")
         let safe_ancestor = JSON.parse(JSON.stringify(a))
         let a_id = safe_ancestor._id
         let ancestorNextArray = safe_ancestor.__rerum.releases.next
@@ -1615,7 +1595,7 @@ async function healReleasesTree(releasing) {
                         const index = ancestorNextArray.indexOf(j)
                         if (index > -1) {
                             // remove that id.
-                          ancestorNextArray.splice(index, 1)
+                          ancestorNextArray = ancestorNextArray.splice(index, 1)
                         }
                     }
                 }
@@ -1631,7 +1611,6 @@ async function healReleasesTree(releasing) {
         }
         safe_ancestor.__rerum.releases.next = ancestorNextArray
         let result
-        console.log("try for "+a_id)
         try {
             result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": a_id }, safe_ancestor)
         } 
@@ -1640,7 +1619,7 @@ async function healReleasesTree(releasing) {
             return
         }
         if (result.modifiedCount == 0) {
-            //result didn't error out, but it also didn't succeed...
+            //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
             //success = false
         }
     

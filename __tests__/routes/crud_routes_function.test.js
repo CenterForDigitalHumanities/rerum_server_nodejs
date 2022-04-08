@@ -235,7 +235,7 @@ describe(
         .send({"RERUM Slug Support Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
-        .set('Slug', '1123rcgslu1123')
+        .set('Slug', slug)
         .expect(201)
         .then(response => {
             expect(response.headers["location"]).toBe(response.body["@id"])
@@ -439,6 +439,43 @@ describe(
     //     })
     //     .catch(err => done(err))
     // })
+
+    it('End to end /v1/api/release.'+
+    'It will need to create an object first, then release that object, and so must complete a /create call first.  '+
+    'It will check the response to /create is 201 and the response to /release is 200.', 
+    function(done) {
+      request
+        .post("/v1/api/create/")
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .send({"testing_release":"Delete Me"})
+        .expect(201)
+        .then(response => {
+          /**
+           * We cannot release the same object over and over again, so we need to create an object to release. 
+           * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with release.
+           * The same goes for the the remove call afterwards.
+           */ 
+          const idToRelease = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+          const slug = "1123rcgslu1123"
+          controller.remove(slug).then(r => {
+            request
+            .patch('/v1/api/release/'+idToRelease)
+            .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+            .set('Slug', slug)
+            .expect(200)
+            .then(response => {
+              expect(response.headers["access-control-allow-origin"]).toBe("*")
+              expect(response.headers["access-control-expose-headers"]).toBe("*")
+              expect(response.body.__rerum.isReleased).toBeTruthy()
+              expect(response.body.__rerum.slug).toBe(slug)
+              controller.remove(slug).then(s => done())
+            })
+            .catch(err => done(err))  
+          })
+          .catch(err => done(err)) 
+        })
+    })
 
     it('should use `limit` and `skip` correctly at /query',
     function(done) {
