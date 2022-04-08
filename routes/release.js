@@ -4,7 +4,6 @@ const router = require('express').Router()
 const controller = require('../db-controller.js')
 const auth = require('../auth')
 
-//TODO also support getting the ?slug= varriable and detecting the Slug header to mint a custom ID to release the object with.
 router.route('/:_id')
     .patch(auth.checkJwt, controller.release)
     .all((req, res) => {
