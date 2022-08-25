@@ -142,4 +142,10 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
       .get('/v1/api/query')
       .expect(405, done)
   })
+
+  it('/release', function(done) {
+    request
+      .get('/v1/api/release/zzznznzzzx')
+      .expect(405, done)
+  })
 })
