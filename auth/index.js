@@ -7,6 +7,7 @@ const { auth } = require('express-oauth2-jwt-bearer')
 const dotenv = require('dotenv')
 dotenv.config()
 
+//TODO: cannot run auth() until this can pass a botCheck()!
 const _tokenError = function (err, req, res, next) {
     if (err.status === 401) {
         err.message = err.statusMessage = `This token does not have permission to perform this action. 
@@ -27,7 +28,8 @@ const _extractUser = (req, res, next) => {
  *   // do authorized things
  * });
  */
-const checkJwt = [auth(), _tokenError, _extractUser]
+//const checkJwt = [auth(),_tokenError, _extractUser]
+const checkJwt = [_tokenError, _extractUser]
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
@@ -105,7 +107,11 @@ const isGenerator = (obj, token) => {
  * @param {URI} generatorId Agent ID of a known Auth0 bot to automatically approve.
  * @returns Boolean for matching ID.
  */
-const isBot = (generatorId) => process.env.BOT_AGENT === generatorId
+const isBot = (generatorId) => {
+    console.log("Is this a bot?")
+    console.log(generatorId)
+    return process.env.BOT_AGENT === generatorId
+}
 
 module.exports = {
     checkJwt,

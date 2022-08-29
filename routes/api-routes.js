@@ -35,10 +35,6 @@ router.use('/api/delete', deleteRouter)
 const overwriteRouter = require('./overwrite.js')
 router.use('/api/overwrite', overwriteRouter)
 
-// Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
-const releaseRouter = require('./release.js')
-router.use('/api/release', releaseRouter)
-
 // Support PUT requests with JSON bodies used for versioning an existing object through replacement.
 const updateRouter = require('./putUpdate.js')
 router.use('/api/update', updateRouter)
@@ -55,14 +51,6 @@ router.use('/api/set', setRouter)
 const unsetRouter = require('./patchUnset.js')
 router.use('/api/unset', unsetRouter)
 
-// Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
-const sinceRouter = require('./since.js')
-router.use('/since', sinceRouter)
-
-// Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
-const historyRouter = require('./history.js')
-router.use('/history', historyRouter)
-
 // Set default API response
 router.get('/api', function (req, res) {
     res.json({
@@ -78,6 +66,18 @@ router.get('/api', function (req, res) {
         }
     })
 })
+
+// Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
+const releaseRouter = require('./release.js')
+router.use('/release', releaseRouter)
+
+// Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
+const sinceRouter = require('./since.js')
+router.use('/since', sinceRouter)
+
+// Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
+const historyRouter = require('./history.js')
+router.use('/history', historyRouter)
 
 /**
  * Use this to catch 404s because of invalid /api/ paths and pass them to the error handler in app.js
