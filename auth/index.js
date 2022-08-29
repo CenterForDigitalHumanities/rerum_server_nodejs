@@ -43,7 +43,6 @@ const _extractUser = (req, res, next) => {
         next()
     }
     catch(e){
-        console.log("extract user error")
         e.message = e.statusMessage = `This token did not contain a known RERUM agent
         ${e.message}
         Received token: ${req.header("authorization")}`
