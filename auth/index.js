@@ -8,23 +8,53 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
-    let user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString()) ?? {}
     if (err.status === 401) {
+        console.log(err)
+        let user
+        try{
+            user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
+        }
+        catch(e){
+            console.log("token error error")
+            err.message = err.statusMessage = `This token is not for a RERUM user agent
+            ${err.message}
+            Received token: ${req.header("authorization")}`
+            err.status = 403
+            err.statusCode = 403
+            next(err)
+        }
         if(isBot(user)){
+            console.log("Request allowed via bot check")
             next()
         }
         else{
+            console.log("Not the bot error")
             err.message = err.statusMessage = `This token does not have permission to perform this action. 
             ${err.message}
             Received token: ${req.header("authorization")}`
             next(err)
         }
     }
+    else{
+        next(err)
+    }
 }
 
 const _extractUser = (req, res, next) => {
-    req.user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
-    next()
+    try{
+        req.user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
+        next()
+    }
+    catch(e){
+        console.log("extract user error")
+        e.message = e.statusMessage = `This token did not contain a known user
+        ${e.message}
+        Received token: ${req.header("authorization")}`
+        e.status = 403
+        e.statusCode = 403
+        next(e)
+    }
+    
 }
 
 /**
