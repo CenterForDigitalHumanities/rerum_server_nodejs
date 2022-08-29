@@ -1,11 +1,10 @@
 const { NextFunction, Request, Response } = require('express')
 const auth = require("../../auth")
-test('this test is still a work in progress.', () => {
-    let a = 1 
-    expect(a).toBe(1)
-})
+// test('this test is still a work in progress.', () => {
+//     let a = 1 
+//     expect(a).toBe(1)
+// })
 // REDO
-/*
 describe('Authorization middleware',()=>{
     let mockRequest
     let mockResponse
@@ -36,4 +35,3 @@ describe('Authorization middleware',()=>{
         expect(nextFunction);
     })
 })
-*/
