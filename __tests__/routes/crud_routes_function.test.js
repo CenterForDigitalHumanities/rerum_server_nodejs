@@ -440,7 +440,7 @@ describe(
     //     .catch(err => done(err))
     // })
 
-    it('End to end /v1/api/release.'+
+    it('End to end /v1/release.'+
     'It will need to create an object first, then release that object, and so must complete a /create call first.  '+
     'It will check the response to /create is 201 and the response to /release is 200.', 
     function(done) {
@@ -460,7 +460,7 @@ describe(
           const slug = "1123rcgslu1123"
           controller.remove(slug).then(r => {
             request
-            .patch('/v1/api/release/'+idToRelease)
+            .patch('/v1/release/'+idToRelease)
             .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
             .set('Slug', slug)
             .expect(200)

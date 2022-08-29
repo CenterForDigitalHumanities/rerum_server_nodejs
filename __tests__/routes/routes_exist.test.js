@@ -48,6 +48,12 @@ describe('Check to see that all expected routes exists.', function() {
       .expect(405, done)
   })
 
+  it('/v1/release/{_id} -- RERUM /release/:_id pattern.  It should return a 405.', function(done) {
+    request
+      .post('/v1/release/zzznznzzzx')
+      .expect(405, done)
+  })
+
   it('/v1/since/{_id} -- RERUM /since/:_id pattern.  It should return a 405.', function(done) {
     request
       .post('/v1/since/1111')
@@ -143,9 +149,4 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
       .expect(405, done)
   })
 
-  it('/release', function(done) {
-    request
-      .get('/v1/api/release/zzznznzzzx')
-      .expect(405, done)
-  })
 })
