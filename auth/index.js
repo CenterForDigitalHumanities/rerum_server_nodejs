@@ -7,7 +7,6 @@ const { auth } = require('express-oauth2-jwt-bearer')
 const dotenv = require('dotenv')
 dotenv.config()
 
-//TODO: cannot run auth() until this can pass a botCheck()!
 const _tokenError = function (err, req, res, next) {
     let user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString()) ?? {}
     if (err.status === 401) {
