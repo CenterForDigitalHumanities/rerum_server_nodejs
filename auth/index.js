@@ -34,8 +34,8 @@ const _extractUser = (req, res, next) => {
  *   // do authorized things
  * });
  */
-const checkJwt = [auth(),_tokenError, _extractUser]
-//const checkJwt = [_tokenError, _extractUser]
+const checkJwt = [auth(), _tokenError, _extractUser]
+
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
