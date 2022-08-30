@@ -36,7 +36,7 @@ describe('Check to see that all expected routes exists.', function() {
       .expect("Content-Type", /json/)
       .expect(200)
       .then(response => {
-          expect(Object.keys(response.body.endpoints).length).toBe(7)
+          expect(Object.keys(response.body.endpoints).length).toBe(9)
           done()
       })
       .catch(err => done(err))
@@ -45,12 +45,6 @@ describe('Check to see that all expected routes exists.', function() {
   it('/v1/id/{_id} -- RERUM object URL GET by _id pattern.  It should return a 405.', function(done) {
     request
       .post('/v1/id/1111')
-      .expect(405, done)
-  })
-
-  it('/v1/api/release/{_id} -- RERUM /api/release/:_id pattern.  It should return a 405.', function(done) {
-    request
-      .post('/v1/api/release/zzznznzzzx')
       .expect(405, done)
   })
 
@@ -146,6 +140,12 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
   it('/query', function(done) {
     request
       .get('/v1/api/query')
+      .expect(405, done)
+  })
+
+  it('/release/{_id}', function(done) {
+    request
+      .post('/v1/api/release/zzznznzzzx')
       .expect(405, done)
   })
 
