@@ -8,17 +8,38 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
-    if (err.status === 401) {
-        err.message = err.statusMessage = `This token does not have permission to perform this action. 
-        ${err.message}
-        Received token: ${req.header("authorization")}`
+    if(!err.code || err.code !== "invalid_token"){ 
         next(err)
+        return
     }
+    try{
+        let user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
+        if(isBot(user)){
+            console.log("Request allowed via bot check")
+            next()
+            return
+        }
+    }
+    catch(e){
+        e.message = e.statusMessage = `This token did not contain a known RERUM agent.`
+        e.status = 401
+        e.statusCode = 401
+        next(e)
+    }
+    next(err)
 }
 
 const _extractUser = (req, res, next) => {
-    req.user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
-    next()
+    try{
+        req.user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
+        next()
+    }
+    catch(e){
+        e.message = e.statusMessage = `This token did not contain a known RERUM agent.}`
+        e.status = 401
+        e.statusCode = 401
+        next(e)
+    }
 }
 
 /**
@@ -28,6 +49,7 @@ const _extractUser = (req, res, next) => {
  * });
  */
 const checkJwt = [auth(), _tokenError, _extractUser]
+
 /**
  * Public API proxy to generate new access tokens through Auth0
  * with a refresh token when original access has expired.
@@ -36,7 +58,6 @@ const checkJwt = [auth(), _tokenError, _extractUser]
  */
 const generateNewAccessToken = async (req, res) => {
     console.log("Generating a proxy access token.")
-
     const tokenObj = await got.post('https://cubap/oauth/token',
         {
             form: {
@@ -88,24 +109,22 @@ const verifyAccess = (secret) => {
 /**
  * 
  * @param {Object} obj RERUM database entry
- * @param {Hex String} token from Authentication Header
+ * @param {Object} User object discerned from token
  * @returns Boolean match between encoded Generator Agent and obj generator
  */
-const isGenerator = (obj, token) => {
-    const claimKey = process.env.RERUM_AGENT_CLAIM
-
-    const reqGenerator = token.claimKey
-
-    return reqGenerator === obj.__rerum.generatedBy
+const isGenerator = (obj, userObj) => {
+    return userObj[process.env.RERUM_AGENT_CLAIM] === obj.__rerum.generatedBy
 }
 
 /**
  * Even expired tokens may be accepted if the Agent is a known bot. This is a 
  * dangerous thing to include, but may be a useful convenience.
- * @param {URI} generatorId Agent ID of a known Auth0 bot to automatically approve.
+ * @param {Object} User object discerned from token
  * @returns Boolean for matching ID.
  */
-const isBot = (generatorId) => process.env.BOT_AGENT === generatorId
+const isBot = (userObj) => {
+    return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM] ?? "Error"
+}
 
 module.exports = {
     checkJwt,

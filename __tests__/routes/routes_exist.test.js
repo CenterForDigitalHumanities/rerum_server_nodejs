@@ -36,7 +36,7 @@ describe('Check to see that all expected routes exists.', function() {
       .expect("Content-Type", /json/)
       .expect(200)
       .then(response => {
-          expect(Object.keys(response.body.endpoints).length).toBe(7)
+          expect(Object.keys(response.body.endpoints).length).toBe(9)
           done()
       })
       .catch(err => done(err))
@@ -143,9 +143,10 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
       .expect(405, done)
   })
 
-  it('/release', function(done) {
+  it('/release/{_id}', function(done) {
     request
-      .get('/v1/api/release/zzznznzzzx')
+      .post('/v1/api/release/zzznznzzzx')
       .expect(405, done)
   })
+
 })

@@ -1,6 +1,5 @@
 const { NextFunction, Request, Response } = require('express')
 const auth = require("../../auth")
-
 // REDO
 describe('Authorization middleware',()=>{
     let mockRequest
