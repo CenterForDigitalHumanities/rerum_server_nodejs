@@ -8,27 +8,22 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
-    if(err.code && err.code === "invalid_token"){
-        let user
-        try{
-            user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
-            if(isBot(user)){
-                console.log("Request allowed via bot check")
-                next()
-            }
-            else{
-                err.message = err.statusMessage = `${err.message}.  Received token: ${req.header("authorization")}`
-                next(err)
-            }
-        }
-        catch(e){
-            err.message = err.statusMessage = `${err.message}.  Received token: ${req.header("authorization")}`
-            next(err)
+    if(!err.code || err.code !== "invalid_token"){ 
+        next(e)
+        return
+    }
+    try{
+        let user = JSON.parse(Buffer.from(req.header("authorization").split(" ")[1].split('.')[1], 'base64').toString())
+        if(isBot(user)){
+            console.log("Request allowed via bot check")
+            next()
+            return
         }
     }
-    else{
-        next(err)
+    catch(e){
+        err.message = err.statusMessage = `${err.message}.  Received token: ${req.header("authorization")}`
     }
+    next(err)
 }
 
 const _extractUser = (req, res, next) => {
