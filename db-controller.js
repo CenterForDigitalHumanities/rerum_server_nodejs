@@ -90,6 +90,7 @@ exports.create = async function (req, res, next) {
         res.location(newObject["@id"])
         res.status(201)
         delete newObject._id
+        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.json(newObject)
     }
     catch (error) {
@@ -240,6 +241,7 @@ exports.putUpdate = async function (req, res, next) {
                     res.location(newObject["@id"])
                     res.status(200)
                     delete newObject._id
+                    newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
                 }
@@ -330,6 +332,7 @@ exports.patchUpdate = async function (req, res, next) {
                 res.location(originalObject["@id"])
                 res.status(200)
                 delete originalObject._id
+                originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
             }
@@ -350,6 +353,7 @@ exports.patchUpdate = async function (req, res, next) {
                     res.location(newObject["@id"])
                     res.status(200)
                     delete newObject._id
+                    newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
                 }
@@ -432,6 +436,7 @@ exports.patchSet = async function (req, res, next) {
                 res.location(originalObject["@id"])
                 res.status(200)
                 delete originalObject._id
+                originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
             }
@@ -451,6 +456,7 @@ exports.patchSet = async function (req, res, next) {
                     res.location(newObject["@id"])
                     res.status(200)
                     delete newObject._id
+                    newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
                 }
@@ -540,6 +546,7 @@ exports.patchUnset = async function (req, res, next) {
                 res.location(originalObject["@id"])
                 res.status(200)
                 delete originalObject._id
+                originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
             }
@@ -560,6 +567,7 @@ exports.patchUnset = async function (req, res, next) {
                     res.location(newObject["@id"])
                     res.status(200)
                     delete newObject._id
+                    newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
                 }
@@ -653,6 +661,7 @@ exports.overwrite = async function (req, res, next) {
             res.set(utils.configureWebAnnoHeadersFor(newObject))
             res.location(newObject["@id"])
             delete newObject._id
+            newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
             res.json(newObject)
             return
         }
@@ -767,6 +776,7 @@ exports.release = async function (req, res, next) {
                 res.location(releasedObject["@id"])
                 console.log(releasedObject._id+" has been released")
                 delete releasedObject._id
+                releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
                 res.json(releasedObject)
                 return
             } 
