@@ -9,7 +9,7 @@ dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
     if(!err.code || err.code !== "invalid_token"){ 
-        next(e)
+        next(err)
         return
     }
     try{
@@ -21,7 +21,10 @@ const _tokenError = function (err, req, res, next) {
         }
     }
     catch(e){
-        err.message = err.statusMessage = `${err.message}.  Received token: ${req.header("authorization")}`
+        e.message = e.statusMessage = `This token did not contain a known RERUM agent.`
+        e.status = 401
+        e.statusCode = 401
+        next(e)
     }
     next(err)
 }
@@ -32,7 +35,7 @@ const _extractUser = (req, res, next) => {
         next()
     }
     catch(e){
-        e.message = e.statusMessage = `This token did not contain a known RERUM agent. Received token: ${req.header("authorization")}`
+        e.message = e.statusMessage = `This token did not contain a known RERUM agent.}`
         e.status = 401
         e.statusCode = 401
         next(e)

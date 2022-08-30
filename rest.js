@@ -39,8 +39,19 @@ exports.messenger = function(err, req, res, next){
     let customResponseBody = {}
     let statusCode = err.statusCode ?? res.statusCode ?? 500
     customResponseBody.http_response_code = statusCode
-    const msgIn = err.statusCode ? err.statusMessage : res.statusMessage
+    //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
+    //Other errors come through with a status code or status message
+    //Other responses come through with a status message
+    console.log(err)
+    let msgIn
+    if(err.statusCode){
+        msgIn = err.statusMessage ?? err.headers["WWW-Authenticate"] ?? ""
+    }
+    else{
+        msgIn = res.statusMessage
+    }
     let genericMessage = ""
+    let token = req.header("Authorization") ?? ""
     switch (statusCode){
         case 400:
             //"Bad Request", most likely because the body and Content-Type are not aligned.  Could be bad JSON.
@@ -50,22 +61,30 @@ exports.messenger = function(err, req, res, next){
         break
         case 401:
             //The requesting agent is known from the request.  That agent does not match __rerum.generatedBy.  Unauthorized.
-            genericMessage = 
-            "This application is not the generator for the object you are trying to alter.  Fork the object via an update to make changes."
-        break
-        case 403:
-            //Forbidden to use this.  There may not be an Authorization header, or that header is invalid, or the Bearer is not known to RERUM.
-            if(res.header("Authorization")){
+            if(token){
                 genericMessage = 
-                "RERUM could not authorize you to perform this action.  The 'Bearer' is not of RERUM.  "
-                +"Make sure you have registered at "+process.env.RERUM_PREFIX
+                `The token provided is Unauthorized.  Please check that it is your token and that it is not expired.  `
+                +`Token : { ${token} }`
             }
             else{
                 genericMessage = 
-                "Improper or missing Authorization header provided on request.  Required header must be 'Authorization: Bearer {token}'.  "
-                +"Make sure you have registered at "+process.env.RERUM_PREFIX
-            }  
+                "The request does not contain a token and so is Unauthorized.  Please include a token with your requests "
+                +"like 'Authorization: Bearer {token}'. Make sure you have registered at "+process.env.RERUM_PREFIX
+            }
+            
         break
+        case 403:
+            //Forbidden to use this.  The provided Bearer does not have the required privileges. 
+            if(token){
+                genericMessage = 
+                `You are Forbidden from performing this action.  Check your privileges.`
+                +`Token: ${token}`
+            }
+            else{
+                //If there was no Token, this would be a 401.  If you made it here, you didn't REST.
+                genericMessage = `You are Forbidden from performing this action.  Please include a token with your requests `
+                +`like 'Authorization: Bearer {token}'. Make sure you have registered at ${process.env.RERUM_PREFIX} `
+            }
         case 404:
             genericMessage = 
                 "The requested web page or resource could not be found."
@@ -87,6 +106,6 @@ exports.messenger = function(err, req, res, next){
             //Unsupported messaging scenario for this helper function.  
             //A customized object for the original error will be sent, if res allows it.
     }
-    customResponseBody.message = msgIn ?? genericMessage
+    customResponseBody.message = msgIn ? genericMessage + "   --   "+msgIn : genericMessage
     res.status(statusCode).send(customResponseBody)
 }
