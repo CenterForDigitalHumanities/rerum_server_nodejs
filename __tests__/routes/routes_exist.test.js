@@ -48,9 +48,9 @@ describe('Check to see that all expected routes exists.', function() {
       .expect(405, done)
   })
 
-  it('/v1/release/{_id} -- RERUM /release/:_id pattern.  It should return a 405.', function(done) {
+  it('/v1/api/release/{_id} -- RERUM /api/release/:_id pattern.  It should return a 405.', function(done) {
     request
-      .post('/v1/release/zzznznzzzx')
+      .post('/v1/api/release/zzznznzzzx')
       .expect(405, done)
   })
 

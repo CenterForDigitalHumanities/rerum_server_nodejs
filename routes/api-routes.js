@@ -62,14 +62,16 @@ router.get('/api', function (req, res) {
             "/set": "PATCH - Update the body an existing object by adding a new property.",
             "/unset": "PATCH - Update the body an existing object by removing an existing property.",
             "/delete": "DELETE - Mark an object as deleted.",
-            "/query": "POST - Supply a JSON object to match on, and query the db for an array of matches."
+            "/query": "POST - Supply a JSON object to match on, and query the db for an array of matches.",
+            "/release": "POST - Lock a JSON object from changes and guarantee the content and URI.",
+            "/overwrite": "POST - Update a specific document in place, overwriting the existing body."
         }
     })
 })
 
 // Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
 const releaseRouter = require('./release.js')
-router.use('/release', releaseRouter)
+router.use('/api/release', releaseRouter)
 
 // Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
 const sinceRouter = require('./since.js')
