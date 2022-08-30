@@ -27,7 +27,7 @@ const _tokenError = function (err, req, res, next) {
         }
     }
     else{
-        next()
+        next(err)
     }
 }
 
