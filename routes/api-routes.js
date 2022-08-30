@@ -51,6 +51,10 @@ router.use('/api/set', setRouter)
 const unsetRouter = require('./patchUnset.js')
 router.use('/api/unset', unsetRouter)
 
+// Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
+const releaseRouter = require('./release.js')
+router.use('/api/release', releaseRouter)
+
 // Set default API response
 router.get('/api', function (req, res) {
     res.json({
@@ -68,10 +72,6 @@ router.get('/api', function (req, res) {
         }
     })
 })
-
-// Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
-const releaseRouter = require('./release.js')
-router.use('/api/release', releaseRouter)
 
 // Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
 const sinceRouter = require('./since.js')
