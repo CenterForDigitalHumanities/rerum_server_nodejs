@@ -150,3 +150,34 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
   })
 
 })
+
+describe('Check for legacy endpoints.', function() {
+
+  it('create.action exists', function(done) {
+    request
+      .post('/v1/api/create.action')
+      .expect(405, done)
+  })
+
+ //update.action exists
+  it('update.action exists', function(done) {
+    request
+      .post('/v1/api/update.action')
+      .expect(405, done)
+  })
+
+  //delete.action exists
+  it('delete.action exists', function(done) {
+    request
+      .delete('/v1/api/delete.action')
+      .expect(405, done)
+  })
+
+  //unknownAction.action does not exist
+  it('unknownAction.action does not exist', function(done) {
+    request
+      .post('/v1/api/unknownAction.action')
+      .expect(404, done)
+  })
+
+})
