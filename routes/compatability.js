@@ -8,7 +8,7 @@ router.route("/:attemptedAction.action")
             next()
             return
         }
-        res.redirect(`/v1/api/${req.params.attemptedAction}`)
+        res.redirect(`./${req.params.attemptedAction}`)
     })
 
 module.exports = router
