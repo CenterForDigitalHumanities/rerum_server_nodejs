@@ -156,27 +156,27 @@ describe('Check for legacy endpoints.', function() {
   it('create.action exists', function(done) {
     request
       .get('/v1/api/create.action')
-      .expect(405, done)
+      .expect(302, done)
   })
 
  //update.action exists
   it('update.action exists', function(done) {
     request
       .get('/v1/api/update.action')
-      .expect(405, done)
+      .expect(302, done)
   })
 
   //delete.action exists
   it('delete.action exists', function(done) {
     request
       .get('/v1/api/delete.action')
-      .expect(405, done)
+      .expect(302, done)
   })
 
-  //unknownAction.action does not exist
-  it('unknownAction.action does not exist', function(done) {
+  //potatoAction.action does not exist
+  it('potatoAction.action does not exist', function(done) {
     request
-      .get('/v1/api/unknownAction.action')
+      .get('/v1/api/potatoAction.action')
       .expect(404, done)
   })
 
