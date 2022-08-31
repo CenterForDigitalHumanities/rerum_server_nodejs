@@ -55,6 +55,10 @@ router.use('/api/unset', unsetRouter)
 const releaseRouter = require('./release.js')
 router.use('/api/release', releaseRouter)
 
+// Support older style API calls.
+const compatabilityRouter = require('./compatability.js')
+router.use('/api', compatabilityRouter)
+
 // Set default API response
 router.get('/api', function (req, res) {
     res.json({
