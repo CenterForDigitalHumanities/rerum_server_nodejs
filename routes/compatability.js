@@ -2,13 +2,13 @@
 const router = require('express').Router()
 // This controller reroutes older style API calls.
 
-router.route("/api/:attemptedAction.action")
-    .all((req, res) => {
+router.route("/:attemptedAction.action")
+    .all((req, res, next) => {
         if (!req.params.attemptedAction) {
             next()
             return
         }
-        req.redirect(`/api/${req.params.attemptedAction}`)
+        res.redirect(`/v1/api/${req.params.attemptedAction}`)
     })
 
 module.exports = router
