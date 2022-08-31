@@ -153,24 +153,36 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
 
 describe('Check for legacy endpoints.', function() {
 
+  it('accessToken exists', function(done) {
+    request
+      .get('/v1/api/accessToken')
+      .expect(307, done)
+  })
+
+  it('refreshToken exists', function(done) {
+    request
+      .get('/v1/api/refreshToken')
+      .expect(307, done)
+  })
+
   it('create.action exists', function(done) {
     request
       .get('/v1/api/create.action')
-      .expect(302, done)
+      .expect(307, done)
   })
 
  //update.action exists
   it('update.action exists', function(done) {
     request
       .get('/v1/api/update.action')
-      .expect(302, done)
+      .expect(307, done)
   })
 
   //delete.action exists
   it('delete.action exists', function(done) {
     request
       .get('/v1/api/delete.action')
-      .expect(302, done)
+      .expect(307, done)
   })
 
   //potatoAction.action does not exist
