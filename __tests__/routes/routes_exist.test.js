@@ -155,14 +155,14 @@ describe('Check for legacy endpoints.', function() {
 
   it('accessToken exists', function(done) {
     request
-      .get('/v1/api/accessToken')
-      .expect(405, done)
+      .post('/v1/api/accessToken')
+      .expect(403, done)
   })
 
   it('refreshToken exists', function(done) {
     request
-      .get('/v1/api/refreshToken')
-      .expect(405, done)
+      .post('/v1/api/refreshToken')
+      .expect(403, done)
   })
 
   it('getByProperties.action redirects to query', function(done) {
