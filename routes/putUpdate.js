@@ -9,7 +9,7 @@ router.route('/')
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router

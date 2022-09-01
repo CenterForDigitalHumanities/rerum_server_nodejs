@@ -8,7 +8,7 @@ router.route('/:_id')
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method, please use GET.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router

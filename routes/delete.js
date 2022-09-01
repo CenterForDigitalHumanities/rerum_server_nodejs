@@ -8,7 +8,7 @@ router.route('/:_id')
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for deleting, please use DELETE.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router
