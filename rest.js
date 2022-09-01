@@ -47,6 +47,12 @@ exports.messenger = function (err, req, res, next) {
     }
     let genericMessage = ""
     let token = req.header("Authorization")
+    if(token && !token.startsWith("Bearer ")){
+        err.message +=`
+        Your token is not in the correct format.  It should be a Bearer token formatted like: "Bearer <token>"`
+        next(err)
+        return
+    }
     switch (err.statusCode) {
         case 400:
             //"Bad Request", most likely because the body and Content-Type are not aligned.  Could be bad JSON.
