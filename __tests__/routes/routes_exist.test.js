@@ -153,17 +153,17 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
 
 describe('Check for legacy endpoints.', function() {
 
-  it('accessToken exists', function(done) {
-    request
-      .post('/v1/api/accessToken')
-      .expect(403, done)
-  })
+  // it('accessToken exists', function(done) {
+  //   request
+  //     .post('/v1/api/accessToken')
+  //     .expect(403, done)
+  // })
 
-  it('refreshToken exists', function(done) {
-    request
-      .post('/v1/api/refreshToken')
-      .expect(403, done)
-  })
+  // it('refreshToken exists', function(done) {
+  //   request
+  //     .post('/v1/api/refreshToken')
+  //     .expect(403, done)
+  // })
 
   it('getByProperties.action redirects to query', function(done) {
     request
