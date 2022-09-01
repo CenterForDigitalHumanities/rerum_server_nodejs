@@ -38,15 +38,22 @@ exports.messenger = function(err, req, res, next){
     let customResponseBody = {}
     let statusCode = err.statusCode ?? res.statusCode ?? 500
     customResponseBody.http_response_code = statusCode
-    //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
-    //Other errors come through with a status code or status message
-    //Other responses come through with a status message
     let msgIn
     if(err.statusCode){
-        msgIn = err.statusMessage ?? err.headers["WWW-Authenticate"] ?? ""
+        if(err.statusCode === 401){
+            //Special handler for token errors from the oauth module
+            //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
+            //Other 401s from our app come through with a status message
+            msgIn = err.statusMessage ?? err.headers["WWW-Authenticate"] ?? ""
+        }
+        else{
+            //Other errors will have a status message in one of these places, or no message.
+            msgIn = err.statusMessage ?? res.statusMessage ?? ""
+        }
     }
     else{
-        msgIn = res.statusMessage
+        //If there is no error and there is meant to be a message it is in status message.
+        msgIn = res.statusMessage ?? ""
     }
     let genericMessage = ""
     let token = req.header("Authorization") ?? ""
@@ -104,6 +111,6 @@ exports.messenger = function(err, req, res, next){
             //Unsupported messaging scenario for this helper function.  
             //A customized object for the original error will be sent, if res allows it.
     }
-    customResponseBody.message = msgIn ? genericMessage + "   --   "+msgIn : genericMessage
+    customResponseBody.message = msgIn ? `${genericMessage}   ---   ${msgIn}` : genericMessage
     res.status(statusCode).send(customResponseBody)
 }
