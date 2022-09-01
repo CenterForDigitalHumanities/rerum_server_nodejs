@@ -5,7 +5,7 @@ const controller = require('../db-controller.js')
 router.route('/:_id')
     .get(controller.since)
     .head(controller.sinceHeadRequest)
-    .all((req, res) => {
+    .all((req, res, next) => {
         res.statusMessage = 'Improper request method, please use GET.'
         res.status(405)
         next()

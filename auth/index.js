@@ -56,7 +56,7 @@ const checkJwt = [auth(), _tokenError, _extractUser]
  * @param {ExpressRequest} req from registered server application.
  * @param {ExpressResponse} res to return the new token.
  */
-const generateNewAccessToken = async (req, res) => {
+const generateNewAccessToken = async (req, res, next) => {
     console.log("Generating a proxy access token.")
     const tokenObj = await got.post('https://cubap/oauth/token',
         {
@@ -75,7 +75,7 @@ const generateNewAccessToken = async (req, res) => {
  * @param {ExpressRequest} req from registered server application.
  * @param {ExpressResponse} res to return the new token.
  */
-const generateNewRefreshToken = async (req, res) => {
+const generateNewRefreshToken = async (req, res, next) => {
     console.log("Generating a new refresh token.")
 
     const tokenObj = await got.post('https://cubap/oauth/token',

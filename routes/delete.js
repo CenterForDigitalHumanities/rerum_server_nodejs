@@ -5,7 +5,7 @@ const auth = require('../auth')
 
 router.route('/:_id')
     .delete(auth.checkJwt, controller.delete)
-    .all((req, res) => {
+    .all((req, res, next) => {
         res.statusMessage = 'Improper request method for deleting, please use DELETE.'
         res.status(405)
         next()
