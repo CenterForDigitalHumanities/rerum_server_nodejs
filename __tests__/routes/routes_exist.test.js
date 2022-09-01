@@ -156,40 +156,46 @@ describe('Check for legacy endpoints.', function() {
   it('accessToken exists', function(done) {
     request
       .get('/v1/api/accessToken')
-      .expect(307, done)
+      .expect(405, done)
   })
 
   it('refreshToken exists', function(done) {
     request
       .get('/v1/api/refreshToken')
-      .expect(307, done)
+      .expect(405, done)
+  })
+
+  it('getByProperties.action redirects to query', function(done) {
+    request
+      .get('/v1/api/getByProperties.action')
+      .expect(405, done)
   })
 
   it('create.action exists', function(done) {
     request
       .get('/v1/api/create.action')
-      .expect(307, done)
+      .expect(405, done)
   })
 
  //update.action exists
   it('update.action exists', function(done) {
     request
       .get('/v1/api/update.action')
-      .expect(307, done)
+      .expect(405, done)
   })
 
   //delete.action exists
   it('delete.action exists', function(done) {
     request
       .get('/v1/api/delete.action')
-      .expect(307, done)
+      .expect(405, done)
   })
 
   //potatoAction.action does not exist
   it('potatoAction.action does not exist #No404 #broken', function(done) {
     request
       .get('/v1/api/potatoAction.action')
-      .expect(307, done)
+      .expect(404, done)
   })
 
 })

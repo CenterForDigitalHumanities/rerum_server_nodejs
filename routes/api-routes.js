@@ -19,6 +19,10 @@ router.use(staticRouter)
 const idRouter = require('./id.js')
 router.use('/id',idRouter)
 
+// Support older style API calls through rewrite.
+const compatabilityRouter = require('./compatability.js')
+router.use('/api', compatabilityRouter)
+
 // Support POST requests with JSON bodies used for passing queries though to the database.
 const queryRouter = require('./query.js')
 router.use('/api/query', queryRouter)
@@ -54,10 +58,6 @@ router.use('/api/unset', unsetRouter)
 // Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
 const releaseRouter = require('./release.js')
 router.use('/api/release', releaseRouter)
-
-// Support older style API calls.
-const compatabilityRouter = require('./compatability.js')
-router.use('/api', compatabilityRouter)
 
 // Set default API response
 router.get('/api', function (req, res) {
