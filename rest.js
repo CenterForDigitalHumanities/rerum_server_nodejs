@@ -38,7 +38,7 @@ exports.messenger = function(err, req, res, next){
     let customResponseBody = {}
     let statusCode = err.statusCode ?? res.statusCode ?? 500
     customResponseBody.http_response_code = statusCode
-    let msgIn
+    let msgIn = ""
     if(err.statusCode){
         if(err.statusCode === 401){
             //Special handler for token errors from the oauth module
@@ -53,10 +53,6 @@ exports.messenger = function(err, req, res, next){
             //Other errors will have a status message in one of these places, or no message.
             msgIn = err.statusMessage ?? res.statusMessage ?? ""
         }
-    }
-    else{
-        //If there is no error and there is meant to be a message it is in status message.
-        msgIn = res.statusMessage ?? ""
     }
     let genericMessage = ""
     let token = req.header("Authorization") ?? ""
