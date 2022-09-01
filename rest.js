@@ -36,13 +36,13 @@ exports.messenger = function (err, req, res, next) {
         next(err)
         return
     }
-    err.statusMessage = err.statusMessage ?? res.statusMessage ?? ``
+    err.message = err.message ?? res.message ?? ``
     if (err.statusCode === 401) {
         //Special handler for token errors from the oauth module
         //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
         //Other 401s from our app come through with a status message.  They may not have headers.
         if (err.headers?.["WWW-Authenticate"]) {
-            err.statusMessage += err.headers["WWW-Authenticate"]
+            err.message += err.headers["WWW-Authenticate"]
         }
     }
     let genericMessage = ""
@@ -50,19 +50,19 @@ exports.messenger = function (err, req, res, next) {
     switch (err.statusCode) {
         case 400:
             //"Bad Request", most likely because the body and Content-Type are not aligned.  Could be bad JSON.
-            err.statusMessage += `
+            err.message += `
 The body of your request was invalid. Please make sure it is a valid content-type and that the body matches that type.
 If the body is JSON, make sure it is valid JSON.`
             break
         case 401:
             //The requesting agent is known from the request.  That agent does not match __rerum.generatedBy.  Unauthorized.
             if (token) {
-                err.statusMessage += `
+                err.message += `
 The token provided is Unauthorized.  Please check that it is your token and that it is not expired. 
 Token: ${token} `
             }
             else {
-                err.statusMessage += `
+                err.message += `
 The request does not contain an "Authorization" header and so is Unauthorized. Please include a token with your requests
 like 'Authorization: Bearer TOKEN'. Make sure you have registered at ${process.env.RERUM_PREFIX}.`
             }
@@ -70,18 +70,18 @@ like 'Authorization: Bearer TOKEN'. Make sure you have registered at ${process.e
         case 403:
             //Forbidden to use this.  The provided Bearer does not have the required privileges. 
             if (token) {
-                err.statusMessage += `
+                err.message += `
 You are Forbidden from performing this action.  Check your privileges.
 Token: ${token}`
             }
             else {
                 //If there was no Token, this would be a 401.  If you made it here, you didn't REST.
-                err.statusMessage += `
+                err.message += `
 You are Forbidden from performing this action. The request does not contain an "Authorization" header.
 Make sure you have registered at ${process.env.RERUM_PREFIX}. `
             }
         case 404:
-            err.statusMessage += `
+            err.message += `
 The requested web page or resource could not be found.`
             break
         case 405:
@@ -89,14 +89,14 @@ The requested web page or resource could not be found.`
             break
         case 503:
             //RERUM is down
-            err.statusMessage += `RERUM v1 is down for updates or maintenance at this time.  
+            err.message += `RERUM v1 is down for updates or maintenance at this time.  
 We aplologize for the inconvenience.  Try again later.`
             res.redirect(301, "/maintenance.html")
             break
         case 500:
         default:
             //Really bad, probably not specifically caught.  
-            err.statusMessage += `
+            err.message += `
 RERUM experienced a server issue while performing this action.
 It may not have completed at all, and most likely did not complete successfully.`
     }
