@@ -38,20 +38,13 @@ exports.messenger = function(err, req, res, next){
     let customResponseBody = {}
     let statusCode = err.statusCode ?? res.statusCode ?? 500
     customResponseBody.http_response_code = statusCode
-    let msgIn = ""
-    if(err.statusCode){
-        if(err.statusCode === 401){
-            //Special handler for token errors from the oauth module
-            //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
-            //Other 401s from our app come through with a status message.  They may not have headers.
-            msgIn = err.statusMessage ?? ""
-            if(err.headers && err.headers["WWW-Authenticate"]){
-                msgIn += err.headers["WWW-Authenticate"]
-            }
-        }
-        else{
-            //Other errors will have a status message in one of these places, or no message.
-            msgIn = err.statusMessage ?? res.statusMessage ?? ""
+    let msgIn = err.statusMessage ?? res.statusMessage ?? ""
+    if(err.statusCode === 401){
+        //Special handler for token errors from the oauth module
+        //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
+        //Other 401s from our app come through with a status message.  They may not have headers.
+        if(err.headers ?? err.headers["WWW-Authenticate"]){
+            msgIn += err.headers["WWW-Authenticate"]
         }
     }
     let genericMessage = ""
@@ -71,8 +64,8 @@ exports.messenger = function(err, req, res, next){
             //The requesting agent is known from the request.  That agent does not match __rerum.generatedBy.  Unauthorized.
             if(token){
                 genericMessage = 
-                `The token provided is Unauthorized.  Please check that it is your token and that it is not expired.  `
-                +`Token : { ${token} }`
+                `The token provided is Unauthorized.  Please check that it is your token and that it is not expired. 
+                Token : { ${token} }`
             }
             else{
                 genericMessage = 
@@ -85,20 +78,20 @@ exports.messenger = function(err, req, res, next){
             //Forbidden to use this.  The provided Bearer does not have the required privileges. 
             if(token){
                 genericMessage = 
-                `You are Forbidden from performing this action.  Check your privileges.`
-                +`Token: ${token}`
+                `You are Forbidden from performing this action.  Check your privileges.
+                Token: ${token}`
             }
             else{
                 //If there was no Token, this would be a 401.  If you made it here, you didn't REST.
-                genericMessage = `You are Forbidden from performing this action.  Please include a token with your requests `
-                +`like 'Authorization: Bearer {token}'. Make sure you have registered at ${process.env.RERUM_PREFIX} `
+                genericMessage = `You are Forbidden from performing this action.  Please include a token with your requests 
+                like 'Authorization: Bearer {token}'. Make sure you have registered at ${process.env.RERUM_PREFIX} `
             }
         case 404:
             genericMessage = 
                 "The requested web page or resource could not be found."
         break
         case 405:
-            //I think these are all handled in api-routes.js already, and won't route here.  Not sure we would do anything custom here anyway.
+            // These are all handled in api-routes.js already.
         break
         case 500:
             //Really bad, probably not specifically caught.  
@@ -114,6 +107,6 @@ exports.messenger = function(err, req, res, next){
             //Unsupported messaging scenario for this helper function.  
             //A customized object for the original error will be sent, if res allows it.
     }
-    customResponseBody.message = msgIn ? `${genericMessage}   ---   ${msgIn}` : genericMessage
+    customResponseBody.message = `${genericMessage}   ---   ${msgIn}`
     res.status(statusCode).send(customResponseBody)
 }
