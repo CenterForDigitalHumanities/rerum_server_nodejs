@@ -49,7 +49,7 @@ exports.messenger = function (err, req, res, next) {
     let token = req.header("Authorization")
     if(token && !token.startsWith("Bearer ")){
         err.message +=`
-        Your token is not in the correct format.  It should be a Bearer token formatted like: "Bearer <token>"`
+Your token is not in the correct format.  It should be a Bearer token formatted like: "Bearer <token>"`
         next(err)
         return
     }
@@ -70,7 +70,7 @@ Token: ${token} `
             else {
                 err.message += `
 The request does not contain an "Authorization" header and so is Unauthorized. Please include a token with your requests
-like 'Authorization: Bearer TOKEN'. Make sure you have registered at ${process.env.RERUM_PREFIX}.`
+like "Authorization: Bearer <token>". Make sure you have registered at ${process.env.RERUM_PREFIX}.`
             }
             break
         case 403:
