@@ -43,7 +43,7 @@ exports.messenger = function(err, req, res, next){
         //Special handler for token errors from the oauth module
         //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
         //Other 401s from our app come through with a status message.  They may not have headers.
-        if(err.headers ?? err.headers["WWW-Authenticate"]){
+        if(err.headers && err.headers["WWW-Authenticate"]){
             msgIn += err.headers["WWW-Authenticate"]
         }
     }
