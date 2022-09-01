@@ -187,7 +187,7 @@ describe('Check for legacy endpoints.', function() {
   //delete.action exists
   it('delete.action exists', function(done) {
     request
-      .get('/v1/api/delete.action')
+      .get('/v1/api/delete.action/potato')
       .expect(405, done)
   })
 
