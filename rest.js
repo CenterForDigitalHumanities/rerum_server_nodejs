@@ -56,6 +56,10 @@ exports.messenger = function(err, req, res, next){
     }
     let genericMessage = ""
     let token = req.header("Authorization") ?? ""
+    if(token.indexOf("Bearer") === -1){
+        //This was a malformed token that could not have been processed.  Treat this as not even passing a token.
+        token = ""
+    }
     switch (statusCode){
         case 400:
             //"Bad Request", most likely because the body and Content-Type are not aligned.  Could be bad JSON.
@@ -72,8 +76,8 @@ exports.messenger = function(err, req, res, next){
             }
             else{
                 genericMessage = 
-                "The request does not contain a token and so is Unauthorized.  Please include a token with your requests "
-                +"like 'Authorization: Bearer {token}'. Make sure you have registered at "+process.env.RERUM_PREFIX
+                "The request does not contain a Bearer token and so is Unauthorized.  Please include a token with your requests "
+                +"like 'Authorization: Bearer token'. Make sure you have registered at "+process.env.RERUM_PREFIX
             }
             
         break
