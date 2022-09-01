@@ -1443,7 +1443,6 @@ exports.remove = async function (id) {
         return true
     }
     catch (error) {
-        console.log(error)
         error.message = "Could not remove object"
         throw error
     }
