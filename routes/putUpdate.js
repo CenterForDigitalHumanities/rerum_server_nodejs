@@ -6,10 +6,10 @@ const auth = require('../auth')
 
 router.route('/')
     .put(auth.checkJwt, controller.putUpdate)
-    .all((req, res) => {
+    .all((req, res, next) => {
         res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router

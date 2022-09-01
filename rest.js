@@ -33,7 +33,6 @@ exports.checkPatchOverrideSupport = function(req, res){
  */
 exports.messenger = function(err, req, res, next){
     if (res.headersSent) {
-        console.log("Middleware cannot control this error.  Headers are sent.")
         return next(err)
     }
     let customResponseBody = {}
@@ -42,7 +41,6 @@ exports.messenger = function(err, req, res, next){
     //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
     //Other errors come through with a status code or status message
     //Other responses come through with a status message
-    console.log(err)
     let msgIn
     if(err.statusCode){
         msgIn = err.statusMessage ?? err.headers["WWW-Authenticate"] ?? ""

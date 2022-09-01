@@ -6,10 +6,10 @@ const auth = require('../auth')
 
 router.route('/:_id')
     .patch(auth.checkJwt, controller.release)
-    .all((req, res) => {
+    .all((req, res, next) => {
         res.statusMessage = 'Improper request method for releasing, please use PATCH to release this object.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router

@@ -19,6 +19,10 @@ router.use(staticRouter)
 const idRouter = require('./id.js')
 router.use('/id',idRouter)
 
+// Support older style API calls through rewrite.
+const compatabilityRouter = require('./compatability.js')
+router.use('/api', compatabilityRouter)
+
 // Support POST requests with JSON bodies used for passing queries though to the database.
 const queryRouter = require('./query.js')
 router.use('/api/query', queryRouter)

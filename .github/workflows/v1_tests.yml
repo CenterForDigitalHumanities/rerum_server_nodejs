@@ -15,8 +15,6 @@ jobs:
         uses: SpicyPizza/create-envfile@v1.3
         with:
           envkey_RERUM_API_VERSION: ${{ secrets.RERUM_API_VERSION }}
-          envkey_COLLECTION_ACCEPTEDSERVER: ${{ secrets.COLLECTION_ACCEPTEDSERVER }}
-          envkey_COLLECTION_V0: ${{ secrets.COLLECTION_V0 }}
           envkey_RERUM_BASE: ${{ secrets.RERUM_BASE }}
           envkey_RERUM_PREFIX: ${{ secrets.RERUM_PREFIX }}
           envkey_RERUM_ID_PREFIX: ${{ secrets.RERUM_ID_PREFIX }}
@@ -26,7 +24,7 @@ jobs:
           envkey_RERUMSECRET: ${{ secrets.RERUMSECRET }}
           envkey_BOT_AGENT: ${{ secrets.BOT_AGENT }}
           envkey_BOT_TOKEN_DEV: ${{ secrets.BOT_TOKEN_DEV }}
-          envkey_BOT_TOKEN_PROD: "unknown"
+          envkey_BOT_TOKEN_PROD: ${{ secrets.BOT_TOKEN_PROD }}
           envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING_TESTS }}
           envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
           envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}

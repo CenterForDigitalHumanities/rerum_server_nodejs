@@ -6,10 +6,10 @@ const auth = require('../auth')
 
 router.route('/')
     .post(auth.checkJwt, controller.create)
-    .all((req, res) => {
+    .all((req, res, next) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router

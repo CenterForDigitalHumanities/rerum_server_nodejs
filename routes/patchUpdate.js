@@ -17,10 +17,10 @@ router.route('/')
             next()
         }
     }) 
-    .all((req, res) => {
+    .all((req, res, next) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
         res.status(405)
-        next()
+        next(res)
     })
 
 module.exports = router

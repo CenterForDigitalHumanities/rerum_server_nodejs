@@ -1438,14 +1438,13 @@ exports.remove = async function (id) {
     try {
         const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (!result.deletedCount === 1) {
-            console.log(result)
             throw Error("Could not remove object")
         }
         return true
     }
     catch (error) {
-        console.log(error)
-        throw Error("Could not remove object")
+        error.message = "Could not remove object"
+        throw error
     }
 }
 
