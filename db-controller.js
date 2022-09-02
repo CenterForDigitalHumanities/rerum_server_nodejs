@@ -902,9 +902,10 @@ exports.bulkCreate = async function (req, res, next) {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
         result.forEach(r => { delete r._id })
         res.set("Content-Type", "application/json; charset=utf-8")
-        // Location,location?  I don't know.  I'm not sure what the best practice is here.
+        const locations = result.map(r => r['@id'] ?? r.id ?? "ERROR").join(", ")
+        res.set("Link",locations) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(201)
-        res.json(result)
+        res.json(result)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
