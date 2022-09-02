@@ -859,15 +859,21 @@ exports.bulkCreate = async function (req, res, next) {
     const documents = req.body
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
-        next("The body of a bulk create request must be an array of objects.")
+        let err = new Error("The request body must be an array of objects.")
+        err.status = 406
+        next(err)
         return
     }
     if (documents.length === 0) {
-        next("No action on an empty array.")
+        let err = new Error("No action on an empty array.")
+        err.status = 406
+        next(err)
         return
     }
     if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
-        next("`/batchCreate` will only accept objects without @id or id properties to be created as new documents.")
+        let err = new Error("`/batchCreate` will only accept objects without @id or id properties.")
+        err.status = 422
+        next(err)
         return
     }
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
@@ -896,6 +902,7 @@ exports.bulkCreate = async function (req, res, next) {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
         result.forEach(r => { delete r._id })
         res.set("Content-Type", "application/json; charset=utf-8")
+        // Location,location?  I don't know.  I'm not sure what the best practice is here.
         res.status(201)
         res.json(result)
     }
