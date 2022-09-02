@@ -886,7 +886,7 @@ exports.bulkCreate = async function (req, res, next) {
     documents.forEach(d => {
         const id = new ObjectID().toHexString()
         let generatorAgent = getAgentClaim(req, next)
-        d = { "__rerum": utils.configureRerumOptions(generatorAgent, d) }
+        d = utils.configureRerumOptions(generatorAgent, d)
         // TODO: check profiles/parameters for 'id' vs '@id' and use that
         d._id = id
         d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
