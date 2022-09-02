@@ -60,15 +60,12 @@ exports.generateSlugId = async function(slugId){
  * */
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let slug = ""
-    if(req.get("Slug")){
-        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
-        if(slug_json.code){
-            next(createExpressError(slug_json))
+    const slug = req.get("Slug")
+    if(slug){
+        const slugError = await exports.generateSlugId(req.get("Slug"))
+        if(slugError){
+            next(slugError)
             return
-        }
-        else{
-            slug = slug_json.slug_id
         }
     }
     const id = new ObjectID().toHexString()
@@ -688,16 +685,13 @@ exports.overwrite = async function (req, res, next) {
 exports.release = async function (req, res, next) {
     let agentRequestingRelease = getAgentClaim(req, next)
     let id = req.params["_id"]
-    let slug = ""
+    const slug = req.get("Slug")
     let err = {"message":""}
-    if(req.get("Slug")){
-        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
-        if(slug_json.code){
-            next(createExpressError(slug_json))
+    if(slug){
+        let slugError = await exports.generateSlugId(req.get("Slug"))
+        if(slugError){
+            next(slugError)
             return
-        }
-        else{
-            slug = slug_json.slug_id
         }
     }
     if (id){
