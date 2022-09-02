@@ -8,7 +8,7 @@ const auth = require('../auth')
 router.route('/')
     .patch(auth.checkJwt, controller.patchUpdate) 
     .post(auth.checkJwt, (req, res, next) => {
-        if (rest.checkPatchOverrideSupport()) {
+        if (rest.checkPatchOverrideSupport(req, res)) {
             controller.patchUpdate(req, res, next)
         }
         else {

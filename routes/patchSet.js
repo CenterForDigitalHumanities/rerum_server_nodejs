@@ -7,7 +7,7 @@ const rest = require('../rest.js')
 router.route('/')
     .patch(auth.checkJwt, controller.patchSet)
     .post(auth.checkJwt, (req, res, next) => {
-        if (rest.checkPatchOverrideSupport()) {
+        if (rest.checkPatchOverrideSupport(req, res)) {
             controller.patchSet(req, res, next)
         }
         else {
