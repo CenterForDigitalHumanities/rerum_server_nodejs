@@ -250,7 +250,6 @@ describe(
             expect(response.headers["link"]).toBeTruthy()
             expect(response.body[0]).toHaveProperty("@id")
             expect(response.body[0]).toHaveProperty("__rerum")
-            expect(response.body[0]).toHaveProperty("RERUM Bulk Create Test1")
             expect(response.body._id).toBeUndefined()
             done()
           })
