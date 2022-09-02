@@ -5,7 +5,7 @@ const auth = require('../auth')
 // This controller reroutes older style API calls.
 
 router.use(rewrite("/:attemptedAction.action*", "/:attemptedAction$2"))
-router.use(rewrite("/getByProperties", "/query"))
+router.use(rewrite("/getByProperties*", "/query$2"))
 router.use(rewrite("/batch_create", "/bulkCreate"))
 router.post('/accessToken',auth.generateNewAccessToken)
 router.post('/refreshToken',auth.generateNewRefreshToken)
