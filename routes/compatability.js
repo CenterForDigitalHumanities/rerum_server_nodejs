@@ -6,6 +6,7 @@ const auth = require('../auth')
 
 router.use(rewrite("/:attemptedAction.action*", "/:attemptedAction$2"))
 router.use(rewrite("/getByProperties", "/query"))
+router.use(rewrite("/batch_create", "/bulkCreate"))
 router.post('/accessToken',auth.generateNewAccessToken)
 router.post('/refreshToken',auth.generateNewRefreshToken)
 
