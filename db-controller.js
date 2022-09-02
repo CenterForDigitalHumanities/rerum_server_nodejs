@@ -893,13 +893,16 @@ exports.bulkCreate = async function (req, res, next) {
         bulkOps.push({ insertOne : { "document" : d }})
     })
     try {
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
-        result.forEach(r => { delete r._id })
+        let dbResponse = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
         res.set("Content-Type", "application/json; charset=utf-8")
-        const locations = result.map(r => r['@id'] ?? r.id ?? "ERROR").join(", ")
-        res.set("Link",locations) // https://www.rfc-editor.org/rfc/rfc5988
+        res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(201)
-        res.json(result)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
+        const estimatedResults = bulkOps.map(f=>{
+            let doc = f.insertOne.document
+            delete doc._id
+            return doc
+        })
+        res.json(estimatedResults)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
