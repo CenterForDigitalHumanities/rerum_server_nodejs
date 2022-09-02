@@ -29,29 +29,28 @@ exports.index = function (req, res, next) {
  * Check if an object with the proposed custom _id already exists.
  * If so, this is a 409 conflict.  It will be detected downstream if we continue one by returning the proposed Slug.
  * We can avoid the 409 conflict downstream and return a newly minted ObjectID.toHextString()
- * We error out right here with next(createExpressError({"code" : 11000}))
- * @param slug_id A proposed _id.  
- * 
+ * @param slugId A proposed _id.  
+ * @returns {Error} if proposed slug is in use or something else is encountered.
  */  
-exports.generateSlugId = async function(slug_id="", next){
-    let slug_return = {"slug_id":"", "code":0}
-    let slug
-    if(slug_id){
-        slug_return.slug_id = slug_id
-        try {
-            slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
-        } 
-        catch (error) {
-            //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
-            console.error(error)
-            //slug_return.code = error.code
-        }
-        if(null !== slug){
-            //This already exist, give the mongodb error code.
-            slug_return.code = 11000
+exports.generateSlugId = async function(slugId){
+    if(slugId === undefined){
+        return new Error("No slug was provided")
+    }
+    if(!slugId){
+        return new Error("Falsy slug was provided. This is not allowed.")
+    }
+    try {
+        const slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slugId}, {"__rerum.slug": slugId}]})
+        if(slug) {
+            const err = new Error(`Slug is already in use at ${slug['@id'] ?? slug.id}.`)
+            err.code = 409
+            return err
         }
     } 
-    return slug_return
+    catch (error) {
+        // A DB error, so we could not check.  Assume it's unusable.
+        return createExpressError("Database error prevented checking for duplication. Process failed.",error)
+    }
 }
 
 /**
@@ -855,6 +854,57 @@ exports.id = async function (req, res, next) {
     }
 }
 
+exports.bulkCreate = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    const documents = req.body
+    // TODO: validate documents gatekeeper function?
+    if (!Array.isArray(documents)) {
+        next("The body of a bulk create request must be an array of objects.")
+        return
+    }
+    if (documents.length === 0) {
+        next("No action on an empty array.")
+        return
+    }
+    if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
+        next("`/batchCreate` will only accept objects without @id or id properties to be created as new documents.")
+        return
+    }
+    // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
+    // let slug = req.get("Slug")
+    // if(slug){
+    //     const slugError = await exports.generateSlugId(slug)
+    //     if(slugError){
+    //         next(createExpressError(slugError))
+    //         return
+    //     }
+    //     else{
+    //         slug = slug_json.slug_id
+    //     }
+    // }
+    let bulkOps = []
+    documents.forEach(d => {
+        const id = new ObjectID().toHexString()
+        let generatorAgent = getAgentClaim(req, next)
+        d = { "__rerum": utils.configureRerumOptions(generatorAgent, d) }
+        // TODO: check profiles/parameters for 'id' vs '@id' and use that
+        d._id = id
+        d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
+        bulkOps.push({ insertOne : { "document" : d }})
+    })
+    try {
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
+        result.forEach(r => { delete r._id })
+        res.set("Content-Type", "application/json; charset=utf-8")
+        res.status(201)
+        res.json(result)
+    }
+    catch (error) {
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
+        next(createExpressError(error))
+    }
+}
+
 /**
  * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
  * No object is returned, but the Content-Length header is set. 
@@ -1422,8 +1472,8 @@ function createExpressError(update, originalError = {}) {
     }
     else {
         //Warning!  If 'update' is considered sent, this will cause a 500.  See notes above.
-        update.statusMessage = update.message
-        update.statusCode = update.status
+        update.statusMessage = update.message ?? update
+        update.statusCode = update.status ?? 500
     }
     Object.assign(err, update)
     return err
