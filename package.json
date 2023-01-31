@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
     "stop": "node ./bin/stopApp.js",
-    "devstart": "node ./bin/startApp.js",
+    "devstart": "node ./bin/rerum_v1.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
     "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod",
     "test": "jest",
