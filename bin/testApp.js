@@ -26,7 +26,6 @@ app.set('port', port)
  */
 
 var server = http.createServer(app)
-const io = require('socket.io')(server)
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -117,11 +116,3 @@ async function onListening() {
   })
 }
 
-/**
- * Socket magic for npm stop
- * */
-io.on('connection', (socketServer) => {
-  socketServer.on('npmStop', () => {
-    process.exit(0)
-  })
-})

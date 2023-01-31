@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/startApp.js",
+    "start": "node ./bin/rerum_v1.js",
     "stop": "node ./bin/stopApp.js",
     "devstart": "node ./bin/startApp.js",
     "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",

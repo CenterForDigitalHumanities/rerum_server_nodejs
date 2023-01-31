@@ -1,0 +1,26 @@
+name: RERUM v1 Deploy
+on: 
+  push:
+    branches:
+      ci-cd
+  pull_request:
+    branches:
+      ci-cd
+jobs:
+    deploy:
+      # Deploy to newprd01 with SSH
+      runs-on: self-hosted
+      strategy: 
+        matrix:
+            node-version: [16]
+      steps:
+        - uses: actions/checkout@v3
+        - run: |
+            if [[ ! -e /opt/nodeapps/logs/rerumv1.txt ]]; then
+                mkdir -p /opt/nodeapps/logs
+                touch /opt/nodeapps/logs/rerumv1.txt
+            fi
+            cd /opt/nodeapps/v1-node/
+            pm2 stop rerum_v1
+            npm install
+            pm2 start -i max bin/rerum_v1.js
