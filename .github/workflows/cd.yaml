@@ -9,7 +9,7 @@ on:
 jobs:
     deploy:
       # Deploy to newprd01 with SSH
-      runs-on: self-hosted
+      runs-on: [self-hosted, vlcdhprdp02]
       strategy: 
         matrix:
             node-version: [16]
