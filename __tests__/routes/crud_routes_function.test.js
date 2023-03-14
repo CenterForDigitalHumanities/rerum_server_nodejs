@@ -202,7 +202,7 @@ describe(
         .post('/v1/api/create')
         .send({"RERUM Create Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(201)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -234,7 +234,7 @@ describe(
         .post('/v1/api/create')
         .send({"RERUM Slug Support Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .set('Slug', slug)
         .expect(201)
         .then(response => {
@@ -257,7 +257,7 @@ describe(
         .put('/v1/api/update')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -288,7 +288,7 @@ describe(
         .patch('/v1/api/patch')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -318,7 +318,7 @@ describe(
         .patch('/v1/api/set')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_set":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -347,7 +347,7 @@ describe(
         .patch('/v1/api/unset')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":null})
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
         .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -372,7 +372,7 @@ describe(
       request
         .post("/v1/api/create/")
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .send({"testing_delete":"Delete Me"})
         .expect(201)
         .then(response => {
@@ -384,7 +384,7 @@ describe(
           const idToDelete = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
           request
           .delete('/v1/api/delete/'+idToDelete)
-          .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+          .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
           .expect(204)
           .then(r => {
             //To be really strict, we could get the object and make sure it has __deleted.
@@ -447,7 +447,7 @@ describe(
       request
         .post("/v1/api/create/")
         .set('Content-Type', 'application/json; charset=utf-8')
-        .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .send({"testing_release":"Delete Me"})
         .expect(201)
         .then(response => {
@@ -461,7 +461,7 @@ describe(
           controller.remove(slug).then(r => {
             request
             .patch('/v1/api/release/'+idToRelease)
-            .set('Authorization', "Bearer "+process.env.BOT_TOKEN_DEV)
+            .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
             .set('Slug', slug)
             .expect(200)
             .then(response => {
