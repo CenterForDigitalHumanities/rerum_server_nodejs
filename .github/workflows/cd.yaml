@@ -7,26 +7,80 @@ on:
     branches:
       main
 jobs:
-    deploy:
-      # Deploy to newprd01 and newdev01
-      strategy: 
-        matrix:
-            node-version: [16]
-            machines: [vlcdhprdp02, vlcdhp02]
-      runs-on: ${{ matrix.machines }}
+    stages:
+      - test
+      - deploy
+    test:
+      runs-on: ubuntu-latest
       steps:
-        - uses: actions/checkout@v3
-        - run: |
-            if [[ ! -e /opt/nodeapps/logs/rerumv1.txt ]]; then
-                mkdir -p /opt/nodeapps/logs
-                touch /opt/nodeapps/logs/rerumv1.txt
-            fi
-            cd /opt/nodeapps/v1-node/
-            pm2 stop rerum_v1
-            git stash
-            git pull
-            npm install
-            pm2 start -i max bin/rerum_v1.js
+        - uses: actions/checkout@v2
+        - name: Create .env from secrets
+          uses: SpicyPizza/create-envfile@v1.3
+          with:
+            envkey_RERUM_API_VERSION: ${{ secrets.RERUM_API_VERSION }}
+            envkey_RERUM_BASE: ${{ secrets.RERUM_BASE }}
+            envkey_RERUM_PREFIX: ${{ secrets.RERUM_PREFIX }}
+            envkey_RERUM_ID_PREFIX: ${{ secrets.RERUM_ID_PREFIX }}
+            envkey_RERUM_AGENT_CLAIM: ${{ secrets.RERUM_AGENT_CLAIM }}
+            envkey_RERUM_CONTEXT: ${{ secrets.RERUM_CONTEXT }}
+            envkey_RERUM_API_DOC: ${{ secrets.RERUM_API_DOC }}
+            envkey_RERUMSECRET: ${{ secrets.RERUMSECRET }}
+            envkey_BOT_AGENT: ${{ secrets.BOT_AGENT_DEV }}
+            envkey_BOT_TOKEN: ${{ secrets.BOT_TOKEN_DEV }}
+            envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING_TESTS }}
+            envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
+            envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
+            envkey_DOWN: ${{ secrets.DOWN }}
+            envkey_CLIENTID: ${{ secrets.CLIENTID }}
+            envkey_AUDIENCE: ${{ secrets.AUDIENCE }}
+            envkey_ISSUER_BASE_URL: ${{ secrets.ISSUER_BASE_URL }}
+        # Set up NodeJS
+        - name: Setup Node.js
+          uses: actions/setup-node@v1
+          with:
+            node-version: "16"
+
+        # Speed up subsequent runs with caching
+        - name: Cache node modules
+          uses: actions/cache@v2
+          env:
+            cache-name: cache-node-modules
+          with:
+            # npm cache files are stored in `~/.npm` on Linux/macOS
+            path: ~/.npm
+            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+            restore-keys: |
+              ${{ runner.os }}-build-${{ env.cache-name }}-
+              ${{ runner.os }}-build-
+              ${{ runner.os }}-
+        # Install required deps for action
+        - name: Install Dependencies
+          run: npm install
+
+        # Finally, run our tests
+        - name: Run the tests
+          run: npm run runtest
+      deploy:
+        stage: deploy
+        # Deploy to newprd01 and newdev01
+        strategy: 
+          matrix:
+              node-version: [16]
+              machines: [vlcdhprdp02, vlcdhp02]
+        runs-on: ${{ matrix.machines }}
+        steps:
+          - uses: actions/checkout@v3
+          - run: |
+              if [[ ! -e /opt/nodeapps/logs/rerumv1.txt ]]; then
+                  mkdir -p /opt/nodeapps/logs
+                  touch /opt/nodeapps/logs/rerumv1.txt
+              fi
+              cd /opt/nodeapps/v1-node/
+              pm2 stop rerum_v1
+              git stash
+              git pull
+              npm install
+              pm2 start -i max bin/rerum_v1.js
 
 
 
