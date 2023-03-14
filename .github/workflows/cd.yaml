@@ -12,7 +12,8 @@ jobs:
       strategy: 
         matrix:
             node-version: [16]
-            runs-on: [self-hosted, rerum-api]
+            machines: [rerum-api]
+      runs-on: {{matrix.machines}}
       steps:
         - uses: actions/checkout@v3
         - run: |
