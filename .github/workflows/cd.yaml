@@ -13,7 +13,7 @@ jobs:
         matrix:
             node-version: [16]
             machines: [vlcdhprdp02, vlcdhp02]
-      runs-on: [{{matrix.machines}}]
+      runs-on: ${{ matrix.machines }}
       steps:
         - uses: actions/checkout@v3
         - run: |
