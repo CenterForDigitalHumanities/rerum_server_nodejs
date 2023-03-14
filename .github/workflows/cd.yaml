@@ -9,7 +9,7 @@ on:
 jobs:
     deploy:
       # Deploy to newprd01 and newdev01
-      runs-on: [self-hosted, vlcdhp02, vlcdhprdp02]
+      runs-on: [self-hosted, rerum-api]
       strategy: 
         matrix:
             node-version: [16]
