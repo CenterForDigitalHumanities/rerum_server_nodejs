@@ -9,10 +9,10 @@ on:
 jobs:
     deploy:
       # Deploy to newprd01 and newdev01
-      runs-on: [self-hosted, rerum-api]
       strategy: 
         matrix:
             node-version: [16]
+            runs-on: [self-hosted, rerum-api]
       steps:
         - uses: actions/checkout@v3
         - run: |
