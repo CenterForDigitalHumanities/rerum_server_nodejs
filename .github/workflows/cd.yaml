@@ -2,14 +2,14 @@ name: RERUM v1 Deploy
 on: 
   push:
     branches:
-      ci-cd
+      main
   pull_request:
     branches:
-      ci-cd
+      main
 jobs:
     deploy:
-      # Deploy to newprd01 with SSH
-      runs-on: [self-hosted, dev]
+      # Deploy to newprd01 and newdev01
+      runs-on: [self-hosted, vlcdhp02, vlcdhprdp02]
       strategy: 
         matrix:
             node-version: [16]
