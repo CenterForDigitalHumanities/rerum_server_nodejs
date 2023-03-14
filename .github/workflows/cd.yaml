@@ -12,8 +12,8 @@ jobs:
       strategy: 
         matrix:
             node-version: [16]
-            machines: [rerum-api]
-      runs-on: {{matrix.machines}}
+            machines: [vlcdhprdp02, vlcdhp02]
+      runs-on: [{{matrix.machines}}]
       steps:
         - uses: actions/checkout@v3
         - run: |
