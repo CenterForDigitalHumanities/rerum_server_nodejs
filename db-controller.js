@@ -800,9 +800,7 @@ exports.release = async function (req, res, next) {
  * */
 exports.query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    console.log("Query in controller says props are...")
     let props = req.body
-    console.log(props)
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
     if (Object.keys(props).length === 0) {
