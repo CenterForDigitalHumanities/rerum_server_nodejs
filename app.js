@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 var createError = require('http-errors')
 var express = require('express')
 var path = require('path')
