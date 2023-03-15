@@ -17,11 +17,11 @@ jobs:
       steps:
         - uses: actions/checkout@v3
         - run: |
-            if [[ ! -e /opt/nodeapps/logs/rerumv1.txt ]]; then
-                mkdir -p /opt/nodeapps/logs
-                touch /opt/nodeapps/logs/rerumv1.txt
+            if [[ ! -e /srv/node/logs/rerumv1.txt ]]; then
+                mkdir -p /srv/node/logs
+                touch /srv/node/logs/rerumv1.txt
             fi
-            cd /opt/nodeapps/v1-node/
+            cd /srv/node/v1-node/
             pm2 stop rerum_v1
             git stash
             git pull
