@@ -49,6 +49,7 @@ exports.create = async function (req, res, next) {
         res.location(newObject["@id"])
         res.status(201)
         delete newObject._id
+        newObject["new_obj_state"] = newObject
         res.json(newObject)
     }
     catch (error) {
