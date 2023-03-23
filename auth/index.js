@@ -126,7 +126,7 @@ const isBot = (userObj) => {
     return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM] ?? "Error"
 }
 
-function READONLY() {
+function READONLY(req, res, next) {
      if(process.env.READONLY=="true"){
         e.message = e.statusMessage = `RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later.`
         e.status = 503
