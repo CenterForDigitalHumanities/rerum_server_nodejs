@@ -133,7 +133,10 @@ function READONLY(req, res, next) {
         e.status = 503
         e.statusCode = 503
         next(e)
+        return
      }
+     next()
+     return
 }
 
 module.exports = {
