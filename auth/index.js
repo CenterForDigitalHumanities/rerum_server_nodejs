@@ -128,6 +128,7 @@ const isBot = (userObj) => {
 
 function READONLY(req, res, next) {
      if(process.env.READONLY=="true"){
+        let e = {}
         e.message = e.statusMessage = `RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later.`
         e.status = 503
         e.statusCode = 503
