@@ -94,10 +94,7 @@ The requested web page or resource could not be found.`
             // These are all handled in api-routes.js already.
             break
         case 503:
-            //RERUM is down
-            err.message += `RERUM v1 is down for updates or maintenance at this time.  
-We aplologize for the inconvenience.  Try again later.`
-            res.redirect(301, "/maintenance.html")
+            //RERUM is down or readonly.  Handled upstream.
             break
         case 500:
         default:
