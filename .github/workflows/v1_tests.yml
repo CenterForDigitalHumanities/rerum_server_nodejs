@@ -28,7 +28,7 @@ jobs:
           envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
           envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
           envkey_DOWN: ${{ secrets.DOWN }}
-          envkey_DOWN: ${{ secrets.READONLY }}
+          envkey_READONLY: ${{ secrets.READONLY }}
           envkey_CLIENTID: ${{ secrets.CLIENTID }}
           envkey_AUDIENCE: ${{ secrets.AUDIENCE }}
           envkey_ISSUER_BASE_URL: ${{ secrets.ISSUER_BASE_URL }}
