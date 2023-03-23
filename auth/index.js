@@ -128,7 +128,7 @@ const isBot = (userObj) => {
 
 function READONLY(req, res, next) {
      if(process.env.READONLY=="true"){
-        res.status(503).send("RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later.")
+        res.status(503).json({"message":"RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later."})
         return
      }
      next()
