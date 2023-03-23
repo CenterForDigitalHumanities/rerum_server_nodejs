@@ -48,7 +48,7 @@ const _extractUser = (req, res, next) => {
  *   // do authorized things
  * });
  */
-const checkJwt = [auth(), _tokenError, _extractUser]
+const checkJwt = [READONLY, auth(), _tokenError, _extractUser]
 
 /**
  * Public API proxy to generate new access tokens through Auth0
@@ -126,11 +126,21 @@ const isBot = (userObj) => {
     return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM] ?? "Error"
 }
 
+const READONLY = () => {
+     if(process.env.READONLY=="true"){
+        e.message = e.statusMessage = `RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later.`
+        e.status = 503
+        e.statusCode = 503
+        next(e)
+     }
+}
+
 module.exports = {
     checkJwt,
     generateNewAccessToken,
     generateNewRefreshToken,
     verifyAccess,
     isBot,
-    isGenerator
+    isGenerator,
+    READONLY
 }
