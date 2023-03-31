@@ -113,6 +113,8 @@ exports.create = async function (req, res, next) {
  * */
 exports.delete = async function (req, res, next) {
     console.log("exports.delete")
+    console.log("body??")
+    console.log(req.body)
     let id = req.params["_id"] ?? ""
     let provided = {}
     if(!id){
