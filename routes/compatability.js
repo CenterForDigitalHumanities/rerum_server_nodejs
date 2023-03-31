@@ -4,7 +4,6 @@ const rewrite = require('express-urlrewrite')
 const auth = require('../auth')
 // This controller reroutes older style API calls.
 
-console.log("compatability")
 router.use(rewrite("/:attemptedAction.action*", "/:attemptedAction$2"))
 router.use(rewrite("/getByProperties*", "/query$1"))
 router.post('/accessToken',auth.generateNewAccessToken)

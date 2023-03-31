@@ -3,8 +3,6 @@ const router = require('express').Router()
 const controller = require('../db-controller.js')
 const auth = require('../auth')
 
-console.log("delete")
-
 router.route('/')
     .delete(auth.checkJwt, controller.delete)
     .all((req, res, next) => {
