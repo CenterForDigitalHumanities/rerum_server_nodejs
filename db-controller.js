@@ -137,13 +137,13 @@ exports.delete = async function (req, res, next) {
                 status: 403
             })
         }
-        if (utils.isReleased(safe_original)) {
+        else if (utils.isReleased(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to update is released. Fork to make changes. ${err.message}`,
                 status: 403
             })
         }
-        if (!utils.isGenerator(safe_original, agentRequestingDelete)) {
+        else if (!utils.isGenerator(safe_original, agentRequestingDelete)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object. Fork with /update to make changes. ${err.message}`,
                 status: 401
