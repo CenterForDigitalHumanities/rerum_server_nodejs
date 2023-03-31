@@ -3,8 +3,10 @@ const router = require('express').Router()
 const controller = require('../db-controller.js')
 const auth = require('../auth')
 
+console.log("delete")
+
 router.route('/')
-    .delete(auth.checkJwt, controller.delete)
+    .post(auth.checkJwt, controller.delete)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for deleting, please use DELETE.'
         res.status(405)
