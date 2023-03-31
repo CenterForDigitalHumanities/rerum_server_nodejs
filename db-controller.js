@@ -188,6 +188,10 @@ exports.delete = async function (req, res, next) {
         return
     }
     err.message = "No object with this id could be found in RERUM.  Cannot delete."
+    if(req.body){
+        err.message += ". Request had body\n"
+        err.message += req.body
+    }
     err.status = 404
     next(createExpressError(err))
 }
