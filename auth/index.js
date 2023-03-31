@@ -58,7 +58,7 @@ const checkJwt = [READONLY, auth(), _tokenError, _extractUser]
  */
 const generateNewAccessToken = async (req, res, next) => {
     console.log("Generating a proxy access token.")
-    const tokenObj = await got.post('https://cubap/oauth/token',
+    const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             form: {
                 grant_type: 'refresh_token',
@@ -78,7 +78,7 @@ const generateNewAccessToken = async (req, res, next) => {
 const generateNewRefreshToken = async (req, res, next) => {
     console.log("Generating a new refresh token.")
 
-    const tokenObj = await got.post('https://cubap/oauth/token',
+    const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             form: {
                 grant_type: 'authorization_code',
