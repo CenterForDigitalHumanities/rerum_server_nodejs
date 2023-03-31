@@ -112,17 +112,12 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
-    console.log("exports.delete")
-    console.log("body??")
-    console.log(req.body)
     let id = req.params["_id"] ?? ""
     let provided = {}
     if(!id){
         provided = JSON.parse(JSON.stringify(req.body)) ?? {}
         id = provided["@id"] ?? ""
     }
-    console.log("In controller delete")
-    console.log("id is "+ id)
     let err = { message: `` }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
@@ -132,7 +127,7 @@ exports.delete = async function (req, res, next) {
         next(createExpressError(error))
         return
     }
-    if (null !== originalObject) {
+    if (id && null !== originalObject) {
         let safe_original = JSON.parse(JSON.stringify(originalObject))
         if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
