@@ -11,4 +11,12 @@ router.route('/:_id')
         next(res)
     })
 
+router.route('/')
+    .delete(auth.checkJwt, controller.delete)
+    .all((req, res, next) => {
+        res.statusMessage = 'Improper request method for deleting, please use DELETE.'
+        res.status(405)
+        next(res)
+    })
+
 module.exports = router

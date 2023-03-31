@@ -113,6 +113,11 @@ exports.create = async function (req, res, next) {
  * */
 exports.delete = async function (req, res, next) {
     let id = req.params["_id"]
+    let provided = {}
+    if(!id){
+        provided = JSON.parse(JSON.stringify(req.body)) ?? {}
+        id = provided["@id"] ?? ""
+    }
     let err = { message: `` }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
