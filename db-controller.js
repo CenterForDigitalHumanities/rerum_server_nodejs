@@ -112,12 +112,17 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
+    console.log("exports.delete")
+    console.log("body??")
+    console.log(req.body)
     let id = req.params["_id"] ?? ""
     let provided = {}
     if(!id){
         provided = JSON.parse(JSON.stringify(req.body)) ?? {}
         id = provided["@id"] ?? ""
     }
+    console.log("In controller delete")
+    console.log("id is "+ id)
     let err = { message: `` }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
@@ -127,7 +132,7 @@ exports.delete = async function (req, res, next) {
         next(createExpressError(error))
         return
     }
-    if (id && null !== originalObject) {
+    if (null !== originalObject) {
         let safe_original = JSON.parse(JSON.stringify(originalObject))
         if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
@@ -188,10 +193,6 @@ exports.delete = async function (req, res, next) {
         return
     }
     err.message = "No object with this id could be found in RERUM.  Cannot delete."
-    if(req.body){
-        err.message += ". Request had body\n"
-        err.message += req.body
-    }
     err.status = 404
     next(createExpressError(err))
 }
