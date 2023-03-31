@@ -118,6 +118,8 @@ exports.delete = async function (req, res, next) {
         provided = JSON.parse(JSON.stringify(req.body)) ?? {}
         id = provided["@id"] ?? ""
     }
+    console.log("In controller delete")
+    console.log("id is "+id)
     let err = { message: `` }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
