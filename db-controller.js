@@ -112,7 +112,13 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
-    let id = req.params["_id"]
+    let id = req.params["_id"] ?? ""
+    let provided = {}
+    if(!id){
+        provided = JSON.parse(JSON.stringify(req.body)) ?? {}
+        id = provided["@id"] ?? ""
+        id = id ? id.replace(process.env.RERUM_ID_PREFIX, "") : ""
+    }
     let err = { message: `` }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
@@ -126,19 +132,19 @@ exports.delete = async function (req, res, next) {
         let safe_original = JSON.parse(JSON.stringify(originalObject))
         if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
-                message: `The object you are trying to update is deleted. ${err.message}`,
+                message: `The object you are trying to delete is already deleted. ${err.message}`,
                 status: 403
             })
         }
-        if (utils.isReleased(safe_original)) {
+        else if (utils.isReleased(safe_original)) {
             err = Object.assign(err, {
-                message: `The object you are trying to update is released. Fork to make changes. ${err.message}`,
+                message: `The object you are trying to delete is released. Fork to make changes. ${err.message}`,
                 status: 403
             })
         }
-        if (!utils.isGenerator(safe_original, agentRequestingDelete)) {
+        else if (!utils.isGenerator(safe_original, agentRequestingDelete)) {
             err = Object.assign(err, {
-                message: `You are not the generating agent for this object. Fork with /update to make changes. ${err.message}`,
+                message: `You are not the generating agent for this object and so are not authorized to delete it. ${err.message}`,
                 status: 401
             })
         }
