@@ -1096,7 +1096,7 @@ async function getAllVersions(obj) {
          **/
     }
     //All the children of this object will have its @id in __rerum.history.prime
-    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({ "__rerum.history.prime": primeURL }).toArray()
+    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({ "__rerum.history.prime": obj.__rerum.history.prime }).toArray()
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
