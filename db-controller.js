@@ -116,8 +116,7 @@ exports.delete = async function (req, res, next) {
     let provided = {}
     if(!id){
         provided = JSON.parse(JSON.stringify(req.body)) ?? {}
-        id = provided["@id"] ?? ""
-        id = id ? id.replace(process.env.RERUM_ID_PREFIX, "") : ""
+        id = parseDocumentID(provided["@id"])
     }
     let err = { message: `` }
     let agentRequestingDelete = getAgentClaim(req, next)
@@ -207,7 +206,7 @@ exports.putUpdate = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
-        let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -289,7 +288,7 @@ exports.patchUpdate = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
-        let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -401,7 +400,7 @@ exports.patchSet = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
-        let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -504,7 +503,7 @@ exports.patchUnset = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         let updateHistoryNextID = objectReceived["@id"]
-        let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -612,7 +611,7 @@ exports.overwrite = async function (req, res, next) {
     let agentRequestingOverwrite = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         console.log("OVERWRITE")
-        let id = objectReceived["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+        let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -1076,23 +1075,20 @@ async function getAllVersions(obj) {
     let ls_versions = null
     let rootObj = null
     let primeID = ""
-    let primeURL = ""
     if (obj.__rerum) {
-        primeURL = obj.__rerum.history.prime
-        primeID = primeURL.replace(process.env.RERUM_ID_PREFIX, "")
+        primeID = parseDocumentID(obj.__rerum.history.prime)
     }
     else {
         throw new Error("This object has no history because it has no '__rerum' property.  This will result in an empty array.")
     }
     if (primeID === "root") {
         //The obj passed in is root.  So it is the rootObj we need.
-        primeURL = obj["@id"]
-        primeID = primeURL.replace(process.env.RERUM_ID_PREFIX, "")
+        primeID = parseDocumentID(obj['@id'])
         rootObj = JSON.parse(JSON.stringify(obj))
     }
     else {
         //The obj passed in knows the ID of root, grab it from Mongo
-        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": primeURL })
+        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": obj.__rerum.history.prime })
         /**
          * Note that if you attempt the following code, it will cause  Cannot convert undefined or null to object in getAllVersions.
          * rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
@@ -1249,7 +1245,7 @@ async function healHistoryTree(obj) {
     try {
         for (nextID of next_ids) {
             let objWithUpdate = {}
-            const nextIdForQuery = nextID.replace(process.env.RERUM_ID_PREFIX, "")
+            const nextIdForQuery = parseDocumentID(nextID)
             const objToUpdate = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": nextIdForQuery}, {"__rerum.slug": nextIdForQuery}]})
             if (null !== objToUpdate) {
                 let fixHistory = JSON.parse(JSON.stringify(objToUpdate))
@@ -1328,7 +1324,7 @@ async function healHistoryTree(obj) {
         //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
         //For external objects, do nothing is the right thing to do here.
         let objWithUpdate2 = {}
-        let previousIdForQuery = previous_id.replace(process.env.RERUM_ID_PREFIX, "")
+        let previousIdForQuery = parseDocumentID(previous_id)
         const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": previousIdForQuery}, {"__rerum.slug": previousIdForQuery}]})
         if (null !== objToUpdate2) {
             let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
@@ -1640,4 +1636,19 @@ async function healReleasesTree(releasing) {
     
     }
     return success
+}
+
+/**
+ * Get the __id database value for lookup from the @id or id key.
+ * This is an indexed key so lookup should be very quick.
+ * @param {String} atID URI of document at //store.rerum.io/v1/id/
+ */
+function parseDocumentID(atID){
+    if(typeof atID !== 'string') {
+        throw new Error("Unable to parse this type.")
+    }
+    if(!/^https?/.test(atID)){
+        throw new Error(`Designed for parsing URL strings. Please check: ${atID}`)
+    }
+    return atID.split('/').pop()
 }
