@@ -112,13 +112,13 @@ exports.create = async function (req, res, next) {
  * 
  * */
 exports.delete = async function (req, res, next) {
-    let id = req.params["_id"] ?? ""
-    let provided = {}
-    if(!id){
-        provided = JSON.parse(JSON.stringify(req.body)) ?? {}
-        id = parseDocumentID(provided["@id"])
-    }
+    let id
     let err = { message: `` }
+    try {
+        id = req.params["_id"] ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["@id"])
+    } catch(error){
+        next(createExpressError(error))
+    }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
     try {
@@ -205,7 +205,6 @@ exports.putUpdate = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
-        let updateHistoryNextID = objectReceived["@id"]
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
@@ -287,7 +286,6 @@ exports.patchUpdate = async function (req, res, next) {
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
-        let updateHistoryNextID = objectReceived["@id"]
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
@@ -399,7 +397,6 @@ exports.patchSet = async function (req, res, next) {
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
-        let updateHistoryNextID = objectReceived["@id"]
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
@@ -502,7 +499,6 @@ exports.patchUnset = async function (req, res, next) {
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
-        let updateHistoryNextID = objectReceived["@id"]
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
@@ -1072,31 +1068,20 @@ exports.historyHeadRequest = async function (req, res, next) {
  * @throws Exception when a JSONObject with no '__rerum' property is provided.
  */
 async function getAllVersions(obj) {
-    let ls_versions = null
-    let rootObj = null
-    let primeID = ""
-    if (obj.__rerum) {
-        primeID = parseDocumentID(obj.__rerum.history.prime)
-    }
-    else {
-        throw new Error("This object has no history because it has no '__rerum' property.  This will result in an empty array.")
-    }
-    if (primeID === "root") {
-        //The obj passed in is root.  So it is the rootObj we need.
-        primeID = parseDocumentID(obj['@id'])
-        rootObj = JSON.parse(JSON.stringify(obj))
-    }
-    else {
-        //The obj passed in knows the ID of root, grab it from Mongo
-        rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": obj.__rerum.history.prime })
+    let ls_versions
+    let primeID = obj?.__rerum.history.prime
+    let rootObj = ( primeID === "root") 
+    ?   //The obj passed in is root.  So it is the rootObj we need.
+        JSON.parse(JSON.stringify(obj))
+    :   //The obj passed in knows the ID of root, grab it from Mongo
+        await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": primeID })
         /**
          * Note that if you attempt the following code, it will cause  Cannot convert undefined or null to object in getAllVersions.
          * rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
          * This is the because some of the @ids have different RERUM URL patterns on them.
          **/
-    }
     //All the children of this object will have its @id in __rerum.history.prime
-    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({ "__rerum.history.prime": obj.__rerum.history.prime }).toArray()
+    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
@@ -1320,10 +1305,9 @@ async function healHistoryTree(obj) {
         return false
     }
     //Here it may be better to resolve the previous_id and check for __rerum...maybe this is a sister RERUM with a different prefix
-    if (previous_id.indexOf(process.env.RERUM_PREFIX) > -1) {
+    if (previous_id.indexOf(process.env.RERUM_PREFIX.split('//')[1]) > -1) {
         //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
         //For external objects, do nothing is the right thing to do here.
-        let objWithUpdate2 = {}
         let previousIdForQuery = parseDocumentID(previous_id)
         const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": previousIdForQuery}, {"__rerum.slug": previousIdForQuery}]})
         if (null !== objToUpdate2) {
