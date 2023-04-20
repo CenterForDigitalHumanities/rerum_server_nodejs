@@ -603,7 +603,7 @@ exports.patchUnset = async function (req, res, next) {
 exports.overwrite = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
-    let objectReceived = req.body
+    let objectReceived = JSON.parse(JSON.stringify(req.body))
     let agentRequestingOverwrite = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
         console.log("OVERWRITE")
