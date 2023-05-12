@@ -29,28 +29,29 @@ exports.index = function (req, res, next) {
  * Check if an object with the proposed custom _id already exists.
  * If so, this is a 409 conflict.  It will be detected downstream if we continue one by returning the proposed Slug.
  * We can avoid the 409 conflict downstream and return a newly minted ObjectID.toHextString()
- * @param slugId A proposed _id.  
- * @returns {Error} if proposed slug is in use or something else is encountered.
+ * We error out right here with next(createExpressError({"code" : 11000}))
+ * @param slug_id A proposed _id.  
+ * 
  */  
-exports.generateSlugId = async function(slugId){
-    if(slugId === undefined){
-        return new Error("No slug was provided")
-    }
-    if(!slugId){
-        return new Error("Falsy slug was provided. This is not allowed.")
-    }
-    try {
-        const slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slugId}, {"__rerum.slug": slugId}]})
-        if(slug) {
-            const err = new Error(`Slug is already in use at ${slug['@id'] ?? slug.id}.`)
-            err.code = 409
-            return err
+exports.generateSlugId = async function(slug_id="", next){
+    let slug_return = {"slug_id":"", "code":0}
+    let slug
+    if(slug_id){
+        slug_return.slug_id = slug_id
+        try {
+            slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
+        } 
+        catch (error) {
+            //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
+            console.error(error)
+            //slug_return.code = error.code
+        }
+        if(null !== slug){
+            //This already exist, give the mongodb error code.
+            slug_return.code = 11000
         }
     } 
-    catch (error) {
-        // A DB error, so we could not check.  Assume it's unusable.
-        return createExpressError("Database error prevented checking for duplication. Process failed.",error)
-    }
+    return slug_return
 }
 
 /**
@@ -60,12 +61,15 @@ exports.generateSlugId = async function(slugId){
  * */
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    const slug = req.get("Slug")
-    if(slug){
-        const slugError = await exports.generateSlugId(req.get("Slug"))
-        if(slugError){
-            next(slugError)
+    let slug = ""
+    if(req.get("Slug")){
+        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
+        if(slug_json.code){
+            next(createExpressError(slug_json))
             return
+        }
+        else{
+            slug = slug_json.slug_id
         }
     }
     const id = new ObjectID().toHexString()
@@ -686,13 +690,16 @@ exports.overwrite = async function (req, res, next) {
 exports.release = async function (req, res, next) {
     let agentRequestingRelease = getAgentClaim(req, next)
     let id = req.params["_id"]
-    const slug = req.get("Slug")
+    let slug = ""
     let err = {"message":""}
-    if(slug){
-        let slugError = await exports.generateSlugId(req.get("Slug"))
-        if(slugError){
-            next(slugError)
+    if(req.get("Slug")){
+        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
+        if(slug_json.code){
+            next(createExpressError(slug_json))
             return
+        }
+        else{
+            slug = slug_json.slug_id
         }
     }
     if (id){
@@ -1463,8 +1470,8 @@ function createExpressError(update, originalError = {}) {
     }
     else {
         //Warning!  If 'update' is considered sent, this will cause a 500.  See notes above.
-        update.statusMessage = update.message ?? update
-        update.statusCode = update.status ?? 500
+        update.statusMessage = update.message
+        update.statusCode = update.status
     }
     Object.assign(err, update)
     return err
