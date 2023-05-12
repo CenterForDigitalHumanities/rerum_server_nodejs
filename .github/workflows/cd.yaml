@@ -2,14 +2,13 @@ name: RERUM v1 Deploy
 on: 
   push:
     branches:
-      lizard-brain-64
+      main
 jobs:
     deploy:
-      # Deploy to dev
       strategy: 
         matrix:
             node-version: [16]
-            machines: [vlcdhp02]
+            machines: [vlcdhp02, vlcdhprdp02]
       runs-on: ${{ matrix.machines }}
       steps:
         - uses: actions/checkout@v3
