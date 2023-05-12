@@ -862,19 +862,21 @@ exports.bulkCreate = async function (req, res, next) {
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
         let err = new Error("The request body must be an array of objects.")
-        err.status = 406
+        //err.status = 406
+        err.status = 400
         next(err)
         return
     }
     if (documents.length === 0) {
         let err = new Error("No action on an empty array.")
-        err.status = 406
+        //err.status = 406
         next(err)
         return
     }
     if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
-        let err = new Error("`/batchCreate` will only accept objects without @id or id properties.")
-        err.status = 422
+        let err = new Error("`/bulkCreate` will only accept objects without @id or id properties.")
+        //err.status = 422
+        err.status = 400
         next(err)
         return
     }
