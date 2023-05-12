@@ -232,7 +232,7 @@ exports.configureLastModifiedHeader = function(obj){
         date = obj.__deleted.time
     }
     //Note that dates like 2021-05-26T10:39:19.328 have been rounded to 2021-05-26T10:39:19 in browser headers.  Account for that here.
-    if(date.includes(".")){
+    if(typeof date === "string" && date.includes(".")){
         //If-Modified-Since and Last-Modified headers are rounded.  Wed, 26 May 2021 10:39:19.629 GMT becomes Wed, 26 May 2021 10:39:19 GMT.
         date = date.split(".")[0]
     }

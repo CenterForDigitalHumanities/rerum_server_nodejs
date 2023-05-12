@@ -156,7 +156,7 @@ describe(
       'It should strip the property "_id" from the response.',
       function (done) {
         request
-          .get('/v1/history/622f805afc797566c9c2c599')
+          .get('/v1/history/640f8c065243a8c3bb37c290')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
           .then(response => {
@@ -180,7 +180,7 @@ describe(
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
         request
-          .head('/v1/history/622f805afc797566c9c2c599')
+          .head('/v1/history/640f8c065243a8c3bb37c290')
           .expect(200)
           .then(response => {
             expect(response.headers["access-control-allow-origin"]).toBe("*")
@@ -202,7 +202,7 @@ describe(
           .post('/v1/api/create')
           .send({ "RERUM Create Test": unique })
           .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
+          .set('Authorization', "Bearer " + process.env.BOT_TOKEN)
           .expect(201)
           .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -282,19 +282,19 @@ describe(
           .catch(err => done(err))
       })
 
-    it('End to end /v1/api/update. Do a properly formatted /update call by PUTing an existing entity.  ' +
-      'The Authorization header is set, it is an access token encoded with the bot.  ' +
-      'It should respond with a 200 with enough JSON in the response body to discern the "@id".  ' +
-      'The Location header in the response should be present and populated and not equal the originating entity "@id".',
-      function (done) {
-        const unique = new Date(Date.now()).toISOString().replace("Z", "")
-        request
-          .put('/v1/api/update')
-          .send({ "@id": process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c", "RERUM Update Test": unique })
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-          .expect(200)
-          .then(response => {
+    it('End to end /v1/api/update. Do a properly formatted /update call by PUTing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
+      request
+        .put('/v1/api/update')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .expect(200)
+        .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -313,19 +313,19 @@ describe(
           .catch(err => done(err))
       })
 
-    it('End to end /v1/api/patch. Do a properly formatted /patch call by PATCHing an existing entity.  ' +
-      'The Authorization header is set, it is an access token encoded with the bot.  ' +
-      'It should respond with a 200 with enough JSON in the response body to discern the "@id".  ' +
-      'The Location header in the response should be present and populated and not equal the originating entity "@id".',
-      function (done) {
-        const unique = new Date(Date.now()).toISOString().replace("Z", "")
-        request
-          .patch('/v1/api/patch')
-          .send({ "@id": process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c", "test_obj": unique })
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-          .expect(200)
-          .then(response => {
+    it('End to end /v1/api/patch. Do a properly formatted /patch call by PATCHing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
+      request
+        .patch('/v1/api/patch')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .expect(200)
+        .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -343,19 +343,19 @@ describe(
           .catch(err => done(err))
       })
 
-    it('End to end /v1/api/set. Do a properly formatted /set call by PATCHing an existing entity.  ' +
-      'The Authorization header is set, it is an access token encoded with the bot.  ' +
-      'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the property that was set.  ' +
-      'The Location header in the response should be present and populated and not equal the originating entity "@id".',
-      function (done) {
-        const unique = new Date(Date.now()).toISOString().replace("Z", "")
-        request
-          .patch('/v1/api/set')
-          .send({ "@id": process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c", "test_set": unique })
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-          .expect(200)
-          .then(response => {
+    it('End to end /v1/api/set. Do a properly formatted /set call by PATCHing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the property that was set.  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
+      request
+        .patch('/v1/api/set')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_set":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .expect(200)
+        .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -373,18 +373,18 @@ describe(
           .catch(err => done(err))
       })
 
-    it('End to end /v1/api/unset. Do a properly formatted /unset call by PATCHing an existing entity.  ' +
-      'The Authorization header is set, it is an access token encoded with the bot.  ' +
-      'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the absence of the unset property.  ' +
-      'The Location header in the response should be present and populated and not equal the originating entity "@id".',
-      function (done) {
-        request
-          .patch('/v1/api/unset')
-          .send({ "@id": process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c", "test_obj": null })
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-          .expect(200)
-          .then(response => {
+    it('End to end /v1/api/unset. Do a properly formatted /unset call by PATCHing an existing entity.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the absence of the unset property.  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
+    function(done) {
+      request
+        .patch('/v1/api/unset')
+        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":null})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .expect(200)
+        .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
             expect(response.headers["content-type"]).toBeTruthy()
             expect(response.headers["date"]).toBeTruthy()
@@ -401,34 +401,34 @@ describe(
           })
       })
 
-    it('End to end /v1/api/delete. Do a properly formatted /delete call by DELETEing an existing object.  ' +
-      'It will need to create an object first, then delete that object, and so must complete a /create call first.  ' +
-      'It will check the response to /create is 201 and the response to /delete is 204.', function (done) {
-        request
-          .post("/v1/api/create/")
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-          .send({ "testing_delete": "Delete Me" })
-          .expect(201)
-          .then(response => {
-            /**
-             * We cannot delete the same object over and over again, so we need to create an object to delete. 
-             * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with delete.
-             * TODO optimize
-             */
-            const idToDelete = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-            request
-              .delete('/v1/api/delete/' + idToDelete)
-              .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-              .expect(204)
-              .then(r => {
-                //To be really strict, we could get the object and make sure it has __deleted.
-                expect(response.headers["access-control-allow-origin"]).toBe("*")
-                expect(response.headers["access-control-expose-headers"]).toBe("*")
-                done()
-              })
+    it('End to end /v1/api/delete. Do a properly formatted /delete call by DELETEing an existing object.  '+
+    'It will need to create an object first, then delete that object, and so must complete a /create call first.  '+
+    'It will check the response to /create is 201 and the response to /delete is 204.', function(done) {
+      request
+        .post("/v1/api/create/")
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .send({"testing_delete":"Delete Me"})
+        .expect(201)
+        .then(response => {
+          /**
+           * We cannot delete the same object over and over again, so we need to create an object to delete. 
+           * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with delete.
+           * TODO optimize
+           */ 
+          const idToDelete = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+          request
+          .delete('/v1/api/delete/'+idToDelete)
+          .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+          .expect(204)
+          .then(r => {
+            //To be really strict, we could get the object and make sure it has __deleted.
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            done()
           })
-      })
+        })
+    })
 
     it('End to end /v1/api/query. Do a properly formatted /query call by POSTing a JSON query object.  ' +
       'It should respond with a 200 and an array, even if there were no matches.  ' +
@@ -475,42 +475,42 @@ describe(
     //     .catch(err => done(err))
     // })
 
-    it('End to end /v1/api/release.' +
-      'It will need to create an object first, then release that object, and so must complete a /create call first.  ' +
-      'It will check the response to /create is 201 and the response to /release is 200.',
-      function (done) {
-        request
-          .post("/v1/api/create/")
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-          .send({ "testing_release": "Delete Me" })
-          .expect(201)
-          .then(response => {
-            /**
-             * We cannot release the same object over and over again, so we need to create an object to release. 
-             * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with release.
-             * The same goes for the the remove call afterwards.
-             */
-            const idToRelease = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-            const slug = "1123rcgslu1123"
-            controller.remove(slug).then(r => {
-              request
-                .patch('/v1/api/release/' + idToRelease)
-                .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
-                .set('Slug', slug)
-                .expect(200)
-                .then(response => {
-                  expect(response.headers["access-control-allow-origin"]).toBe("*")
-                  expect(response.headers["access-control-expose-headers"]).toBe("*")
-                  expect(response.body.__rerum.isReleased).toBeTruthy()
-                  expect(response.body.__rerum.slug).toBe(slug)
-                  controller.remove(slug).then(s => done())
-                })
-                .catch(err => done(err))
+    it('End to end /v1/api/release.'+
+    'It will need to create an object first, then release that object, and so must complete a /create call first.  '+
+    'It will check the response to /create is 201 and the response to /release is 200.', 
+    function(done) {
+      request
+        .post("/v1/api/create/")
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .send({"testing_release":"Delete Me"})
+        .expect(201)
+        .then(response => {
+          /**
+           * We cannot release the same object over and over again, so we need to create an object to release. 
+           * Performing the extra /create in front of this adds unneceesary complexity - it has nothing to do with release.
+           * The same goes for the the remove call afterwards.
+           */ 
+          const idToRelease = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
+          const slug = "1123rcgslu1123"
+          controller.remove(slug).then(r => {
+            request
+            .patch('/v1/api/release/'+idToRelease)
+            .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+            .set('Slug', slug)
+            .expect(200)
+            .then(response => {
+              expect(response.headers["access-control-allow-origin"]).toBe("*")
+              expect(response.headers["access-control-expose-headers"]).toBe("*")
+              expect(response.body.__rerum.isReleased).toBeTruthy()
+              expect(response.body.__rerum.slug).toBe(slug)
+              controller.remove(slug).then(s => done())
             })
-              .catch(err => done(err))
+            .catch(err => done(err))  
           })
-      })
+          .catch(err => done(err)) 
+        })
+    })
 
     it('should use `limit` and `skip` correctly at /query',
       function (done) {

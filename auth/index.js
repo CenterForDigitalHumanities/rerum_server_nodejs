@@ -48,7 +48,7 @@ const _extractUser = (req, res, next) => {
  *   // do authorized things
  * });
  */
-const checkJwt = [auth(), _tokenError, _extractUser]
+const checkJwt = [READONLY, auth(), _tokenError, _extractUser]
 
 /**
  * Public API proxy to generate new access tokens through Auth0
@@ -58,12 +58,18 @@ const checkJwt = [auth(), _tokenError, _extractUser]
  */
 const generateNewAccessToken = async (req, res, next) => {
     console.log("Generating a proxy access token.")
-    const tokenObj = await got.post('https://cubap/oauth/token',
+    console.log({
+                grant_type: 'refresh_token',
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
+                refresh_token: req.body.refresh_token
+            })
+    const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             form: {
                 grant_type: 'refresh_token',
                 client_id: process.env.CLIENT_ID,
-                CLIENT_SECRET: process.env.CLIENT_SECRET,
+                client_secret: process.env.CLIENT_SECRET,
                 refresh_token: req.body.refresh_token
             }
         }).json()
@@ -78,12 +84,12 @@ const generateNewAccessToken = async (req, res, next) => {
 const generateNewRefreshToken = async (req, res, next) => {
     console.log("Generating a new refresh token.")
 
-    const tokenObj = await got.post('https://cubap/oauth/token',
+    const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             form: {
                 grant_type: 'authorization_code',
                 client_id: process.env.CLIENT_ID,
-                CLIENT_SECRET: process.env.CLIENT_SECRET,
+                client_secret: process.env.CLIENT_SECRET,
                 refresh_token: req.body.refresh_token,
                 code: req.body.authorization_code
             }
@@ -126,11 +132,21 @@ const isBot = (userObj) => {
     return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM] ?? "Error"
 }
 
+function READONLY(req, res, next) {
+     if(process.env.READONLY=="true"){
+        res.status(503).json({"message":"RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later."})
+        return
+     }
+     next()
+     return
+}
+
 module.exports = {
     checkJwt,
     generateNewAccessToken,
     generateNewRefreshToken,
     verifyAccess,
     isBot,
-    isGenerator
+    isGenerator,
+    READONLY
 }

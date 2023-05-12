@@ -27,7 +27,6 @@ describe('Authorization middleware',()=>{
             }
         }
         auth.checkJwt[0](mockRequest, mockResponse, nextFunction)
-
         expect(nextFunction);
     })
 })
