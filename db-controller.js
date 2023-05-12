@@ -870,6 +870,7 @@ exports.bulkCreate = async function (req, res, next) {
     if (documents.length === 0) {
         let err = new Error("No action on an empty array.")
         //err.status = 406
+        err.status = 400
         next(err)
         return
     }
