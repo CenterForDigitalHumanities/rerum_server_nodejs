@@ -313,6 +313,40 @@ describe(
           .catch(err => done(err))
       })
 
+    it('End to end import functionality. Do a properly formatted /update call by PUTing an existing entity.  '+
+    'If that entity has an existing id or @id property which is not from RERUM, then import it in.  '+
+    'This will effectively create the object, and its __rerum.history.next should point to the origin URI.  '+
+    'The Authorization header is set, it is an access token encoded with the bot.  '+
+    'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
+    'The Location header in the response should be present and populated and not equal the originating entity "@id" or "id".', 
+    function(done) {
+      const unique = new Date(Date.now()).toISOString().replace("Z", "")
+      request
+        .put('/v1/api/update')
+        .send({"id": "https://not.from.rerum/v1/api/aaaeaeaeee34345", "RERUM Import Test":unique})
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
+        .expect(200)
+        .then(response => {
+            expect(response.headers["content-length"]).toBeTruthy()
+            expect(response.headers["content-type"]).toBeTruthy()
+            expect(response.headers["date"]).toBeTruthy()
+            expect(response.headers["etag"]).toBeTruthy()
+            expect(response.headers["access-control-allow-origin"]).toBe("*")
+            expect(response.headers["access-control-expose-headers"]).toBe("*")
+            expect(response.headers["allow"]).toBeTruthy()
+            expect(response.headers["link"]).toBeTruthy()
+            expect(response.headers["location"]).toBeTruthy()
+            expect(response.headers["location"]).not.toBe("https://not.from.rerum/v1/api/aaaeaeaeee34345")
+            expect(response.body["@id"]).toBeTruthy()
+            expect(response.body["@id"]).not.toBe("https://not.from.rerum/v1/api/aaaeaeaeee34345")
+            expect(response.body._id).toBeUndefined()
+            expect(response.body.id).toBeUndefined()
+            done()
+          })
+          .catch(err => done(err))
+      })
+
     it('End to end /v1/api/patch. Do a properly formatted /patch call by PATCHing an existing entity.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+
     'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+

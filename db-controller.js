@@ -208,7 +208,7 @@ exports.putUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
-    const idReceived = objectReceived["@id"] ?? objectReceived.id ?? ""
+    const idReceived = objectReceived["@id"] ?? objectReceived.id
     if (idReceived) {
         if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
             //This is not a regular update.  This object needs to be imported, it isn't in RERUM yet.
@@ -236,7 +236,7 @@ exports.putUpdate = async function (req, res, next) {
             })
         }
         else {
-            const id = new ObjectID().toHexString()
+            id = new ObjectID().toHexString()
             let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["_rerum"]
@@ -306,8 +306,7 @@ async function _import(req, res, next) {
         let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
-        // Originally, this was a putUpdate which usually returns 200.  Import is more like create, so 201 instead.
-        res.status(201)
+        res.status(200)
         delete newObject._id
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.json(newObject)
