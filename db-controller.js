@@ -81,6 +81,7 @@ exports.create = async function (req, res, next) {
     delete provided["_rerum"]
     delete provided["_id"]
     delete provided["@id"]
+    delete provided["id"]
     delete provided["@context"]
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
@@ -290,8 +291,9 @@ async function _import(req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
+    const idReceived = objectReceived["@id"] ?? objectReceived.id ?? ""
     let generatorAgent = getAgentClaim(req, next)
-    const origin_id = parseDocumentID(objectReceived["@id"])
+    const origin_id = parseDocumentID(idReceived)
     let existingObject
     try {
         existingObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id": origin_id})
