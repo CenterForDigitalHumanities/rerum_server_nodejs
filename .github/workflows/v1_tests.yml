@@ -2,10 +2,10 @@ name: RERUM v1 Tests
 on: 
   push:
     branches:
-      main
+      109-import
   pull_request:
     branches:
-      main
+      109-import
 jobs:
   test:
     runs-on: ubuntu-latest
