@@ -336,7 +336,6 @@ async function _import(req, res, next) {
             next(createExpressError(error))
         }
     }
-    next(createExpressError(err))
 }
 
 /**
