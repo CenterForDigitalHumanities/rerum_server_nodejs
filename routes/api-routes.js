@@ -31,6 +31,10 @@ router.use('/api/query', queryRouter)
 const createRouter = require('./create.js')
 router.use('/api/create', createRouter)
 
+// Support POST requests with JSON Array bodies used for establishing new objects.
+const bulkCreateRouter = require('./bulkCreate.js')
+router.use('/api/bulkCreate', bulkCreateRouter)
+
 // Support DELETE requests like v1/delete/{object id} to mark an object as __deleted.
 const deleteRouter = require('./delete.js')
 router.use('/api/delete', deleteRouter)

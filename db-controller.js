@@ -856,6 +856,71 @@ exports.id = async function (req, res, next) {
     }
 }
 
+exports.bulkCreate = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    const documents = req.body
+    // TODO: validate documents gatekeeper function?
+    if (!Array.isArray(documents)) {
+        let err = new Error("The request body must be an array of objects.")
+        //err.status = 406
+        err.status = 400
+        next(err)
+        return
+    }
+    if (documents.length === 0) {
+        let err = new Error("No action on an empty array.")
+        //err.status = 406
+        err.status = 400
+        next(err)
+        return
+    }
+    if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
+        let err = new Error("`/bulkCreate` will only accept objects without @id or id properties.")
+        //err.status = 422
+        err.status = 400
+        next(err)
+        return
+    }
+    // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
+    // let slug = req.get("Slug")
+    // if(slug){
+    //     const slugError = await exports.generateSlugId(slug)
+    //     if(slugError){
+    //         next(createExpressError(slugError))
+    //         return
+    //     }
+    //     else{
+    //         slug = slug_json.slug_id
+    //     }
+    // }
+    let bulkOps = []
+    documents.forEach(d => {
+        const id = new ObjectID().toHexString()
+        let generatorAgent = getAgentClaim(req, next)
+        d = utils.configureRerumOptions(generatorAgent, d)
+        // TODO: check profiles/parameters for 'id' vs '@id' and use that
+        d._id = id
+        d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
+        bulkOps.push({ insertOne : { "document" : d }})
+    })
+    try {
+        let dbResponse = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
+        res.set("Content-Type", "application/json; charset=utf-8")
+        res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
+        res.status(201)
+        const estimatedResults = bulkOps.map(f=>{
+            let doc = f.insertOne.document
+            delete doc._id
+            return doc
+        })
+        res.json(estimatedResults)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
+    }
+    catch (error) {
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
+        next(createExpressError(error))
+    }
+}
+
 /**
  * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
  * No object is returned, but the Content-Length header is set. 

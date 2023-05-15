@@ -5,7 +5,6 @@ on:
       main
 jobs:
     deploy:
-      # Deploy to newprd01 and newdev01
       strategy: 
         matrix:
             node-version: [16]
@@ -24,7 +23,3 @@ jobs:
             git pull
             npm install
             pm2 start -i max bin/rerum_v1.js
-
-
-
-

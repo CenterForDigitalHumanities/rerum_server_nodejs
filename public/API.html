@@ -40,7 +40,7 @@
                             <li><a href="#access-token-proxy">Access Token Proxy</a></li>
                             <li><a href="#refresh-token-proxy">Refresh Token Proxy</a></li>
                             <li><a href="#create">Create</a></li>
-                            <li><a href="#batch-create">Batch Create</a></li>
+                            <li><a href="#bulk-create">Bulk Create</a></li>
                             <li><a href="#custom-query">Custom Query</a></li>
                             <li><a href="#http-post-method-override">HTTP POST Method Override</a></li>
                         </ul>
@@ -48,7 +48,7 @@
                     <li><a href="#put">PUT</a>
                         <ul>
                             <li><a href="#update">Update</a></li>
-                            <li><a href="#batch-update-beta">Batch Update (beta)</a></li>
+                            <li><a href="#bulk-update-beta">Bulk Update (beta)</a></li>
                         </ul>
                     </li>
                     <li><a href="#patch">PATCH</a>
@@ -348,7 +348,7 @@
 }
 </code></pre>
 
-        <h3 id="batch-create">Batch Create</h3>
+        <h3 id="bulk-create">Bulk Create</h3>
 
         <table>
             <thead>
@@ -360,7 +360,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/batchCreate.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/bulkCreate.action</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                     <td>201 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111, ...</code>
@@ -591,7 +591,7 @@
 }
 </code></pre>
 
-        <h3 id="batch-update-beta">Batch Update (beta)</h3>
+        <h3 id="bulk-update-beta">Bulk Update (beta)</h3>
 
         <table>
             <thead>
@@ -603,7 +603,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/batch_update.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/bulk_update.action</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                     <td>200 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222, ...</code>
@@ -874,7 +874,7 @@
                 Must contain <code class="language-plaintext highlighter-rouge">@id</code>.</li>
         </ul>
 
-        <p>There is no batch <code class="language-plaintext highlighter-rouge">DELETE</code> planned.</p>
+        <p>There is no bulk <code class="language-plaintext highlighter-rouge">DELETE</code> planned.</p>
 
         <h3 id="__deleted">__deleted</h3>
 

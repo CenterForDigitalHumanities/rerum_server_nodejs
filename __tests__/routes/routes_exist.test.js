@@ -106,6 +106,11 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
       .get('/v1/api/create')
       .expect(405, done)
   })
+  it('/bulkCreate', function(done) {
+    request
+      .get('/v1/api/create')
+      .expect(405, done)
+  })
 
   it('/update', function(done) {
     request
@@ -174,6 +179,12 @@ describe('Check for legacy endpoints.', function() {
   it('create.action exists', function(done) {
     request
       .get('/v1/api/create.action')
+      .expect(405, done)
+  })
+
+  it('batch_create.action exists', function(done) {
+    request
+      .get('/v1/api/batch_create.action')
       .expect(405, done)
   })
 
