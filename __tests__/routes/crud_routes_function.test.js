@@ -237,7 +237,7 @@ describe(
             { "RERUM Bulk Create Test4": unique },
           ])
           .set('Content-Type', 'application/json; charset=utf-8')
-          .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
+          .set('Authorization', "Bearer " + process.env.BOT_TOKEN)
           .expect(201)
           .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -269,7 +269,7 @@ describe(
             .post('/v1/api/create')
             .send({ "RERUM Slug Support Test": unique })
             .set('Content-Type', 'application/json; charset=utf-8')
-            .set('Authorization', "Bearer " + process.env.BOT_TOKEN_DEV)
+            .set('Authorization', "Bearer " + process.env.BOT_TOKEN)
             .set('Slug', slug)
             .expect(201)
             .then(response => {
