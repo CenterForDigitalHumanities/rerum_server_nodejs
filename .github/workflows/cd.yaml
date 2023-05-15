@@ -2,13 +2,13 @@ name: RERUM v1 Deploy
 on: 
   push:
     branches:
-      109-import
+      main
 jobs:
     deploy:
       strategy: 
         matrix:
             node-version: [16]
-            machines: [vlcdhp02]
+            machines: [vlcdhprdp02, vlcdhp02]
       runs-on: ${{ matrix.machines }}
       steps:
         - uses: actions/checkout@v3
