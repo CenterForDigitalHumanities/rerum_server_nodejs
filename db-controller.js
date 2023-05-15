@@ -196,6 +196,9 @@ exports.delete = async function (req, res, next) {
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
+ * This also detects an IMPORT situation.  If the object @id or id is not from RERUM
+ * then trigger the internal _import function.
+ * 
  * Track History
  * Respond RESTfully
  * */
@@ -204,12 +207,13 @@ exports.putUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
-    if (objectReceived["@id"]) {
-        if(!objectRecieved["@id"].includes(process.env.RERUM_ID_PREFIX)){
+    const idReceived = objectReceived["@id"] ?? objectReceived.id ?? ""
+    if (idReceived) {
+        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
             //This is not a regular update.  This object needs to be imported, it isn't in RERUM yet.
             return _import(req, res, next)
         }
-        let id = parseDocumentID(objectReceived["@id"])
+        let id = parseDocumentID(idReceived)
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -218,11 +222,10 @@ exports.putUpdate = async function (req, res, next) {
             return
         }
         if (null === originalObject) {
-            //This object is not in RERUM, they want to import it.  Do that automatically.  
-            //updateExternalObject(objectReceived)
+            //This object is not found.
             err = Object.assign(err, {
-                message: `This object is not from RERUM and will need imported. This is not automated yet. You can make a new object with create. ${err.message}`,
-                status: 501
+                message: `Object not in RERUM even though it has a RERUM URI.  Check if it is an authentic RERUM object. ${err.message}`,
+                status: 404
             })
         }
         else if (utils.isDeleted(originalObject)) {
@@ -268,7 +271,7 @@ exports.putUpdate = async function (req, res, next) {
     else {
         //The http module will not detect this as a 400 on its own
         err = Object.assign(err, {
-            message: `Object in request body must have the property '@id'. ${err.message}`,
+            message: `Object in request body must have an 'id' or '@id' property. ${err.message}`,
             status: 400
         })
     }
