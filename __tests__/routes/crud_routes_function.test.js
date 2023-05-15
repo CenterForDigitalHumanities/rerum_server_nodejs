@@ -315,7 +315,7 @@ describe(
 
     it('End to end import functionality. Do a properly formatted /update call by PUTing an existing entity.  '+
     'If that entity has an existing id or @id property which is not from RERUM, then import it in.  '+
-    'This will effectively create the object, and its __rerum.history.next should point to the origin URI.  '+
+    'This will effectively create the object, and its __rerum.history.previous should point to the origin URI.  '+
     'The Authorization header is set, it is an access token encoded with the bot.  '+
     'It should respond with a 200 with enough JSON in the response body to discern the "@id".  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id" or "id".', 
@@ -342,6 +342,7 @@ describe(
             expect(response.body["@id"]).not.toBe("https://not.from.rerum/v1/api/aaaeaeaeee34345")
             expect(response.body._id).toBeUndefined()
             expect(response.body.id).toBeUndefined()
+            expect(response.body.__rerum.history.previous).toBe("https://not.from.rerum/v1/api/aaaeaeaeee34345")
             done()
           })
           .catch(err => done(err))
