@@ -318,6 +318,7 @@ async function _import(req, res, next) {
         delete objectReceived["_rerum"]
         delete objectReceived["_id"]
         delete objectReceived["@id"]
+        delete objectReceived["id"]
         delete objectReceived["@context"]
         let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
         console.log("IMPORT")
