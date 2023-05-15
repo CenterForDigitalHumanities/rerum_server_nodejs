@@ -291,51 +291,30 @@ async function _import(req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
-    const idReceived = objectReceived["@id"] ?? objectReceived.id ?? ""
     let generatorAgent = getAgentClaim(req, next)
-    const origin_id = parseDocumentID(idReceived)
-    let existingObject
+    const id = new ObjectID().toHexString()
+    let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
+    delete objectReceived["_rerum"]
+    delete objectReceived["_id"]
+    delete objectReceived["@id"]
+    delete objectReceived["id"]
+    delete objectReceived["@context"]
+    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+    console.log("IMPORT")
     try {
-        existingObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"_id": origin_id})
-    } 
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+        res.set(utils.configureWebAnnoHeadersFor(newObject))
+        res.location(newObject["@id"])
+        // Originally, this was a putUpdate which usually returns 200.  Import is more like create, so 201 instead.
+        res.status(201)
+        delete newObject._id
+        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+        res.json(newObject)
+    }
     catch (error) {
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
         next(createExpressError(error))
-        return
-    }
-    // A strange edge case coincidence, or perhaps old test data...is this id already in RERUM?
-    if (null !== existingObject) {
-        // If this id is in RERUM, that is either an ID clash or a bad prefix...
-        // What should we do?  Is this just a coincidence?  Is there a way to continue?
-        err = Object.assign(err, {
-            message: `RERUM cannot import this due to an _id collision.  Contact an administrator.  Go to https://rerum.io`,
-            status: 409
-        })
-    }
-    else {
-        const id = new ObjectID().toHexString()
-        let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-        let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
-        delete objectReceived["_rerum"]
-        delete objectReceived["_id"]
-        delete objectReceived["@id"]
-        delete objectReceived["id"]
-        delete objectReceived["@context"]
-        let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-        console.log("IMPORT")
-        try {
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-            res.set(utils.configureWebAnnoHeadersFor(newObject))
-            res.location(newObject["@id"])
-            // Originally, this was a putUpdate which usually returns 200.  Import is more like create, so 201 instead.
-            res.status(201)
-            delete newObject._id
-            newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
-            res.json(newObject)
-        }
-        catch (error) {
-            //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-            next(createExpressError(error))
-        }
     }
 }
 
