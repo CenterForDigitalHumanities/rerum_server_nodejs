@@ -81,6 +81,7 @@ exports.create = async function (req, res, next) {
     delete provided["_rerum"]
     delete provided["_id"]
     delete provided["@id"]
+    delete provided["id"]
     delete provided["@context"]
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
@@ -196,6 +197,9 @@ exports.delete = async function (req, res, next) {
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
+ * This also detects an IMPORT situation.  If the object @id or id is not from RERUM
+ * then trigger the internal _import function.
+ * 
  * Track History
  * Respond RESTfully
  * */
@@ -204,8 +208,13 @@ exports.putUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
-    if (objectReceived["@id"]) {
-        let id = parseDocumentID(objectReceived["@id"])
+    const idReceived = objectReceived["@id"] ?? objectReceived.id
+    if (idReceived) {
+        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
+            //This is not a regular update.  This object needs to be imported, it isn't in RERUM yet.
+            return _import(req, res, next)
+        }
+        let id = parseDocumentID(idReceived)
         let originalObject
         try {
             originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -214,11 +223,10 @@ exports.putUpdate = async function (req, res, next) {
             return
         }
         if (null === originalObject) {
-            //This object is not in RERUM, they want to import it.  Do that automatically.  
-            //updateExternalObject(objectReceived)
+            //This object is not found.
             err = Object.assign(err, {
-                message: `This object is not from RERUM and will need imported. This is not automated yet. You can make a new object with create. ${err.message}`,
-                status: 501
+                message: `Object not in RERUM even though it has a RERUM URI.  Check if it is an authentic RERUM object. ${err.message}`,
+                status: 404
             })
         }
         else if (utils.isDeleted(originalObject)) {
@@ -228,7 +236,7 @@ exports.putUpdate = async function (req, res, next) {
             })
         }
         else {
-            const id = new ObjectID().toHexString()
+            id = new ObjectID().toHexString()
             let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["_rerum"]
@@ -264,11 +272,49 @@ exports.putUpdate = async function (req, res, next) {
     else {
         //The http module will not detect this as a 400 on its own
         err = Object.assign(err, {
-            message: `Object in request body must have the property '@id'. ${err.message}`,
+            message: `Object in request body must have an 'id' or '@id' property. ${err.message}`,
             status: 400
         })
     }
     next(createExpressError(err))
+}
+
+/**
+ * RERUM was given a PUT update request for an object whose @id was not from the RERUM API.
+ * This PUT update request is instead considered internally as an "import".
+ * We will create this object in RERUM, but its @id will be a RERUM URI.
+ * __rerum.history.previous will point to the origial URI from the @id.
+ * 
+ * If this functionality were to be offered as its own endpoint, it would be a specialized POST create.
+ * */
+async function _import(req, res, next) {
+    let err = { message: `` }
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let generatorAgent = getAgentClaim(req, next)
+    const id = new ObjectID().toHexString()
+    let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
+    delete objectReceived["_rerum"]
+    delete objectReceived["_id"]
+    delete objectReceived["@id"]
+    delete objectReceived["id"]
+    delete objectReceived["@context"]
+    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+    console.log("IMPORT")
+    try {
+        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+        res.set(utils.configureWebAnnoHeadersFor(newObject))
+        res.location(newObject["@id"])
+        res.status(200)
+        delete newObject._id
+        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+        res.json(newObject)
+    }
+    catch (error) {
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
+        next(createExpressError(error))
+    }
 }
 
 /**
