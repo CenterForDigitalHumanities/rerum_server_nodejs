@@ -98,7 +98,8 @@ const generateNewRefreshToken = async (req, res, next) => {
         res.send(tokenObj)
      } 
      catch (e) {
-        res.send(e)
+        console.log(e.response ? e.response.body : e.message ? e.message : e)
+        res.status(500).send(e)
      }
     
 }
