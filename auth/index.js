@@ -98,7 +98,7 @@ const generateNewRefreshToken = async (req, res, next) => {
         res.send(tokenObj)
      } 
      catch (e) {
-        res.error(e)
+        res.send(e)
      }
     
 }
