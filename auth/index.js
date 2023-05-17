@@ -58,20 +58,15 @@ const checkJwt = [READONLY, auth(), _tokenError, _extractUser]
  */
 const generateNewAccessToken = async (req, res, next) => {
     console.log("Generating a proxy access token.")
-    console.log({
-                grant_type: 'refresh_token',
-                client_id: process.env.CLIENT_ID,
-                client_secret: process.env.CLIENT_SECRET,
-                refresh_token: req.body.refresh_token
-            })
+    const form = {
+        grant_type: 'refresh_token',
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        refresh_token: req.body.refresh_token
+    }
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
-            form: {
-                grant_type: 'refresh_token',
-                client_id: process.env.CLIENT_ID,
-                client_secret: process.env.CLIENT_SECRET,
-                refresh_token: req.body.refresh_token
-            }
+            body:form
         }).json()
     res.send(tokenObj)
 }
@@ -83,7 +78,7 @@ const generateNewAccessToken = async (req, res, next) => {
  */
 const generateNewRefreshToken = async (req, res, next) => {
     console.log("Generating a new refresh token.")
-    let check = {
+    const form = {
         grant_type: 'authorization_code',
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
@@ -93,12 +88,7 @@ const generateNewRefreshToken = async (req, res, next) => {
 
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
-            form: {
-                grant_type: 'authorization_code',
-                client_id: process.env.CLIENT_ID,
-                client_secret: process.env.CLIENT_SECRET,
-                code: req.body.authorization_code
-            }
+            body:form
         }).json()
     res.send(tokenObj)
 }
