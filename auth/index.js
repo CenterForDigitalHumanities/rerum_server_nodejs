@@ -66,12 +66,21 @@ const generateNewAccessToken = async (req, res, next) => {
         redirect_uri:process.env.RERUM_PREFIX
     }
     console.log(form)
-    const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
+    try{
+        const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
+            headers: {
+                "Content-Type": "application/json"
+            },
             body:JSON.stringify(form)
         }).json()
-    console.log(tokenObj)
-    res.send(tokenObj)
+        console.log(tokenObj)
+        res.send(tokenObj)    
+    }
+    catch (e) {
+        console.log(e.response ? e.response.body : e.message ? e.message : e)
+        res.status(500).send(e)
+     }
 }
 
 /**
@@ -88,7 +97,6 @@ const generateNewRefreshToken = async (req, res, next) => {
         code: req.body.authorization_code,
         redirect_uri:process.env.RERUM_PREFIX
     }
-    console.log(form)
     try {
       const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
@@ -104,7 +112,6 @@ const generateNewRefreshToken = async (req, res, next) => {
         console.log(e.response ? e.response.body : e.message ? e.message : e)
         res.status(500).send(e)
      }
-    
 }
 
 /**
