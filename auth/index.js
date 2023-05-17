@@ -83,6 +83,13 @@ const generateNewAccessToken = async (req, res, next) => {
  */
 const generateNewRefreshToken = async (req, res, next) => {
     console.log("Generating a new refresh token.")
+    let check = {
+                grant_type: 'authorization_code',
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
+                code: req.body.authorization_code
+            }
+    console.log(check)
 
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
