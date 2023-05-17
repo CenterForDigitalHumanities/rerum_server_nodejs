@@ -346,7 +346,17 @@
                     $("#a_t").val(token.access_token)
                 })
         })
-        $("#check_status").click(ev => fetch('/client/register').then(res => res.text()).then(url => location.href = url))// `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
+        $("#check_status").click(ev => {
+            fetch('/client/register')
+            .then(res => res.text())
+            .then(url => 
+            {
+                console.log(url)
+                //location.href = url
+            })
+        })
+
+        // `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
 
         function getURLVariable(variable) {
             var query = window.location.search.substring(1);
