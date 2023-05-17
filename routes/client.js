@@ -11,7 +11,7 @@ router.get('/register', function(req,res,next){
           //"scope":"name email openid offline_access",
           "response_type":"code",
           //"response_type":"token",
-          "client_id":process.env.CLIENTID,
+          "client_id":process.env.CLIENT_ID,
           "redirect_uri":process.env.RERUM_PREFIX,
           "state":"register"           
       }).toString()
