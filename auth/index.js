@@ -90,7 +90,6 @@ const generateNewRefreshToken = async (req, res, next) => {
                 grant_type: 'authorization_code',
                 client_id: process.env.CLIENT_ID,
                 client_secret: process.env.CLIENT_SECRET,
-                refresh_token: req.body.refresh_token,
                 code: req.body.authorization_code
             }
         }).json()
