@@ -321,7 +321,7 @@
             $("#new_refresh_token").css("border", "none")
             $("#new_refresh_token").val("")
 
-            fetch('/client/request-new-access-token', {
+            fetch('/client/request-new-refresh-token', {
                 method: 'post',
                 json: { authorization_code }
             }).then(resp => {
