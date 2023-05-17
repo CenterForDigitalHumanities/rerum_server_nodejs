@@ -89,12 +89,18 @@ const generateNewRefreshToken = async (req, res, next) => {
         redirect_uri:process.env.RERUM_PREFIX
     }
     console.log(form)
-    const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
+    try {
+      const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             body:JSON.stringify(form)
         }).json()
-    console.log(tokenObj)
-    res.send(tokenObj)
+        console.log(tokenObj)
+        res.send(tokenObj)
+     } 
+     catch (e) {
+        res.error(e)
+     }
+    
 }
 
 /**
