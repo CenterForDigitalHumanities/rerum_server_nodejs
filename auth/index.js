@@ -93,7 +93,7 @@ const generateNewRefreshToken = async (req, res, next) => {
       const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             headers: {
-                "Content-Type: application/json"
+                "Content-Type": "application/json"
             },
             body:JSON.stringify(form)
         }).json()
