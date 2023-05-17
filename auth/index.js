@@ -64,6 +64,7 @@ const generateNewAccessToken = async (req, res, next) => {
         client_secret: process.env.CLIENT_SECRET,
         refresh_token: req.body.refresh_token
     }
+    console.log(form)
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             body:form
@@ -84,8 +85,7 @@ const generateNewRefreshToken = async (req, res, next) => {
         client_secret: process.env.CLIENT_SECRET,
         code: req.body.authorization_code
     }
-    console.log(check)
-
+    console.log(form)
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             body:form
