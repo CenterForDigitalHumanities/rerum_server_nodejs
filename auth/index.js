@@ -62,13 +62,15 @@ const generateNewAccessToken = async (req, res, next) => {
         grant_type: 'refresh_token',
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
-        refresh_token: req.body.refresh_token
+        refresh_token: req.body.refresh_token,
+        redirect_uri:process.env.RERUM_PREFIX
     }
     console.log(form)
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             body:JSON.stringify(form)
         }).json()
+    console.log(tokenObj)
     res.send(tokenObj)
 }
 
@@ -83,13 +85,15 @@ const generateNewRefreshToken = async (req, res, next) => {
         grant_type: 'authorization_code',
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
-        code: req.body.authorization_code
+        code: req.body.authorization_code,
+        redirect_uri:process.env.RERUM_PREFIX
     }
     console.log(form)
     const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
         {
             body:JSON.stringify(form)
         }).json()
+    console.log(tokenObj)
     res.send(tokenObj)
 }
 
