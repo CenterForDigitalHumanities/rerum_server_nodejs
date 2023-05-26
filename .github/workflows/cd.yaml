@@ -8,7 +8,7 @@ jobs:
       strategy: 
         matrix:
             node-version: [16]
-            machines: [vlcdhp02, vlcdhprdp02]
+            machines: [vlcdhprdp02, vlcdhp02]
       runs-on: ${{ matrix.machines }}
       steps:
         - uses: actions/checkout@v3
