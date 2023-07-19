@@ -143,7 +143,7 @@
         </p>
 
         <p>
-            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like.<br>
+            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like.</span>
             <a target="_blank" href="https://devstore.rerum.io/v1/id/11111">https://devstore.rerum.io/v1/id/11111</a>
         </p>
 
@@ -188,7 +188,7 @@
         </p>
 
         <p>
-            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like.<br>
+            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like.</span>
             <a target="_blank" href="https://devstore.rerum.io/v1/history/11111">https://devstore.rerum.io/v1/history/11111</a>
         </p>
 
@@ -267,32 +267,33 @@
         <p>RERUM works as a proxy with Auth0 to help manage tokens from registered applications.</p>
 
         <p> 
-            <div class="exHeading">Example for Getting an Application Access Token:</div>
+            <div class="exHeading">Example for Getting an Application Access Token</div>
             <pre><code class="jsExample"> 
-                const access_token = await fetch("https://devstore.rerum.io/v1/client/request-new-access-token", {<br>
-                    method: "POST",<br>
-                    headers: {<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify({<br>
-                        "refresh_token": "faJw88b...l4leYIw"<br>
-                    })<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .then(info => info.access_token)<br>
-                .catch(err => {throw err})
+                <span>const access_token = await fetch("https://devstore.rerum.io/v1/client/request-new-access-token", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({</span>
+                        <span class="ind2">"refresh_token": "faJw88b...l4leYIw"</span>
+                    <span class="ind1">})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.then(info => info.access_token)</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
             
         <p>
-            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">{
-              "access_token":"eyJz93a...k4laUWw",
-              "refresh_token":"GEbRxBN...edjnXbL",
-              "id_token":"eyJ0XAi...4faeEoQ",
-              "token_type":"Bearer",
-              "expires_in":86400
-            }
+            <div class="exHeading">Here is what the response <code>resp</code> looks like</div>
+            <pre><code class="respExample">
+                <span>{</span>
+                  <span class="ind1">"access_token":"eyJz93a...k4laUWw",</span>
+                  <span class="ind1">"refresh_token":"GEbRxBN...edjnXbL",</span>
+                  <span class="ind1">"id_token":"eyJ0XAi...4faeEoQ",</span>
+                  <span class="ind1">"token_type":"Bearer",</span>
+                  <span class="ind1">"expires_in":86400</span>
+                <span>}</span>
             </code></pre>
         </p>
 
@@ -343,30 +344,30 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const saved_obj = await fetch("https://devstore.rerum.io/v1/api/create", {<br>
-                    method: "POST",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw" <br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify({<br>
-                        "hello" : "world"<br>
-                    })<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/create", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw" </span>
+                        <span class="ind2"> "Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({</span>
+                        <span class="ind2">"hello" : "world"</span>
+                    <span class="ind1">})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})
             </code></pre>
         </p>
 
         <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">{
-              "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-              "hello" : "world",
-              "__rerum " : {...}
-            }
+            <pre><code class="respExample">
+                <span>{</span>
+                  <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                  <span class="ind1">"hello" : "world",</span>
+                  <span class="ind1">"__rerum " : {...}</span>
+                <span>}</span>
             </code></pre>
-
            <p class="alert"> Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890" </p>
         </p>
 
@@ -408,37 +409,37 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {<br>
-                    method: "POST",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw" <br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify([
-                        {"hello" : "sun"},<br>
-                        {"goodbye" : "moon"} <br>
-                    ])<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw" </span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify([
+                        <span class="ind2">{"hello" : "sun"},</span>
+                        <span class="ind2">{"goodbye" : "moon"} </span>
+                    <span class="ind1">])</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})
             </code></pre>
         </p>
 
         <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                [
-                    {
-                      "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                      "hello" : "sun",
-                      "__rerum " : {...}
-                    },
-                    {
-                      "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
-                      "goodbye" : "moon",
-                      "__rerum " : {...}
-                    }
-                ]
+            <pre><code class="respExample">
+                <span>[</span>
+                    <span class="ind1">{</span>
+                        <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                        <span class="ind2">"hello" : "sun",</span>
+                        <span class="ind2">"__rerum " : {...}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">{</span>
+                        <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                        <span class="ind2">"goodbye" : "moon",</span>
+                        <span class="ind2"> "__rerum " : {...}</span>
+                    <span class="ind1">}</span>
+                <span>]</span>
             </code></pre>
         </p>
 
@@ -476,40 +477,40 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {<br>
-                    method: "POST",<br>
-                    headers: {<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify(
-                        {"type" : "Object", "shape" : "round"}<br>
-                    )<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{"type" : "Object", "shape" : "round"}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
 
         <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                [
-                    {
-                      "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                      "type" : "Object",
-                      "shape" : "round",
-                      "name" : "Ball",
-                      "__rerum " : {...}
-                    },
-                    {
-                      "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
-                      "type" : "Object",
-                      "shape" : "round",
-                      "name" : "Globe",
-                      "__rerum " : {...}
-                    },
-                    ...
-                ]
+            <pre><code class="respExample">
+                <span>[</span>
+                    <span class="ind1">{</span>
+                      <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                      <span class="ind2">"type" : "Object",</span>
+                      <span class="ind2">"shape" : "round",</span>
+                      <span class="ind2">"name" : "Ball",</span>
+                      <span class="ind2">"__rerum " : {...}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">{</span>
+                      <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                      <span class="ind2">"type" : "Object",</span>
+                      <span class="ind2">"shape" : "round",</span>
+                      <span class="ind2"> "name" : "Globe",</span>
+                      <span class="ind2">"__rerum " : {...}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">...</span>
+                <span>]</span>
             </code></pre>
             <p class="alert">
                 All responses are a JSON Array that is not ordered, even if a single or zero records are matched. 
@@ -562,33 +563,30 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {<br>
-                    method: "POST",<br>
-                    headers: {<br>
-                        "X-HTTP-Method-Override" : "PATCH",<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify(<br>
-                        {
-                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
-                            "existing_property" : "new_value"<br>
-                        }<br>
-                    )<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"X-HTTP-Method-Override" : "PATCH",</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{</span>
+                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property" : "new_value"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
         <p class="alert">
             See the Patch Update section for details on the response <code>resp</code>.
         </p>
 
-
-
-
-
         <h2 id="put">PUT</h2>
+
         <p class="alert">
             The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
                 class="language-plaintext highlighter-rouge">@id</code> and <code
@@ -637,43 +635,45 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const updated = await fetch("https://devstore.rerum.io/v1/api/update", {<br>
-                    method: "PUT",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify(
-                        {
-                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
-                            "be" : "kind"}<br>
-                        }
-                    )<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const updated = await fetch("https://devstore.rerum.io/v1/api/update", {</span>
+                    <span class="ind1">method: "PUT",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{</span>
+                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"be" : "kind"}</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
 
         <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                {
-                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
-                    "be" : "kind"
-                    "__rerum " : {
-                        ...
-                        "history" : {
-                            "next" : [],
-                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
-                        }
-                    }
-                }
+            <pre><code class="respExample">
+                <span>{</span>
+                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">"be" : "kind",</span>
+                    <span class="ind1">"__rerum " : {</span>
+                        <span class="ind2">...</span>
+                        <span class="ind2">"history" : {</span>
+                            <span class="ind3">"next" : [],</span>
+                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">}</span>
+                <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+            </p>
+            <p class="alert">
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -740,44 +740,46 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {<br>
-                    method: "PATCH",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify(<br>
-                        {
-                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
-                            "existing_property" : "new_value",<br>
-                            "unmatched_property" : "will be ignored"
-                        }<br>
-                    )<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {</span>
+                    <span class="ind1">method: "PATCH",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{</span>
+                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property" : "new_value",</span>
+                            <span class="ind3">"unmatched_property" : "will be ignored"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
 
          <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                {
-                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
-                    "existing_property" : "new_value",
-                    "__rerum " : {
-                        ...
-                        "history" : {
-                            "next" : [],
-                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
-                        }
-                    }
-                }
+            <pre><code class="respExample">
+                <span>{</span>
+                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">"existing_property" : "new_value",</span>
+                    <span class="ind1">"__rerum " : {</span>
+                        <span class="ind2">...</span>
+                        <span class="ind2">"history" : {</span>
+                            <span class="ind3">"next" : [],</span>
+                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">}</span>
+                <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+            </p>
+            <p class="alert">
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -822,45 +824,47 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/set", {<br>
-                    method: "PATCH",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify(<br>
-                        {
-                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
-                            "existing_property" : "This value will be ignored",<br>
-                            "unmatched_property" : "Some value"
-                        }<br>
-                    )<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/set", {</span>
+                    <span class="ind1">method: "PATCH",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{</span>
+                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property" : "This value will be ignored",</span>
+                            <span class="ind3">"unmatched_property" : "Some Value",</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
 
          <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                {
-                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
-                    "existing_property" : "I exist!",
-                    "unmatched_property" : "Some value",
-                    "__rerum " : {
-                        ...
-                        "history" : {
-                            "next" : [],
-                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
-                        }
-                    }
-                }
+            <pre><code class="respExample">
+                <span>{</span>
+                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">"existing_property" : "I exist!",</span>
+                    <span class="ind1">"unmatched_property" : "Some value",</span>
+                    <span class="ind1">"__rerum " : {</span>
+                        <span class="ind2">...</span>
+                        <span class="ind2">"history" : {</span>
+                            <span class="ind3">"next" : [],</span>
+                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">}</span>
+                <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+            </p>
+            <p class="alert">
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -898,7 +902,7 @@
 
         <p>
             A single RERUM record is updated by removing all properties in the JSON payload.  This method only removed existing record properties. 
-            If a property in the payload does not match an existing property it will be ignored.
+            If a property in the payload does not match an existing property it will be ignored.  Properties in the payload to remove must have the value <code>null</code> or they will be ignored.
 
             This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
         </p>
@@ -906,45 +910,47 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/unset", {<br>
-                    method: "PATCH",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify(<br>
-                        {
-                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
-                            "existing_property" : "This will be removed",<br>
-                            "unmatched_property" : "This will be ignored"
-                        }<br>
-                    )<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/set", {</span>
+                    <span class="ind1">method: "PATCH",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{</span>
+                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property" : null,</span>
+                            <span class="ind3">"unmatched_property" : "This property will be ignored"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
 
          <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                {
-                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
-                    // "existing_property" : "I exist!" has been removed
-                    "hello" : "world",
-                    "__rerum " : {
-                        ...
-                        "history" : {
-                            "next" : [],
-                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
-                        }
-                    }
-                }
+            <pre><code class="respExample">
+                <span>{</span>
+                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">// "existing_property" : "I exist!" has been removed</span>
+                    <span class="ind1">"hello" : "world",</span>
+                    <span class="ind1">"__rerum " : {</span>
+                        <span class="ind2">...</span>
+                        <span class="ind2">"history" : {</span>
+                            <span class="ind3">"next" : [],</span>
+                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">}</span>
+                <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+            </p>
+            <p class="alert">
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -991,45 +997,45 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                const releasedObj = await fetch("https://devstore.rerum.io/v1/api/release", {<br>
-                    method: "PATCH",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})<br>
-                })<br>
-                .then(resp => resp.json())<br>
-                .catch(err => {throw err})
+                <span>const releasedObj = await fetch("https://devstore.rerum.io/v1/api/release", {</span>
+                    <span class="ind1">method: "PATCH",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
 
         <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
-            <pre><code class="language-(json)">
-                {
-                    "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-                    ...
-                    "__rerum " : {
-                        ...
-                        "isReleased" : "2023-07-19T19:06:24.030"
-                        "releases" : {
-                            ...
-                        }
-                    }
-                }
+            <pre><code class="respExample">
+                <span>{</span>
+                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                    <span class="ind1">...</span>
+                    <span class="ind1">"__rerum " : {</span>
+                        <span class="ind2">...</span>
+                        <span class="ind2">"isReleased" : "2023-07-19T19:06:24.030"</span>
+                        <span class="ind2">"releases" : {</span>
+                            <span class="ind3">...</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">}</span>
+                <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"<br>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
             </p>
         </p>
 
         <h2 id="delete">DELETE</h2>
 
         <p>
-            RERUM allows the Generator of a record to delete that record.  An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. <br>
+            RERUM allows the Generator of a record to delete that record.  An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. </span>
             
-            RERUM DELETE does not remove anything from the server. Deleted records are only marked as deleted. <br>
+            RERUM DELETE does not remove anything from the server. Deleted records are only marked as deleted. </span>
 
             Records marked as deleted do not return in query results and may only be directly retrieved by <code class="language-plaintext highlighter-rouge">@id</code>.
 
@@ -1063,15 +1069,15 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                fetch("https://devstore.rerum.io/v1/api/delete", {<br>
-                    method: "DELETE",<br>
-                    headers: {<br>
-                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
-                        "Content-Type": "application/json; charset=utf-8"<br>
-                    },<br>
-                    body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})<br>
-                })<br>
-                .catch(err => {throw err})
+                <span>fetch("https://devstore.rerum.io/v1/api/delete", {</span>
+                    <span class="ind1">method: "DELETE",</span>
+                    <span class="ind1">headers: {</span>
+                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
+                <span>})</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
         <p class="alert">
@@ -1082,23 +1088,20 @@
             A deleted object is easily recognized by <code class="language-plaintext highlighter-rouge">__deleted</code>
         </p>
 
-        <pre><code class="language-(json)">
-        {
-          "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-          "__deleted" : {
-            "object" : {
-              "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
-              "@type": "sc:Canvas",
-              "label": "page 46",
-              "width": 730,
-              "images": [],
-              "height": 1000,
-              "__rerum": {...}
-            },
-            "deletor" : GENERATOR_AGENT,
-            "time" : "2023-07-19T19:06:24.030"
-          }
-        }
+        <pre><code class="respExample">
+        <span>{</span>
+          <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+          <span class="ind1">"__deleted" : {</span>
+            <span class="ind2">"object" : {</span>
+                <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                <span class="ind3">"hello" : "sun",</span>
+                <span class="ind3">"goodbye" : "moon",</span>
+                <span class="ind3">"__rerum": {...}</span>
+            <span class="ind2">},</span>
+            <span class="ind2">"deletor" : GENERATOR_AGENT,</span>
+            <span class="ind2">"time" : "2023-07-19T19:06:24.030"</span>
+          <span class="ind1">}</span>
+        <span>}</span>
         </code></pre>
         <p class="alert">
             The <code class="language-plaintext highlighter-rouge">__deleted.object</code>
