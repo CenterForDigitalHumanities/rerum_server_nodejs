@@ -1,7 +1,7 @@
 # RERUM API v1
 A NodeJS web service for interaction with the RERUM digital object repository.
 Visit [rerum.io](https://rerum.io) for more general information.
-Want to use the API?  Learn how at the [API page](https://github.com/CenterForDigitalHumanities/rerum_server/blob/master/API.md).
+Want to use the API?  Learn how at the [API page](https://store.rerum.io/v1/API.html).
 
 Stores important bits of knowledge in structured JSON-LD objects:
 

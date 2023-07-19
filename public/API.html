@@ -40,7 +40,7 @@
             <li>https://tinydev.rerum.io/app/query Uses the rules established by RERUM <a href="#custom-query">custom query</a></li>
         </ul>
 
-        <p>
+        <p class="alert">
             <strong>NB:</strong> Your data will be public and could be removed at any time. The sandbox functions as a public testbed and uses the development API; it is <u>not</u> meant for production applications.  
         </p>
         <!-- TOC -->
@@ -135,15 +135,16 @@
                 with identifier <code class="language-plaintext highlighter-rouge">_id</code></li>
         </ul>
 
-        <p>
-            This can be used directly in the browser: <a target="_blank" href="https://devstore.rerum.io/v1/id/11111">https://devstore.rerum.io/v1/id/11111</a>
-        </p>
-
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
                 const entity = await fetch("https://devstore.rerum.io/v1/id/11111").then(resp => resp.json()).catch(err => {throw err})
             </code></pre>
+        </p>
+
+        <p>
+            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like.<br>
+            <a target="_blank" href="https://devstore.rerum.io/v1/id/11111">https://devstore.rerum.io/v1/id/11111</a>
         </p>
 
         <h3 id="history-tree-before-this-version">History tree before this version</h3>
@@ -172,18 +173,23 @@
                 of the resolved objects of all parent history objects</li>
         </ul>
 
-        <p>As objects in RERUM are altered, the previous state is retained in
+        <p>
+            As objects in RERUM are altered, the previous state is retained in
             a history tree. Requests return ancestors of this object on its
             branch. The objects in the array are listed in inorder traversal but
-            ignoring other branches.</p>
-
-        <p>This can be used directly in the browser: <a target="_blank" href="https://devstore.rerum.io/v1/history/11111">https://devstore.rerum.io/v1/history/11111</a></p>
+            ignoring other branches.
+        </p>
 
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
                 const history_array = await fetch("https://devstore.rerum.io/v1/history/11111").then(resp => resp.json()).catch(err => {throw err})
             </code></pre>
+        </p>
+
+        <p>
+            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like.<br>
+            <a target="_blank" href="https://devstore.rerum.io/v1/history/11111">https://devstore.rerum.io/v1/history/11111</a>
         </p>
 
         <h3 id="history-tree-since-this-version">History tree since this version</h3>
@@ -212,11 +218,16 @@
                 of the resolved objects of all child history objects</li>
         </ul>
 
-        <p>As objects in RERUM are altered, the next state is retained in
+        <p>
+            As objects in RERUM are altered, the next state is retained in
             a history tree. Requests return all descendants of this object from all branches.<br />
-            The objects in the array are listed in preorder traversal.</p>
+            The objects in the array are listed in preorder traversal.
+        </p>
 
-        <p>This can be used directly in the browser: <a target="_blank" href="https://devstore.rerum.io/v1/since/11111">https://devstore.rerum.io/v1/since/11111</a></p>
+        <p>
+            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like. 
+            <a target="_blank" href="https://devstore.rerum.io/v1/since/11111">https://devstore.rerum.io/v1/since/11111</a>
+        </p>
 
         <p> 
             <div class="exHeading">Javascript Example</div>
@@ -256,7 +267,7 @@
         <p>RERUM works as a proxy with Auth0 to help manage tokens from registered applications.</p>
 
         <p> 
-            <div class="exHeading">Example for Getting a New Application Access Token:</div>
+            <div class="exHeading">Example for Getting an Application Access Token:</div>
             <pre><code class="jsExample"> 
                 const access_token = await fetch("https://devstore.rerum.io/v1/client/request-new-access-token", {<br>
                     method: "POST",<br>
@@ -270,6 +281,18 @@
                 .then(resp => resp.json())<br>
                 .then(info => info.access_token)<br>
                 .catch(err => {throw err})
+            </code></pre>
+        </p>
+            
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">{
+              "access_token":"eyJz93a...k4laUWw",
+              "refresh_token":"GEbRxBN...edjnXbL",
+              "id_token":"eyJ0XAi...4faeEoQ",
+              "token_type":"Bearer",
+              "expires_in":86400
+            }
             </code></pre>
         </p>
 
@@ -290,7 +313,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/create.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/create</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>201 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111</code>
@@ -306,36 +329,40 @@
                 various bits of information about the create.</li>
         </ul>
 
-        <p>Add a completely new object to RERUM and receive the location URI
-            in response. Accepts only single JSON objects for RERUM storage.
-            Mints a new URI and returns the object’s <code class="language-plaintext highlighter-rouge">Location</code>
-            as a header.
-            If the object already contains an <code class="language-plaintext highlighter-rouge">@id</code> that matches
-            an object in RERUM,
-            the API will direct the user to use <a href="#update">update</a> instead.</p>
+        <p>
+            Add a completely new object to RERUM and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI
+            as a response header and the complete object as the response body. Accepts only single JSON objects in the request body.  If the object in the request already contains an <code class="language-plaintext highlighter-rouge">@id</code> that matches an object in RERUM, the API will direct the user to use <a href="#update">update</a> instead.</p>
+        </p>
 
-        <p>Example Response:</p>
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const saved_obj = await fetch("https://devstore.rerum.io/v1/api/create", {<br>
+                    method: "POST",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw" <br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify({<br>
+                        "hello" : "world"<br>
+                    })<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
 
-        <ul>
-            <li><strong>Header:</strong> <code
-                    class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111</code>
-            </li>
-            <li><strong>Body:</strong></li>
-        </ul>
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">{
+              "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+              "hello" : "world",
+              "__rerum " : {...}
+            }
+            </code></pre>
 
-        <pre><code class="language-(json)">{
-  "code" : 201,
-  "new_obj_state" : {
-    "@id": "https://devstore.rerum.io/v1/id/11111",
-    ...
-  },
-  "iiif_validation" : {
-    "warnings" : ["Array of warnings from IIIF validator"],
-    "error" : "Error for why this object failed validation",
-    "okay" : 1 // 0 or 1 as to whether or not it passed IIIF validation
-  }
-}
-</code></pre>
+           <p class="alert"> Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890" </p>
+        </p>
 
         <h3 id="bulk-create">Bulk Create</h3>
 
@@ -349,10 +376,9 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/bulkCreate.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/bulkCreate</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
-                    <td>201 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111, ...</code>
+                    <td>201 <code>
                         <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
             </tbody>
@@ -365,11 +391,50 @@
                 of the resolved objects from the creation process</li>
         </ul>
 
-        <p>The array of JSON objects passed in will be created in the
-            order submitted and the response will have the URI of the new
-            resource or an error message in the body as an array in the
-            same order. When errors are encountered, the batch process
-            will attempt to continue for all submitted items.</p>
+        <p>
+            Add multiple completely new objects to RERUM and receive an array of the complete object as the response body. 
+            Accepts only a single array of JSON objects in the request body.
+            The array of JSON objects passed in will be created in the order submitted and the response will have the URI 
+            of the new resource or an error message as an array in the same order. When errors are encountered, 
+            the batch process will attempt to continue for all submitted items.
+        </p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {<br>
+                    method: "POST",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw" <br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify([
+                        {"hello" : "sun"},<br>
+                        {"goodbye" : "moon"} <br>
+                    ])<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
+
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">
+                [
+                    {
+                      "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+                      "hello" : "sun",
+                      "__rerum " : {...}
+                    },
+                    {
+                      "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
+                      "goodbye" : "moon",
+                      "__rerum " : {...}
+                    }
+                ]
+            </code></pre>
+        </p>
 
         <h3 id="custom-query">Custom Query</h3>
 
@@ -383,7 +448,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/getByProperties.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/query?limit=50&skip=0</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
@@ -397,27 +462,57 @@
                 of the resolved objects of all objects that match the query</li>
         </ul>
 
-        <p>This simple format will be made more complex
-            in the future, but should serve the basic needs as it is.
-            All responses are in a JSON Array, even if a single or zero
-            records are returned. RERUM will test for property matches,
-            so <code class="language-plaintext highlighter-rouge">{ "@type" : "sc:Canvas", "label" : "page 46" }</code>
-            will match objects like</p>
+        <p>
+            This simple format will be made more complex in the future, but should serve the basic needs as it is.
+            RERUM will test for property matches.
+        </p>
 
-        <pre><code class="language-(json)">{
-  "@id": "https://devstore.rerum.io/v1/id/00000",
-  "otherContent": [],
-  "label": "page 46",
-  "width": 730,
-  "images": [],
-  "height": 1000,
-  "@type": "sc:Canvas"
-}
-</code></pre>
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {<br>
+                    method: "POST",<br>
+                    headers: {<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify(
+                        {"type" : "Object", "shape" : "round"}<br>
+                    )<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
 
-        <p>and return each matched object in a JSON array in no particular order.</p>
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">
+                [
+                    {
+                      "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+                      "type" : "Object",
+                      "shape" : "round",
+                      "name" : "Ball",
+                      "__rerum " : {...}
+                    },
+                    {
+                      "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
+                      "type" : "Object",
+                      "shape" : "round",
+                      "name" : "Globe",
+                      "__rerum " : {...}
+                    },
+                    ...
+                ]
+            </code></pre>
+            <p class="alert">
+                All responses are a JSON Array that is not ordered, even if a single or zero records are matched. 
+            </p>
+        </p>
 
         <h3 id="http-post-method-override">HTTP POST Method Override</h3>
+
+        <p class="alert"> This section is non-normative. </p>
 
         <table>
             <thead>
@@ -429,7 +524,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/patch.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/patch</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>201 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
@@ -456,51 +551,27 @@
                 in this API</a>.</p>
 
         <p>Example Method Override Request:</p>
-
-        <ul>
-            <li><strong>Header:</strong>
-                <code class="language-plaintext highlighter-rouge">Method: POST</code>,
-                <code class="language-plaintext highlighter-rouge">X-HTTP-Method-Override: PATCH</code>
-            </li>
-            <li><strong>Body:</strong>
-                <strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object containing
-                the @id for update and the fields in that object to patch.
-            </li>
-        </ul>
-
-        <p>This grants software that is otherwise unable to make these requests the ability
-            to do so.</p>
-
-        <p>Example Response:</p>
-
-        <ul>
-            <li><strong>Header:</strong> <code
-                    class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
-                <code class="language-plaintext highlighter-rouge">{JSON}</code></li>
-            <li><strong>Body:</strong></li>
-        </ul>
-
-        <pre><code class="language-(json)">{
-  "code" : 200,
-  "original_object_id" : "https://devstore.rerum.io/v1/id/11111",
-  "new_obj_state" : {
-    "@id": "https://devstore.rerum.io/v1/id/22222",
-    "__rerum":{
-        "history":{
-            "previous":"https://devstore.rerum.io/v1/id/11111",
-            ...
-        }
-      ...
-    }
-    ...
-  },
-  "iiif_validation" : {
-    "warnings" : ["Array of warnings from IIIF validator"],
-    "error" : "Error for why this object failed validation",
-    "okay" : 1 // 0 or 1 as to whether or not it passed IIIF validation
-  }
-}
-</code></pre>
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {<br>
+                    method: "POST",<br>
+                    headers: {<br>
+                        "X-HTTP-Method-Override" : "PATCH",<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify(
+                        {"type" : "Object", "shape" : "round"}<br>
+                    )<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
+        <p class="alert">
+            See the Patch Update section for details on the response <code>resp</code>.
+        </p>
 
         <h2 id="put">PUT</h2>
         <blockquote>
@@ -532,7 +603,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/update.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/update</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
@@ -592,7 +663,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/bulk_update.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/bulkUpdate</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                     <td>200 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222, ...</code>
@@ -636,7 +707,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/patch.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/patch</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
@@ -707,7 +778,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/set.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/set</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
@@ -739,7 +810,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/unset.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/unset</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>202 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
@@ -774,7 +845,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/release.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/release</code></td>
                     <td><code class="language-plaintext highlighter-rouge">String @id</code> or <code
                             class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
@@ -848,7 +919,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/delete.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/delete</code></td>
                     <td><code class="language-plaintext highlighter-rouge">String @id</code> or <code
                             class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>204</td>
