@@ -115,7 +115,6 @@ svg:not(:root) {
     overflow: hidden
 }
 
-code,
 kbd,
 pre,
 samp {
@@ -388,18 +387,12 @@ dd {
     margin-left: 0
 }
 
-tt,
-code {
+tt {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
     font-size  : 12px
 }
 
-pre {
-    margin-top   : 0;
-    margin-bottom: 0;
-    font-family  : "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-    font-size    : 12px
-}
+
 
 .octicon {
     vertical-align: text-bottom
@@ -6141,8 +6134,7 @@ pre {
 .markdown-body ul,
 .markdown-body ol,
 .markdown-body dl,
-.markdown-body table,
-.markdown-body pre {
+.markdown-body table{
     margin-top   : 0;
     margin-bottom: 16px
 }
@@ -6453,7 +6445,6 @@ pre {
     text-align: right
 }
 
-.markdown-body code,
 .markdown-body tt {
     padding         : 0.2em 0.4em;
     margin          : 0;
@@ -6462,7 +6453,6 @@ pre {
     border-radius   : 3px
 }
 
-.markdown-body code br,
 .markdown-body tt br {
     display: none
 }
@@ -6471,11 +6461,11 @@ pre {
     text-decoration: inherit
 }
 
-.markdown-body pre {
+/*.markdown-body pre {
     word-wrap: normal
-}
+}*/
 
-.markdown-body pre>code {
+/*.markdown-body pre>code {
     padding    : 0;
     margin     : 0;
     font-size  : 100%;
@@ -6483,13 +6473,13 @@ pre {
     white-space: pre;
     background : transparent;
     border     : 0
-}
+}*/
 
 .markdown-body .highlight {
     margin-bottom: 16px
 }
 
-.markdown-body .highlight pre {
+/*.markdown-body .highlight pre {
     margin-bottom: 0;
     word-break   : normal
 }
@@ -6502,9 +6492,40 @@ pre {
     line-height     : 1.45;
     background-color: #f6f8fa;
     border-radius   : 3px
+}*/
+
+pre {
+    font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace;
+    background: #1b1b1b;
+    padding: 0;
+    margin: 0;
+    -moz-tab-size: 2;
+    -o-tab-size: 2;
+    tab-size: 2;
+    -ms-word-break: normal;
+    word-break: normal;
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-.markdown-body pre code,
+.markdown-body pre code {
+    display: block;
+    background: none;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: scroll;
+    max-width: 100%;
+    min-width: 100px;
+    padding: 15px 20px 12px 22px;
+    color: #f5d67b;
+    font-size: 9pt;
+    font-weight: bold;
+}
+
 .markdown-body pre tt {
     display         : inline;
     max-width       : auto;

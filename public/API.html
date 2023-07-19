@@ -9,22 +9,43 @@
     <title>API (1.0.0) | rerum_server</title>
     <meta property="og:title" content="API (1.0.0)" />
     <meta property="og:locale" content="en_US" />
-    <meta name="description" content="Java web service for a RERUM compliant digital object repository" />
-    <meta property="og:description" content="Java web service for a RERUM compliant digital object repository" />
+    <meta name="description" content="A NodeJS web service for interaction with the RERUM digital object repository." />
+    <meta property="og:description" content="A NodeJS web service for interaction with the RERUM digital object repository." />
     <link rel="canonical" href="https://store.rerum.io/API.html" />
     <meta property="og:url" content="https://store.rerum.io/API.html" />
     <meta property="og:site_name" content="rerum_server" />
     <script type="application/ld+json">
-{"description":"Java web service for a RERUM compliant digital object repository","url":"https://store.rerum.io/API.html","@type":"WebPage","headline":"API (1.0.0)","@context":"https://schema.org"}</script>
-<link rel="stylesheet" href="stylesheets/api.css">
+    {"description":"A NodeJS web service for interaction with the RERUM digital object repository.","url":"https://store.rerum.io/API.html","@type":"WebPage","headline":"API (1.0.0)","@context":"https://schema.org"}
+    </script>
+    <link rel="stylesheet" href="stylesheets/api.css">
 </head>
 
 <body>
     <div class="container-lg px-3 my-5 markdown-body">
         <h1><a href="https://store.rerum.io/">RERUM Server</a></h1>
-        <h1 id="api-100">API (1.0.0)</h1>
 
+        <h3>
+            TLDR: I Just Want to Use It
+        </h3>
+
+        <p>
+            If you would like to see an example of a web application leveraging the RERUM API visit the official RERUM Sandbox and public sandbox API <a href="https://tinydev.rerum.io">https://tinydev.rerum.io</a>.  You can use the following RERUM Sandbox API links to give your application simple CRUD and query abilities.
+        </p>
+
+        <ul id="tt_example">
+            <li>https://tinydev.rerum.io/app/create Uses the rules established by RERUM <a href="#create">create</a></li>
+            <li>https://tinydev.rerum.io/app/update Uses the rules established by RERUM PUT <a href="#update">update</a>
+            </li>
+            <li>https://tinydev.rerum.io/app/delete Uses the rules established by RERUM <a href="#delete">delete</a></li>
+            <li>https://tinydev.rerum.io/app/query Uses the rules established by RERUM <a href="#custom-query">custom query</a></li>
+        </ul>
+
+        <p>
+            <strong>NB:</strong> Your data will be public and could be removed at any time. The sandbox functions as a public testbed and uses the development API; it is <u>not</u> meant for production applications.  
+        </p>
         <!-- TOC -->
+
+        <h1 id="api-100">API (1.0.0)</h1>
         <ul>
             <li><a href="#api-10">API (1.0.0)</a>
                 <ul>
@@ -75,32 +96,16 @@
                 </ul>
             </li>
         </ul>
-
         <!-- /TOC -->
-        <p>All the following interactions will take place between
-            the server running RERUM and the application server. Direct connection from client script
-            to the RERUM server is not allowed. Please note that all
-            examples are pointing at the development version of the RERUM API, not the
-            production version. Only point to the production version once you have
-            tested with the development version.</p>
 
-        <p>If you would like to see an example of a web application leveraging the RERUM API visit the
-            testbed at https://tinydev.rerum.io or the <a
-                href="https://github.com/CenterForDigitalHumanities/TinyThings">GitHub codebase for TinyThings</a>.</p>
-
-        <p>To have simple CRUD ability from client script without using a back end proxy, you can
-            use our public test endpoints.<br />
-            <strong>NB:</strong> Your data will be public and could be removed at any time. This is for testing only
-            and will not be attributed to you in any way.
+        <p>
+            All the following interactions will take place between the server running RERUM and the application using the RERUM API's server. 
+            Direct connection from client script to the RERUM server is not allowed.  If you are looking for a <a href="#tt_example">link for your application to use the RERUM API</a> then look into <a target="_blank" href="https://github.com/CenterForDigitalHumanities/TinyThings">TinyThings</a>.
         </p>
-        <ul>
-            <li>https://tinydev.rerum.io/app/create Uses the rules established by RERUM <a href="#create">create</a></li>
-            <li>https://tinydev.rerum.io/app/update Uses the rules established by RERUM PUT <a href="#update">update</a>
-            </li>
-            <li>https://tinydev.rerum.io/app/delete Uses the rules established by RERUM <a href="#delete">delete</a></li>
-            <li>https://tinydev.rerum.io/app/query Uses the rules established by RERUM <a href="#custom-query">Custom
-                    Query</a></li>
-        </ul>
+
+        <p>
+            <b>For those who Copy and Paste</b> please note that all examples are using the <i>development</i> (devstore.rerum.io) version of the RERUM API, not the production version (store.rerum.io). Only use production once you have become confident with the API and have confirmed your application is generating data as expected.
+        </p>
 
         <h2 id="get">GET</h2>
 
@@ -127,10 +132,19 @@
             <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the object in
                 RERUM.</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object
-                at <code class="language-plaintext highlighter-rouge">_id</code></li>
+                with identifier <code class="language-plaintext highlighter-rouge">_id</code></li>
         </ul>
 
-        <p>Example: https://devstore.rerum.io/v1/id/11111</p>
+        <p>
+            This can be used directly in the browser: <a target="_blank" href="https://devstore.rerum.io/v1/id/11111">https://devstore.rerum.io/v1/id/11111</a>
+        </p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const entity = await fetch("https://devstore.rerum.io/v1/id/11111").then(resp => resp.json()).catch(err => {throw err})
+            </code></pre>
+        </p>
 
         <h3 id="history-tree-before-this-version">History tree before this version</h3>
 
@@ -163,7 +177,14 @@
             branch. The objects in the array are listed in inorder traversal but
             ignoring other branches.</p>
 
-        <p>Example: https://devstore.rerum.io/v1/history/11111</p>
+        <p>This can be used directly in the browser: <a target="_blank" href="https://devstore.rerum.io/v1/history/11111">https://devstore.rerum.io/v1/history/11111</a></p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const history_array = await fetch("https://devstore.rerum.io/v1/history/11111").then(resp => resp.json()).catch(err => {throw err})
+            </code></pre>
+        </p>
 
         <h3 id="history-tree-since-this-version">History tree since this version</h3>
 
@@ -195,7 +216,14 @@
             a history tree. Requests return all descendants of this object from all branches.<br />
             The objects in the array are listed in preorder traversal.</p>
 
-        <p>Example: https://devstore.rerum.io/v1/since/11111</p>
+        <p>This can be used directly in the browser: <a target="_blank" href="https://devstore.rerum.io/v1/since/11111">https://devstore.rerum.io/v1/since/11111</a></p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const since_array = await fetch("https://devstore.rerum.io/v1/since/11111").then(resp => resp.json()).catch(err => {throw err})
+            </code></pre>
+        </p>
 
         <h2 id="post">POST</h2>
 
@@ -211,7 +239,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/accessToken.action</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/request-new-access-token</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
@@ -225,69 +253,30 @@
                 the Auth0 /oauth/token <code class="language-plaintext highlighter-rouge">JSON</code> response</li>
         </ul>
 
-        <p>RERUM works as a proxy with Auth0 to help manage tokens from registered applications.
-            This will form the request necessary to get a response from Auth0 which contains
-            a new access token.</p>
+        <p>RERUM works as a proxy with Auth0 to help manage tokens from registered applications.</p>
 
-        <p>Example Response:</p>
+        <p> 
+            <div class="exHeading">Example for Getting a New Application Access Token:</div>
+            <pre><code class="jsExample"> 
+                const access_token = await fetch("https://devstore.rerum.io/v1/client/request-new-access-token", {<br>
+                    method: "POST",<br>
+                    headers: {<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify({<br>
+                        "refresh_token": "faJw88b...l4leYIw"<br>
+                    })<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .then(info => info.access_token)<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
 
-        <ul>
-            <li><strong>Header:</strong> <code class="language-plaintext highlighter-rouge">HTTP/1.1 200 OK</code></li>
-            <li><strong>Body:</strong></li>
-        </ul>
-
-        <pre><code class="language-(json)">{
-  "access_token":"eyJz93a...k4laUWw",
-  "token_type":"Bearer",
-  "expires_in":86400
-}
-</code></pre>
-
-        <h3 id="refresh-token-proxy">Refresh Token Proxy</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Patterns</th>
-                    <th>Payloads</th>
-                    <th>Responses</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/refreshToken.action</code></td>
-                    <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
-                    <td>200 <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
-                </tr>
-            </tbody>
-        </table>
-
-        <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>— Auth0 requirements <a
-                    href="https://auth0.com/docs/tokens/refresh-token/current#get-a-refresh-token">here</a></li>
-            <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>— Containing
-                the Auth0 /oauth/token <code class="language-plaintext highlighter-rouge">JSON</code> response</li>
-        </ul>
-
-        <p>RERUM works as a proxy with Auth0 to help manage tokens from registered applications.
-            This will form the request necessary to get a response from Auth0 which contains
-            a new refresh token.</p>
-
-        <p>Example Response:</p>
-
-        <ul>
-            <li><strong>Header:</strong> <code class="language-plaintext highlighter-rouge">HTTP/1.1 200 OK</code></li>
-            <li><strong>Body:</strong></li>
-        </ul>
-
-        <pre><code class="language-(json)">{
-  "access_token":"eyJz93a...k4laUWw",
-  "refresh_token":"GEbRxBN...edjnXbL",
-  "id_token":"eyJ0XAi...4faeEoQ",
-  "token_type":"Bearer",
-  "expires_in":86400
-}
-</code></pre>
+        <h3 id="refresh-token-proxy">Refresh Tokens</h3>
+        <p> 
+            Application managers must use the <a href="https://devstore.rerum.io">RERUM Registration Page</a> to get new Refresh Tokens.  Applications are not able to ask for new Refresh Tokens like they can ask for new Access Tokens. 
+        </p>
 
         <h3 id="create">Create</h3>
 
