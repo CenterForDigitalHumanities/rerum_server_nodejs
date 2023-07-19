@@ -222,18 +222,18 @@
             As objects in RERUM are altered, the next state is retained in
             a history tree. Requests return all descendants of this object from all branches.<br />
             The objects in the array are listed in preorder traversal.
-        </p>
-
-        <p>
-            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like. 
-            <a target="_blank" href="https://devstore.rerum.io/v1/since/11111">https://devstore.rerum.io/v1/since/11111</a>
-        </p>
+        </p>      
 
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
                 const since_array = await fetch("https://devstore.rerum.io/v1/since/11111").then(resp => resp.json()).catch(err => {throw err})
             </code></pre>
+        </p>
+
+        <p>
+            This can be used directly in the browser.  Try it to see what the response <code>resp</code> looks like. 
+            <a target="_blank" href="https://devstore.rerum.io/v1/since/11111">https://devstore.rerum.io/v1/since/11111</a>
         </p>
 
         <h2 id="post">POST</h2>
