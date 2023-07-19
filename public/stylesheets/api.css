@@ -6535,6 +6535,14 @@ pre {
     padding-right: 24px;
 }
 
+.markdown-body .warning{
+    border-color: #f11;
+    border-width: 0.2em;
+    border-style: solid;
+    background: #fbe9e9;
+    padding: 0.5em;
+}
+
 .markdown-body pre tt {
     display         : inline;
     max-width       : auto;

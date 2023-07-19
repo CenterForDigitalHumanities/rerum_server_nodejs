@@ -40,8 +40,8 @@
             <li>https://tinydev.rerum.io/app/query Uses the rules established by RERUM <a href="#custom-query">custom query</a></li>
         </ul>
 
-        <p class="alert">
-            <strong>NB:</strong> Your data will be public and could be removed at any time. The sandbox functions as a public testbed and uses the development API; it is <u>not</u> meant for production applications.  
+        <p class="warning">
+            Your data will be public and could be removed at any time. The sandbox functions as a public testbed and uses the development API; it is <u>not</u> meant for production applications.  
         </p>
         <!-- TOC -->
 
@@ -316,7 +316,7 @@
                     <td><code class="language-plaintext highlighter-rouge">/create</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>201 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111</code>
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/abcdef1234567890</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
@@ -333,11 +333,11 @@
             Add a completely new object to RERUM and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI
             as a response header and the complete object as the response body. Accepts only single JSON objects in the request body.  
 
-            <blockquote class="alert">
-                <strong>NB:</strong> The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
+            <p class="alert">
+                The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
                     class="language-plaintext highlighter-rouge">@id</code> and <code
                     class="language-plaintext highlighter-rouge">_id</code> properties are ignored.</p>
-            </blockquote>
+            </p>
         </p>
 
         <p> 
@@ -545,7 +545,7 @@
                     <td><code class="language-plaintext highlighter-rouge">/patch</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>201 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/1234567890abcdef</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
@@ -572,8 +572,8 @@
                     body: JSON.stringify(<br>
                         {
                             "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
-                            "existing_property" : "new_value"}<br>
-                        }
+                            "existing_property" : "new_value"<br>
+                        }<br>
                     )<br>
                 })<br>
                 .then(resp => resp.json())<br>
@@ -589,17 +589,18 @@
 
 
         <h2 id="put">PUT</h2>
-        <blockquote class="alert">
-            <strong>NB:</strong> The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
+        <p class="alert">
+            The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
                 class="language-plaintext highlighter-rouge">@id</code> and <code
-                class="language-plaintext highlighter-rouge">_id</code> properties are ignored on all PUT requests.
-            <p>Updates to released or deleted objects fail with an error.</p>
-        </blockquote>
+                class="language-plaintext highlighter-rouge">_id</code> properties are ignored on all PUT requests.      
+        </p>
+        <p class="warning">Updates to released or deleted objects fail with an error.</p>
 
         <h3 id="update">Update</h3>
 
         <p>
-            Replace an existing record through reference to its internal RERUM id. 
+            Replace an existing record through reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete object as the response body.
+
             This will have the effects of update, set, and unset actions. 
             New keys will be created and keys not present in the request will not be present in the resulting object.
             When an object is updated, the <code class="language-plaintext highlighter-rouge">@id</code> will change.
@@ -619,7 +620,7 @@
                     <td><code class="language-plaintext highlighter-rouge">/update</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/1234567890abcdef</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
@@ -671,6 +672,7 @@
                 }
             </code></pre>
             <p class="alert">
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
                 Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
@@ -678,20 +680,22 @@
             </p>
         </p>
 
+        <!--
         <h3 id="bulk-update-beta">Bulk Update (beta)</h3>
 
         <p class="alert">
             Note that Bulk Update is under development and is not yet available.
         </p>
+        -->
 
         <h2 id="patch">PATCH</h2>
 
-        <blockquote class="alert">
-            <strong>NB:</strong> The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
+        <p class="alert">
+            The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
                 class="language-plaintext highlighter-rouge">@id</code> and <code
                 class="language-plaintext highlighter-rouge">_id</code> properties are ignored on all PATCH requests.
-            <p>Updates to released or deleted objects fail with an error.</p>
-        </blockquote>
+        </p>
+        <p class="warning">Updates to released or deleted objects fail with an error.</p>
 
         <h3 id="patch-update">Patch Update</h3>
 
@@ -708,7 +712,7 @@
                     <td><code class="language-plaintext highlighter-rouge">/patch</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/1234567890abcdef</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
@@ -722,47 +726,63 @@
                 information about the PATCH update.</li>
         </ul>
 
-        <p>A single object is updated by altering the set or subset of properties in the JSON
-            payload. This method only updates existing keys. If a new property is submitted in the payload
-            an error will be returned to the user as this is not a legal PATCH. If <code
-                class="language-plaintext highlighter-rouge">{"key":null}</code> is submitted,
-            the value will be set to <code class="language-plaintext highlighter-rouge">null</code>. Properties not
-            mentioned in the payload object remain
-            unaltered in the resulting object. This results in the need to track history and
-            the previous version will be represented in the <code
-                class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+        <p>
+            A single object is updated by altering the set or subset of existing properties on the targeted RERUM record.
+            This method only manipulates existing record properties. Unmatched properties are ignored and will not appear
+            on the resulting patched object.
+
+            If <code class="language-plaintext highlighter-rouge">{"key":null}</code> is submitted,
+            the value for property "key" will be set to <code class="language-plaintext highlighter-rouge">null</code> instead of removing the property. 
+
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
         </p>
 
-        <p>Example Response:</p>
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {<br>
+                    method: "PATCH",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify(<br>
+                        {
+                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
+                            "existing_property" : "new_value",<br>
+                            "unmatched_property" : "will be ignored"
+                        }<br>
+                    )<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
 
-        <ul>
-            <li><strong>Header:</strong> <code
-                    class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
-            </li>
-            <li><strong>Body:</strong></li>
-        </ul>
-
-        <pre><code class="language-(json)">{
-  "code" : 200,
-  "original_object_id" : "https://devstore.rerum.io/v1/id/11111",
-  "new_obj_state" : {
-    "@id": "https://devstore.rerum.io/v1/id/22222",
-    "__rerum":{
-        "history":{
-            "previous":"https://devstore.rerum.io/v1/id/11111",
-            ...
-        }
-      ...
-    }
-    ...
-  },
-  "iiif_validation" : {
-    "warnings" : ["Array of warnings from IIIF validator"],
-    "error" : "Error for why this object failed validation",
-    "okay" : 1 // 0 or 1 as to whether or not it passed IIIF validation
-  }
-}
-</code></pre>
+         <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">
+                {
+                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
+                    "existing_property" : "new_value",
+                    "__rerum " : {
+                        ...
+                        "history" : {
+                            "next" : [],
+                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
+                        }
+                    }
+                }
+            </code></pre>
+            <p class="alert">
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                <code> 
+                    __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
+                </code>
+            </p>
+        </p>
 
         <h3 id="add-properties">Add Properties</h3>
 
@@ -779,7 +799,7 @@
                     <td><code class="language-plaintext highlighter-rouge">/set</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/1234567890abcdef</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
@@ -789,12 +809,63 @@
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The requested new
                 state for the object MUST contain an <code class="language-plaintext highlighter-rouge">@id</code></li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing
-                various bits of information about the PATCH update. (see PUT Update for example)</li>
+                various bits of information about the PATCH update.</li>
         </ul>
 
-        <p>A single object is updated by adding all properties in the JSON
-            payload. If a property already exists, a warning is returned to the user. This
-            is a specialized PATCH update with the same request, response, and history behavior.</p>
+        <p>
+            A single RERUM record is updated by adding all properties in the JSON payload.  This method only adds new record properties. 
+            If a property in the payload matches an existing property it will be ignored.
+
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+        </p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/set", {<br>
+                    method: "PATCH",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify(<br>
+                        {
+                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
+                            "existing_property" : "This value will be ignored",<br>
+                            "unmatched_property" : "Some value"
+                        }<br>
+                    )<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
+
+         <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">
+                {
+                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
+                    "existing_property" : "I exist!",
+                    "unmatched_property" : "Some value",
+                    "__rerum " : {
+                        ...
+                        "history" : {
+                            "next" : [],
+                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
+                        }
+                    }
+                }
+            </code></pre>
+            <p class="alert">
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                <code> 
+                    __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
+                </code>
+            </p>
+        </p>
 
         <h3 id="remove-properties">Remove Properties</h3>
 
@@ -811,7 +882,7 @@
                     <td><code class="language-plaintext highlighter-rouge">/unset</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>202 <code
-                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/22222</code>
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/1234567890abcdef</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
@@ -822,14 +893,63 @@
                 state for the object. Must contain an <code class="language-plaintext highlighter-rouge">@id</code>.
             </li>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing various
-                bits of information about the PATCH update. (see PUT Update for example)</li>
+                bits of information about the PATCH update.</li>
         </ul>
 
-        <p>A single object is updated by dropping all properties
-            in the JSON payload list like <code class="language-plaintext highlighter-rouge">{key:null}</code>. Keys
-            must match
-            to be dropped otherwise a warning is returned to the user. This
-            is a specialized PATCH update with the same request, response, and history behavior.</p>
+        <p>
+            A single RERUM record is updated by removing all properties in the JSON payload.  This method only removed existing record properties. 
+            If a property in the payload does not match an existing property it will be ignored.
+
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+        </p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const patched_obj = await fetch("https://devstore.rerum.io/v1/api/unset", {<br>
+                    method: "PATCH",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify(<br>
+                        {
+                            "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",<br>
+                            "existing_property" : "This will be removed",<br>
+                            "unmatched_property" : "This will be ignored"
+                        }<br>
+                    )<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
+
+         <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">
+                {
+                    "@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",
+                    // "existing_property" : "I exist!" has been removed
+                    "hello" : "world",
+                    "__rerum " : {
+                        ...
+                        "history" : {
+                            "next" : [],
+                            "previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+                            "prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"
+                        }
+                    }
+                }
+            </code></pre>
+            <p class="alert">
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"<br>
+                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has<br>
+                <code> 
+                    __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
+                </code>
+            </p>
+        </p>
 
         <h3 id="rerum-released">RERUM released</h3>
 
@@ -844,8 +964,7 @@
             <tbody>
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">/release</code></td>
-                    <td><code class="language-plaintext highlighter-rouge">String @id</code> or <code
-                            class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code
                             class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111</code>
                         <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
@@ -854,58 +973,70 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">String @id</code></strong>—The <code
-                    class="language-plaintext highlighter-rouge">@id</code> of the version to be released.</li>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object. Must
                 contain <code class="language-plaintext highlighter-rouge">@id</code>.</li>
         </ul>
 
-        <p>RERUM allows for the Generator of a version of an object to assign a <code
+        <p>
+            RERUM allows for the Generator of a version of an object to assign a <code
                 class="language-plaintext highlighter-rouge">released</code> state.
             Objects in released states are locked such that further changes are refused.
             Calling any update or delete action on a released object will result in an error response.
-            The release action will alter the <code
-                class="language-plaintext highlighter-rouge">__rerum.isReleased</code> of the version identified
+            The release action will alter the <code class="language-plaintext highlighter-rouge">__rerum.isReleased</code> of the version identified
             and alter <code class="language-plaintext highlighter-rouge">__rerum.releases</code> properties throughout
             the object’s history without making a
-            new history state for the resulting object (the <code
-                class="language-plaintext highlighter-rouge">@id</code> does not change). Any version of an object
-            with an <code class="language-plaintext highlighter-rouge">oa:Motivation</code> containing <code
-                class="language-plaintext highlighter-rouge">rr:releasing</code> will be released as soon as it is
-            saved.</p>
+            new history state for the resulting object (the <code class="language-plaintext highlighter-rouge">@id</code> does not change).
+        </p>       
 
-        <p>Example Response:</p>
-        <pre><code class="language-(json)">{
-  "code" : 200,
-  "previously_released_id" : "https://devstore.rerum.io/v1/id/00001",
-  "next_releases_ids" : ["https://devstore.rerum.io/v1/id/11112", ...],
-  "new_obj_state" : {
-    "@id": "https://devstore.rerum.io/v1/id/11111",
-    "__rerum":{
-        "isReleased":Date.now(),
-        "releases"{
-            ...
-        }
-      ...
-    }
-    ...
-  },
-  "iiif_validation" : {
-    "warnings" : ["Array of warnings from IIIF validator"],
-    "error" : "Error for why this object failed validation",
-    "okay" : 1 // 0 or 1 as to whether or not it passed IIIF validation
-  }
-}
-</code></pre>
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                const releasedObj = await fetch("https://devstore.rerum.io/v1/api/release", {<br>
+                    method: "PATCH",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})<br>
+                })<br>
+                .then(resp => resp.json())<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
+
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="language-(json)">
+                {
+                    "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+                    ...
+                    "__rerum " : {
+                        ...
+                        "isReleased" : "2023-07-19T19:06:24.030"
+                        "releases" : {
+                            ...
+                        }
+                    }
+                }
+            </code></pre>
+            <p class="alert">
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"<br>
+            </p>
+        </p>
 
         <h2 id="delete">DELETE</h2>
 
-        <p>RERUM allows the Generator of an object to delete that object.<br />
-            Requests can be made by the string <code class="language-plaintext highlighter-rouge">@id</code> or a JSON
-            object containing the <code class="language-plaintext highlighter-rouge">@id</code>.
-            RERUM DELETE does not remove anything from the server. Deleted objects are only marked as deleted.
-            Objects marked as deleted do not return in query results and may only be directly retrieved by <code
-                class="language-plaintext highlighter-rouge">@id</code>.</p>
+        <p>
+            RERUM allows the Generator of a record to delete that record.  An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. <br>
+            
+            RERUM DELETE does not remove anything from the server. Deleted records are only marked as deleted. <br>
+
+            Records marked as deleted do not return in query results and may only be directly retrieved by <code class="language-plaintext highlighter-rouge">@id</code>.
+
+            <p class="warning"> 
+                Deleted records are "removed" from history trees.  RERUM will do this automatically when a record is deleted.  This cannot be undone.
+            </p>
+        </p>
 
         <table>
             <thead>
@@ -918,65 +1049,70 @@
             <tbody>
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">/delete</code></td>
-                    <td><code class="language-plaintext highlighter-rouge">String @id</code> or <code
-                            class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>204</td>
                 </tr>
             </tbody>
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">String @id</code></strong>—The @id of the
-                object.</li>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object to delete.
                 Must contain <code class="language-plaintext highlighter-rouge">@id</code>.</li>
         </ul>
 
-        <p>There is no bulk <code class="language-plaintext highlighter-rouge">DELETE</code> planned.</p>
-
-        <h3 id="__deleted">__deleted</h3>
-
-        <p>A deleted object is easily recognized by <code class="language-plaintext highlighter-rouge">__deleted</code>
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                fetch("https://devstore.rerum.io/v1/api/delete", {<br>
+                    method: "DELETE",<br>
+                    headers: {<br>
+                        "Authorization" : "Bearer eyJz93a...k4laUWw",<br>
+                        "Content-Type": "application/json; charset=utf-8"<br>
+                    },<br>
+                    body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})<br>
+                })<br>
+                .catch(err => {throw err})
+            </code></pre>
+        </p>
+        <p class="alert">
+            Note that the 204 "No Content" code was returned, so there is no response body.
         </p>
 
-        <pre><code class="language-(json)">{
-  "@id" : "https://devstore.rerum.io/v1/id/11111",
-  "__deleted" : {
-    "object" : {
-      "@id" : "https://devstore.rerum.io/v1/id/11111",
-      "@type": "sc:Canvas",
-      "label": "page 46",
-      "width": 730,
-      "images": [],
-      "height": 1000,
-      "__rerum": {...}
-    },
-    "deletor" : GENERATOR,
-    "time" : 1516213216852
-  }
-}
-</code></pre>
+        <p>
+            A deleted object is easily recognized by <code class="language-plaintext highlighter-rouge">__deleted</code>
+        </p>
 
-        <blockquote>
-            <p><strong>NB:</strong> The <code class="language-plaintext highlighter-rouge">__deleted.object</code>
+        <pre><code class="language-(json)">
+        {
+          "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+          "__deleted" : {
+            "object" : {
+              "@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",
+              "@type": "sc:Canvas",
+              "label": "page 46",
+              "width": 730,
+              "images": [],
+              "height": 1000,
+              "__rerum": {...}
+            },
+            "deletor" : GENERATOR_AGENT,
+            "time" : "2023-07-19T19:06:24.030"
+          }
+        }
+        </code></pre>
+        <p class="alert">
+            The <code class="language-plaintext highlighter-rouge">__deleted.object</code>
                 contains a snapshot of this version of the object when it was deleted, including its place in the
-                history.</p>
-        </blockquote>
+                history.
+        </p>
+        <p class="alert">
+            The <code class="language-plaintext highlighter-rouge">__deleted.deletor</code> is
+                the URI of the agent that marked this object as deleted.
+        </p>
 
-        <blockquote>
-            <p><strong>NB:</strong> The <code class="language-plaintext highlighter-rouge">__deleted.deletor</code> is
-                the URI of the agent that marked this object as deleted.</p>
-        </blockquote>
+        <h2 id="__rerum"><code>__rerum</code> Property Explained</h2>
 
-        <hr />
-
-        <h2 id="smart-objects">Smart objects</h2>
-
-        <p><strong>*Proposed development</strong></p>
-
-        <h2 id="__rerum">__rerum</h2>
-
-        <p>Each object carries a protected property called <code
+        <p>Each object carries a protected property named <code
                 class="language-plaintext highlighter-rouge">__rerum</code> containing a metadata
             object about the version retrieved.</p>
 
@@ -1062,11 +1198,11 @@
             </tbody>
         </table>
 
-        <blockquote>
-            <p><strong>NB:</strong> In the future, this may be encoded as an annotation on the object, using
+        <p class="alert">
+            In the future, this may be encoded as an annotation on the object, using
                 existing vocabularies, but for now the applications accessing RERUM will
-                need to interpret this data if it is relevant.</p>
-        </blockquote>
+                need to interpret this data if it is relevant.
+        </p>
 
         <h3 id="history">History</h3>
 
