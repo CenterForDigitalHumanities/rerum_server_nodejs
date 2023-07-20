@@ -474,7 +474,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/query?limit=50&skip=0</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/query?limit=10&skip=0</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
@@ -490,11 +490,12 @@
 
         <p>
             This simple format will be made more complex in the future, but should serve the basic needs as it is.
-            RERUM will test for property matches.
+            RERUM will test for property matches.  By default, this is limited to 10 records in the response to guard against unreasonable queries.  To allow for more records in the response one can add the URL parameter <code>limit</code> to the query requests.  If you expect the query request will have a large response, the application should use a paged query by also using the <code>skip</code> URL parameter.  You will see an example of this below
+            <p class="alert"> Note that your application may experience strange behavior with large limits, such as ?limit=1000.</p>
         </p>
 
         <p> 
-            <div class="exHeading">Javascript Example</div>
+            <div class="exHeading">Regular Javascript Example</div>
             <pre><code class="jsExample"> 
                 <span>const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {</span>
                     <span class="ind1">method: "POST",</span>
@@ -534,6 +535,37 @@
             <p class="alert">
                 All responses are a JSON Array that is not ordered, even if a single or zero records are matched. 
             </p>
+        </p>
+
+        <p> 
+            <div class="exHeading">Paged Query Javascript Example</div>
+            <pre><code class="jsExample"> 
+                <span>const queryObj = {"type": "Thing"}</span>
+                <span>const many_results = await pagedQuery(100, 0, {"type": "Thing"})</span>
+                <br>
+                <span>function pagedQuery(lim, it = 0, queryObj, allResults = []) {</span>
+                    <span class="ind1">return fetch(`https://devstore.rerum.io/v1/api/query?limit=${lim}&skip=${it}`, {</span>
+                        <span class="ind2"> method: "POST",</span>
+                        <span class="ind2"> mode: "cors",</span>
+                        <span class="ind2">headers: {</span>
+                            <span class="ind3">"Content-Type": "application/json; charset=utf-8"</span>
+                        <span class="ind2">},</span>
+                        <span class="ind2">body: JSON.stringify(queryObj)</span>
+                    <span class="ind1">})</span>
+                    <span class="ind1">.then(response => response.json())</span>
+                    <span class="ind1">.then(results => {</span>
+                        <span class="ind2">if (results.length) {</span>
+                            <span class="ind3">allResults = allResults.concat(results)</span>
+                            <span class="ind3">return pagedQuery(lim, it + results.length, queryObj, allResults)</span>
+                        <span class="ind2">}</span>
+                        <span class="ind2">return allResults</span>
+                    <span class="ind1">})</span>
+                    <span class="ind1">.catch(err => {</span>
+                        <span class="ind2">console.warn("Could not process a result in paged query")</span>
+                        <span class="ind2">throw err</span>
+                    <span class="ind1">})</span>
+                <span>}</span>
+            </code></pre>
         </p>
 
         <h3 id="http-post-method-override">HTTP POST Method Override</h3>
