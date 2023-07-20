@@ -71,6 +71,7 @@
                     <li><a href="#put">PUT</a>
                         <ul>
                             <li><a href="#update">Update</a></li>
+                            <li><a href="#overwrite">Overwrite</a></li>
                             <!-- <li><a href="#bulk-update-beta">Bulk Update (beta)</a></li> -->
                         </ul>
                     </li>
@@ -694,7 +695,7 @@
                     <span class="ind1">body: JSON.stringify(</span>
                         <span class="ind2">{</span>
                             <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"be": "kind"}</span>
+                            <span class="ind3">"be": "kind"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
@@ -720,14 +721,95 @@
                 <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"
             </p>
             <p class="alert">
-                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
             </p>
+        </p>
+
+        <h3 id="overwrite">Overwrite</h3>
+
+        <p>
+            Replace an existing record through reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete record as the response body.
+
+            This will have the effects of update, set, and unset actions. New keys will be created and keys not present in the request will not be present in the resulting record.
+
+            The record is replaced in place, or overwritten, and so the <code class="language-plaintext highlighter-rouge">@id</code> will not change and the history connected with this record is not altered.  The <code>__rerum.isOverwritten</code> property will be set to the date and time of the overwrite.
+
+            <p class="alert"> </p>
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Patterns</th>
+                    <th>Payloads</th>
+                    <th>Responses</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">/overwrite</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                    <td>200 <code
+                            class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/abcdef1234567890</code>
+                        <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <ul>
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The requested new
+                state for the record.</li>
+            <li><strong>Response Body: <code
+                        class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing various bits of
+                information about the PUT overwrite.</li>
+        </ul>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                <span>const overwritten = await fetch("https://devstore.rerum.io/v1/api/overwrite", {</span>
+                    <span class="ind1">method: "PUT",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify(</span>
+                        <span class="ind2">{</span>
+                            <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"be": "kind"</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">)</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
+            </code></pre>
+        </p>
+
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="respExample">
+                <span>{</span>
+                    <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                    <span class="ind1">"be": "kind",</span>
+                    <span class="ind1">"__rerum":{</span>
+                        <span class="ind2">...</span>
+                        <span class="ind2">"isOverwritten": "2023-07-19T19:06:24.030"</span>
+                    <span class="ind1">}</span>
+                <span>}</span>
+            </code></pre>
+            <p class="alert">
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"
+            </p>
+            <p class="alert">
+                Note that the <code>@id</code> and <code>__rerum.history</code> properties of the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" have not changed.  This is the difference between /update and /overwrite.  Be careful.
+            </p>
+
         </p>
 
         <!--
@@ -1090,7 +1172,7 @@
             Records marked as deleted do not return in query results and may only be directly retrieved by <code class="language-plaintext highlighter-rouge">@id</code>.
 
             <p class="warning"> 
-                Deleted records are "removed" from history trees.  RERUM will do this automatically when a record is deleted.  This cannot be undone.
+                Deleted records are removed from history trees.  RERUM will do this automatically when a record is deleted.  This cannot be undone.
             </p>
         </p>
 
