@@ -734,7 +734,9 @@
         <h3 id="overwrite">Overwrite</h3>
 
         <p>
-            Replace an existing record through reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete record as the response body.
+            RERUM allows the Generator of a record to overwrite that record.  An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. </span>
+
+            Replace a record using a reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete record as the response body.
 
             This will have the effects of update, set, and unset actions. New keys will be created and keys not present in the request will not be present in the resulting record.
 
