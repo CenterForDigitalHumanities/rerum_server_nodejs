@@ -495,7 +495,7 @@
         </p>
 
         <p> 
-            <div class="exHeading">Regular Javascript Example</div>
+            <div class="exHeading">Non-Paged Query Javascript Example</div>
             <pre><code class="jsExample"> 
                 <span>const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {</span>
                     <span class="ind1">method: "POST",</span>
@@ -546,7 +546,6 @@
                 <span>function pagedQuery(lim, it = 0, queryObj, allResults = []) {</span>
                     <span class="ind1">return fetch(`https://devstore.rerum.io/v1/api/query?limit=${lim}&skip=${it}`, {</span>
                         <span class="ind2"> method: "POST",</span>
-                        <span class="ind2"> mode: "cors",</span>
                         <span class="ind2">headers: {</span>
                             <span class="ind3">"Content-Type": "application/json; charset=utf-8"</span>
                         <span class="ind2">},</span>
