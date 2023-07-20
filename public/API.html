@@ -22,14 +22,14 @@
 
 <body class="container">
     <div class="container-lg px-3 my-5 markdown-body">
-        <h1><a href="https://store.rerum.io/"><img src="https://rerum.io/logo.png" alt="logo"/></a>RERUM Server API</h1>
+        <h1><a target="_blank" href="https://store.rerum.io/"><img src="https://rerum.io/logo.png" alt="logo"/></a>RERUM API v1</h1>
 
         <h3>
             TLDR: I Just Want to Use It
         </h3>
 
         <p>
-            If you would like to see an example of a web application leveraging the RERUM API visit the official RERUM Sandbox and public sandbox API <a href="https://tinydev.rerum.io">https://tinydev.rerum.io</a>.  You can use the following RERUM Sandbox API links to give your application simple CRUD and query abilities.
+            If you would like to see an example of a web application leveraging the RERUM API visit the official RERUM Sandbox and public sandbox API <a target="_blank" href="https://tinydev.rerum.io">https://tinydev.rerum.io</a>.  You can use the following RERUM Sandbox API links to give your application simple CRUD and query abilities.
         </p>
 
         <ul id="tt_example">
@@ -49,9 +49,11 @@
         <ul>
             <li><a href="#api-10">API (1.0.0)</a>
                 <ul>
+                    <li><a href="#registration"><b>Registration Prerequisite</b></a></li>
+                    <li><a href="#authorization"><b>Access Token Requirement</b></a></li>
                     <li><a href="#get">GET</a>
                         <ul>
-                            <li><a href="#single-object-by-id">Single object by id</a></li>
+                            <li><a href="#single-record-by-id">Single record by id</a></li>
                             <li><a href="#history-tree-before-this-version">History tree before this version</a></li>
                             <li><a href="#history-tree-since-this-version">History tree since this version</a></li>
                         </ul>
@@ -81,7 +83,6 @@
                         </ul>
                     </li>
                     <li><a href="#delete">DELETE</a></li>
-                    <li><a href="#smart-objects">Smart objects</a></li>
                     <li><a href="#__rerum">__rerum</a>
                         <ul>
                             <li><a href="#history">History</a></li>
@@ -98,10 +99,28 @@
         </ul>
         <!-- /TOC -->
 
+        <h2 id="registration">Registration Prerequisite</h2>
+
         <p>
-            All the following interactions will take place between the server running RERUM and the application using the RERUM API's server. 
-            Direct connection from client script to the RERUM server is not allowed.  If you are looking for a <a href="#tt_example">link for your application to use the RERUM API</a> then look into <a target="_blank" href="https://github.com/CenterForDigitalHumanities/TinyThings">TinyThings</a>.
+            <u>Access Tokens are required in order to communicate with the RERUM API</u>.  These Access Tokens are for the <i>application</i> so that RERUM can verify which application is making an API request and attribute data properly.  To register, one must visit the registration page at <a target="_blank" href="https://devstore.rerum.io">https://devstore.rerum.io/v1/</a>.  Registration requires an E-mail address and a name, which is typically a webmaster or principle investigator in charge of the application's well being.  The result of registration is a Refresh Token and an Access Token. <b>Do not lose the Refresh Token</b> as it is used by the application to get new valid Access Token throughout the application lifespan.  To see how this process works, see the TinyThings application which has a <a target="_blank" href="https://github.com/CenterForDigitalHumanities/TinyNode/blob/main/tokens.js">token module that implements token refreshes</a>.  Registrants can get new Refresh Tokens from the RERUM registration page by logging in again.  When a new token is provided old tokens are expired.
+
+            <p class="alert">
+                Note that the same Refresh Token and Access Token can be used for multiple applications.  However, the data from each of those applications will share the same application <code>generator</code> attribution and will not be considered separate applications.
+            </p>
         </p>
+
+        <h2 id="authorization">Authorization Header Bearer Tokens</h2>
+
+        <p>
+            Create, Update, and Delete requests require valid Access Tokens or else the API will return Unauthorized errors.  To provide an Access Token, application HTTP requests use the <a target="_blank" href=""><code>Authorization</code></a> header to provide a 'Bearer Token'.  It has the format 'Beaer: Access Token' as seen below.
+            <div class="exHeading">Authorization Header Example</div>
+            <pre><code class="jsExample"> 
+                "Authorization": "Bearer eyJz93a...k4laUWw"
+            </code></pre>
+            You will see many examples in this document that use this HTTP header.
+        </p>
+
+        <h2 id="welcome">Welcome!</h2>
 
         <p>
             <b>For those who Copy and Paste</b> please note that all examples are using the <i>development</i> (devstore.rerum.io) version of the RERUM API, not the production version (store.rerum.io). Only use production once you have become confident with the API and have confirmed your application is generating data as expected.
@@ -109,7 +128,7 @@
 
         <h2 id="get">GET</h2>
 
-        <h3 id="single-object-by-id">Single object by id</h3>
+        <h3 id="single-record-by-id">Single record by id</h3>
 
         <table>
             <thead>
@@ -129,9 +148,9 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the object in
+            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the record in
                 RERUM.</li>
-            <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object
+            <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record
                 with identifier <code class="language-plaintext highlighter-rouge">_id</code></li>
         </ul>
 
@@ -167,16 +186,16 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the object in
+            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the record in
                 RERUM.</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array
-                of the resolved objects of all parent history objects</li>
+                of the resolved records of all parent history records</li>
         </ul>
 
         <p>
-            As objects in RERUM are altered, the previous state is retained in
-            a history tree. Requests return ancestors of this object on its
-            branch. The objects in the array are listed in inorder traversal but
+            As records in RERUM are altered, the previous state is retained in
+            a history tree. Requests return ancestors of this record on its
+            branch. The records in the array are listed in inorder traversal but
             ignoring other branches.
         </p>
 
@@ -212,16 +231,16 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the object in
+            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the record in
                 RERUM.</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array
-                of the resolved objects of all child history objects</li>
+                of the resolved records of all child history records</li>
         </ul>
 
         <p>
-            As objects in RERUM are altered, the next state is retained in
-            a history tree. Requests return all descendants of this object from all branches.<br />
-            The objects in the array are listed in preorder traversal.
+            As records in RERUM are altered, the next state is retained in
+            a history tree. Requests return all descendants of this record from all branches.<br />
+            The records in the array are listed in preorder traversal.
         </p>      
 
         <p> 
@@ -250,7 +269,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/request-new-access-token</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/client/request-new-access-token</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
@@ -259,7 +278,7 @@
 
         <ul>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>— Auth0 requirements <a
-                    href="https://auth0.com/docs/tokens/refresh-token/current#use-a-refresh-token">here</a></li>
+                    target="_blank" href="https://auth0.com/docs/tokens/refresh-token/current#use-a-refresh-token">here</a></li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>— Containing
                 the Auth0 /oauth/token <code class="language-plaintext highlighter-rouge">JSON</code> response</li>
         </ul>
@@ -271,7 +290,7 @@
             <pre><code class="jsExample"> 
                 <span>const access_token = await fetch("https://devstore.rerum.io/v1/client/request-new-access-token", {</span>
                     <span class="ind1">method: "POST",</span>
-                    <span class="ind1">headers: {</span>
+                    <span class="ind1">headers:{</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify({</span>
@@ -288,18 +307,18 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like</div>
             <pre><code class="respExample">
                 <span>{</span>
-                  <span class="ind1">"access_token":"eyJz93a...k4laUWw",</span>
-                  <span class="ind1">"refresh_token":"GEbRxBN...edjnXbL",</span>
-                  <span class="ind1">"id_token":"eyJ0XAi...4faeEoQ",</span>
-                  <span class="ind1">"token_type":"Bearer",</span>
-                  <span class="ind1">"expires_in":86400</span>
+                  <span class="ind1">"access_token": "eyJz93a...k4laUWw",</span>
+                  <span class="ind1">"refresh_token": "GEbRxBN...edjnXbL",</span>
+                  <span class="ind1">"id_token": "eyJ0XAi...4faeEoQ",</span>
+                  <span class="ind1">"token_type": "Bearer",</span>
+                  <span class="ind1">"expires_in": 86400</span>
                 <span>}</span>
             </code></pre>
         </p>
 
         <h3 id="refresh-token-proxy">Refresh Tokens</h3>
         <p> 
-            Application managers must use the <a href="https://devstore.rerum.io">RERUM Registration Page</a> to get new Refresh Tokens.  Applications are not able to ask for new Refresh Tokens like they can ask for new Access Tokens. 
+            Application managers must use the <a target="_blank" href="https://devstore.rerum.io">RERUM Registration Page</a> to get new Refresh Tokens.  Applications are not able to ask for new Refresh Tokens like they can ask for new Access Tokens. 
         </p>
 
         <h3 id="create">Create</h3>
@@ -332,7 +351,7 @@
 
         <p>
             Add a completely new object to RERUM and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI
-            as a response header and the complete object as the response body. Accepts only single JSON objects in the request body.  
+            as a response header and the complete RERUM record as the response body. Accepts only single JSON objects in the request body.  
 
             <p class="alert">
                 The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code
@@ -346,12 +365,12 @@
             <pre><code class="jsExample"> 
                 <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/create", {</span>
                     <span class="ind1">method: "POST",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw" </span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
                         <span class="ind2"> "Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify({</span>
-                        <span class="ind2">"hello" : "world"</span>
+                        <span class="ind2">"hello": "world"</span>
                     <span class="ind1">})</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
@@ -363,9 +382,9 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
                 <span>{</span>
-                  <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                  <span class="ind1">"hello" : "world",</span>
-                  <span class="ind1">"__rerum " : {...}</span>
+                  <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                  <span class="ind1">"hello": "world",</span>
+                  <span class="ind1">"__rerum":{...}</span>
                 <span>}</span>
             </code></pre>
            <p class="alert"> Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890" </p>
@@ -395,11 +414,11 @@
             <li><strong><code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array of objects
                 to create in RERUM</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array
-                of the resolved objects from the creation process</li>
+                of the resolved records from the creation process</li>
         </ul>
 
         <p>
-            Add multiple completely new objects to RERUM and receive an array of the complete object as the response body. 
+            Add multiple completely new objects to RERUM and receive an array of the complete records as the response body. 
             Accepts only a single array of JSON objects in the request body.
             The array of JSON objects passed in will be created in the order submitted and the response will have the URI 
             of the new resource or an error message as an array in the same order. When errors are encountered, 
@@ -411,13 +430,13 @@
             <pre><code class="jsExample"> 
                 <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {</span>
                     <span class="ind1">method: "POST",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw" </span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify([
-                        <span class="ind2">{"hello" : "sun"},</span>
-                        <span class="ind2">{"goodbye" : "moon"} </span>
+                        <span class="ind2">{"hello": "sun"},</span>
+                        <span class="ind2">{"goodbye": "moon"} </span>
                     <span class="ind1">])</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
@@ -430,14 +449,14 @@
             <pre><code class="respExample">
                 <span>[</span>
                     <span class="ind1">{</span>
-                        <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                        <span class="ind2">"hello" : "sun",</span>
-                        <span class="ind2">"__rerum " : {...}</span>
+                        <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                        <span class="ind2">"hello": "sun",</span>
+                        <span class="ind2">"__rerum":{...}</span>
                     <span class="ind1">},</span>
                     <span class="ind1">{</span>
-                        <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
-                        <span class="ind2">"goodbye" : "moon",</span>
-                        <span class="ind2"> "__rerum " : {...}</span>
+                        <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                        <span class="ind2">"goodbye": "moon",</span>
+                        <span class="ind2"> "__rerum":{...}</span>
                     <span class="ind1">}</span>
                 <span>]</span>
             </code></pre>
@@ -466,7 +485,7 @@
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—the properties in JSON
                 format for the query</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array
-                of the resolved objects of all objects that match the query</li>
+                of the resolved records that match the query</li>
         </ul>
 
         <p>
@@ -479,11 +498,11 @@
             <pre><code class="jsExample"> 
                 <span>const matched_objects = await fetch("https://devstore.rerum.io/v1/api/query", {</span>
                     <span class="ind1">method: "POST",</span>
-                    <span class="ind1">headers: {</span>
+                    <span class="ind1">headers:{</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify(</span>
-                        <span class="ind2">{"type" : "Object", "shape" : "round"}</span>
+                        <span class="ind2">{"type": "Object", "shape": "round"}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
@@ -496,18 +515,18 @@
             <pre><code class="respExample">
                 <span>[</span>
                     <span class="ind1">{</span>
-                      <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                      <span class="ind2">"type" : "Object",</span>
-                      <span class="ind2">"shape" : "round",</span>
-                      <span class="ind2">"name" : "Ball",</span>
-                      <span class="ind2">"__rerum " : {...}</span>
+                      <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                      <span class="ind2">"type": "Object",</span>
+                      <span class="ind2">"shape": "round",</span>
+                      <span class="ind2">"name": "Ball",</span>
+                      <span class="ind2">"__rerum":{...}</span>
                     <span class="ind1">},</span>
                     <span class="ind1">{</span>
-                      <span class="ind2">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
-                      <span class="ind2">"type" : "Object",</span>
-                      <span class="ind2">"shape" : "round",</span>
-                      <span class="ind2"> "name" : "Globe",</span>
-                      <span class="ind2">"__rerum " : {...}</span>
+                      <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                      <span class="ind2">"type": "Object",</span>
+                      <span class="ind2">"shape": "round",</span>
+                      <span class="ind2"> "name": "Globe",</span>
+                      <span class="ind2">"__rerum":{...}</span>
                     <span class="ind1">},</span>
                     <span class="ind1">...</span>
                 <span>]</span>
@@ -553,7 +572,7 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object to patch
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record to patch
                 update.</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing
                 various bits of information about the patch.</li>
@@ -565,15 +584,15 @@
             <pre><code class="jsExample"> 
                 <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {</span>
                     <span class="ind1">method: "POST",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"X-HTTP-Method-Override" : "PATCH",</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"X-HTTP-Method-Override": "PATCH",</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify(</span>
                         <span class="ind2">{</span>
-                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"existing_property" : "new_value"</span>
+                            <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property": "new_value"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
@@ -592,17 +611,17 @@
                 class="language-plaintext highlighter-rouge">@id</code> and <code
                 class="language-plaintext highlighter-rouge">_id</code> properties are ignored on all PUT requests.      
         </p>
-        <p class="warning">Updates to released or deleted objects fail with an error.</p>
+        <p class="warning">Updates to released or deleted records fail with an error.</p>
 
         <h3 id="update">Update</h3>
 
         <p>
-            Replace an existing record through reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete object as the response body.
+            Replace an existing record through reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete record as the response body.
 
             This will have the effects of update, set, and unset actions. 
-            New keys will be created and keys not present in the request will not be present in the resulting object.
+            New keys will be created and keys not present in the request will not be present in the resulting record.
             When an object is updated, the <code class="language-plaintext highlighter-rouge">@id</code> will change.
-            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting record.
         </p>
 
         <table>
@@ -626,7 +645,7 @@
 
         <ul>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The requested new
-                state for the object.</li>
+                state for the record.</li>
             <li><strong>Response Body: <code
                         class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing various bits of
                 information about the PUT update.</li>
@@ -637,14 +656,14 @@
             <pre><code class="jsExample"> 
                 <span>const updated = await fetch("https://devstore.rerum.io/v1/api/update", {</span>
                     <span class="ind1">method: "PUT",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify(</span>
                         <span class="ind2">{</span>
-                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"be" : "kind"}</span>
+                            <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"be": "kind"}</span>
                         <span class="ind2">}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
@@ -657,14 +676,14 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
                 <span>{</span>
-                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
-                    <span class="ind1">"be" : "kind",</span>
-                    <span class="ind1">"__rerum " : {</span>
+                    <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">"be": "kind",</span>
+                    <span class="ind1">"__rerum":{</span>
                         <span class="ind2">...</span>
-                        <span class="ind2">"history" : {</span>
-                            <span class="ind3">"next" : [],</span>
-                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">"history":{</span>
+                            <span class="ind3">"next": [],</span>
+                            <span class="ind3">"previous": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime": "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">}</span>
                 <span>}</span>
@@ -673,7 +692,7 @@
                 Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
             </p>
             <p class="alert">
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -695,7 +714,7 @@
                 class="language-plaintext highlighter-rouge">@id</code> and <code
                 class="language-plaintext highlighter-rouge">_id</code> properties are ignored on all PATCH requests.
         </p>
-        <p class="warning">Updates to released or deleted objects fail with an error.</p>
+        <p class="warning">Updates to released or deleted records fail with an error.</p>
 
         <h3 id="patch-update">Patch Update</h3>
 
@@ -720,21 +739,21 @@
 
         <ul>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The requested new
-                state for the object. MUST contain an <code class="language-plaintext highlighter-rouge">@id</code></li>
+                state for the record. MUST contain an <code class="language-plaintext highlighter-rouge">@id</code></li>
             <li><strong>Response Body: <code
                         class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing various bits of
                 information about the PATCH update.</li>
         </ul>
 
         <p>
-            A single object is updated by altering the set or subset of existing properties on the targeted RERUM record.
+            A single record is updated by altering the set or subset of existing properties on the targeted RERUM record.
             This method only manipulates existing record properties. Unmatched properties are ignored and will not appear
-            on the resulting patched object.
+            on the resulting patched record.
 
             If <code class="language-plaintext highlighter-rouge">{"key":null}</code> is submitted,
             the value for property "key" will be set to <code class="language-plaintext highlighter-rouge">null</code> instead of removing the property. 
 
-            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting record.
         </p>
 
         <p> 
@@ -742,15 +761,15 @@
             <pre><code class="jsExample"> 
                 <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/patch", {</span>
                     <span class="ind1">method: "PATCH",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify(</span>
                         <span class="ind2">{</span>
-                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"existing_property" : "new_value",</span>
-                            <span class="ind3">"unmatched_property" : "will be ignored"</span>
+                            <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property": "new_value",</span>
+                            <span class="ind3">"unmatched_property": "will be ignored"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
@@ -763,14 +782,14 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
                 <span>{</span>
-                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
-                    <span class="ind1">"existing_property" : "new_value",</span>
-                    <span class="ind1">"__rerum " : {</span>
+                    <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">"existing_property": "new_value",</span>
+                    <span class="ind1">"__rerum":{</span>
                         <span class="ind2">...</span>
-                        <span class="ind2">"history" : {</span>
-                            <span class="ind3">"next" : [],</span>
-                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">"history":{</span>
+                            <span class="ind3">"next": [],</span>
+                            <span class="ind3">"previous": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime": "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">}</span>
                 <span>}</span>
@@ -779,7 +798,7 @@
                 Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
             </p>
             <p class="alert">
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -809,7 +828,7 @@
 
         <ul>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The requested new
-                state for the object MUST contain an <code class="language-plaintext highlighter-rouge">@id</code></li>
+                state for the record MUST contain an <code class="language-plaintext highlighter-rouge">@id</code></li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing
                 various bits of information about the PATCH update.</li>
         </ul>
@@ -818,7 +837,7 @@
             A single RERUM record is updated by adding all properties in the JSON payload.  This method only adds new record properties. 
             If a property in the payload matches an existing property it will be ignored.
 
-            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting record.
         </p>
 
         <p> 
@@ -826,15 +845,15 @@
             <pre><code class="jsExample"> 
                 <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/set", {</span>
                     <span class="ind1">method: "PATCH",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify(</span>
                         <span class="ind2">{</span>
-                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"existing_property" : "This value will be ignored",</span>
-                            <span class="ind3">"unmatched_property" : "Some Value",</span>
+                            <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property": "This value will be ignored",</span>
+                            <span class="ind3">"unmatched_property": "Some Value",</span>
                         <span class="ind2">}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
@@ -847,15 +866,15 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
                 <span>{</span>
-                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
-                    <span class="ind1">"existing_property" : "I exist!",</span>
-                    <span class="ind1">"unmatched_property" : "Some value",</span>
-                    <span class="ind1">"__rerum " : {</span>
+                    <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">"existing_property": "I exist!",</span>
+                    <span class="ind1">"unmatched_property": "Some value",</span>
+                    <span class="ind1">"__rerum":{</span>
                         <span class="ind2">...</span>
-                        <span class="ind2">"history" : {</span>
-                            <span class="ind3">"next" : [],</span>
-                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">"history":{</span>
+                            <span class="ind3">"next": [],</span>
+                            <span class="ind3">"previous": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime": "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">}</span>
                 <span>}</span>
@@ -864,7 +883,7 @@
                 Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
             </p>
             <p class="alert">
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -894,7 +913,7 @@
 
         <ul>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The requested new
-                state for the object. Must contain an <code class="language-plaintext highlighter-rouge">@id</code>.
+                state for the record. Must contain an <code class="language-plaintext highlighter-rouge">@id</code>.
             </li>
             <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—Containing various
                 bits of information about the PATCH update.</li>
@@ -904,7 +923,7 @@
             A single RERUM record is updated by removing all properties in the JSON payload.  This method only removed existing record properties. 
             If a property in the payload does not match an existing property it will be ignored.  Properties in the payload to remove must have the value <code>null</code> or they will be ignored.
 
-            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting object.
+            This results in the need to track history and the previous version will be represented in the <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code> of the resulting record.
         </p>
 
         <p> 
@@ -912,15 +931,15 @@
             <pre><code class="jsExample"> 
                 <span>const patched_obj = await fetch("https://devstore.rerum.io/v1/api/set", {</span>
                     <span class="ind1">method: "PATCH",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify(</span>
                         <span class="ind2">{</span>
-                            <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"existing_property" : null,</span>
-                            <span class="ind3">"unmatched_property" : "This property will be ignored"</span>
+                            <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"existing_property": null,</span>
+                            <span class="ind3">"unmatched_property": "This property will be ignored"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">)</span>
                 <span>})</span>
@@ -933,15 +952,15 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
                 <span>{</span>
-                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
-                    <span class="ind1">// "existing_property" : "I exist!" has been removed</span>
-                    <span class="ind1">"hello" : "world",</span>
-                    <span class="ind1">"__rerum " : {</span>
+                    <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                    <span class="ind1">// "existing_property": "I exist!" has been removed</span>
+                    <span class="ind1">"hello": "world",</span>
+                    <span class="ind1">"__rerum":{</span>
                         <span class="ind2">...</span>
-                        <span class="ind2">"history" : {</span>
-                            <span class="ind3">"next" : [],</span>
-                            <span class="ind3">"previous" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                            <span class="ind3">"prime" : "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                        <span class="ind2">"history":{</span>
+                            <span class="ind3">"next": [],</span>
+                            <span class="ind3">"previous": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                            <span class="ind3">"prime": "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
                         <span class="ind2">}</span>
                     <span class="ind1">}</span>
                 <span>}</span>
@@ -950,7 +969,7 @@
                 Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
             </p>
             <p class="alert">
-                Note that the original object "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
                 <code> 
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
@@ -979,19 +998,19 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object. Must
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record. Must
                 contain <code class="language-plaintext highlighter-rouge">@id</code>.</li>
         </ul>
 
         <p>
-            RERUM allows for the Generator of a version of an object to assign a <code
+            RERUM allows for the Generator of a version of a record to assign a <code
                 class="language-plaintext highlighter-rouge">released</code> state.
-            Objects in released states are locked such that further changes are refused.
-            Calling any update or delete action on a released object will result in an error response.
+            Records in released states are locked such that further changes are refused.
+            Calling any update or delete action on a released record will result in an error response.
             The release action will alter the <code class="language-plaintext highlighter-rouge">__rerum.isReleased</code> of the version identified
             and alter <code class="language-plaintext highlighter-rouge">__rerum.releases</code> properties throughout
-            the object’s history without making a
-            new history state for the resulting object (the <code class="language-plaintext highlighter-rouge">@id</code> does not change).
+            the record's history without making a
+            new history state for the resulting record (the <code class="language-plaintext highlighter-rouge">@id</code> does not change).
         </p>       
 
         <p> 
@@ -999,11 +1018,11 @@
             <pre><code class="jsExample"> 
                 <span>const releasedObj = await fetch("https://devstore.rerum.io/v1/api/release", {</span>
                     <span class="ind1">method: "PATCH",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
+                    <span class="ind1">body: JSON.stringify({"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
                 <span>.catch(err => {throw err})</span>
@@ -1014,12 +1033,12 @@
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
                 <span>{</span>
-                    <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                    <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
                     <span class="ind1">...</span>
-                    <span class="ind1">"__rerum " : {</span>
+                    <span class="ind1">"__rerum":{</span>
                         <span class="ind2">...</span>
-                        <span class="ind2">"isReleased" : "2023-07-19T19:06:24.030"</span>
-                        <span class="ind2">"releases" : {</span>
+                        <span class="ind2">"isReleased": "2023-07-19T19:06:24.030"</span>
+                        <span class="ind2">"releases":{</span>
                             <span class="ind3">...</span>
                         <span class="ind2">}</span>
                     <span class="ind1">}</span>
@@ -1062,7 +1081,7 @@
         </table>
 
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The object to delete.
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record to delete.
                 Must contain <code class="language-plaintext highlighter-rouge">@id</code>.</li>
         </ul>
 
@@ -1071,11 +1090,11 @@
             <pre><code class="jsExample"> 
                 <span>fetch("https://devstore.rerum.io/v1/api/delete", {</span>
                     <span class="ind1">method: "DELETE",</span>
-                    <span class="ind1">headers: {</span>
-                        <span class="ind2">"Authorization" : "Bearer eyJz93a...k4laUWw",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify({"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
+                    <span class="ind1">body: JSON.stringify({"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
                 <span>})</span>
                 <span>.catch(err => {throw err})</span>
             </code></pre>
@@ -1085,37 +1104,37 @@
         </p>
 
         <p>
-            A deleted object is easily recognized by <code class="language-plaintext highlighter-rouge">__deleted</code>
+            A deleted record is easily recognized by <code class="language-plaintext highlighter-rouge">__deleted</code>
         </p>
 
         <pre><code class="respExample">
         <span>{</span>
-          <span class="ind1">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-          <span class="ind1">"__deleted" : {</span>
-            <span class="ind2">"object" : {</span>
-                <span class="ind3">"@id" : "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                <span class="ind3">"hello" : "sun",</span>
-                <span class="ind3">"goodbye" : "moon",</span>
-                <span class="ind3">"__rerum": {...}</span>
+          <span class="ind1">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+          <span class="ind1">"__deleted":{</span>
+            <span class="ind2">"object":{</span>
+                <span class="ind3">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                <span class="ind3">"hello": "sun",</span>
+                <span class="ind3">"goodbye": "moon",</span>
+                <span class="ind3">"__rerum":{...}</span>
             <span class="ind2">},</span>
-            <span class="ind2">"deletor" : GENERATOR_AGENT,</span>
-            <span class="ind2">"time" : "2023-07-19T19:06:24.030"</span>
+            <span class="ind2">"deletor": GENERATOR_AGENT,</span>
+            <span class="ind2">"time": "2023-07-19T19:06:24.030"</span>
           <span class="ind1">}</span>
         <span>}</span>
         </code></pre>
         <p class="alert">
             The <code class="language-plaintext highlighter-rouge">__deleted.object</code>
-                contains a snapshot of this version of the object when it was deleted, including its place in the
+                contains a snapshot of this version of the record when it was deleted, including its place in the
                 history.
         </p>
         <p class="alert">
             The <code class="language-plaintext highlighter-rouge">__deleted.deletor</code> is
-                the URI of the agent that marked this object as deleted.
+                the URI of the agent that marked this record as deleted.
         </p>
 
         <h2 id="__rerum"><code>__rerum</code> Property Explained</h2>
 
-        <p>Each object carries a protected property named <code
+        <p>Each record carries a protected property named <code
                 class="language-plaintext highlighter-rouge">__rerum</code> containing a metadata
             object about the version retrieved.</p>
 
@@ -1146,7 +1165,7 @@
                 <tr>
                     <td>history.prime</td>
                     <td>String</td>
-                    <td>The URI of the object initializing this history.</td>
+                    <td>The URI of the record initializing this history.</td>
                 </tr>
                 <tr>
                     <td>history.next</td>
@@ -1167,7 +1186,7 @@
                 <tr>
                     <td>createdAt</td>
                     <td>timestamp</td>
-                    <td>Though the object may also assert this about itself, RERUM controls this value.</td>
+                    <td>Though the record may also assert this about itself, RERUM controls this value.</td>
                 </tr>
                 <tr>
                     <td>isOverwritten</td>
@@ -1202,7 +1221,7 @@
         </table>
 
         <p class="alert">
-            In the future, this may be encoded as an annotation on the object, using
+            In the future, this may be encoded as an annotation on the record, using
                 existing vocabularies, but for now the applications accessing RERUM will
                 need to interpret this data if it is relevant.
         </p>
@@ -1217,71 +1236,63 @@
                 href="#history-tree-before-id">history parents</a> and <a href="#history-tree-since-id">history
                 children</a> for more details about this process.</p>
 
-        <p>Deleted objects are not present in any B-Tree, but do exist as separate nodes that can be requested by the
+        <p>Deleted records are not present in any B-Tree, but do exist as separate nodes that can be requested by the
             URI directly. A snapshot of their position at the time of deletion persists in these deleted nodes.</p>
 
         <h3 id="generator-attribution">Generator Attribution</h3>
 
         <p>RERUM associates a <code class="language-plaintext highlighter-rouge">foaf:Agent</code> with each action
-            performed on an item in <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code>which
+            performed on an item in <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code> which
             is referred to as the “Generator”. An API key authenticated application requesting an overwrite, release, or
-            delete action can only do so if they are the Generator of the object the action is performed on. If an
+            delete action can only do so if they are the Generator of the record the action is performed on. If an
             unauthorized application attempts one of these actions a <code
                 class="language-plaintext highlighter-rouge">401 Unauthorized</code> response is returned with an
             explanation on how to branch versions instead.</p>
 
-        <p>Applications are <em>strongly</em> encouraged to record their own assertions within the objects, as consuming
+        <p>Applications are <em>strongly</em> encouraged to record their own assertions within the records, as consuming
             applications may reliably use a combination of the authoritative <code
                 class="language-plaintext highlighter-rouge">generatedBy</code> property and an intrinsic <code
                 class="language-plaintext highlighter-rouge">creator</code> to establish a reliable attribution.</p>
 
         <h2 id="authentication">Authentication</h2>
 
-        <p>RERUM creates an <code class="language-plaintext highlighter-rouge">Agent</code> for each successful
+        <p>
+            RERUM creates an <code class="language-plaintext highlighter-rouge">Agent</code> for each successful
             registration. This <code class="language-plaintext highlighter-rouge">Agent</code> is in JSON-LD format and
-            stored publicly. Authentication is managed by <a href="https://auth0.com/">Auth0</a>.
+            stored publicly. Authentication is managed by <a target="_blank" href="https://auth0.com/">Auth0</a>.
             When RERUM creates an <code class="language-plaintext highlighter-rouge">Agent</code>, Auth0 generates a
-            refresh token and an access token. Applications are responsible for providing their access tokens via a
-            <code class="language-plaintext highlighter-rouge">Authentication</code> Header in their CRUD requests. Get
-            requests do not require this header. As access tokens expire every hour, the applications are responsible
-            for requesting and keeping track of valid access tokens. For an example on how to do this, see this example
-            from <a
-                href="https://github.com/CenterForDigitalHumanities/TinyThings/blob/master/Source%20Packages/io/rerum/tokens/TinyTokenManager.java">TinyThings</a>.
-            The API key at Auth0 persists for each application, which may manage its own sessions. Expired
-            (unauthorized) sessions receive a <code class="language-plaintext highlighter-rouge">401 Unauthorized</code>
-            response with instructions to refresh the session or to register the application.</p>
+            refresh token and an access token. <a href="#authorization">Applications are responsible for providing their access tokens via a
+            <code class="language-plaintext highlighter-rouge">Authorization</code> Header in their CRUD requests.</a>
+        </p>
 
         <h2 id="context">@context</h2>
 
-        <p>Objects in RERUM should be JSON-LD, which means they should have an <code
+        <p>Records in RERUM should be JSON-LD, which means they should have a <code
                 class="language-plaintext highlighter-rouge">@context</code> provided when they are created. However,
             ordinary JSON documents are allowed in the store. These JSON documents can be interpreted as JSON-LD by
-            referencing a JSON-LD context document in an <a
+            referencing a JSON-LD context document in an <a target="_blank"
                 href="https://www.w3.org/TR/json-ld/#h3_interpreting-json-as-json-ld">HTTP Link Header</a>. RERUM
             provides this <code class="language-plaintext highlighter-rouge">@context</code> in the <code
-                class="language-plaintext highlighter-rouge">Link</code> header and also provides an <code
+                class="language-plaintext highlighter-rouge">Link</code> header and also provides a <code
                 class="language-plaintext highlighter-rouge">@context</code> for the <code
-                class="language-plaintext highlighter-rouge">__rerum</code> terms mentioned above.</p>
+                class="language-plaintext highlighter-rouge">__rerum</code> terms mentioned above.
+        </p>
 
         <p>http://store.rerum.io/v1/context.json</p>
 
         <h2 id="iiif">IIIF</h2>
 
-        <p>RERUM fully supports <a href="https://iiif.io/technical-details/">IIIF standards</a> and makes third party
-            calls to the <a href="https://iiif.io/api/presentation/validator/service/">IIIF validation API</a>. A piece
-            of the RERUM response is the validation response of this API so the user knows whether or not their data
-            conforms to this standard. Objects that fail IIIF validation are still saved.</p>
+        <p>RERUM fully supports the <a target="_blank" href="https://iiif.io/api/presentation/3.0/">IIIF Presentation API</a>.</p>
 
         <h2 id="web-annotation">Web Annotation</h2>
 
-        <p>RERUM follows the W3C Annotation protocol. To learn more about Web Annotation see
-            https://www.w3.org/TR/annotation-protocol/</p>
+        <p>RERUM follows the W3C Annotation protocol. <a target="_blank" href="https://www.w3.org/TR/annotation-protocol/">Learn more about Web Annotation.</a></p>
 
         <h2 id="rerum-responses">RERUM Responses</h2>
 
         <p>The intention of the API is to follow RESTful practices. These practices drive what requests we accept and
             what responses we have to the various scenarios around those requests. What it means to be RESTful varies
-            wildly, but our efforts follow the guidelines at http://www.restapitutorial.com/resources.html</p>
+            wildly, but our efforts follow the guidelines at https://www.restapitutorial.com/resources.html</p>
 
         <p>RERUM follows REST, IIIF and Web Annotation standards to form its responses to users. For more information
             about why RERUM chose a certain HTTP status code see the graph below.</p>
@@ -1292,13 +1303,9 @@
         <p>If you are confused as to what type of requests give what reponse, review the <a href="#web-annotation">Web
                 Annotation</a> and <a href="#rest">RESTful</a> standards.</p>
 
-        <p><strong>*Listing of responses is undergoing development at this time.</strong></p>
-
-
-
         <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
             This site is open source. <a
-                href="https://github.com/CenterForDigitalHumanities/rerum_server/edit/master/API.md">Improve this
+                href="https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/blob/main/public/API.html">Improve this
                 page</a>.
         </div>
 
