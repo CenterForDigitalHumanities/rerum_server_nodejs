@@ -67,9 +67,9 @@ describe('Check to see that all expected routes exists.', function() {
     .expect(200, done)
   })
 
-  it('/register.html -- RERUM API registration page.  It should return a 200 and a HTML page. ', function(done) {
+  it('/index.html -- RERUM API registration page.  It should return a 200 and a HTML page. ', function(done) {
     request
-    .get("/register.html")
+    .get("/index.html")
     .expect("Content-Type", /html/)
     .expect(200, done)
   })
