@@ -10,12 +10,9 @@
  * @author thehabes 
  */
 
-const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectId
 const utils = require('./utils')
-let client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
-client.connect()
-console.log("DB controller was required by a module, so a connection must be made.  We would like there to only be one of these.")
+const client = require('./database').client
 
 // Handle index actions
 exports.index = function (req, res, next) {
