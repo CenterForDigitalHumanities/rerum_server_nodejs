@@ -7,13 +7,14 @@
 var app = require('../app')
 var debug = require('debug')('rerum_server_nodejs:server')
 var http = require('http')
+var config = require('../config')
 
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3001')
+var port = normalizePort(config.port)
 app.set('port', port)
 
 /**
@@ -24,12 +25,10 @@ var server = http.createServer(app)
 const io = require('socket.io')(server)
 
 /**
- * Listen on provided port, on all network interfaces.
+ * Connect to Mongo and listen on provided port, on all network interfaces.
  */
-
-server.listen(port)
-server.on('error', onError)
-server.on('listening', onListening)
+const database = require('../database')
+database.connect(onConnected)
 
 /**
  * Control the keep alive header
@@ -88,16 +87,19 @@ function onError(error) {
 }
 
 /**
- * Event listener for HTTP server "listening" event.
+ * Event listener for mongoDB connection event.
  */
 
-function onListening() {
-  console.log("LISTENING ON "+port)
-  var addr = server.address()
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port
-  debug('Listening on ' + bind)
+function onConnected(err) {
+  server.on('error', onError(err))
+  server.listen(port,function(){
+    console.log("LISTENING ON "+port)
+    var addr = server.address()
+    var bind = typeof addr === 'string'
+      ? 'pipe ' + addr
+      : 'port ' + addr.port
+    debug('Listening on ' + bind)
+  })
 }
 
 /**
