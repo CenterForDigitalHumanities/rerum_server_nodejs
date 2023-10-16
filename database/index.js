@@ -20,8 +20,8 @@ async function insert (data,slug) {
     return `${config.mongo.id_prefix}id`
 }
 
-async function match(matchDoc, options, callback) {
-    return await db.findOne(matchDoc, options, (err,doc)=>{
+function match(matchDoc, options, callback) {
+    return db.findOne(matchDoc, options, (err,doc)=>{
         if(typeof callback === 'function') return callback(err,doc)
         if(err) Promise.reject(err)
         Promise.resolve(doc)
