@@ -13,29 +13,39 @@ const db = client.db(config.mongo.database).collection(config.mongo.collection)
  * @param {String} slug Optional String to provide an alternate way to resolve the document.
  * @returns URI of document to be saved. 
  */
-async function insert (data,slug) {
+async function insert(data, slug) {
     // validate data, validate slug
     const id = new ObjectID().toHexString()
 
     return `${config.mongo.id_prefix}id`
 }
 
+/**
+ * Find a single record based on a query object.
+ * @param {JSON} matchDoc Query Object to match properties.
+ * @param {JSON} options Just mongodb passthru for now
+ * @param {function} callback Callback function if needed
+ * @returns Single matched document or `null` if there is none found.
+ * @throws MongoDB error if matchDoc is malformed or server is unreachable
+ */
 function match(matchDoc, options, callback) {
-    return db.findOne(matchDoc, options, (err,doc)=>{
-        if(typeof callback === 'function') return callback(err,doc)
-        if(err) Promise.reject(err)
-        Promise.resolve(doc)
+    return db.findOne(matchDoc, options, (err, doc) => {
+        if (typeof callback === 'function') return callback(err, doc)
+        if (err) throw err
+        return doc
     })
 }
 
-async function validateSlug(slug) {
-    if(!slug) throw new Error(`Invalid slug attempted: "${slug}" should be a non-falsy String`)
-    return match({ "$or": [{ "_id": slug_id }, { "__rerum.slug": slug_id }] })
-        .catch(err => {
-            //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
-            console.error(error)
-            return true
-        }).then(result=>result===null)
+/**
+ * Check for slug availability in RERUM.
+ * @param {String} slug Desired new slug to check for collisions
+ * @returns {Boolean} true if slug is available
+ * @throws MongoDB error if there is any trobule checking
+ */
+function validateSlug(slug) {
+    if (!slug) throw new Error(`Invalid slug attempted: "${slug}" should be a non-falsy String`)
+    const result = match({ "$or": [{ "_id": slug_id }, { "__rerum.slug": slug_id }] })
+    return result === null
 }
 
 /**
@@ -59,7 +69,7 @@ function getAgentClaim(req, next) {
 }
 
 export default {
-    connect:  client.connect
+    connect: client.connect
 }
 
-export {client}
+export { client }
