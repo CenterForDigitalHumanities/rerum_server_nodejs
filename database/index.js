@@ -15,9 +15,11 @@ const db = client.db(config.mongo.database).collection(config.mongo.collection)
  */
 async function insert(data, slug) {
     // validate data, validate slug
-    const id = new ObjectID().toHexString()
-
-    return `${config.mongo.id_prefix}id`
+    if(!isObject(data)) throw new Error('Invalid data object')
+    const id = slug && validateSlug(slug) ? slug : new ObjectID().toHexString()
+    Object.assign(data, { _id: id })
+    db.insertOne(data)
+    return `${config.mongo.id_prefix}${id}`
 }
 
 /**
@@ -44,8 +46,7 @@ function match(matchDoc, options, callback) {
  */
 function validateSlug(slug) {
     if (!slug) throw new Error(`Invalid slug attempted: "${slug}" should be a non-falsy String`)
-    const result = match({ "$or": [{ "_id": slug_id }, { "__rerum.slug": slug_id }] })
-    return result === null
+    return match({ "$or": [{ "_id": slug }, { "__rerum.slug": slug }] }) === null
 }
 
 /**
@@ -68,8 +69,14 @@ function getAgentClaim(req, next) {
     next(createExpressError(err))
 }
 
+function isObject(obj)
+{
+    return obj?.constructor == Object
+}
+
 export default {
     connect: client.connect
 }
 
 export { client }
+
