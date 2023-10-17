@@ -1,5 +1,6 @@
 const { MongoClient } = require('mongodb')
 const ObjectID = require('mongodb').ObjectId
+const utils = require('./utils')
 const config = require('../config')
 
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
@@ -10,15 +11,20 @@ const db = client.db(config.mongo.database).collection(config.mongo.collection)
  * Throws an error if the object is malformed or the slug is taken or invalid.
  * 
  * @param {JSON} data Object to be stored as a document in the database.
- * @param {String} slug Optional String to provide an alternate way to resolve the document.
+ * @param {Object} metadata Set of metadata options.
+ * @param {URI} metadata.generator Reference for the generating Agent.
+ * @param {String} metadata.slug Optional String to provide an alternate way to resolve the document.
+ * @param {Boolean} metadata.isExternalUpdate Document updates an externally referenced resource
  * @returns URI of document to be saved. 
+ * @throws Error for bad data or slug and passes back any MongoDB errors
  */
-async function insert(data, slug) {
-    // validate data, validate slug
-    if(!isObject(data)) throw new Error('Invalid data object')
-    const id = slug && validateSlug(slug) ? slug : new ObjectID().toHexString()
-    Object.assign(data, { _id: id })
-    db.insertOne(data)
+async function insert(data, metadata = {}) {
+    if (!isObject(data)) throw new Error('Invalid data object')
+    if (!isValidURL(metadata.generator)) throw new Error('Invalid generator')
+    if (!ObjectID.isValid(metadata.slug)) throw new Error('Invalid slug')
+    const id = metadata.slug ?? new ObjectID().toHexString()
+    const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id }), false, metadata.isExternalUpdate)
+    db.insertOne(configuredDocument)
     return `${config.mongo.id_prefix}${id}`
 }
 
@@ -28,9 +34,9 @@ async function insert(data, slug) {
  * @param {JSON} options Just mongodb passthru for now
  * @param {function} callback Callback function if needed
  * @returns Single matched document or `null` if there is none found.
- * @throws MongoDB error if matchDoc is malformed or server is unreachable
+ * @throws MongoDB error if matchDoc is malformed or server is unreachable; E11000 duplicate key error collection
  */
-function match(matchDoc, options, callback) {
+function getMatching(matchDoc, options, callback) {
     return db.findOne(matchDoc, options, (err, doc) => {
         if (typeof callback === 'function') return callback(err, doc)
         if (err) throw err
@@ -38,41 +44,19 @@ function match(matchDoc, options, callback) {
     })
 }
 
-/**
- * Check for slug availability in RERUM.
- * @param {String} slug Desired new slug to check for collisions
- * @returns {Boolean} true if slug is available
- * @throws MongoDB error if there is any trobule checking
- */
-function validateSlug(slug) {
-    if (!slug) throw new Error(`Invalid slug attempted: "${slug}" should be a non-falsy String`)
-    return match({ "$or": [{ "_id": slug }, { "__rerum.slug": slug }] }) === null
-}
-
-/**
- * An internal helper for getting the agent from req.user
- * If you do not find an agent, the API does not know this requestor.
- * This means attribution is not possible, regardless of the state of the token.
- * The app is forbidden until registered with RERUM.  Access tokens are encoded with the agent.
- */
-function getAgentClaim(req, next) {
-    const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
-    let agent = ""
-    for (claimKey of claimKeys) {
-        agent = req.user[claimKey]
-        if (agent) {
-            return agent
-        }
-    }
-    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
-    err.status = 403
-    next(createExpressError(err))
-}
-
-function isObject(obj)
-{
+function isObject(obj) {
     return obj?.constructor == Object
 }
+
+function isValidURL(url) {
+    try {
+        new URL(url)
+        return true
+    } catch (_) {
+        return false
+    }
+}
+
 
 export default {
     connect: client.connect
