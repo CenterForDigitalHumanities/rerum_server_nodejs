@@ -13,6 +13,8 @@
 var ObjectID = require('mongodb').ObjectId
 const utils = require('./utils')
 const client = require('./database').client
+const config = require('./config')
+const insert = require('./database').insert
 
 // Handle index actions
 exports.index = function (req, res, next) {
@@ -58,38 +60,22 @@ exports.generateSlugId = async function (slug_id = "", next) {
  * */
 exports.create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let slug = ""
-    if (req.get("Slug")) {
-        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
-        if (slug_json.code) {
-            next(createExpressError(slug_json))
-            return
-        }
-        else {
-            slug = slug_json.slug_id
-        }
-    }
-    const id = new ObjectID().toHexString()
-    let generatorAgent = getAgentClaim(req, next)
-    let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
-    let provided = JSON.parse(JSON.stringify(req.body))
-    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
-    rerumProp.__rerum.slug = slug
-    delete provided["_rerum"]
-    delete provided["_id"]
-    delete provided["@id"]
-    delete provided["id"]
-    delete provided["@context"]
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
-    console.log("CREATE")
+    const metadata = {}
+    metadata.slug = req.header("Slug")
+    metadata.generator = getAgentClaim(req, next)
+    const providedDocument = JSON.parse(JSON.stringify(req.body))
+    delete providedDocument["_rerum"]
+    delete providedDocument["_id"]
+    delete providedDocument["@id"]
+    delete providedDocument["id"]
+    providedDocument["@context"] ??= "http://store.rerum.io/v1/context.json"
     try {
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
-        res.set(utils.configureWebAnnoHeadersFor(newObject))
-        res.location(newObject["@id"])
+        const result = insert(providedDocument, metadata)
+        res.set(utils.configureWebAnnoHeadersFor(result))
+        res.location(result["@id"])
         res.status(201)
-        delete newObject._id
-        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
-        res.json(newObject)
+        result.new_obj_state = JSON.parse(JSON.stringify(result))
+        res.json(result)
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
@@ -1549,15 +1535,14 @@ exports.remove = async function (id) {
  * The app is forbidden until registered with RERUM.  Access tokens are encoded with the agent.
  */
 function getAgentClaim(req, next) {
-    const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
-    let agent = ""
-    for (claimKey of claimKeys) {
-        agent = req.user[claimKey]
+    const claimKeys = [config.rerum.agent_claim, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
+    for (const claimKey of claimKeys) {
+        const agent = req.user[claimKey]
         if (agent) {
             return agent
         }
     }
-    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
+    let err = new Error("Could not get agent from req.user. Have you registered with RERUM?")
     err.status = 403
     next(createExpressError(err))
 }

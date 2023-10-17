@@ -23,9 +23,10 @@ async function insert(data, metadata = {}) {
     if (!isValidURL(metadata.generator)) throw new Error('Invalid generator')
     if (!ObjectID.isValid(metadata.slug)) throw new Error('Invalid slug')
     const id = metadata.slug ?? new ObjectID().toHexString()
-    const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id }), false, metadata.isExternalUpdate)
+    const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id, "@id": `${config.id_prefix}${id}` }), false, metadata.isExternalUpdate)
     db.insertOne(configuredDocument)
-    return `${config.mongo.id_prefix}${id}`
+    delete configuredDocument._id
+    return configuredDocument
 }
 
 /**
@@ -62,5 +63,7 @@ export default {
     connect: client.connect
 }
 
-export { client }
+export { client,
+        insert,        
+}
 

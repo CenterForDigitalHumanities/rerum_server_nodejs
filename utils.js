@@ -93,6 +93,7 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
     rerumOptions.history = history
     rerumOptions.releases = releases
     rerumOptions.generatedBy = generator
+    rerumOptions.slug = received._id
     configuredObject.__rerum = rerumOptions
     return configuredObject //The mongo save/update has not been called yet.  The object returned here will go into mongo.save or mongo.update
 }
