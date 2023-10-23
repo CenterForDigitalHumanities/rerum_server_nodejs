@@ -59,11 +59,8 @@ function isValidURL(url) {
 }
 
 
-export default {
-    connect: client.connect
+exports = {
+    connect: client.connect,
+    client,
+    insert
 }
-
-export { client,
-        insert,        
-}
-
