@@ -58,7 +58,7 @@ exports.generateSlugId = async function (slug_id = "", next) {
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
  * Respond RESTfully
  * */
-import create from './actions/create'
+const create = require('./actions/create')
 exports.create = create 
 
 /**
