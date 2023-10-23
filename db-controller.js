@@ -68,7 +68,6 @@ exports.create = async function (req, res, next) {
     delete providedDocument["_id"]
     delete providedDocument["@id"]
     delete providedDocument["id"]
-    providedDocument["@context"] ??= "http://store.rerum.io/v1/context.json"
     try {
         const result = insert(providedDocument, metadata)
         res.set(utils.configureWebAnnoHeadersFor(result))
