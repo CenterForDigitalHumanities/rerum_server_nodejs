@@ -1,4 +1,4 @@
-import config from "../config"
+const config = require("../config")
 
 /**
  * An internal helper for getting the agent from req.user
@@ -56,7 +56,7 @@ function createExpressError(update, originalError = {}) {
     return Object.assign(err, update)
 }
 
-export default {
+exports = {
     createExpressError,
     getAgentClaim
 }
