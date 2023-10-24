@@ -7,7 +7,7 @@
 var app = require('../app')
 var debug = require('debug')('rerum_server_nodejs:server')
 var http = require('http')
-var config = require('../config')
+var config = require('../config').default
 
 
 /**
