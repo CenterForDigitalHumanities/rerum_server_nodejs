@@ -8,7 +8,7 @@ module.exports = {
   // automock: false,
 
   // Stop running tests after `n` failures
-  // bail: 0,
+  bail: 2,
 
   // The directory where Jest should store its cached dependency information
   // cacheDirectory: "C:\\Users\\cubap\\AppData\\Local\\Temp\\jest",
@@ -52,7 +52,7 @@ module.exports = {
   silent: true,
 
   // The root directory that Jest should scan for tests and modules within
-  rootDir: "./",
+  rootDir: "../",
 
   // The directory where Jest should output its coverage files.  Default is /coverage/.  See /coverage/index.html.
   // coverageDirectory: undefined,
