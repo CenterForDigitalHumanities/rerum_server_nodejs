@@ -1,10 +1,10 @@
 const { MongoClient } = require('mongodb')
 const ObjectID = require('mongodb').ObjectId
-const utils = require('./utils')
+const utils = require('../utils')
 const config = require('../config')
 
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
-const db = client.db(config.mongo.database).collection(config.mongo.collection)
+const db = client.db(config.mongo.uri).collection(config.mongo.collection)
 
 /**
  * Inserts a new record into RERUM. Returns the calculated URL before the write is complete.

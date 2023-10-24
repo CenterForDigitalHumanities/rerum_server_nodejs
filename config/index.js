@@ -1,9 +1,8 @@
-import dotenv from 'dotenv'
-import path from 'path'
+const dotenv = require('dotenv')
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+dotenv.config()
 
-const config = {
+exports.config = {
     version: process.env.RERUM_API_VERSION,
     mongo: {
         uri: process.env.MONGO_CONNECTION_STRING,
@@ -31,5 +30,3 @@ const config = {
         docs: process.env.RERUM_API_DOC
     }
 }
-
-export default config
