@@ -13,7 +13,7 @@ exports.default = {
             useFindAndModify: false,
         },
         collection: process.env.MONGODBCOLLECTION,
-        db: process.env.MONGODBDBNAME,
+        db: process.env.MONGODBNAME,
     },
     base_url: process.env.RERUM_BASE,
     audience: process.env.AUDIENCE,
