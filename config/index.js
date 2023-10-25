@@ -1,8 +1,7 @@
 const dotenv = require('dotenv')
-
 dotenv.config()
 
-exports.default = {
+exports = {
     version: process.env.RERUM_API_VERSION,
     mongo: {
         uri: process.env.MONGO_CONNECTION_STRING,

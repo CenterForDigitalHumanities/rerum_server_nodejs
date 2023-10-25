@@ -6,7 +6,8 @@ const insert = require('./database').insert
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
  * Respond RESTfully
  * */
-exports.default = async function (req, res, next) {
+
+exports = async (req, res, next) => {
     res.set("Content-Type", "application/json; charset=utf-8")
     const metadata = {}
     metadata.slug = req.header("Slug")

@@ -58,7 +58,7 @@ exports.generateSlugId = async function (slug_id = "", next) {
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
  * Respond RESTfully
  * */
-exports.create = require('./actions/create').default 
+exports.create = require('./actions/create') 
 
 /**
  * Mark an object as deleted in the database.
