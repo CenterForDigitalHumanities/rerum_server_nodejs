@@ -7,7 +7,7 @@
 var app = require('../app')
 var debug = require('debug')('rerum_server_nodejs:server')
 var http = require('http')
-var config = require('../config')
+var config = require('../config').default
 
 
 /**
@@ -27,7 +27,7 @@ const io = require('socket.io')(server)
 /**
  * Connect to Mongo and listen on provided port, on all network interfaces.
  */
-const database = require('../database')
+const database = require('../database').default
 database.connect(onConnected)
 
 /**

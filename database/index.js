@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb')
 const ObjectID = require('mongodb').ObjectId
 const utils = require('../utils')
-const config = require('../config')
+const config = require('../config').default
 
 const Database = ()=> {
 
@@ -38,7 +38,7 @@ const Database = ()=> {
     }
 }
 
-exports = Database()
+exports.default = Database()
 
 /**
  * Find a single record based on a query object.

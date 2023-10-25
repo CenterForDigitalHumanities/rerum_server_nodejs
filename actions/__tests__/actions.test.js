@@ -2,15 +2,13 @@
  * Small tests for just the action logic.
  * @author cubap
 */
-const connect = require('../database').connect
-connect()
 
-// beforeAll(async () => {
-//     const connect = require('../database').connect
-//     await connect()
-// })
+beforeAll(async () => {
+    const connect = require('../../database').default.connect
+    await connect()
+})
 
-// afterAll(async () => await require('../database').client.close())
+// afterAll(async () => await require('../database').default.client.close())
 
 describe("create action", () => {
     let mockReq = {
@@ -40,7 +38,7 @@ describe("create action", () => {
     }
 
     it('should create a valid document', () => {
-        const create = require('./create')
+        const create = require('../create')
         const newDoc = create(mockReq, mockRes, mockNext)
         expect(newDoc).toHaveProperty('@id')
         expect(newDoc).toHaveProperty('__rerum')
