@@ -7,7 +7,7 @@ const insert = require('../database').insert
  * Respond RESTfully
  * */
 
-exports = async (req, res, next) => {
+exports.default = (req, res, next) => {
     res.set("Content-Type", "application/json; charset=utf-8")
     const metadata = {}
     metadata.slug = req.header("Slug")

@@ -38,7 +38,7 @@ describe("create action", () => {
     }
 
     it('should create a valid document', () => {
-        const create = require('../create')
+        const create = require('../create').default
         const newDoc = create(mockReq, mockRes, mockNext)
         expect(newDoc).toHaveProperty('@id')
         expect(newDoc).toHaveProperty('__rerum')
