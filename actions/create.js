@@ -1,6 +1,6 @@
 const httpUtils = require("./Request")
 const utils = require("../utils")
-const insert = require('./database').insert
+const insert = require('../database').insert
 /**
  * Create a new Linked Open Data object in RERUM v1.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
