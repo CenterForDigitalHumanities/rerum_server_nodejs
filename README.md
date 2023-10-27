@@ -77,7 +77,7 @@ DOWN = false
 READONLY = false
 ```
 
-### Set Up Auth0 Authorization
+#### Set Up Auth0 Authorization
 Please contact the [Research Computing Group at Saint Louis University](https://github.com/CenterForDigitalHumanities) via an E-mail to research.computing@slu.edu for more information and assistance with step of the installation process.
 
 The public RERUM uses Auth0 to authorize API calls for registered RERUM applications and to attribute data for those applications.  This elicits the functionality that if an application has not registered with RERUM it will not be able to perform write (create - update - delete) actions with the RERUM API.  It also allows queries into RERUM to query for data specific to individual applications when desired or required.  The following properties need to be added to the `.env` file for this process.
@@ -93,7 +93,7 @@ BOT_AGENT = OBTAINED_FROM_BOT_REGISTRATION
 
 You will notice these variables used throughout the code.  The connection to Auth0 must be active and functioning for these pieces of code or you will encounter errors in testing, building, and running.
 
-### Run
+#### Run
 Now, you can run tests
 ```shell
 npm run runtest
