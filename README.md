@@ -8,8 +8,8 @@
 ```
 # RERUM API v1
 A NodeJS web service for interaction with the RERUM digital object repository.
-Visit [rerum.io](https://rerum.io) for more general information.
-Want to use the API?  Learn how at the [API page](https://store.rerum.io/v1/API.html).
+Visit [rerum.io](https://rerum.io) for more general information and [store.rerum.io](https://store.rerum.io/) for the hosted public instance.
+Want to use the API?  Learn how in the [API documentation](https://store.rerum.io/v1/API.html).
 
 Stores important bits of knowledge in structured JSON-LD objects:
 
@@ -48,7 +48,7 @@ Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ 
 ### Installation
 The following is a git shell example for installing the RERUM API web application.
 
-#### Get a MongoDB Database
+#### Get a Mongo Database
 Check out [MongoDB Atlas](https://www.mongodb.com/atlas/database) for a cloud hosted solution as well as instructions for installing MongoDB on your development machines.
 
 #### Get the Code
@@ -75,18 +75,11 @@ MONGODBCOLLECTION = OBTAINED_FROM_MONGODB_SET_UP
 DOWN = false
 READONLY = false
 ```
-Now, you can run tests
-```shell
-npm run runtest
-```
-And start the app
-```shell
-npm start
-```
-To stop the application, kill or exit the process via your shell (<kbd>CTRL + C</kbd> or <kbd>CTRL + X</kbd>).
 
-### Authorization
-The public RERUM uses Auth0 to authorize API calls for registered RERUM applications and to attribute data for those applications.  This elicits the functionality that if an application has not registered with RERUM it will not be able to perform write (create - update - delete) actions with the RERUM API.  It also allows queries into RERUM to query for data specific to individual applications when desired or required.  The following properties in the `.env` file are for this process.
+### Set Up Auth0 Authorization
+Please contact the [Research Computing Group at Saint Louis University](https://github.com/CenterForDigitalHumanities) via an E-mail to research.computing@slu.edu for more information and assistance with step of the installation process.
+
+The public RERUM uses Auth0 to authorize API calls for registered RERUM applications and to attribute data for those applications.  This elicits the functionality that if an application has not registered with RERUM it will not be able to perform write (create - update - delete) actions with the RERUM API.  It also allows queries into RERUM to query for data specific to individual applications when desired or required.  The following properties need to be added to the `.env` file for this process.
 
 ```shell
 AUDIENCE = OBTAINED_FROM_AUTH0_SET_UP
@@ -97,7 +90,18 @@ BOT_TOKEN = OBTAINED_FROM_BOT_REGISTRATION
 BOT_AGENT = OBTAINED_FROM_BOT_REGISTRATION
 ```
 
-You will notice these variables used throughout the code.  Please contact the [Research Computing Group at Saint Louis University](https://github.com/CenterForDigitalHumanities) via an E-mail to research.computing@slu.edu for more information and assistance with step of the installation process.
+You will notice these variables used throughout the code.  The connection to Auth0 must be active and functioning for these pieces of code or you will encounter errors in testing, building, and running.
+
+### Run
+Now, you can run tests
+```shell
+npm run runtest
+```
+And start the app
+```shell
+npm start
+```
+To stop the application, kill or exit the process via your shell (<kbd>CTRL + C</kbd> or <kbd>CTRL + X</kbd>).
 
 ## Who is to blame?
 The developers in the Research Computing Group at Saint Louis University authored and maintain this service.
