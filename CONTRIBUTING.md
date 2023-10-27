@@ -79,6 +79,7 @@ To stop the application, kill or exit the process via your shell (<kbd>CTRL + C<
 
 ## 🎉 Ready to Start Contributing!
 
+### Make a Branch and Checkout
 Excellent, way to get there.  First, make a new branch through the GitHub Interface or through your shell.  Make sure you 'checkout' that branch.
 
 ```shell
@@ -86,4 +87,10 @@ cd /code_folder/rerum_api
 git checkout my_new_branch
 ```
 
-Now you can make code changes and see them in real time by using `npm start`.  Double check that you haven't caused any errors by running the tests via `npm run runtest`.  When you are finished with the commits to your new branch, open a Pull Request that targets the `main` branch at [https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/](https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/).
+### Run and Test your Code
+Now you can make code changes and see them in real time by using `npm start`.  Double check that you haven't caused any errors by running the tests via `npm run runtest`.  In addition to running tests, you can actually make requests to your localhost API using web API clients like [Postman]() or [Talend API]().  The following is a screenshot of an example of calling to a localhost RERUM API.
+
+![Talend API Example](/public/talend.jpg)
+
+### Commit Your Code and Open a Pull Request
+When you are finished with the commits to your new branch, open a Pull Request that targets the `main` branch at [https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/](https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/).
