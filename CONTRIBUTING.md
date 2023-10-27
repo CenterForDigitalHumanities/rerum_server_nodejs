@@ -1,4 +1,4 @@
-# Contribute to the TinyThings RERUM Client
+# Contribute to the RERUM API
 ```
 ██████╗ ███████╗██████╗ ██╗   ██╗███╗   ███╗
 ██╔══██╗██╔════╝██╔══██╗██║   ██║████╗ ████║
@@ -86,4 +86,4 @@ cd /code_folder/rerum_api
 git checkout my_new_branch
 ```
 
-Now you can make code changes and see them in real time by using `npm start`.  When you are finished with the commits to your new branch, open a Pull Request that targets the `main` branch at [https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/](https://github.com/CenterForDigitalHumanities/TinyNode/tree/main/).
+Now you can make code changes and see them in real time by using `npm start`.  Double check that you haven't caused any errors by running the tests via `npm run runtest`.  When you are finished with the commits to your new branch, open a Pull Request that targets the `main` branch at [https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/](https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/).

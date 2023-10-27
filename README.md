@@ -1,3 +1,11 @@
+```
+██████╗ ███████╗██████╗ ██╗   ██╗███╗   ███╗
+██╔══██╗██╔════╝██╔══██╗██║   ██║████╗ ████║
+██████╔╝█████╗  ██████╔╝██║   ██║██╔████╔██║
+██╔══██╗██╔══╝  ██╔══██╗██║   ██║██║╚██╔╝██║
+██║  ██║███████╗██║  ██║╚██████╔╝██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
+```
 # RERUM API v1
 A NodeJS web service for interaction with the RERUM digital object repository.
 Visit [rerum.io](https://rerum.io) for more general information.
@@ -59,14 +67,12 @@ RERUM_PREFIX = URL_OF_YOUR_DEPLOYMENT/v1/
 RERUM_ID_PREFIX = URL_OF_YOUR_DEPLOYMENT/v1/id/
 RERUM_AGENT_CLAIM = URL_OF_YOUR_DEPLOYMENT/agent
 RERUM_CONTEXT = URL_OF_YOUR_DEPLOYMENT/v1/context.json
-RERUM_API_DOC = URL_OF_YOUR_DEPLOYMENT/b1/API.html
+RERUM_API_DOC = URL_OF_YOUR_DEPLOYMENT/v1/API.html
 MONGO_CONNECTION_STRING = OBTAINED_FROM_MONGODB_SET_UP
 MONGODBNAME = OBTAINED_FROM_MONGODB_SET_UP
 MONGODBCOLLECTION = OBTAINED_FROM_MONGODB_SET_UP
 DOWN = false
 READONLY = false
-BOT_TOKEN = OBTAINED_FROM_BOT_REGISTRATION
-BOT_AGENT = OBTAINED_FROM_BOT_REGISTRATION
 ```
 
 Now, you can run tests
@@ -81,10 +87,8 @@ npm start
 
 To stop the application, kill or exit the process via your shell (<kbd>CTRL + C</kbd> or <kbd>CTRL + X</kbd>).
 
-
-
 ### Advanced Installation
-The default installation does not come with data atrribution and API authorization.  If this is required for your RERUM API, you will need an Auth0 account and an Auth0 Tenant.
+The default installation does not come with data atrribution nor API authorization.  If this is required for your RERUM API, you will need an Auth0 account and an Auth0 Tenant.
 
 Add the following properties to your `.env` file
 
@@ -93,16 +97,26 @@ AUDIENCE = OBTAINED_FROM_AUTH0_SET_UP
 ISSUER_BASE_URL = OBTAINED_FROM_AUTH0_SET_UP
 CLIENTID = OBTAINED_FROM_AUTH0_SET_UP
 RERUMSECRET = OBTAINED_FROM_AUTH0_SET_UP
+BOT_TOKEN = OBTAINED_FROM_BOT_REGISTRATION
+BOT_AGENT = OBTAINED_FROM_BOT_REGISTRATION
 ```
 
 #### Set Up an Auth0 Authorization Flow
-To set up the Auth0 powered attribution and Authorization you will need some special Actions on top of a standard Authorization Flow.
+To set up the Auth0 powered attribution and Authorization you will need some special Actions on top of a standard Authorization Flow.  Start by setting up the standard Authorization Flow.
+- This
+- That
+- The Other
+
+#### Create and Assign a Bot
+The RERUM bot is a special agent that has access to private functionality.  It is the first "user" for RERUM.  You create a bot by manually creating your first User in Auth0.  Once you have created an Auth0 User, you will need to manually generate a RERUM Agent for that user and add that Agent URI to the Auth0 User metadata.  Now when you log in to Auth0 with that user you will get an Access Token for that user with the RERUM Agent encoded in the token.  That Access Token will work forever.  It's main usage is as the "Bearer Token" for end-to-end tests so that API calls during the tests do not recieve a "401 Unauthorized" response.  It also allows the registration process to generate a RERUM Agent as the bot will be allowed to do the create action necessary to save the Agent into the RERUM database.  That means you won't have to do this manually each time an app is registered.
+
+#### Make Auth0 Rules/Actions to Generate an Agent for Apps Upon Registration
 - This
 - That
 - The Other
   
 ## 🌟👍 Contributors 👍🌟
-Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md)!
+Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!
 
 ## Who is to blame?
 The developers in the Research Computing Group at Saint Louis University authored and maintain this service.
