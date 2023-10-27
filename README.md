@@ -43,7 +43,7 @@ documentation, but broadly, you will find:
 * `history`  an object containing the first, previous, and immediate derivative versions of this object
 
 ## 🌟👍 Contributors 👍🌟
-Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!  If you are trying to set up your own RERUM then keep reading to learn more.
+Trying to contribute or perform a fix in the public RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!  If you are trying to set up your own RERUM then keep reading to learn more.
   
 ### Installation
 
