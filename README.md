@@ -107,4 +107,4 @@ To stop the application, kill or exit the process via your shell (<kbd>CTRL + C<
 The developers in the Research Computing Group at Saint Louis University authored and maintain this service.
 Neither specific warranty or rights are associated with RERUM; registering and contributing implies only those rights 
 each object asserts about itself. We welcome sister instances of RERUM, ports to other languages, package managers, builds, etc.
-[Contributions][#contributors] to this repository will be accepted as pull requests.
+[Contributions](#-contributors-) to this repository will be accepted as pull requests.
