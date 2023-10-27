@@ -8,11 +8,9 @@
 ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
 ```
 ## ❤️ Thank You
-
 Thank you for considering a contribution to this application!  The `main` branch is protected and you cannot push to it. 
 
 ## localhost / I Need Tokens!
-
 If you want to contribute, it is imortant you are able to deploy the code and run tests locally.  To do so, you will need to create a `.env` file which contains secrets for developers.  Once you have the secrets, you can continue.
 
 Contact the developers for the required development secrets!
@@ -20,7 +18,7 @@ Contact the developers for the required development secrets!
 * [Bryan Haberberger](https://github.com/orgs/CenterForDigitalHumanities/people/thehabes), Full-Stack Developer. bryan.j.haberberger@slu.edu <br>![Github stats](https://github-readme-stats.vercel.app/api?username=thehabes&theme=highcontrast&show_icons=true&count_private=true)
 * [Research Computing Group at Saint Louis Univsersity](https://github.com/CenterForDigitalHumanities) -- research.computing@slu.edu 
 
-## Ready to Install It And Run It!
+## 💻 Ready to Install It And Run It!
 
 ### NodeJS is Required
 For download and installation instructions [head to the NodeJS guide](https://nodejs.org/en/download).
@@ -28,7 +26,7 @@ For download and installation instructions [head to the NodeJS guide](https://no
 ### Git is Required
 For download and installation instruction, [head to the Git guide](https://git-scm.com/downloads).  Note this can also be achieved by installing [GitHub for Desktop](https://desktop.github.com/).  
 
-### Code is Required
+### RERUM API Code is Required
 The following is a git shell example for installing the RERUM API web application on your local machine.
 
 ```shell
@@ -88,9 +86,9 @@ git checkout my_new_branch
 ```
 
 ### Run and Test your Code
-Now you can make code changes and see them in real time by using `npm start`.  Double check that you haven't caused any errors by running the tests via `npm run runtest`.  In addition to running tests, you can actually make requests to your localhost API using web API clients like [Postman]() or [Talend API]().  The following is a screenshot of an example of calling to a localhost RERUM API.
+Now you can make code changes and see them in real time by using `npm start`.  Double check that you haven't caused any errors by running the tests via `npm run runtest`.  In addition to running tests, you can actually make requests to your localhost API using web API clients like [Postman](https://www.postman.com/) or [Talend API Tester](https://chrome.google.com/webstore/detail/talend-api-tester-free-ed/aejoelaoggembcahagimdiliamlcdmfm).  The following is a screenshot of an example of calling to a localhost RERUM API.
 
 ![Talend API Example](/public/talend.jpg)
 
 ### Commit Your Code and Open a Pull Request
-When you are finished with the commits to your new branch, open a Pull Request that targets the `main` branch at [https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/](https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/).
+When you are finished with the commits to your new branch, open a Pull Request that targets the `main` branch at [https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/](https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/tree/main/).  Pull requests will be reviewed by the code owners in the Research Computing Group.
