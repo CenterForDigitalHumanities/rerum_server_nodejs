@@ -43,9 +43,12 @@ documentation, but broadly, you will find:
 * `isReleased`  a special flag for RERUM, indicating this version is intentionally public and immutable
 * `releases`  an object containing the most recent anscestor and descendant releases
 * `history`  an object containing the first, previous, and immediate derivative versions of this object
+
+## 🌟👍 Contributors 👍🌟
+Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!  If you are trying to set up your own RERUM keep reading to learn more.
   
 ### Default Installation
-The following is a git shell example for installing the RERUM API web app.
+The following is a git shell example for installing the RERUM API web application.
 
 #### Get a MongoDB Database
 Check out [MongoDB Atlas](https://www.mongodb.com/atlas/database) for a cloud hosted solution as well as instructions for installing MongoDB on your development machines.
@@ -87,10 +90,16 @@ npm start
 
 To stop the application, kill or exit the process via your shell (<kbd>CTRL + C</kbd> or <kbd>CTRL + X</kbd>).
 
-### Advanced Installation
-The default installation does not come with data atrribution nor API authorization.  If this is required for your RERUM API, you will need an Auth0 account and an Auth0 Tenant.
+The public RERUM uses Auth0 to authorize API calls for registered RERUM applications and to attribute data for those applications.  This elicits the functionality that if an application has not registered with RERUM it will not be able to perform write (create - update - delete) actions with the RERUM API.  It also allows queries into RERUM to query for data specific to individual applications when desired or required.  If this is not a requirement for your instance of RERUM perform the following steps
+- Remove the `/auth` directory
+- Remove `auth.checkJwt` throughout the script files in the `/routes` directory
+- We recommend you replace the documentation and functionality around `generatedBy` as opposed to removing it.
+  
+Now your instance of RERUM will not depend on a connection to Auth0 and your installation is complete.
 
-Add the following properties to your `.env` file
+### Advanced Installation
+
+If you would like authorization for your instance of RERUM begin by adding the following properties to your `.env` file.
 
 ```shell
 AUDIENCE = OBTAINED_FROM_AUTH0_SET_UP
@@ -102,21 +111,18 @@ BOT_AGENT = OBTAINED_FROM_BOT_REGISTRATION
 ```
 
 #### Set Up an Auth0 Authorization Flow
-To set up the Auth0 powered attribution and Authorization you will need some special Actions on top of a standard Authorization Flow.  Start by setting up the standard Authorization Flow.
-- This
-- That
-- The Other
-
-#### Create and Assign a Bot
-The RERUM bot is a special agent that has access to private functionality.  It is the first "user" for RERUM.  You create a bot by manually creating your first User in Auth0.  Once you have created an Auth0 User, you will need to manually generate a RERUM Agent for that user and add that Agent URI to the Auth0 User metadata.  Now when you log in to Auth0 with that user you will get an Access Token for that user with the RERUM Agent encoded in the token.  That Access Token will work forever.  It's main usage is as the "Bearer Token" for end-to-end tests so that API calls during the tests do not recieve a "401 Unauthorized" response.  It also allows the registration process to generate a RERUM Agent as the bot will be allowed to do the create action necessary to save the Agent into the RERUM database.  That means you won't have to do this manually each time an app is registered.
-
-#### Make Auth0 Rules/Actions to Generate an Agent for Apps Upon Registration
+Start by setting up the standard Auth0 Authorization Flow.
 - This
 - That
 - The Other
   
-## 🌟👍 Contributors 👍🌟
-Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!
+#### Create and Assign a RERUM Bot
+The RERUM bot is a special agent that has access to private functionality.  It is the first "user" for RERUM.  You create a bot by manually creating your first User in Auth0.  Once you have created an Auth0 User, you will need to manually generate a RERUM Agent for that user and add that Agent URI to the Auth0 User metadata.  Now when you log in to Auth0 with that user you will get an Access Token for that user with the RERUM Agent encoded in the token.  That Access Token will work forever.  It's main usage is as the "Bearer Token" for end-to-end tests so that API calls during the tests do not recieve a "401 Unauthorized" response.  It also allows the registration process to generate a RERUM Agent as the bot will be allowed to do the create action necessary to save the Agent into the RERUM database.  That means you won't have to do this manually each time an app is registered.
+
+#### Create an Action to Generate a RERUM Agent Upon Sign Up
+- This
+- That
+- The Other
 
 ## Who is to blame?
 The developers in the Research Computing Group at Saint Louis University authored and maintain this service.
