@@ -46,12 +46,13 @@ documentation, but broadly, you will find:
 Trying to contribute or perform a fix in the RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!  If you are trying to set up your own RERUM then keep reading to learn more.
   
 ### Installation
-The following is a git shell example for installing the RERUM API web application.
 
 #### Get a Mongo Database
 Check out [MongoDB Atlas](https://www.mongodb.com/atlas/database) for a cloud hosted solution as well as instructions for installing MongoDB on your development machines.
 
 #### Get the Code
+The following is a git shell example for installing the RERUM API web application.
+
 ```shell
 cd /code_folder
 git clone https://github.com/CenterForDigitalHumanities/rerum_server_nodejs.git rerum_api
