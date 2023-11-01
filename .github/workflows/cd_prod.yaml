@@ -59,4 +59,5 @@ jobs:
     runs-on: ${{ matrix.machines }}
     steps:
       - run: |
-        echo "PRODUCTION DEPLOY"
+        echo "PRODUCTION DEPLOY 1"
+        echo "PRODUCTION DEPLOY 2"
