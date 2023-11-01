@@ -58,5 +58,5 @@ jobs:
           - vlcdhprdp02
     runs-on: ${{ matrix.machines }}
     steps:
-      run: |
+      - run: |
         echo "PRODUCTION DEPLOY"
