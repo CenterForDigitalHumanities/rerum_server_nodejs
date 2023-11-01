@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@master
       - name: Create .env from secrets
         uses: SpicyPizza/create-envfile@v2
         with:
@@ -58,6 +58,5 @@ jobs:
           - vlcdhprdp02
     runs-on: ${{ matrix.machines }}
     steps:
-      - uses: actions/checkout@master
-      - run: |
-          echo "PRODUCTION DEPLOY"
+      run: |
+        echo "PRODUCTION DEPLOY"
