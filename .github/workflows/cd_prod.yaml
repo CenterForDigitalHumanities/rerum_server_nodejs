@@ -60,6 +60,14 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Deploy the app on the server
-        run: |
-          echo "PRODUCTION DEPLOY 1"
-          echo "PRODUCTION DEPLOY 2"
+      - run: |
+        if [[ ! -e /srv/node/logs/rerumv1.txt ]]; then
+            mkdir -p /srv/node/logs
+            touch /srv/node/logs/rerumv1.txt
+        fi
+        cd /srv/node/v1-node/
+        pm2 stop rerum_v1
+        git stash
+        git pull
+        npm install
+        pm2 start -i max bin/rerum_v1.js
