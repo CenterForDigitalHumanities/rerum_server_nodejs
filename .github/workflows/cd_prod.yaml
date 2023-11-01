@@ -1,0 +1,63 @@
+---
+name: RERUM Server v1 Production Deploy on push to main.
+on:
+  push:
+    branches: CD-update
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create .env from secrets
+        uses: SpicyPizza/create-envfile@v1.3
+        with:
+          envkey_RERUM_API_VERSION: ${{ secrets.RERUM_API_VERSION }}
+          envkey_RERUM_BASE: ${{ secrets.RERUM_BASE }}
+          envkey_RERUM_PREFIX: ${{ secrets.RERUM_PREFIX }}
+          envkey_RERUM_ID_PREFIX: ${{ secrets.RERUM_ID_PREFIX }}
+          envkey_RERUM_AGENT_CLAIM: ${{ secrets.RERUM_AGENT_CLAIM }}
+          envkey_RERUM_CONTEXT: ${{ secrets.RERUM_CONTEXT }}
+          envkey_RERUM_API_DOC: ${{ secrets.RERUM_API_DOC }}
+          envkey_RERUMSECRET: ${{ secrets.RERUMSECRET }}
+          envkey_BOT_AGENT: ${{ secrets.BOT_AGENT_DEV }}
+          envkey_BOT_TOKEN: ${{ secrets.BOT_TOKEN_DEV }}
+          envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING_TESTS }}
+          envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
+          envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
+          envkey_DOWN: ${{ secrets.DOWN }}
+          envkey_READONLY: ${{ secrets.READONLY }}
+          envkey_CLIENTID: ${{ secrets.CLIENTID }}
+          envkey_AUDIENCE: ${{ secrets.AUDIENCE }}
+          envkey_ISSUER_BASE_URL: ${{ secrets.ISSUER_BASE_URL }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: "16"
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{
+            hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Install dependencies then run test script
+        uses: actions/checkout@master
+      - run: npm install
+      - run: npm run runtest
+  deploy:
+    strategy:
+      matrix:
+        node-version:
+          - 16
+        machines:
+          - vlcdhprdp02
+    runs-on: ${{ matrix.machines }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          echo "PRODUCTION DEPLOY"
