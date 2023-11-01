@@ -58,8 +58,9 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       - name: Install dependencies and run the test
-      - run: npm install
-      - run: npm run runtest
+        run: |
+          npm install
+          npm run runtest
   deploy:
     if: github.event.pull_request.draft == false
     needs:
