@@ -58,6 +58,8 @@ jobs:
           - vlcdhprdp02
     runs-on: ${{ matrix.machines }}
     steps:
-      - run: 
-        echo "PRODUCTION DEPLOY 1"
-        echo "PRODUCTION DEPLOY 1"
+      - uses: actions/checkout@master
+      - name: Deploy the app on the server
+        run: |
+          echo "PRODUCTION DEPLOY 1"
+          echo "PRODUCTION DEPLOY 2"
