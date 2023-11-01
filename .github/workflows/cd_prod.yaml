@@ -59,7 +59,7 @@ jobs:
     runs-on: ${{ matrix.machines }}
     steps:
       - name: Deploy the app on the server
-        uses: actions/checkout@master
+      - uses: actions/checkout@master
         run: |
           echo "PRODUCTION DEPLOY 1"
           echo "PRODUCTION DEPLOY 2"
