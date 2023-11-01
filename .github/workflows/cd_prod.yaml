@@ -45,8 +45,8 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       - name: Install dependencies and run the test
-      - run: npm install
-      - run: npm run runtest
+        run: npm install
+        run: npm run runtest
   deploy:
     needs: test
     strategy:
