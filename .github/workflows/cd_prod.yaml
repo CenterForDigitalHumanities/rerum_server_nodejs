@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Create .env from secrets
-        uses: SpicyPizza/create-envfile@master
+        uses: SpicyPizza/create-envfile@v2
         with:
           envkey_RERUM_API_VERSION: ${{ secrets.RERUM_API_VERSION }}
           envkey_RERUM_BASE: ${{ secrets.RERUM_BASE }}
