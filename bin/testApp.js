@@ -106,7 +106,7 @@ async function onListening() {
     {
       "colors" : "true"
     }, 
-    ["jest.config.js"])
+    ["config/jest.config.js"])
     .then(({ results }) => {
       if (results.success) {
         console.log('Tests completed')
