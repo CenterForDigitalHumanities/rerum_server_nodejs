@@ -5,7 +5,7 @@
 
 module.exports = {
   // All imported modules in your tests should be mocked automatically
-  // automock: false,
+  automock: true,
 
   // Stop running tests after `n` failures
   bail: 2,
@@ -14,7 +14,7 @@ module.exports = {
   // cacheDirectory: "C:\\Users\\cubap\\AppData\\Local\\Temp\\jest",
 
   // Automatically clear mock calls, instances and results before every test
-  // clearMocks: false,
+  clearMocks: true,
 
   //This will tell you why jest couldn't close.  Right now, it will flag the client.connect() b/c there is no client.close()
   //That is OK in the testing scenario.  In production, only one connection is made and it is closed when the app exits. 

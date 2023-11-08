@@ -3,14 +3,27 @@
  * @author cubap
 */
 
+const MongoMemoryServer = require('mongodb-memory-server')
+let con,mongoServer
+
 beforeAll(async () => {
-    const connect = require('../../database').default.connect
-    await connect()
+    mongoServer = await MongoMemoryServer.create()
+    process.env.MONGO_CONNECTION_STRING = mongoServer.getUri()
 })
 
-// afterAll(async () => await require('../database').default.client.close())
+afterAll(async () => {
+    if (con) {
+      await con.close()
+    }
+    if (mongoServer) {
+      await mongoServer.stop()
+    }
+  })
 
 describe("create action", () => {
+
+    const create = require('../create').default
+
     let mockReq = {
         header: (name) => mockReq.headers[name],
         headers: {},
@@ -37,8 +50,7 @@ describe("create action", () => {
         if (err) { throw err }
     }
 
-    it('should create a valid document', () => {
-        const create = require('../create').default
+    it.only('should create a valid document', () => {
         const newDoc = create(mockReq, mockRes, mockNext)
         expect(newDoc).toHaveProperty('@id')
         expect(newDoc).toHaveProperty('__rerum')

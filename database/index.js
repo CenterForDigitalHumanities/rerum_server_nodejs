@@ -1,11 +1,10 @@
-const { MongoClient } = require('mongodb')
-const ObjectID = require('mongodb').ObjectId
+const { MongoClient, ObjectID } = require('mongodb')
 const utils = require('../utils')
 const config = require('../config').default
 
 const Database = ()=> {
 
-    const client = new MongoClient(config.mongo.uri)
+    const client = new MongoClient(process.env.MONGO_CONNECTION_STRING ?? config.mongo.uri)
     const database = client.db(config.mongo.db).collection(config.mongo.collection)
 
     /**
