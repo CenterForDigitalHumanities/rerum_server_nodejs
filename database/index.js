@@ -1,11 +1,11 @@
-const { MongoClient, ObjectID } = require('mongodb')
+const { MongoClient, ObjectId } = require('mongodb')
 const utils = require('../utils')
 const config = require('../config').default
 
 const Database = ()=> {
 
-    const client = new MongoClient(process.env.MONGO_CONNECTION_STRING ?? config.mongo.uri)
-    const database = client.db(config.mongo.db).collection(config.mongo.collection)
+    const client = new MongoClient(config.mongo?.uri)
+    const database = client.db(config.mongo?.db)?.collection(config.mongo?.collection)
 
     /**
      * Inserts a new record into RERUM. Returns the calculated URL before the write is complete.
@@ -22,8 +22,8 @@ const Database = ()=> {
     const insert = async (data, metadata = {}, db = database) => {
         if (!isObject(data)) throw new Error('Invalid data object')
         if (!isValidURL(metadata.generator)) throw new Error('Invalid generator')
-        if (!ObjectID.isValid(metadata.slug)) throw new Error('Invalid slug')
-        const id = metadata.slug ?? new ObjectID().toHexString()
+        if (!ObjectId.isValid(metadata.slug)) throw new Error('Invalid slug')
+        const id = metadata.slug ?? new ObjectId().toHexString()
         const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id, "@id": `${config.id_prefix}${id}` }), false, metadata.isExternalUpdate)
         db.insertOne(configuredDocument)
         delete configuredDocument._id
@@ -48,7 +48,7 @@ exports.default = Database()
  * @throws MongoDB error if matchDoc is malformed or server is unreachable; E11000 duplicate key error collection
  */
 function getMatching(matchDoc, options, callback) {
-    return db.findOne(matchDoc, options, (err, doc) => {
+    return database.findOne(matchDoc, options, (err, doc) => {
         if (typeof callback === 'function') return callback(err, doc)
         if (err) throw err
         return doc

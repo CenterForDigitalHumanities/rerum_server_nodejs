@@ -3,26 +3,21 @@
  * @author cubap
 */
 
-const MongoMemoryServer = require('mongodb-memory-server')
-let con,mongoServer
+const dbEnvironment = require('../../database/__mocks__/database').MongoDbEnvironment
+const thisMongo = new dbEnvironment()
 
 beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create()
-    process.env.MONGO_CONNECTION_STRING = mongoServer.getUri()
+    return thisMongo.setup()
 })
 
 afterAll(async () => {
-    if (con) {
-      await con.close()
-    }
-    if (mongoServer) {
-      await mongoServer.stop()
-    }
+    return thisMongo.teardown()
   })
 
 describe("create action", () => {
 
     const create = require('../create').default
+    jest.mock('database')
 
     let mockReq = {
         header: (name) => mockReq.headers[name],
