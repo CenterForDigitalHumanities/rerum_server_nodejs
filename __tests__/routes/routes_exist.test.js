@@ -6,7 +6,8 @@ let app = require('../../app')
 //A super fun note.  If you do request(app), the tests will fail due to race conditions.  
 //client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
 //request = request(app)
-request = request("http://localhost:3333")
+// request = request("http://localhost:3333")
+beforeAll(()=> request = request(app))
 
 /**
  * All the routes that work for GET requests or paths to HTML pages.
