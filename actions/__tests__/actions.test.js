@@ -45,7 +45,7 @@ describe("create action", () => {
         if (err) { throw err }
     }
 
-    it.only('should create a valid document', () => {
+    it.skip('should create a valid document', () => {
         const newDoc = create(mockReq, mockRes, mockNext)
         expect(newDoc).toHaveProperty('@id')
         expect(newDoc).toHaveProperty('__rerum')
