@@ -5,15 +5,11 @@
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
     "stop": "node ./bin/stopApp.js",
-    "devstart": "node ./bin/rerum_v1.js",
-    "serverstart": "SET DEBUG=node-js-prototyping:* & npm devstart",
-    "retrieve-secrets": "aws-secrets-dotenv createLocalEnvironment prod",
     "test": "jest",
     "runtest": "node ./bin/testApp.js"
   },
   "dependencies": {
     "@shelf/jest-mongodb": "^2.2.1",
-    "aws-secrets-dotenv": "^1.0.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "dotenv": "^10.0.0",
