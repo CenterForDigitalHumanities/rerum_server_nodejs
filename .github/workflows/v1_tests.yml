@@ -36,7 +36,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@master
         with:
-          node-version: "21"
+          node-version: "18"
 
       # Speed up subsequent runs with caching
       - name: Cache node modules
