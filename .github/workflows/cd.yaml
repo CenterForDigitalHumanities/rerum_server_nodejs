@@ -7,7 +7,7 @@ jobs:
     deploy:
       strategy: 
         matrix:
-            node-version: [18]
+            node-version: [17]
             machines: [vlcdhprdp02, vlcdhp02]
       runs-on: ${{ matrix.machines }}
       steps:
