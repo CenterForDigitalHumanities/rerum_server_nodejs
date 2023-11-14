@@ -7,9 +7,6 @@ module.exports = {
   // All imported modules in your tests should be mocked automatically
   // automock: true,
 
-  // Stop running tests after `n` failures
-  bail: 2,
-
   // The directory where Jest should store its cached dependency information
   // cacheDirectory: "C:\\Users\\cubap\\AppData\\Local\\Temp\\jest",
 
@@ -44,12 +41,6 @@ module.exports = {
     "text",
     "html"
   ],
-
-  // Indicates whether each individual test should be reported during the run
-  verbose: true,
-
-  //Don't show console.log and console.debug from the app code
-  silent: true,
 
   // The root directory that Jest should scan for tests and modules within
   rootDir: "../",

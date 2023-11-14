@@ -27,8 +27,8 @@ const io = require('socket.io')(server)
 /**
  * Connect to Mongo and listen on provided port, on all network interfaces.
  */
-const database = require('../database').default
-database.connect(onConnected)
+const connect = require('../database').connect
+connect(onConnected)
 
 /**
  * Control the keep alive header

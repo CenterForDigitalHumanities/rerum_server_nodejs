@@ -2,42 +2,32 @@ const { MongoClient, ObjectId } = require('mongodb')
 const utils = require('../utils')
 const config = require('../config').default
 
-const Database = ()=> {
+const client = new MongoClient(config.mongo?.uri)
+exports.connect = client.connect
+exports.database = client.db(config.mongo?.db)?.collection(config.mongo?.collection)
 
-    const client = new MongoClient(config.mongo?.uri)
-    const database = client.db(config.mongo?.db)?.collection(config.mongo?.collection)
-
-    /**
-     * Inserts a new record into RERUM. Returns the calculated URL before the write is complete.
-     * Throws an error if the object is malformed or the slug is taken or invalid.
-     * 
-     * @param {JSON} data Object to be stored as a document in the database.
-     * @param {Object} metadata Set of metadata options.
-     * @param {URI} metadata.generator Reference for the generating Agent.
-     * @param {String} metadata.slug Optional String to provide an alternate way to resolve the document.
-     * @param {Boolean} metadata.isExternalUpdate Document updates an externally referenced resource
-     * @returns URI of document to be saved. 
-     * @throws Error for bad data or slug and passes back any MongoDB errors
-     */
-    const insert = async (data, metadata = {}, db = database) => {
-        if (!isObject(data)) throw new Error('Invalid data object')
-        if (!isValidURL(metadata.generator)) throw new Error('Invalid generator')
-        if (!ObjectId.isValid(metadata.slug)) throw new Error('Invalid slug')
-        const id = metadata.slug ?? new ObjectId().toHexString()
-        const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id, "@id": `${config.id_prefix}${id}` }), false, metadata.isExternalUpdate)
-        db.insertOne(configuredDocument)
-        delete configuredDocument._id
-        return configuredDocument
-    }
-
-    return {
-        client,
-        insert,
-        connect: client.connect
-    }
+/**
+ * Inserts a new record into RERUM. Returns the calculated URL before the write is complete.
+ * Throws an error if the object is malformed or the slug is taken or invalid.
+ * 
+ * @param {JSON} data Object to be stored as a document in the database.
+ * @param {Object} metadata Set of metadata options.
+ * @param {URI} metadata.generator Reference for the generating Agent.
+ * @param {String} metadata.slug Optional String to provide an alternate way to resolve the document.
+ * @param {Boolean} metadata.isExternalUpdate Document updates an externally referenced resource
+ * @returns URI of document to be saved. 
+ * @throws Error for bad data or slug and passes back any MongoDB errors
+ */
+exports.insert = async (data, metadata = {}, db = database) => {
+    if (!isObject(data)) throw new Error('Invalid data object')
+    if (!isValidURL(metadata.generator)) throw new Error('Invalid generator')
+    if (!ObjectId.isValid(metadata.slug)) throw new Error('Invalid slug')
+    const id = metadata.slug ?? new ObjectId().toHexString()
+    const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id, "@id": `${config.id_prefix}${id}` }), false, metadata.isExternalUpdate)
+    db.insertOne(configuredDocument)
+    delete configuredDocument._id
+    return configuredDocument
 }
-
-exports.default = Database()
 
 /**
  * Find a single record based on a query object.
