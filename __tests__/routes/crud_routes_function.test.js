@@ -1,13 +1,14 @@
-let request = require("supertest")
+const request = require("supertest")
 //Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
-let app = require('../../app')
+const app = require('../../app')
 //This is so we can do Mongo specific things with the objects in this test, like actually remove them from the db.
 const controller = require('../../db-controller.js')
 
 //A super fun note.  If you do request(app), the tests will fail due to race conditions.  
 //request = request(app)
 //request = request("http://localhost:3333")
-beforeAll(async ()=> request = await request(app))
+// beforeAll(async ()=> request = await request(app))
+beforeAll(async ()=> request = await request("http://localhost:3333"))
 
 describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.',

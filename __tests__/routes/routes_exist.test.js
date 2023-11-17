@@ -1,13 +1,14 @@
-let request = require("supertest")
+const request = require("supertest")
 
 //Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
-let app = require('../../app')
+const app = require('../../app')
 
 //A super fun note.  If you do request(app), the tests will fail due to race conditions.  
 //client.connect() in db-controller.js will not finish before some calls to the routes.  So strange.
 //request = request(app)
 // request = request("http://localhost:3333")
-beforeAll(()=> request = request(app))
+// beforeAll(()=> request = request(app))
+beforeAll(()=> request = request("http://localhost:3333"))
 
 /**
  * All the routes that work for GET requests or paths to HTML pages.
