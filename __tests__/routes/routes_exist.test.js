@@ -8,7 +8,6 @@ const app = require('../../app')
 //request = request(app)
 // request = request("http://localhost:3333")
 // beforeAll(()=> request = request(app))
-beforeAll(()=> request = request("http://localhost:3333"))
 
 /**
  * All the routes that work for GET requests or paths to HTML pages.
@@ -33,7 +32,7 @@ describe('Check to see that all expected routes exists.', function() {
 
 
   it('/v1/api/ -- RERUM API index.  Responds with a JSON object as a "hello world". ', function(done) {
-    request
+    request("http://localhost:3333")
       .get("/v1/api")
       .expect("Content-Type", /json/)
       .expect(200)
@@ -45,53 +44,53 @@ describe('Check to see that all expected routes exists.', function() {
   })
 
   it('/v1/id/{_id} -- RERUM object URL GET by _id pattern.  It should return a 405.', function(done) {
-    request
+    request("http://localhost:3333")
       .post('/v1/id/1111')
       .expect(405, done)
   })
 
   it('/v1/since/{_id} -- RERUM /since/:_id pattern.  It should return a 405.', function(done) {
-    request
+    request("http://localhost:3333")
       .post('/v1/since/1111')
       .expect(405, done)
   })
 
   it('/v1/history/{_id} -- RERUM /history/:_id pattern.  It should return a 405.', function(done) {
-    request
+    request("http://localhost:3333")
       .post('/v1/history/1111')
       .expect(405, done)
   })
 
   it('/maintenance.html -- RERUM API maintenance page.  It should return a 200 and a HTML page. ', function(done) {
-    request
+    request("http://localhost:3333")
     .get("/maintenance.html")
     .expect("Content-Type", /html/)
     .expect(200, done)
   })
 
   it('/index.html -- RERUM API registration page.  It should return a 200 and a HTML page. ', function(done) {
-    request
+    request("http://localhost:3333")
     .get("/index.html")
     .expect("Content-Type", /html/)
     .expect(200, done)
   })
 
   it('context.json -- It should return a 200 and a JSON file.  ', function(done) {
-    request
+    request("http://localhost:3333")
     .get("/v1/context.json")
     .expect("Content-Type", /json/)
     .expect(200, done)
   })
 
   it('/v1/terms.txt -- It should return a 200 and a plain text file. ', function(done) {
-    request
+    request("http://localhost:3333")
     .get("/v1/terms.txt")
     .expect("Content-Type", /text/)
     .expect(200, done)
   })
 
   it('/v1/API.html -- RERUM API HTML page.  It should return a 200 and an HTML page. ', function(done) {
-    request
+    request("http://localhost:3333")
     .get("/v1/API.html")
     .expect("Content-Type", /html/)
     .expect(200, done)
@@ -104,54 +103,54 @@ describe('Checking each CRUD enpoint exists behind /api.  '+
   function() {
 
   it('/create', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/create')
       .expect(405, done)
   })
   it('/bulkCreate', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/create')
       .expect(405, done)
   })
 
   it('/update', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/update')
       .expect(405, done)
   })
 
   it('/patch', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/patch')
       .expect(405, done)
   })
 
   it('/set', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/set')
       .expect(405, done)
   })
 
   it('/unset', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/unset')
       .expect(405, done)
   })
 
   it('/delete', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/delete/potato')
       .expect(405, done)
   })
 
   it('/query', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/query')
       .expect(405, done)
   })
 
   it('/release/{_id}', function(done) {
-    request
+    request("http://localhost:3333")
       .post('/v1/api/release/zzznznzzzx')
       .expect(405, done)
   })
@@ -173,40 +172,40 @@ describe('Check for legacy endpoints.', function() {
   // })
 
   it('getByProperties.action redirects to query', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/getByProperties.action')
       .expect(405, done)
   })
 
   it('create.action exists', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/create.action')
       .expect(405, done)
   })
 
   it('batch_create.action exists', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/batch_create.action')
       .expect(405, done)
   })
 
  //update.action exists
   it('update.action exists', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/update.action')
       .expect(405, done)
   })
 
   //delete.action exists
   it('delete.action exists', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/delete.action/potato')
       .expect(405, done)
   })
 
   //potatoAction.action does not exist
   it('potatoAction.action does not exist #No404 #broken', function(done) {
-    request
+    request("http://localhost:3333")
       .get('/v1/api/potatoAction.action')
       .expect(404, done)
   })
