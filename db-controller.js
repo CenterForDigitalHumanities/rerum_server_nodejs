@@ -1512,7 +1512,7 @@ exports.remove = async function (id) {
  * The app is forbidden until registered with RERUM.  Access tokens are encoded with the agent.
  */
 function getAgentClaim(req, next) {
-    const claimKeys = [config.rerum.agent_claim, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
+    const claimKeys = [config?.rerum.agent_claim, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
     for (const claimKey of claimKeys) {
         const agent = req.user[claimKey]
         if (agent) {
