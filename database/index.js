@@ -1,33 +1,14 @@
-const { MongoClient, ObjectId } = require('mongodb')
-const utils = require('../utils')
-const config = require('../config').default
+const { MongoClient } = require('mongodb')
+const dotenv = require('dotenv')
+dotenv.config()
 
-const client = new MongoClient(config.mongo?.uri)
-exports.connect = client.connect
-exports.database = client.db(config.mongo?.db)?.collection(config.mongo?.collection)
-
-/**
- * Inserts a new record into RERUM. Returns the calculated URL before the write is complete.
- * Throws an error if the object is malformed or the slug is taken or invalid.
- * 
- * @param {JSON} data Object to be stored as a document in the database.
- * @param {Object} metadata Set of metadata options.
- * @param {URI} metadata.generator Reference for the generating Agent.
- * @param {String} metadata.slug Optional String to provide an alternate way to resolve the document.
- * @param {Boolean} metadata.isExternalUpdate Document updates an externally referenced resource
- * @returns URI of document to be saved. 
- * @throws Error for bad data or slug and passes back any MongoDB errors
- */
-exports.insert = async (data, metadata = {}, db = database) => {
-    if (!isObject(data)) throw new Error('Invalid data object')
-    if (!isValidURL(metadata.generator)) throw new Error('Invalid generator')
-    if (!ObjectId.isValid(metadata.slug)) throw new Error('Invalid slug')
-    const id = metadata.slug ?? new ObjectId().toHexString()
-    const configuredDocument = utils.configureRerumOptions(metadata.generator, Object.assign(data, { _id: id, "@id": `${config.id_prefix}${id}` }), false, metadata.isExternalUpdate)
-    db.insertOne(configuredDocument)
-    delete configuredDocument._id
-    return configuredDocument
+const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
+exports.connected = async function () {
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 }).catch(err => err)
+    return true
 }
+exports.db = client.db(process.env.MONGODBNAME)?.collection(process.env.MONGODBCOLLECTION)
 
 /**
  * Find a single record based on a query object.
@@ -38,7 +19,7 @@ exports.insert = async (data, metadata = {}, db = database) => {
  * @throws MongoDB error if matchDoc is malformed or server is unreachable; E11000 duplicate key error collection
  */
 function getMatching(matchDoc, options, callback) {
-    return database.findOne(matchDoc, options, (err, doc) => {
+    return db.findOne(matchDoc, options, (err, doc) => {
         if (typeof callback === 'function') return callback(err, doc)
         if (err) throw err
         return doc
