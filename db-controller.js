@@ -10,11 +10,9 @@
  * @author thehabes 
  */
 
-const { MongoClient } = require('mongodb')
 var ObjectID = require('mongodb').ObjectId
 const utils = require('./utils')
-let client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
-client.connect()
+const db = require('./database')
 console.log("DB controller was required by a module, so a connection must be made.  We would like there to only be one of these.")
 
 // Handle index actions
@@ -39,7 +37,7 @@ exports.generateSlugId = async function(slug_id="", next){
     if(slug_id){
         slug_return.slug_id = slug_id
         try {
-            slug = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
+            slug = await db.findOne({"$or":[{"_id": slug_id}, {"__rerum.slug": slug_id}]})
         } 
         catch (error) {
             //A DB problem, so we could not check.  Assume it's usable and let errors happen downstream.
@@ -86,7 +84,7 @@ exports.create = async function (req, res, next) {
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
     try {
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+        let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(201)
@@ -123,7 +121,7 @@ exports.delete = async function (req, res, next) {
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
     try {
-        originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
         next(createExpressError(error))
         return
@@ -165,7 +163,7 @@ exports.delete = async function (req, res, next) {
         if (healHistoryTree(safe_original)) {
             let result
             try {
-                result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": originalObject["_id"] }, deletedObject)
+                result = await db.replaceOne({ "_id": originalObject["_id"] }, deletedObject)
             } catch (error) {
                 next(createExpressError(error))
                 return
@@ -217,7 +215,7 @@ exports.putUpdate = async function (req, res, next) {
         let id = parseDocumentID(idReceived)
         let originalObject
         try {
-            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
             next(createExpressError(error))
             return
@@ -246,7 +244,7 @@ exports.putUpdate = async function (req, res, next) {
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             console.log("UPDATE")
             try {
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -303,7 +301,7 @@ async function _import(req, res, next) {
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
     console.log("IMPORT")
     try {
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+        let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(200)
@@ -335,7 +333,7 @@ exports.patchUpdate = async function (req, res, next) {
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
-            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
             next(createExpressError(error))
             return
@@ -395,7 +393,7 @@ exports.patchUpdate = async function (req, res, next) {
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
             try {
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -446,7 +444,7 @@ exports.patchSet = async function (req, res, next) {
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
-            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
             next(createExpressError(error))
             return
@@ -497,7 +495,7 @@ exports.patchSet = async function (req, res, next) {
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             try {
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -548,7 +546,7 @@ exports.patchUnset = async function (req, res, next) {
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
-            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
             next(createExpressError(error))
             return
@@ -607,7 +605,7 @@ exports.patchUnset = async function (req, res, next) {
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UNSET")
             try {
-                let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).insertOne(newObject)
+                let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -656,7 +654,7 @@ exports.overwrite = async function (req, res, next) {
         let id = parseDocumentID(objectReceived["@id"])
         let originalObject
         try {
-            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
             next(createExpressError(error))
             return
@@ -698,7 +696,7 @@ exports.overwrite = async function (req, res, next) {
             let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
             let result
             try {
-                result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, newObject)
+                result = await db.replaceOne({ "_id": id }, newObject)
             } catch (error) {
                 next(createExpressError(error))
             }
@@ -751,7 +749,7 @@ exports.release = async function (req, res, next) {
     if (id){
         let originalObject 
         try {
-            originalObject = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } 
         catch (error) {
             next(createExpressError(error))
@@ -810,7 +808,7 @@ exports.release = async function (req, res, next) {
                 let releasedObject = safe_original
                 let result
                 try {
-                    result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": id }, releasedObject)
+                    result = await db.replaceOne({ "_id": id }, releasedObject)
                 } 
                 catch (error) {
                     next(createExpressError(error))
@@ -860,7 +858,7 @@ exports.query = async function (req, res, next) {
         return
     }
     try {
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).limit(limit).skip(skip).toArray()
+        let matches = await db.find(props).limit(limit).skip(skip).toArray()
         matches =
             matches.map(o => {
                 delete o._id
@@ -882,7 +880,7 @@ exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     try {
-        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        let match = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (match) {
             res.set(utils.configureWebAnnoHeadersFor(match))
             //Support built in browser caching
@@ -950,7 +948,7 @@ exports.bulkCreate = async function (req, res, next) {
         bulkOps.push({ insertOne : { "document" : d }})
     })
     try {
-        let dbResponse = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).bulkWrite(bulkOps)
+        let dbResponse = await db.bulkWrite(bulkOps)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(201)
@@ -976,7 +974,7 @@ exports.idHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     try {
-        let match = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        let match = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (match) {
             const size = Buffer.byteLength(JSON.stringify(match))
             res.set("Content-Length", size)
@@ -999,7 +997,7 @@ exports.queryHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
     try {
-        let matches = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find(props).toArray()
+        let matches = await db.find(props).toArray()
         if (matches.length) {
             const size = Buffer.byteLength(JSON.stringify(match))
             res.set("Content-Length", size)
@@ -1025,7 +1023,7 @@ exports.since = async function (req, res, next) {
     let id = req.params["_id"]
     let obj
     try {
-        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
         next(createExpressError(error))
         return
@@ -1066,7 +1064,7 @@ exports.history = async function (req, res, next) {
     let id = req.params["_id"]
     let obj
     try {
-        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
         next(createExpressError(error))
         return
@@ -1103,7 +1101,7 @@ exports.sinceHeadRequest = async function (req, res, next) {
     let id = req.params["_id"]
     let obj
     try {
-        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
         next(createExpressError(error))
         return
@@ -1141,7 +1139,7 @@ exports.historyHeadRequest = async function (req, res, next) {
     let id = req.params["_id"]
     let obj
     try {
-        obj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
         next(createExpressError(error))
         return
@@ -1185,14 +1183,14 @@ async function getAllVersions(obj) {
     ?   //The obj passed in is root.  So it is the rootObj we need.
         JSON.parse(JSON.stringify(obj))
     :   //The obj passed in knows the ID of root, grab it from Mongo
-        await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({ "@id": primeID })
+        await db.findOne({ "@id": primeID })
         /**
          * Note that if you attempt the following code, it will cause  Cannot convert undefined or null to object in getAllVersions.
-         * rootObj = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
+         * rootObj = await db.findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
          * This is the because some of the @ids have different RERUM URL patterns on them.
          **/
     //All the children of this object will have its @id in __rerum.history.prime
-    ls_versions = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
+    ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
@@ -1279,7 +1277,7 @@ function getAllDescendants(ls_versions, keyObj, discoveredDescendants) {
 async function alterHistoryPrevious(objToUpdate, newPrevID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     objToUpdate.__rerum.history.previous = newPrevID
-    let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
+    let result = await db.replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
     return result.modifiedCount > 0
 }
 
@@ -1295,7 +1293,7 @@ async function alterHistoryNext(objToUpdate, newNextID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     if(objToUpdate.__rerum.history.next.indexOf(newNextID) === -1){
         objToUpdate.__rerum.history.next.push(newNextID)
-        let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
+        let result = await db.replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
         return result.modifiedCount > 0
     }
     return true
@@ -1342,7 +1340,7 @@ async function healHistoryTree(obj) {
         for (nextID of next_ids) {
             let objWithUpdate = {}
             const nextIdForQuery = parseDocumentID(nextID)
-            const objToUpdate = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": nextIdForQuery}, {"__rerum.slug": nextIdForQuery}]})
+            const objToUpdate = await db.findOne({"$or":[{"_id": nextIdForQuery}, {"__rerum.slug": nextIdForQuery}]})
             if (null !== objToUpdate) {
                 let fixHistory = JSON.parse(JSON.stringify(objToUpdate))
                 if (objToDeleteisRoot) {
@@ -1368,7 +1366,7 @@ async function healHistoryTree(obj) {
                     throw Error("object did not have previous and was not root.")
                 }
                 //Does this have to be async?
-                let verify = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate["_id"] }, fixHistory)
+                let verify = await db.replaceOne({ "_id": objToUpdate["_id"] }, fixHistory)
                 if (verify.modifiedCount === 0) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                     throw Error("Could not update all descendants with their new prime value")
@@ -1383,7 +1381,7 @@ async function healHistoryTree(obj) {
             //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
             //For external objects, do nothing is the right thing to do here.
             let objWithUpdate2 = {}
-            const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": nextIdForQuery}, {"__rerum.slug": nextIdForQuery}]})
+            const objToUpdate2 = await db.findOne({"$or":[{"_id": nextIdForQuery}, {"__rerum.slug": nextIdForQuery}]})
             if (null !== objToUpdate2) {
                 let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
                 let origNextArray = fixHistory2["__rerum"]["history"]["next"]
@@ -1394,7 +1392,7 @@ async function healHistoryTree(obj) {
                 newNextArray = [...newNextArray, ...next_ids]
                 fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
                 //Does this have to be async
-                let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
+                let verify2 = await db.replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
                 if (verify2.modifiedCount === 0) {
                     //verify didn't error out, but it also didn't succeed...
                     throw Error("Could not update all ancestors with their altered next value")
@@ -1420,7 +1418,7 @@ async function healHistoryTree(obj) {
         //The object being deleted had a previous that is internal to RERUM.  That previous object next[] must be updated with the deleted object's next[].
         //For external objects, do nothing is the right thing to do here.
         let previousIdForQuery = parseDocumentID(previous_id)
-        const objToUpdate2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).findOne({"$or":[{"_id": previousIdForQuery}, {"__rerum.slug": previousIdForQuery}]})
+        const objToUpdate2 = await db.findOne({"$or":[{"_id": previousIdForQuery}, {"__rerum.slug": previousIdForQuery}]})
         if (null !== objToUpdate2) {
             let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
             let origNextArray = fixHistory2["__rerum"]["history"]["next"]
@@ -1431,7 +1429,7 @@ async function healHistoryTree(obj) {
             newNextArray = [...newNextArray, ...next_ids]
             fixHistory2["__rerum"]["history"]["next"] = newNextArray //Rewrite the next[] array to fix the history
             //Does this have to be async
-            let verify2 = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
+            let verify2 = await db.replaceOne({ "_id": objToUpdate2["_id"] }, fixHistory2)
             if (verify2.modifiedCount === 0) {
                 //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 console.error("Could not update all ancestors with their altered next value")
@@ -1471,7 +1469,7 @@ async function newTreePrime(obj) {
         for (d of descendants) {
             let objWithUpdate = JSON.parse(JSON.stringify(d))
             objWithUpdate["__rerum"]["history"]["prime"] = primeID
-            let result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": d["_id"] }, objWithUpdate)
+            let result = await db.replaceOne({ "_id": d["_id"] }, objWithUpdate)
             if (result.modifiedCount === 0) {
                 console.error("Could not update all descendants with their new prime value: newTreePrime failed")
                 return false
@@ -1533,7 +1531,7 @@ function createExpressError(update, originalError = {}) {
  */
 exports.remove = async function (id) {
     try {
-        const result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).deleteOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        const result = await db.deleteOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (!result.deletedCount === 1) {
             throw Error("Could not remove object")
         }
@@ -1593,7 +1591,7 @@ async function establishReleasesTree(releasing){
         safe_descendant.__rerum.releases.previous = releasing["@id"]
         let result
         try {
-            result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": d_id }, safe_descendant)
+            result = await db.replaceOne({ "_id": d_id }, safe_descendant)
         } 
         catch (error) {
             next(createExpressError(error))
@@ -1613,7 +1611,7 @@ async function establishReleasesTree(releasing){
         }
         let result
         try {
-            result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": a_id }, safe_ancestor)
+            result = await db.replaceOne({ "_id": a_id }, safe_ancestor)
         } 
         catch (error) {
             next(createExpressError(error))
@@ -1662,7 +1660,7 @@ async function healReleasesTree(releasing) {
             }
             let result
             try {
-                result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": d_id }, safe_descendant)
+                result = await db.replaceOne({ "_id": d_id }, safe_descendant)
             } 
             catch (error) {
                 next(createExpressError(error))
@@ -1718,7 +1716,7 @@ async function healReleasesTree(releasing) {
         safe_ancestor.__rerum.releases.next = ancestorNextArray
         let result
         try {
-            result = await client.db(process.env.MONGODBNAME).collection(process.env.MONGODBCOLLECTION).replaceOne({ "_id": a_id }, safe_ancestor)
+            result = await db.replaceOne({ "_id": a_id }, safe_ancestor)
         } 
         catch (error) {
             next(createExpressError(error))
