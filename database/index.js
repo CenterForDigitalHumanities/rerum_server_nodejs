@@ -1,8 +1,9 @@
-const { MongoClient } = require('mongodb')
+const { MongoClient, ObjectId } = require('mongodb')
 const dotenv = require('dotenv')
 dotenv.config()
 
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
+exports.newID = () => new ObjectId().toHexString()
 exports.connected = async function () {
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 }).catch(err => err)

@@ -10,9 +10,9 @@
  * @author thehabes 
  */
 
-var ObjectID = require('mongodb').ObjectId
+const ObjectID = require('./database').newID
 const utils = require('./utils')
-const db = require('./database')
+const db = require('./database').db
 
 // Handle index actions
 exports.index = function (req, res, next) {
@@ -69,7 +69,7 @@ exports.create = async function (req, res, next) {
             slug = slug_json.slug_id
         }
     }
-    const id = new ObjectID().toHexString()
+    const id = ObjectID()
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
@@ -233,7 +233,7 @@ exports.putUpdate = async function (req, res, next) {
             })
         }
         else {
-            id = new ObjectID().toHexString()
+            id = ObjectID()
             let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["_rerum"]
@@ -289,7 +289,7 @@ async function _import(req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
-    const id = new ObjectID().toHexString()
+    const id = ObjectID()
     let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
     delete objectReceived["_rerum"]
@@ -382,7 +382,7 @@ exports.patchUpdate = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            const id = new ObjectID().toHexString()
+            const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["_rerum"]
@@ -485,7 +485,7 @@ exports.patchSet = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            const id = new ObjectID().toHexString()
+            const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["_rerum"]
@@ -594,7 +594,7 @@ exports.patchUnset = async function (req, res, next) {
                 res.json(originalObject)
                 return
             }
-            const id = new ObjectID().toHexString()
+            const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["_rerum"]
@@ -938,7 +938,7 @@ exports.bulkCreate = async function (req, res, next) {
     // }
     let bulkOps = []
     documents.forEach(d => {
-        const id = new ObjectID().toHexString()
+        const id = ObjectID()
         let generatorAgent = getAgentClaim(req, next)
         d = utils.configureRerumOptions(generatorAgent, d)
         // TODO: check profiles/parameters for 'id' vs '@id' and use that
