@@ -13,7 +13,6 @@
 var ObjectID = require('mongodb').ObjectId
 const utils = require('./utils')
 const db = require('./database')
-console.log("DB controller was required by a module, so a connection must be made.  We would like there to only be one of these.")
 
 // Handle index actions
 exports.index = function (req, res, next) {
