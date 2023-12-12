@@ -1,4 +1,3 @@
-const got = require('got')
 // const jwt = require('express-jwt')
 // Currently unsed, but we should consider setting scopes moving forward and this will be handy then.
 // const jwtAuthz = require('express-jwt-authz')
@@ -67,8 +66,9 @@ const generateNewAccessToken = async (req, res, next) => {
     }
     console.log(form)
     try{
-        const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
+        const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
+            method: 'POST',
             headers: {
                 "Content-Type": "application/json"
             },
@@ -98,8 +98,9 @@ const generateNewRefreshToken = async (req, res, next) => {
         redirect_uri:process.env.RERUM_PREFIX
     }
     try {
-      const tokenObj = await got.post('https://cubap.auth0.com/oauth/token',
+      const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
+            method: 'POST',
             headers: {
                 "Content-Type": "application/json"
             },
