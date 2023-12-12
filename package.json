@@ -38,6 +38,7 @@
     "mongodb": "~6.3.0",
     "morgan": "~1.10.0",
     "nock": "~13.4.0",
+    "nvm": "^0.0.4",
     "socket.io": "~4.7.2",
     "socket.io-client": "~4.7.2"
   },
