@@ -7,11 +7,11 @@ jobs:
     deploy:
       strategy: 
         matrix:
-            node-version: [16]
+            node-version: [21.x]
             machines: [vlcdhprdp02, vlcdhp02]
       runs-on: ${{ matrix.machines }}
       steps:
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@master
         - run: |
             if [[ ! -e /srv/node/logs/rerumv1.txt ]]; then
                 mkdir -p /srv/node/logs

@@ -5,16 +5,13 @@
 
 module.exports = {
   // All imported modules in your tests should be mocked automatically
-  // automock: false,
-
-  // Stop running tests after `n` failures
-  // bail: 0,
+  // automock: true,
 
   // The directory where Jest should store its cached dependency information
   // cacheDirectory: "C:\\Users\\cubap\\AppData\\Local\\Temp\\jest",
 
   // Automatically clear mock calls, instances and results before every test
-  // clearMocks: false,
+  clearMocks: true,
 
   //This will tell you why jest couldn't close.  Right now, it will flag the client.connect() b/c there is no client.close()
   //That is OK in the testing scenario.  In production, only one connection is made and it is closed when the app exits. 
@@ -45,14 +42,8 @@ module.exports = {
     "html"
   ],
 
-  // Indicates whether each individual test should be reported during the run
-  verbose: true,
-
-  //Don't show console.log and console.debug from the app code
-  silent: true,
-
   // The root directory that Jest should scan for tests and modules within
-  rootDir: "./",
+  rootDir: "../",
 
   // The directory where Jest should output its coverage files.  Default is /coverage/.  See /coverage/index.html.
   // coverageDirectory: undefined,
@@ -114,7 +105,7 @@ module.exports = {
   // notifyMode: "failure-change",
 
   // A preset that is used as a base for Jest's configuration
-  // preset: `@shelf/jest-mongodb`,
+  preset: `@shelf/jest-mongodb`,
 
   // Run tests from one or more projects
   // projects: undefined,

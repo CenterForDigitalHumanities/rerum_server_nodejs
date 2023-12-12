@@ -1,12 +1,13 @@
-let request = require("supertest")
+const request = require("supertest")
 //Fun fact, if you don't require app, you don't get coverage even though the tests run just fine.
-let app = require('../../app')
+const app = require('../../app')
 //This is so we can do Mongo specific things with the objects in this test, like actually remove them from the db.
 const controller = require('../../db-controller.js')
 
 //A super fun note.  If you do request(app), the tests will fail due to race conditions.  
 //request = request(app)
-request = request("http://localhost:3333")
+//request = request("http://localhost:3333")
+// beforeAll(async ()=> request = await request(app))
 
 describe(
   'Test that each available endpoint succeeds given a properly formatted request and request body.',
@@ -14,7 +15,7 @@ describe(
 
     it('End to end /v1/id/{_id}. It should respond 404, this object does not exist.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/id/potato')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(404, done)
@@ -23,7 +24,7 @@ describe(
 
     it('End to end /v1/since/{_id}. It should respond 404, this object does not exist.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/since/potato')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(404, done)
@@ -32,7 +33,7 @@ describe(
 
     it('End to end /v1/history/{_id}. It should respond 404, this object does not exist.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/history/potato')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(404, done)
@@ -42,7 +43,7 @@ describe(
     it('End to end /v1/id/. Forget the _id in the URL pattern.  ' +
       'It should respond 404, this page/object does not exist.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/id/')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(404, done)
@@ -52,7 +53,7 @@ describe(
     it('End to end /v1/since/. Forget the _id in the URL pattern.  ' +
       'It should respond 404, this page/object does not exist.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/since/')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(404, done)
@@ -62,7 +63,7 @@ describe(
     it('End to end /v1/history/. Forget the _id in the URL pattern.  ' +
       'It should respond 404, this page/object does not exist.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/history/')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(404, done)
@@ -72,7 +73,7 @@ describe(
     it('End to end /v1/id/{_id}. Do a properly formatted GET for an object by id.  ' +
       'It should respond 200 with a body that is a JSON object with an "@id" property.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/id/622f7f0a0249b8ac889b2e2c')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
@@ -99,7 +100,7 @@ describe(
     it('End to end HEAD request to /v1/id/{_id}.' +
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .head('/v1/id/622f7f0a0249b8ac889b2e2c')
           .expect(200)
           .then(response => {
@@ -114,7 +115,7 @@ describe(
       'It should respond 200 with a body that is of type Array.' +
       'It should strip the property "_id" from the response.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/since/622f7f0a0249b8ac889b2e2c')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
@@ -138,7 +139,7 @@ describe(
     it('End to end HEAD request to /v1/since/{_id}.' +
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .head('/v1/since/622f7f0a0249b8ac889b2e2c')
           .expect(200)
           .then(response => {
@@ -155,7 +156,7 @@ describe(
       'It should respond 200 with a body that is of type Array.' +
       'It should strip the property "_id" from the response.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .get('/v1/history/640f8c065243a8c3bb37c290')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
@@ -179,7 +180,7 @@ describe(
     it('End to end HEAD request to /v1/history/{_id}.' +
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .head('/v1/history/640f8c065243a8c3bb37c290')
           .expect(200)
           .then(response => {
@@ -198,7 +199,7 @@ describe(
       'The Location header in the response should be present and populated.',
       function (done) {
         const unique = new Date(Date.now()).toISOString().replace("Z", "")
-        request
+        return request("http://localhost:3333")
           .post('/v1/api/create')
           .send({ "RERUM Create Test": unique })
           .set('Content-Type', 'application/json; charset=utf-8')
@@ -228,7 +229,7 @@ describe(
       'The Link header in the response should be present and populated.',
       function (done) {
         const unique = () => new Date(Date.now()).toISOString().replace("Z", "")
-        request
+        return request("http://localhost:3333")
           .post('/v1/api/bulkCreate')
           .send([
             { "RERUM Bulk Create Test1": unique },
@@ -265,7 +266,7 @@ describe(
         //It is slightly possible this thing already exists, there could have been an error.
         //Let's be super cautious and remove it first, then move on.  That way we don't have to manually fix it.
         controller.remove(slug).then(r => {
-          request
+          return request("http://localhost:3333")
             .post('/v1/api/create')
             .send({ "RERUM Slug Support Test": unique })
             .set('Content-Type', 'application/json; charset=utf-8')
@@ -288,7 +289,7 @@ describe(
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
-      request
+      return request("http://localhost:3333")
         .put('/v1/api/update')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
@@ -321,7 +322,7 @@ describe(
     'The Location header in the response should be present and populated and not equal the originating entity "@id" or "id".', 
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
-      request
+      return request("http://localhost:3333")
         .put('/v1/api/update')
         .send({"id": "https://not.from.rerum/v1/api/aaaeaeaeee34345", "RERUM Import Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
@@ -354,7 +355,7 @@ describe(
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
-      request
+      return request("http://localhost:3333")
         .patch('/v1/api/patch')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
@@ -384,7 +385,7 @@ describe(
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
     function(done) {
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
-      request
+      return request("http://localhost:3333")
         .patch('/v1/api/set')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_set":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
@@ -413,7 +414,7 @@ describe(
     'It should respond with a 200 with enough JSON in the response body to discern the "@id" and the absence of the unset property.  '+
     'The Location header in the response should be present and populated and not equal the originating entity "@id".', 
     function(done) {
-      request
+      return request("http://localhost:3333")
         .patch('/v1/api/unset')
         .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":null})
         .set('Content-Type', 'application/json; charset=utf-8')
@@ -439,7 +440,7 @@ describe(
     it('End to end /v1/api/delete. Do a properly formatted /delete call by DELETEing an existing object.  '+
     'It will need to create an object first, then delete that object, and so must complete a /create call first.  '+
     'It will check the response to /create is 201 and the response to /delete is 204.', function(done) {
-      request
+      return request("http://localhost:3333")
         .post("/v1/api/create/")
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
@@ -452,7 +453,7 @@ describe(
            * TODO optimize
            */ 
           const idToDelete = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
-          request
+          request("http://localhost:3333")
           .delete('/v1/api/delete/'+idToDelete)
           .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
           .expect(204)
@@ -470,7 +471,7 @@ describe(
       'It should strip the property "_id" from the response.' +
       'We are querying for an object we know exists, so the length of the response should be more than 0.',
       function (done) {
-        request
+        return request("http://localhost:3333")
           .post('/v1/api/query')
           .send({ "_id": "622f7f0a0249b8ac889b2e2c" })
           .set('Content-Type', 'application/json; charset=utf-8')
@@ -514,7 +515,7 @@ describe(
     'It will need to create an object first, then release that object, and so must complete a /create call first.  '+
     'It will check the response to /create is 201 and the response to /release is 200.', 
     function(done) {
-      request
+      return request("http://localhost:3333")
         .post("/v1/api/create/")
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
@@ -529,7 +530,7 @@ describe(
           const idToRelease = response.body["@id"].replace(process.env.RERUM_ID_PREFIX, "")
           const slug = "1123rcgslu1123"
           controller.remove(slug).then(r => {
-            request
+            return request
             .patch('/v1/api/release/'+idToRelease)
             .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
             .set('Slug', slug)
@@ -548,8 +549,8 @@ describe(
     })
 
     it('should use `limit` and `skip` correctly at /query',
-      function (done) {
-        request
+      function () {
+        return request("http://localhost:3333")
           .post('/v1/api/query?limit=10&skip=2')
           .send({ "@id": { $exists: true } })
           .set('Content-Type', 'application/json; charset=utf-8')
@@ -569,9 +570,8 @@ describe(
             expect(response.headers["link"]).toBeTruthy()
             expect(Array.isArray(response.body)).toBe(true)
             expect(response.body.length).toBeLessThanOrEqual(10)
-            done()
           })
-          .catch(err => done(err))
+          .catch(err => Promise.reject(err))
       })
 
   })
