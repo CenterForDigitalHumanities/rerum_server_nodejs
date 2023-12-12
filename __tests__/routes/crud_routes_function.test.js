@@ -13,11 +13,10 @@ describe(
   function () {
 
     it('End to end /v1/id/{_id}. It should respond 404, this object does not exist.',
-      function (done) {
-        request
-          .get('/v1/id/potato')
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .expect(404, done)
+      async () => {
+        const response = await request.get('/v1/id/potato')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        expect(response.statusCode).toBe(404)
       }
     )
 
