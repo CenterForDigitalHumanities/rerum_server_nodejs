@@ -155,7 +155,7 @@ describe(
       'It should strip the property "_id" from the response.',
       function (done) {
         request
-          .get('/v1/history/640f8c065243a8c3bb37c290')
+          .get('/v1/history/11111')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
           .then(response => {
@@ -179,7 +179,7 @@ describe(
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
         request
-          .head('/v1/history/640f8c065243a8c3bb37c290')
+          .head('/v1/history/11111')
           .expect(200)
           .then(response => {
             expect(response.headers["access-control-allow-origin"]).toBe("*")
