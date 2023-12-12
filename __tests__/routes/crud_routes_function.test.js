@@ -72,7 +72,7 @@ describe(
       'It should respond 200 with a body that is a JSON object with an "@id" property.',
       function (done) {
         request
-          .get('/v1/id/622f7f0a0249b8ac889b2e2c')
+          .get('/v1/id/11111')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
           .then(response => {
@@ -99,7 +99,7 @@ describe(
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
         request
-          .head('/v1/id/622f7f0a0249b8ac889b2e2c')
+          .head('/v1/id/11111')
           .expect(200)
           .then(response => {
             expect(response.headers["content-length"]).toBeTruthy()
@@ -114,7 +114,7 @@ describe(
       'It should strip the property "_id" from the response.',
       function (done) {
         request
-          .get('/v1/since/622f7f0a0249b8ac889b2e2c')
+          .get('/v1/since/11111')
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
           .then(response => {
@@ -138,7 +138,7 @@ describe(
       'It should respond 200 and the Content-Length response header should be set.',
       function (done) {
         request
-          .head('/v1/since/622f7f0a0249b8ac889b2e2c')
+          .head('/v1/since/11111')
           .expect(200)
           .then(response => {
             expect(response.headers["access-control-allow-origin"]).toBe("*")
@@ -289,7 +289,7 @@ describe(
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
         .put('/v1/api/update')
-        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "RERUM Update Test":unique})
+        .send({"@id":process.env.RERUM_ID_PREFIX+"11111", "RERUM Update Test":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
@@ -303,9 +303,9 @@ describe(
             expect(response.headers["allow"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(response.headers["location"]).toBeTruthy()
-            expect(response.headers["location"]).not.toBe(process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c")
+            expect(response.headers["location"]).not.toBe(process.env.RERUM_ID_PREFIX + "11111")
             expect(response.body["@id"]).toBeTruthy()
-            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c")
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "11111")
             expect(response.body._id).toBeUndefined()
             done()
           })
@@ -355,7 +355,7 @@ describe(
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
         .patch('/v1/api/patch')
-        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":unique})
+        .send({"@id":process.env.RERUM_ID_PREFIX+"11111", "test_obj":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
@@ -369,7 +369,7 @@ describe(
             expect(response.headers["allow"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
-            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c")
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "11111")
             expect(response.body["test_obj"]).toBe(unique)
             expect(response.body._id).toBeUndefined()
             done()
@@ -385,7 +385,7 @@ describe(
       const unique = new Date(Date.now()).toISOString().replace("Z", "")
       request
         .patch('/v1/api/set')
-        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_set":unique})
+        .send({"@id":process.env.RERUM_ID_PREFIX+"11111", "test_set":unique})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
@@ -399,7 +399,7 @@ describe(
             expect(response.headers["allow"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
-            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c")
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "11111")
             expect(response.body["test_set"]).toBe(unique)
             expect(response.body._id).toBeUndefined()
             done()
@@ -414,7 +414,7 @@ describe(
     function(done) {
       request
         .patch('/v1/api/unset')
-        .send({"@id":process.env.RERUM_ID_PREFIX+"622f7f0a0249b8ac889b2e2c", "test_obj":null})
+        .send({"@id":process.env.RERUM_ID_PREFIX+"11111", "test_obj":null})
         .set('Content-Type', 'application/json; charset=utf-8')
         .set('Authorization', "Bearer "+process.env.BOT_TOKEN)
         .expect(200)
@@ -428,7 +428,7 @@ describe(
             expect(response.headers["allow"]).toBeTruthy()
             expect(response.headers["link"]).toBeTruthy()
             expect(response.body["@id"]).toBeTruthy()
-            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "622f7f0a0249b8ac889b2e2c")
+            expect(response.body["@id"]).not.toBe(process.env.RERUM_ID_PREFIX + "11111")
             expect(response.body.hasOwnProperty("test_obj")).toBe(false)
             expect(response.body._id).toBeUndefined()
             done()
@@ -471,7 +471,7 @@ describe(
       function (done) {
         request
           .post('/v1/api/query')
-          .send({ "_id": "622f7f0a0249b8ac889b2e2c" })
+          .send({ "_id": "11111" })
           .set('Content-Type', 'application/json; charset=utf-8')
           .expect(200)
           .then(response => {
@@ -499,7 +499,7 @@ describe(
     // function(done) {
     //   request
     //     .head('/v1/api/query')
-    //     .send({"_id" : "622f7f0a0249b8ac889b2e2c"})
+    //     .send({"_id" : "11111"})
     //     .set('Content-Type', 'application/json; charset=utf-8')
     //     .expect(200)
     //     .then(response => {
