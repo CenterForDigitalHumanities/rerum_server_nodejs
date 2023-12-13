@@ -24,6 +24,7 @@ app.set('port', port)
 /**
  * Create HTTP server.
  */
+process.env.MONGODBNAME="annotationStoreTesting"
 
 var server = http.createServer(app)
 
@@ -98,7 +99,6 @@ function onError(error) {
 async function onListening() {
   console.log("LISTENING ON "+port)
   //Ideally, create and then blow this away.
-  process.env.MONGODBNAME="annotationStoreTesting"
   jest.runCLI(
     {
       "colors" : "true"
