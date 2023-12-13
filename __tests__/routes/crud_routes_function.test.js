@@ -260,7 +260,7 @@ describe(
       'The Location header in the response should be present and have the SLUG id.',
       function (done) {
         const unique = new Date(Date.now()).toISOString().replace("Z", "")
-        const slug = "1123rcgslu1123"
+        const slug = "1123rcgslu1123" + unique
         //It is slightly possible this thing already exists, there could have been an error.
         //Let's be super cautious and remove it first, then move on.  That way we don't have to manually fix it.
         controller.remove(slug).then(r => {
