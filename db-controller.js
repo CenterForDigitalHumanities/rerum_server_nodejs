@@ -879,7 +879,7 @@ exports.id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     try {
-        let match = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        let match = await db.findOne({"$or": [{"_id": id}, {"__rerum.slug": id}]})
         if (match) {
             res.set(utils.configureWebAnnoHeadersFor(match))
             //Support built in browser caching

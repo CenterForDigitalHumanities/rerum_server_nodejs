@@ -10,6 +10,10 @@ exports.connected = async function () {
     return true
 }
 exports.db = client.db(process.env.MONGODBNAME)?.collection(process.env.MONGODBCOLLECTION)
+const connect = async () => {
+        await client.connect()
+}
+connect().catch(console.dir)
 
 /**
  * Find a single record based on a query object.
