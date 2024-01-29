@@ -56,7 +56,7 @@ const checkJwt = [READONLY, auth(), _tokenError, _extractUser]
  * @param {ExpressResponse} res to return the new token.
  */
 const generateNewAccessToken = async (req, res, next) => {
-    console.log("Generating a proxy access token.")
+    console.log("RERUM v1 is generating a proxy access token.")
     const form = {
         grant_type: 'refresh_token',
         client_id: process.env.CLIENT_ID,
@@ -64,7 +64,6 @@ const generateNewAccessToken = async (req, res, next) => {
         refresh_token: req.body.refresh_token,
         redirect_uri:process.env.RERUM_PREFIX
     }
-    console.log(form)
     try{
         const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
@@ -73,12 +72,24 @@ const generateNewAccessToken = async (req, res, next) => {
                 "Content-Type": "application/json"
             },
             body:JSON.stringify(form)
-        }).json()
-        console.log(tokenObj)
-        res.send(tokenObj)    
+        })
+        .then(resp => resp.json())
+        .catch(err => {
+            console.error(err)
+            res.status(500).send(err)
+            return {}
+        })
+        if(tokenObj.error){
+            console.error(tokenObj)
+            res.status(500).send(tokenObj.error_description)
+        }
+        else{
+            console.log("Auth0 responded with new token information")
+            res.status(200).send(tokenObj) 
+        }
     }
     catch (e) {
-        console.log(e.response ? e.response.body : e.message ? e.message : e)
+        console.error(e.response ? e.response.body : e.message ? e.message : e)
         res.status(500).send(e)
      }
 }
@@ -89,7 +100,7 @@ const generateNewAccessToken = async (req, res, next) => {
  * @param {ExpressResponse} res to return the new token.
  */
 const generateNewRefreshToken = async (req, res, next) => {
-    console.log("Generating a new refresh token.")
+    console.log("RERUM v1 is generating a new refresh token.")
     const form = {
         grant_type: 'authorization_code',
         client_id: process.env.CLIENT_ID,
@@ -105,12 +116,24 @@ const generateNewRefreshToken = async (req, res, next) => {
                 "Content-Type": "application/json"
             },
             body:JSON.stringify(form)
-        }).json()
-        console.log(tokenObj)
-        res.send(tokenObj)
+        })
+        .then(resp => resp.json())
+        .catch(err => {
+            console.error(err)
+            res.status(500).send(err)
+            return {}
+        })
+        if(tokenObj.error){
+            console.error(tokenObj)
+            res.status(500).send(tokenObj.error_description)
+        }
+        else{
+            console.log("Auth0 responded with new token information")
+            res.status(200).send(tokenObj)    
+        }
      } 
      catch (e) {
-        console.log(e.response ? e.response.body : e.message ? e.message : e)
+        console.error(e.response ? e.response.body : e.message ? e.message : e)
         res.status(500).send(e)
      }
 }
