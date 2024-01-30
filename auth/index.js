@@ -56,7 +56,7 @@ const checkJwt = [READONLY, auth(), _tokenError, _extractUser]
  * @param {ExpressResponse} res to return the new token.
  */
 const generateNewAccessToken = async (req, res, next) => {
-    console.log("Generating a proxy access token.")
+    console.log("RERUM v1 is generating a proxy access token.")
     const form = {
         grant_type: 'refresh_token',
         client_id: process.env.CLIENT_ID,
@@ -64,8 +64,9 @@ const generateNewAccessToken = async (req, res, next) => {
         refresh_token: req.body.refresh_token,
         redirect_uri:process.env.RERUM_PREFIX
     }
-    console.log(form)
     try{
+        // Successful responses from auth 0 look like {"refresh_token":"BLAHBLAH", "access_token":"BLAHBLAH"}
+        // Error responses come back as successful, but they look like {"error":"blahblah", "error_description": "this is why"}
         const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
             method: 'POST',
@@ -73,12 +74,24 @@ const generateNewAccessToken = async (req, res, next) => {
                 "Content-Type": "application/json"
             },
             body:JSON.stringify(form)
-        }).json()
-        console.log(tokenObj)
-        res.send(tokenObj)    
+        })
+        .then(resp => resp.json())
+        .catch(err => {
+            // Mock Auth0 error object
+            console.error(err)
+            return {"error": true, "error_description":err}
+        })
+        // Here we need to check if this is an Auth0 success object or an Auth0 error object
+        if(tokenObj.error){
+            console.error(tokenObj.error_description)
+            res.status(500).send(tokenObj.error_description)
+        }
+        else{
+            res.status(200).send(tokenObj) 
+        }
     }
     catch (e) {
-        console.log(e.response ? e.response.body : e.message ? e.message : e)
+        console.error(e.response ? e.response.body : e.message ? e.message : e)
         res.status(500).send(e)
      }
 }
@@ -89,7 +102,7 @@ const generateNewAccessToken = async (req, res, next) => {
  * @param {ExpressResponse} res to return the new token.
  */
 const generateNewRefreshToken = async (req, res, next) => {
-    console.log("Generating a new refresh token.")
+    console.log("RERUM v1 is generating a new refresh token.")
     const form = {
         grant_type: 'authorization_code',
         client_id: process.env.CLIENT_ID,
@@ -98,19 +111,33 @@ const generateNewRefreshToken = async (req, res, next) => {
         redirect_uri:process.env.RERUM_PREFIX
     }
     try {
-      const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
+        // Successful responses from auth 0 look like {"refresh_token":"BLAHBLAH", "access_token":"BLAHBLAH"}
+        // Error responses come back as successful, but they look like {"error":"blahblah", "error_description": "this is why"}
+        const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json"
             },
             body:JSON.stringify(form)
-        }).json()
-        console.log(tokenObj)
-        res.send(tokenObj)
+        })
+        .then(resp => resp.json())
+        .catch(err => {
+            // Mock Auth0 error object
+            console.error(err)
+            return {"error": true, "error_description":err}
+        })
+        // Here we need to check if this is an Auth0 success object or an Auth0 error object
+        if(tokenObj.error){
+            console.error(tokenObj.error_description)
+            res.status(500).send(tokenObj.error_description)
+        }
+        else{
+            res.status(200).send(tokenObj) 
+        }
      } 
      catch (e) {
-        console.log(e.response ? e.response.body : e.message ? e.message : e)
+        console.error(e.response ? e.response.body : e.message ? e.message : e)
         res.status(500).send(e)
      }
 }
