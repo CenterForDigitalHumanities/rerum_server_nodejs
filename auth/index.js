@@ -65,6 +65,8 @@ const generateNewAccessToken = async (req, res, next) => {
         redirect_uri:process.env.RERUM_PREFIX
     }
     try{
+        // Successful responses from auth 0 look like {"refresh_token":"BLAHBLAH", "access_token":"BLAHBLAH"}
+        // Error responses come back as successful, but they look like {"error":"blahblah", "error_description": "this is why"}
         const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
             method: 'POST',
@@ -75,16 +77,16 @@ const generateNewAccessToken = async (req, res, next) => {
         })
         .then(resp => resp.json())
         .catch(err => {
+            // Mock Auth0 error object
             console.error(err)
-            res.status(500).send(err)
-            return {}
+            return {"error": true, "error_description":err}
         })
+        // Here we need to check if this is an Auth0 success object or an Auth0 error object
         if(tokenObj.error){
             console.error(tokenObj)
             res.status(500).send(tokenObj.error_description)
         }
         else{
-            console.log("Auth0 responded with new token information.  RERUM is forwarding the response to the application.")
             res.status(200).send(tokenObj) 
         }
     }
@@ -119,17 +121,17 @@ const generateNewRefreshToken = async (req, res, next) => {
         })
         .then(resp => resp.json())
         .catch(err => {
+            // Mock Auth0 error object
             console.error(err)
-            res.status(500).send(err)
-            return {}
+            return {"error": true, "error_description":err}
         })
+        // Here we need to check if this is an Auth0 success object or an Auth0 error object
         if(tokenObj.error){
-            console.error(tokenObj)
+            console.error(tokenObj.error_description)
             res.status(500).send(tokenObj.error_description)
         }
         else{
-            console.log("Auth0 responded with new token information.  RERUM is forwarding the response to the application.")
-            res.status(200).send(tokenObj)    
+            res.status(200).send(tokenObj) 
         }
      } 
      catch (e) {
