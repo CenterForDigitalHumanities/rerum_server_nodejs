@@ -84,7 +84,7 @@ const generateNewAccessToken = async (req, res, next) => {
             res.status(500).send(tokenObj.error_description)
         }
         else{
-            console.log("Auth0 responded with new token information")
+            console.log("Auth0 responded with new token information.  RERUM is forwarding the response to the application.")
             res.status(200).send(tokenObj) 
         }
     }
