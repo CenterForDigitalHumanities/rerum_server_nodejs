@@ -111,7 +111,9 @@ const generateNewRefreshToken = async (req, res, next) => {
         redirect_uri:process.env.RERUM_PREFIX
     }
     try {
-      const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
+        // Successful responses from auth 0 look like {"refresh_token":"BLAHBLAH", "access_token":"BLAHBLAH"}
+        // Error responses come back as successful, but they look like {"error":"blahblah", "error_description": "this is why"}
+        const tokenObj = await fetch('https://cubap.auth0.com/oauth/token',
         {
             method: 'POST',
             headers: {
