@@ -83,7 +83,7 @@ const generateNewAccessToken = async (req, res, next) => {
         })
         // Here we need to check if this is an Auth0 success object or an Auth0 error object
         if(tokenObj.error){
-            console.error(tokenObj)
+            console.error(tokenObj.error_description)
             res.status(500).send(tokenObj.error_description)
         }
         else{
