@@ -6,7 +6,7 @@
       "dcterms":"http://purl.org/dc/terms/",
       "prov":"https://www.w3.org/TR/prov/#",
       "foaf":"http://xmlns.com/foaf/spec/#term_",
-      "rerum_v1":"https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/blob/main/public/API.html#",
+      "rerum_v1":"https://store.rerum.io/v1/API.html#",
       "id":"@id",
       "type":"@type",
       "__rerum": "rerum_v1:__rerum",
