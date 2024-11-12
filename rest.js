@@ -19,7 +19,7 @@
  *
  *  The error handler sits a level up, so do not res.send() or res.render here.  Just give back a boolean
  */
-exports.checkPatchOverrideSupport = function (req, res) {
+const checkPatchOverrideSupport = function (req, res) {
     const override = req.header("X-HTTP-Method-Override")
     return undefined !== override && override === "PATCH"
 }
@@ -31,7 +31,7 @@ exports.checkPatchOverrideSupport = function (req, res) {
  * 
  * Note that the res upstream from this has been converted into err.  res will not have what you are looking for, check err instead. 
  */
-exports.messenger = function (err, req, res, next) {
+const messenger = function (err, req, res, next) {
     if (res.headersSent) {
         next(err)
         return
@@ -106,3 +106,5 @@ It may not have completed at all, and most likely did not complete successfully.
     //    res.status(statusCode).send(err.statusMessage)
     next(err)
 }
+
+export default { checkPatchOverrideSupport, messenger }

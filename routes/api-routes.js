@@ -9,62 +9,53 @@
  * 
  * @author thehabes 
  */
-
-const router = require('express').Router()
-
-const staticRouter = require('./static.js')
-router.use(staticRouter)
-
+import express from 'express'
+const router = express.Router()
+import staticRouter from './static.js';
 // Support GET requests like v1/id/{object id}  
-const idRouter = require('./id.js')
-router.use('/id',idRouter)
-
+import idRouter from './id.js';
 // Support older style API calls through rewrite.
-const compatabilityRouter = require('./compatability.js')
-router.use('/api', compatabilityRouter)
-
+import compatabilityRouter from './compatability.js';
 // Support POST requests with JSON bodies used for passing queries though to the database.
-const queryRouter = require('./query.js')
-router.use('/api/query', queryRouter)
-
+import queryRouter from './query.js';
 // Support POST requests with JSON bodies used for establishing new objects.
-const createRouter = require('./create.js')
-router.use('/api/create', createRouter)
-
+import createRouter from './create.js';
 // Support POST requests with JSON Array bodies used for establishing new objects.
-const bulkCreateRouter = require('./bulkCreate.js')
-router.use('/api/bulkCreate', bulkCreateRouter)
-
+import bulkCreateRouter from './bulkCreate.js';
 // Support DELETE requests like v1/delete/{object id} to mark an object as __deleted.
-const deleteRouter = require('./delete.js')
-router.use('/api/delete', deleteRouter)
-
+import deleteRouter from './delete.js';
 // Support POST requests with JSON bodies used for replacing some existing object.
-const overwriteRouter = require('./overwrite.js')
-router.use('/api/overwrite', overwriteRouter)
-
+import overwriteRouter from './overwrite.js';
 // Support PUT requests with JSON bodies used for versioning an existing object through replacement.
-const updateRouter = require('./putUpdate.js')
-router.use('/api/update', updateRouter)
-
+import updateRouter from './putUpdate.js';
 // Support PATCH requests with JSON bodies used for versioning an existing object through key/value setting.
-const patchRouter = require('./patchUpdate.js')
-router.use('/api/patch', patchRouter)
-
+import patchRouter from './patchUpdate.js';
 // Support PATCH requests with JSON bodies used for creating new keys in some existing object.
-const setRouter = require('./patchSet.js')
-router.use('/api/set', setRouter)
-
+import setRouter from './patchSet.js';
 // Support PATCH requests with JSON bodies used for removing keys in some existing object.
-const unsetRouter = require('./patchUnset.js')
-router.use('/api/unset', unsetRouter)
-
+import unsetRouter from './patchUnset.js';
 // Support PATCH requests (that may contain a Slug header or ?slug parameter) to mark as object as released.
-const releaseRouter = require('./release.js')
-router.use('/api/release', releaseRouter)
+import releaseRouter from './release.js';
+// Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
+import sinceRouter from './since.js';
+// Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
+import historyRouter from './history.js';
 
+router.use(staticRouter)
+router.use('/id',idRouter)
+router.use('/api', compatabilityRouter)
+router.use('/api/query', queryRouter)
+router.use('/api/create', createRouter)
+router.use('/api/bulkCreate', bulkCreateRouter)
+router.use('/api/delete', deleteRouter)
+router.use('/api/overwrite', overwriteRouter)
+router.use('/api/update', updateRouter)
+router.use('/api/patch', patchRouter)
+router.use('/api/set', setRouter)
+router.use('/api/unset', unsetRouter)
+router.use('/api/release', releaseRouter)
 // Set default API response
-router.get('/api', function (req, res) {
+router.get('/api', (req, res) => {
     res.json({
         message: 'Welcome to v1 in nodeJS!  Below are the available endpoints, used like /v1/api/{endpoint}',
         endpoints: {
@@ -80,22 +71,15 @@ router.get('/api', function (req, res) {
         }
     })
 })
-
-// Support GET requests like v1/since/{object id} to discover all versions from all sources updating this version.
-const sinceRouter = require('./since.js')
 router.use('/since', sinceRouter)
-
-// Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
-const historyRouter = require('./history.js')
 router.use('/history', historyRouter)
-
 /**
  * Use this to catch 404s because of invalid /api/ paths and pass them to the error handler in app.js
  * 
  * Note while we have 501s, they will fall here.  Don't let them trick you.
  * Detect them and send them out, don't hand up to the 404 catcher in app.js
  */
-router.use(function (req, res, next) {
+router.use((req, res, next) => {
     if (res.statusCode === 501) {
         //We can remove this once we implement the functions, for now we have to catch it here.
         let msg = res.statusMessage ?? "This is not yet implemented"
@@ -106,6 +90,5 @@ router.use(function (req, res, next) {
         next()
     }
 })
-
 // Export API routes
-module.exports = router
+export default router

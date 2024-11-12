@@ -1,9 +1,8 @@
 // const jwt = require('express-jwt')
 // Currently unsed, but we should consider setting scopes moving forward and this will be handy then.
 // const jwtAuthz = require('express-jwt-authz')
-const { auth } = require('express-oauth2-jwt-bearer')
-
-const dotenv = require('dotenv')
+import { auth } from 'express-oauth2-jwt-bearer'
+import dotenv from 'dotenv'
 dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
@@ -186,7 +185,7 @@ function READONLY(req, res, next) {
      return
 }
 
-module.exports = {
+export default {
     checkJwt,
     generateNewAccessToken,
     generateNewRefreshToken,

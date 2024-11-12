@@ -1,7 +1,7 @@
 /**
  * @author bhaberbe
- */ 
-const nock = require('nock')
+ */
+import nock from 'nock'
 
 //Set up the handler for a mock /v1/id/{_id} request that is successful
 nock("http://localhost:3333")
@@ -10,10 +10,10 @@ nock("http://localhost:3333")
   {
     "_id":"abcde",
     "__rerum":{},
-    "@id":process.env.RERUM_ID_PREFIX+"abcde"
+    "@id":`${process.env.RERUM_ID_PREFIX}abcde`
   },
   {
-    "Location" : process.env.RERUM_ID_PREFIX+"abcde"
+    "Location" : `${process.env.RERUM_ID_PREFIX}abcde`
   }
 )
 

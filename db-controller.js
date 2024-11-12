@@ -9,13 +9,12 @@
  * 
  * @author thehabes 
  */
-
-const ObjectID = require('./database').newID
-const utils = require('./utils')
-const db = require('./database').db
+import { newID, db } from './database/index.js'
+import utils from './utils.js'
+const ObjectID = newID
 
 // Handle index actions
-exports.index = function (req, res, next) {
+const index = function (req, res, next) {
     res.json({
         status: "connected",
         message: "Not sure what to do"
@@ -30,7 +29,7 @@ exports.index = function (req, res, next) {
  * @param slug_id A proposed _id.  
  * 
  */  
-exports.generateSlugId = async function(slug_id="", next){
+const generateSlugId = async function(slug_id="", next){
     let slug_return = {"slug_id":"", "code":0}
     let slug
     if(slug_id){
@@ -51,16 +50,17 @@ exports.generateSlugId = async function(slug_id="", next){
     return slug_return
 }
 
+
 /**
  * Create a new Linked Open Data object in RERUM v1.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
  * Respond RESTfully
  * */
-exports.create = async function (req, res, next) {
+const create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let slug = ""
     if(req.get("Slug")){
-        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
+        let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
             next(createExpressError(slug_json))
             return
@@ -109,7 +109,7 @@ exports.create = async function (req, res, next) {
  * If there is an id parameter, we ignore body, and continue with that id
  * 
  * */
-exports.delete = async function (req, res, next) {
+const deleteObj = async function(req, res, next) {
     let id
     let err = { message: `` }
     try {
@@ -190,7 +190,6 @@ exports.delete = async function (req, res, next) {
     next(createExpressError(err))
 }
 
-
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
  * Order the properties to preference @context and @id.  Put __rerum and _id last. 
@@ -200,7 +199,7 @@ exports.delete = async function (req, res, next) {
  * Track History
  * Respond RESTfully
  * */
-exports.putUpdate = async function (req, res, next) {
+const putUpdate = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -322,7 +321,7 @@ async function _import(req, res, next) {
  * Track History
  * Respond RESTfully
  * */
-exports.patchUpdate = async function (req, res, next) {
+const patchUpdate = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -433,7 +432,7 @@ exports.patchUpdate = async function (req, res, next) {
  * Track History
  * Respond RESTfully
  * */
-exports.patchSet = async function (req, res, next) {
+const patchSet = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -535,7 +534,7 @@ exports.patchSet = async function (req, res, next) {
  * Track History
  * Respond RESTfully
  * */
-exports.patchUnset = async function (req, res, next) {
+const patchUnset = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -643,7 +642,7 @@ exports.patchUnset = async function (req, res, next) {
  * DO NOT Track History
  * Respond RESTfully
  * */
-exports.overwrite = async function (req, res, next) {
+const overwrite = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -730,13 +729,14 @@ exports.overwrite = async function (req, res, next) {
  * The user may request the release resource take on a new Slug id.  They can do this
  * with the HTTP Request header 'Slug' or via a url parameter like ?slug=
  */
-exports.release = async function (req, res, next) {
+const release = async function (req, res, next) {
     let agentRequestingRelease = getAgentClaim(req, next)
     let id = req.params["_id"]
     let slug = ""
     let err = {"message":""}
+    let treeHealed = false
     if(req.get("Slug")){
-        let slug_json = await exports.generateSlugId(req.get("Slug"), next)
+        let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
             next(createExpressError(slug_json))
             return
@@ -842,7 +842,7 @@ exports.release = async function (req, res, next) {
  * This will support wildcards and mongo params like {"key":{$exists:true}}
  * The return is always an array, even if 0 or 1 objects in the return.
  * */
-exports.query = async function (req, res, next) {
+const query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
     const limit = parseInt(req.query.limit ?? 100)
@@ -875,7 +875,7 @@ exports.query = async function (req, res, next) {
  * Note this specifically checks for _id, the @id pattern is irrelevant.  
  * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * */
-exports.id = async function (req, res, next) {
+const id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     try {
@@ -899,7 +899,7 @@ exports.id = async function (req, res, next) {
     }
 }
 
-exports.bulkCreate = async function (req, res, next) {
+const bulkCreate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
     // TODO: validate documents gatekeeper function?
@@ -969,7 +969,7 @@ exports.bulkCreate = async function (req, res, next) {
  * No object is returned, but the Content-Length header is set. 
  * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * */
-exports.idHeadRequest = async function (req, res, next) {
+const idHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     try {
@@ -992,7 +992,7 @@ exports.idHeadRequest = async function (req, res, next) {
  * Allow for HEAD requests via the RERUM getByProperties pattern /v1/api/query
  * No objects are returned, but the Content-Length header is set. 
  */
-exports.queryHeadRequest = async function (req, res, next) {
+const queryHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
     try {
@@ -1017,7 +1017,7 @@ exports.queryHeadRequest = async function (req, res, next) {
  * @throws java.lang.Exception
  * @respond JSONArray to the response out for parsing by the client application.
  */
-exports.since = async function (req, res, next) {
+const since = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj
@@ -1058,7 +1058,7 @@ exports.since = async function (req, res, next) {
  * @respond JSONArray to the response out for parsing by the client application.
  * @throws Exception 
  */
-exports.history = async function (req, res, next) {
+const history = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj
@@ -1095,7 +1095,7 @@ exports.history = async function (req, res, next) {
  * Allow for HEAD requests via the RERUM since pattern /v1/since/:_id
  * No objects are returned, but the Content-Length header is set. 
  * */
-exports.sinceHeadRequest = async function (req, res, next) {
+const sinceHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj
@@ -1133,7 +1133,7 @@ exports.sinceHeadRequest = async function (req, res, next) {
  * Allow for HEAD requests via the RERUM since pattern /v1/history/:_id
  * No objects are returned, but the Content-Length header is set. 
  * */
-exports.historyHeadRequest = async function (req, res, next) {
+const historyHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     let obj
@@ -1528,7 +1528,7 @@ function createExpressError(update, originalError = {}) {
  * This is not exposed over the http request and response.
  * Use it internally where necessary.  Ex. end to end Slug test
  */
-exports.remove = async function (id) {
+const remove = async function(id) {
     try {
         const result = await db.deleteOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (!result.deletedCount === 1) {
@@ -1551,7 +1551,7 @@ exports.remove = async function (id) {
 function getAgentClaim(req, next) {
     const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
     let agent = ""
-    for (claimKey of claimKeys) {
+    for (const claimKey of claimKeys) {
         agent = req.user[claimKey]
         if (agent) {
             return agent
@@ -1743,4 +1743,27 @@ function parseDocumentID(atID){
         throw new Error(`Designed for parsing URL strings. Please check: ${atID}`)
     }
     return atID.split('/').pop()
+}
+
+export default {
+ index,
+ create,
+ deleteObj,
+ putUpdate,
+ patchUpdate,
+ patchSet,
+ patchUnset,
+ generateSlugId,
+ overwrite,
+ release,
+ query,
+ id,
+ bulkCreate,
+ idHeadRequest,
+ queryHeadRequest,
+ since,
+ history,
+ sinceHeadRequest,
+ historyHeadRequest,
+ remove
 }
