@@ -4,10 +4,12 @@
  * Module dependencies.
  */
 
-var app = require('../app')
-var debug = require('debug')('rerum_server_nodejs:server')
-var http = require('http')
-require('dotenv').config()
+import app from '../app.js'
+import debug from 'debug'
+debug('rerum_server_nodejs:server')
+import http from "http"
+import dotenv from "dotenv"
+dotenv.config()
 
 /**
  * Get port from environment and store in Express.
@@ -21,7 +23,6 @@ app.set('port', port)
  */
 
 var server = http.createServer(app)
-const io = require('socket.io')(server)
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -99,12 +100,3 @@ function onListening() {
     : 'port ' + addr.port
   debug('Listening on ' + bind)
 }
-
-/**
- * Socket magic for npm stop
- * */
-io.on('connection', (socketServer) => {
-  socketServer.on('npmStop', () => {
-    process.exit(0)
-  })
-})

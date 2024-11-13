@@ -56,6 +56,7 @@ The following is a git shell example for installing the RERUM API web applicatio
 ```shell
 cd /code_folder
 git clone https://github.com/CenterForDigitalHumanities/rerum_server_nodejs.git rerum_api
+cd rerum_api
 npm install
 ```
 
@@ -78,7 +79,7 @@ READONLY = false
 ```
 
 #### Set Up Auth0 Authorization
-Please contact the [Research Computing Group at Saint Louis University](https://github.com/CenterForDigitalHumanities) via an E-mail to research.computing@slu.edu for more information and assistance with step of the installation process.
+Please contact the [Research Computing Group at Saint Louis University](https://github.com/CenterForDigitalHumanities) via an E-mail to research.computing@slu.edu for more information and assistance with this step of the installation process.
 
 The public RERUM uses Auth0 to authorize API calls for registered RERUM applications and to attribute data for those applications.  This elicits the functionality that if an application has not registered with RERUM it will not be able to perform write (create - update - delete) actions with the RERUM API.  It also allows queries into RERUM to query for data specific to individual applications when desired or required.  The following properties need to be added to the `.env` file for this process.
 

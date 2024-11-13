@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-const router = require('express').Router()
-const rewrite = require('express-urlrewrite')
-const auth = require('../auth')
+import express from 'express'
+const router = express.Router()
+import rewrite from 'express-urlrewrite'
+import auth from '../auth/index.js'
 // This controller reroutes older style API calls.
 
 router.use(rewrite("/:attemptedAction.action*", "/:attemptedAction$2"))
@@ -11,4 +12,4 @@ router.post('/accessToken',auth.generateNewAccessToken)
 router.post('/refreshToken',auth.generateNewRefreshToken)
 
 
-module.exports = router
+export default router

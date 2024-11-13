@@ -7,18 +7,17 @@
 /**
  * Module dependencies.
  */
-const jest = require('jest')
-const runCLI = require('jest-cli')
-//const defaults = require('../jest.config.js')
-var app = require('../app')
-var http = require('http')
+import jest from 'jest';
+import runCLI from 'jest-cli';
+import app from '../app.js';
+import http from 'http';
 
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort('3333')
+const port = normalizePort('3333');
 app.set('port', port)
 
 /**
@@ -26,7 +25,7 @@ app.set('port', port)
  */
 process.env.MONGODBNAME="annotationStoreTesting"
 
-var server = http.createServer(app)
+const server = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -38,7 +37,7 @@ server.on('listening', onListening)
 
 /**
  * Control the keep alive header
- */ 
+ */
 // Ensure all inactive connections are terminated by the ALB, by setting this a few seconds higher than the ALB idle timeout
 server.keepAliveTimeout = 8 * 1000 //8 seconds
 // Ensure the headersTimeout is set higher than the keepAliveTimeout due to this nodejs regression bug: https://github.com/nodejs/node/issues/27363
@@ -73,18 +72,18 @@ function onError(error) {
     throw error
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port
+  const bind = typeof port === 'string'
+    ? `Pipe ${port}`
+    : `Port ${port}`;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges')
+      console.error(`${bind} requires elevated privileges`)
       process.exit(1)
       break
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use')
+      console.error(`${bind} is already in use`)
       process.exit(1)
       break
     default:
@@ -97,7 +96,7 @@ function onError(error) {
  */
 
 async function onListening() {
-  console.log("LISTENING ON "+port)
+  console.log(`LISTENING ON ${port}`)
   //Ideally, create and then blow this away.
   jest.runCLI(
     {

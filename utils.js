@@ -25,7 +25,7 @@ isReleased        —always ""
  * @param update A trigger for special handling from update actions
  * @return configuredObject The same object that was recieved but with the proper __rerum options.  This object is intended to be saved as a new object (@see versioning)
  */
-exports.configureRerumOptions = function(generator, received, update, extUpdate){
+const configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = JSON.parse(JSON.stringify(received))
     let received_options = received.__rerum ? JSON.parse(JSON.stringify(received.__rerum)) : {}
     let history = {}
@@ -100,14 +100,14 @@ exports.configureRerumOptions = function(generator, received, update, extUpdate)
 /**
  * Check this object for deleted status.  deleted objects in RERUM look like {"@id":"{some-id}", __deleted:{object properties}}
  */ 
-exports.isDeleted = function(obj){
+const isDeleted = function(obj){
     return obj.hasOwnProperty("__deleted")
 }
 
 /**
  * Check this object for released status.  Released objects in RERUM look like {"@id":"{some-id}", __rerum:{"isReleased" : "ISO-DATE-TIME"}}
  */ 
-exports.isReleased = function(obj){
+const isReleased = function(obj){
     let bool = 
     (obj.hasOwnProperty("__rerum") && 
         obj.__rerum.hasOwnProperty("isReleased") && 
@@ -118,7 +118,7 @@ exports.isReleased = function(obj){
 /**
  * Check to see if the agent from the request (req.user had decoded token) matches the generating agent of the object in mongodb.
  */ 
-exports.isGenerator = function(origObj, changeAgent){
+const isGenerator = function(origObj, changeAgent){
     //If the object in mongo does not have a generator, something wrong.  however, there is no permission to check, no generator is the same as any generator.
     const generatingAgent = origObj.__rerum.generatedBy ?? changeAgent 
     //bots get a free pass through
@@ -129,12 +129,12 @@ exports.isGenerator = function(origObj, changeAgent){
  * Mint the HTTP response headers required by REST best practices and/or Web Annotation standards.
  * return a JSON object.  keys are header names, values are header values.
  */
-exports.configureWebAnnoHeadersFor = function(obj){
+const configureWebAnnoHeadersFor = function(obj){
     let headers = {}
-    if(exports.isLD(obj)){
+    if(isLD(obj)){
         headers["Content-Type"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
-    if(exports.isContainerType(obj)){
+    if(isContainerType(obj)){
         headers["Link"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
     else{
@@ -150,13 +150,13 @@ exports.configureWebAnnoHeadersFor = function(obj){
  * They respond with Arrays (which have no @context), but they still need the JSON-LD support headers.
  * return a JSON object.  keys are header names, values are header values.
  */
-exports.configureLDHeadersFor = function(obj){
+const configureLDHeadersFor = function(obj){
     //Note that the optimal situation would be to be able to detect the LD-ness of this object
     //What we have are the arrays returned from the aformentioned getters (/query, /since, /history)
     //We know we want them to be LD and that they likely contain LD things, but the arrays don't have an @context
     let headers = {}
     /**
-    if(exports.isLD(obj)){
+    if(isLD(obj)){
         headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
     } 
     else {
@@ -176,7 +176,7 @@ exports.configureLDHeadersFor = function(obj){
  * If so, it requires a different header than a stand-alone resource object.
  * return boolean
  */ 
-exports.isContainerType = function(obj){
+const isContainerType = function(obj){
     let answer = false
     let typestring = obj["@type"] ?? obj.type ?? ""
     const knownContainerTypes = [
@@ -207,7 +207,7 @@ exports.isContainerType = function(obj){
  * If so, it will have an @context -(TODO) that resolves!
  * return boolean
  */ 
-exports.isLD = function(obj){
+const isLD = function(obj){
     //Note this is always false if obj is an array, like /since, /history or /query provide as a return.
     return Array.isArray(obj) ? false : obj["@context"] ? true : false
 }
@@ -218,7 +218,7 @@ exports.isLD = function(obj){
  * The data knows it like 2022-03-14T17:44:42.721
  * return a JSON object.  keys are header names, values are header values.
  */ 
-exports.configureLastModifiedHeader = function(obj){
+const configureLastModifiedHeader = function(obj){
     let date = ""
     if(obj.__rerum){
         if(!obj.__rerum.isOverwritten === ""){
@@ -237,4 +237,16 @@ exports.configureLastModifiedHeader = function(obj){
         date = date.split(".")[0]
     }
     return {"Last-Modified":new Date(date).toUTCString()}
+}
+
+export default {
+    configureRerumOptions,
+    isDeleted,
+    isReleased,
+    isGenerator,
+    configureWebAnnoHeadersFor,
+    configureLDHeadersFor,
+    isContainerType,
+    isLD,
+    configureLastModifiedHeader
 }

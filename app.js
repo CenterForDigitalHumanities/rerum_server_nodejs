@@ -1,23 +1,22 @@
 #!/usr/bin/env node
 
-var createError = require('http-errors')
-var express = require('express')
-var path = require('path')
-var cookieParser = require('cookie-parser')
-var dotenv = require('dotenv')
-var dotenvExpand = require('dotenv-expand')
-var storedEnv = dotenv.config()
-dotenvExpand.expand(storedEnv)
-var logger = require('morgan')
-const cors = require('cors')
+import createError from 'http-errors'
+import express from 'express'
+import path from 'path'
+import cookieParser from 'cookie-parser'
+import dotenv from 'dotenv'
+dotenv.config()
+import logger from 'morgan'
+import cors from 'cors'
+import indexRouter from './routes/index.js'
+import apiRouter from './routes/api-routes.js'
+import clientRouter from './routes/client.js'
+import rest from './rest.js'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-var indexRouter = require('./routes/index.js')
-var apiRouter = require('./routes/api-routes.js')
-const clientRouter = require('./routes/client.js')
-
-//var utils = require('utils.js')
-const rest = require('./rest.js')
-var app = express()
+const app = express()
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'))
@@ -33,7 +32,7 @@ app.set('view engine', 'ejs')
  * "exposedHeaders" : Access-Control-Expose-Headers (Expose the custom headers)
  * "origin" : "*"   : Access-Control-Allow-Origin   (Allow ALL the origins)
  * "maxAge" : "600" : Access-Control-Max-Age        (how long to cache preflight requests, 10 mins)
- */ 
+ */
 app.use(
   cors({
     "methods" : "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST",
@@ -61,7 +60,6 @@ app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
-//app.use(utils)
 
 //Publicly available scripts, CSS, and HTML pages.
 app.use(express.static(path.join(__dirname, 'public')))
@@ -71,7 +69,7 @@ app.use(express.static(path.join(__dirname, 'public')))
  * For any request that comes through to the app, check whether or not we are in maintenance mode.
  * If we are, then show the sad puppy.  Otherwise, continue on.
  * This is without middleware
- */ 
+ */
 app.all('*', (req, res, next) => {
   if(process.env.DOWN === "true"){
       res.status(503).json({"message":"RERUM v1 is down for updates or maintenance at this time.  We aplologize for the inconvenience.  Try again later."})
@@ -97,10 +95,10 @@ app.use('/client', clientRouter)
 app.use(rest.messenger)
 
 //catch 404 because of an invalid site path
-app.use(function(req, res, next) {
+app.use((req, res, next) => {
     let msg = res.statusMessage ?? "This page does not exist"
     res.status(404).send(msg)  
     res.end()
 })
 
-module.exports = app
+export default app

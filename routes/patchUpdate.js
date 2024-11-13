@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-const router = require('express').Router()
+import express from 'express'
+const router = express.Router()
 //This controller will handle all MongoDB interactions.
-const controller = require('../db-controller.js')
-const rest = require('../rest.js')
-const auth = require('../auth')
+import controller from '../db-controller.js'
+import rest from '../rest.js'
+import auth from '../auth/index.js'
 
 router.route('/')
     .patch(auth.checkJwt, controller.patchUpdate) 
@@ -23,4 +24,4 @@ router.route('/')
         next(res)
     })
 
-module.exports = router
+export default router

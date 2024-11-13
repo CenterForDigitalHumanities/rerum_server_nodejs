@@ -1,5 +1,6 @@
 {
   "name": "rerum_server_nodejs",
+  "type": "module",
   "version": "0.0.0",
   "private": true,
   "description": "Rerum API server for database access.",
@@ -22,7 +23,7 @@
     "start": "node ./bin/rerum_v1.js",
     "stop": "node ./bin/stopApp.js",
     "test": "jest",
-    "runtest": "node ./bin/testApp.js"
+    "runtest": "node --experimental-vm-modules ./bin/testApp.js"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",

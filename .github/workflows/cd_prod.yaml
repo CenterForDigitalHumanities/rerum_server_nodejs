@@ -8,30 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Create .env from secrets
-        uses: SpicyPizza/create-envfile@v2
-        with:
-          envkey_RERUM_API_VERSION: ${{ secrets.RERUM_API_VERSION }}
-          envkey_RERUM_BASE: ${{ secrets.RERUM_BASE }}
-          envkey_RERUM_PREFIX: ${{ secrets.RERUM_PREFIX }}
-          envkey_RERUM_ID_PREFIX: ${{ secrets.RERUM_ID_PREFIX }}
-          envkey_RERUM_AGENT_CLAIM: ${{ secrets.RERUM_AGENT_CLAIM }}
-          envkey_RERUM_CONTEXT: ${{ secrets.RERUM_CONTEXT }}
-          envkey_RERUM_API_DOC: ${{ secrets.RERUM_API_DOC }}
-          envkey_RERUMSECRET: ${{ secrets.RERUMSECRET }}
-          envkey_BOT_AGENT: ${{ secrets.BOT_AGENT_PROD }}
-          envkey_BOT_TOKEN: ${{ secrets.BOT_TOKEN_PROD }}
-          envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING_TESTS }}
-          envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
-          envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
-          envkey_DOWN: ${{ secrets.DOWN }}
-          envkey_READONLY: ${{ secrets.READONLY }}
-          envkey_CLIENTID: ${{ secrets.CLIENTID }}
-          envkey_AUDIENCE: ${{ secrets.AUDIENCE }}
-          envkey_ISSUER_BASE_URL: ${{ secrets.ISSUER_BASE_URL }}
+        run: echo "${{ secrets.PROD_FULL_ENV }}" > .env
       - name: Setup Node.js
         uses: actions/setup-node@master
         with:
-          node-version: "21.x"
+          node-version: "20"
 
       # Speed up subsequent runs with caching
       - name: Cache node modules
@@ -55,7 +36,7 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - 21
+          - 20
         machines:
           - vlcdhprdp02
     runs-on: ${{ matrix.machines }}
@@ -69,6 +50,8 @@ jobs:
           fi
           cd /srv/node/v1-node/
           pm2 stop rerum_v1
+          git stash
+          git checkout main
           git stash
           git pull
           npm install

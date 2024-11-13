@@ -6,17 +6,21 @@
  * 
  * @author cubap 
  */
-const express = require('express')
+import express from 'express'
 const router = express.Router()
-const path = require('path')
+import path from 'path'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // public also available at `/v1`
+router.use(express.urlencoded({ extended: false }))
 router.use(express.static(path.join(__dirname, '../public')))
 
 // Set default API response
-router.get('/', function (req, res) {
+router.get('/', (req, res) => {
     res.sendFile('index.html') // welcome page for new applications on V1
 })
 
 // Export API routes
-module.exports = router
+export default router
