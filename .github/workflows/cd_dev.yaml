@@ -32,7 +32,7 @@ jobs:
           envkey_RERUM_API_DOC: ${{ secrets.RERUM_API_DOC }}
           envkey_RERUMSECRET: ${{ secrets.RERUMSECRET }}
           envkey_BOT_AGENT: ${{ secrets.BOT_AGENT_DEV }}
-          envkey_BOT_TOKEN: ${{ secrets.BOT_TOKEN_DEV }}
+          envkey_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           envkey_MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING_TESTS }}
           envkey_MONGODBNAME: ${{ secrets.MONGODBNAME }}
           envkey_MONGODBCOLLECTION: ${{ secrets.MONGODBCOLLECTION }}
