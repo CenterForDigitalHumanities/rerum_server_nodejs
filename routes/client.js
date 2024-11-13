@@ -12,7 +12,7 @@ router.get('/register', (req, res, next) => {
           "client_id":process.env.CLIENT_ID,
           "redirect_uri":process.env.RERUM_PREFIX,
           "state":"register"           
-      }).toString();
+      }).toString()
       res.status(200).send(`https://cubap.auth0.com/authorize?${params}`)
   })
 
