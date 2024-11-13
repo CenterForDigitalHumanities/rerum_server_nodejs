@@ -51,6 +51,8 @@ jobs:
           cd /srv/node/v1-node/
           pm2 stop rerum_v1
           git stash
+          git checkout main
+          git stash
           git pull
           npm install
           pm2 start -i max bin/rerum_v1.js
