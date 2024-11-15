@@ -23,7 +23,7 @@
     "start": "node ./bin/rerum_v1.js",
     "stop": "node ./bin/stopApp.js",
     "test": "jest",
-    "runtest": "node --experimental-vm-modules ./bin/testApp.js"
+    "runtest": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
