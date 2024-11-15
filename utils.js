@@ -120,8 +120,6 @@ const isReleased = function(obj){
  */ 
 const isGenerator = function(origObj, changeAgent){
     //If the object in mongo does not have a generator, something wrong.  however, there is no permission to check, no generator is the same as any generator.
-    console.log("IS GEN")
-    console.log(origObj)
     const generatingAgent = origObj.__rerum.generatedBy ?? changeAgent 
     //bots get a free pass through
     return generatingAgent === changeAgent
