@@ -110,7 +110,7 @@ describe('Check to see that all /v1/api/ route patterns exist. _mountTest', () =
   it('/v1/api/update -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.regexp && 
+      if (middleware.regexp
         && middleware.regexp.toString().includes("/api")
         && middleware.regexp.toString().includes("/update")){
         exists = true

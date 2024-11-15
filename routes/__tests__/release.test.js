@@ -42,4 +42,4 @@ it("'/release' route", async () => {
     expect(response.body.__rerum.isReleased).toBeTruthy()
     expect(response.body.__rerum.slug).toBe(slug)
     controller.remove(slug)
-}, 10000)
+})
