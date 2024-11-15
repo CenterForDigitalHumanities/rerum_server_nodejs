@@ -120,7 +120,6 @@ const deleteObj = async function(req, res, next) {
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
     try {
-        console.log("ORIG "+id)
         originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
         next(createExpressError(error))
