@@ -12,7 +12,7 @@
 import auth from "../../auth/index.js"
 import httpMocks from "node-mocks-http"
 
-const goodToken = "TODO -- MAKE ME PROGRAMATICALLY"
+const goodToken = "TODO -- MAKE ME PROGRAMMATICALLY"
 
 // A mocked HTTP POST 'create' request with an Authorization header.  The token should be a valid one.
 const mockRequest_with_token = httpMocks.createRequest({
@@ -37,17 +37,19 @@ const mockRequest_without_token = httpMocks.createRequest({
 
 // A mocked HTTP response stub
 const mockResponse = httpMocks.createResponse()
+
+// A mocked express next() call
 const nextFunction = jest.fn()
 
 // REDO
 describe('Auth0 Interactions',()=>{
 
-    test('reject empty request without headers (INCOMPLETE)',async ()=>{
+    it('reject empty request without headers (INCOMPLETE)',async ()=>{
         const resp = await auth.checkJwt[0](mockRequest_without_token,mockResponse,nextFunction)
         expect(resp).toBe("token error")
     })
 
-    test('with "authorization" header (INCOMPLETE)', async () => {
+    it('with "authorization" header (INCOMPLETE)', async () => {
         const resp = await auth.checkJwt[0](mockRequest_with_token,mockResponse,nextFunction)
         expect(resp).toBe("valid token")
     })
