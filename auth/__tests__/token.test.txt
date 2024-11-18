@@ -48,7 +48,7 @@ describe('Auth0 Interactions',()=>{
     })
 
     test('with "authorization" header (INCOMPLETE)', async () => {
-        const resp = await auth.checkJwt[0](mockRequest_wit_token,mockResponse,nextFunction)
+        const resp = await auth.checkJwt[0](mockRequest_with_token,mockResponse,nextFunction)
         expect(resp).toBe("valid token")
     })
 })
