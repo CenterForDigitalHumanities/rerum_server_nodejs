@@ -26,7 +26,6 @@ it("'/create' route functions", async () => {
     .set("Content-Type", "application/json")
     .then(resp => resp)
     .catch(err => err)
-  console.log(response.body["@id"])
   expect(response.header.location).toBe(response.body["@id"])
   expect(response.statusCode).toBe(201)
   expect(response.body.test).toBe("item")
