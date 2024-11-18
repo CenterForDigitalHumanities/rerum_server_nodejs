@@ -189,8 +189,11 @@ const config = {
   // Setting this value to "fake" allows the use of fake timers for functions such as "setTimeout"
   // timers: "real",
 
+  // Sometimes the MongoDB or Network are choking and the tests take longer than 5s.  
+  // testTimeout: 10000,
+
   // A map from regular expressions to paths to transformers
-  // transform: undefined,
+  transform: {},
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [
@@ -202,7 +205,7 @@ const config = {
   // unmockedModulePathPatterns: undefined,
 
   // An array of regexp patterns that are matched against all source file paths before re-running tests in watch mode
-  watchPathIgnorePatterns: ['globalConfig'],
+  // watchPathIgnorePatterns: ['globalConfig'],
 
   // Whether to use watchman for file crawling
   // watchman: true,
