@@ -1,6 +1,3 @@
-// const jwt = require('express-jwt')
-// Currently unsed, but we should consider setting scopes moving forward and this will be handy then.
-// const jwtAuthz = require('express-jwt-authz')
 import { auth } from 'express-oauth2-jwt-bearer'
 import dotenv from 'dotenv'
 dotenv.config()

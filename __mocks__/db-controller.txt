@@ -6,5 +6,6 @@ See https://jestjs.io/docs/es6-class-mocks#manual-mock-that-is-another-es6-class
 
 Remember that responses are a NodeJS Express Response passed down the (req, res, next) chain.
 See https://www.npmjs.com/package/node-mocks-http
+See https://www.npmjs.com/package/@jest-mock/express
 See https://expressjs.com/en/api.html#req
 See https://expressjs.com/en/api.html#res

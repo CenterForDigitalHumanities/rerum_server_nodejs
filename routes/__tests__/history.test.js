@@ -12,7 +12,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 // Mount our own /history route without auth that will use controller.history
 routeTester.use("/history/:_id", controller.history)
 
-it("'/history/:id' route ", async () => {
+it("'/history/:id' route functions", async () => {
 
   const response = await request(routeTester)
     .get("/history/11111")

@@ -18,7 +18,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 // Mount our own /bulkCreate route without auth that will use controller.bulkCreate
 routeTester.use("/bulkCreate", [addAuth, controller.bulkCreate])
 
-it("'/bulkCreate' route", async () => {
+it("'/bulkCreate' route functions", async () => {
   const response = await request(routeTester)
     .post("/bulkCreate")
     .send([{ "test": "item1" }, { "test": "item2" }])

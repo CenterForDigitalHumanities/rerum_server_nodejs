@@ -20,7 +20,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 routeTester.use("/update", [addAuth, controller.putUpdate])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
-it("'/update' route ", async () => {
+it("'/update' route functions", async () => {
 
   const response = await request(routeTester)
     .put('/update')

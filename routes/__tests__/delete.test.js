@@ -24,7 +24,7 @@ routeTester.use("/create", [addAuth, controller.create])
 // Mount our own /delete route without auth that will use controller.delete
 routeTester.use("/delete/:_id", [addAuth, controller.deleteObj])
 
-it("'/delete' route", async () => {
+it("'/delete' route functions", async () => {
   const created = await request(routeTester)
     .post("/create")
     .send({ "test": "item"})

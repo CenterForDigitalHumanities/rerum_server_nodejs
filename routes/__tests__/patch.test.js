@@ -20,7 +20,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 routeTester.use("/patch", [addAuth, controller.patchUpdate])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
-it("'/patch' route ", async () => {
+it("'/patch' route functions", async () => {
   const response = await request(routeTester)
     .patch('/patch')
     .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "RERUM Update Test":unique})

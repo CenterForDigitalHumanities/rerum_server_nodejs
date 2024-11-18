@@ -12,7 +12,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 // Mount our own /query route without auth that will use controller.query
 routeTester.use("/query", controller.query)
 
-it("'/query' route.", async () => {
+it("'/query' route functions", async () => {
   const response = await request(routeTester)
     .post("/query")
     .send({ "_id": "11111" })

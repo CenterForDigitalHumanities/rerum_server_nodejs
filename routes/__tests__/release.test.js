@@ -22,7 +22,7 @@ routeTester.use("/create", [addAuth, controller.create])
 routeTester.use("/release/:_id", [addAuth, controller.release])
 const slug = `rcgslu${new Date(Date.now()).toISOString().replace("Z", "")}`
 
-it("'/release' route", async () => {
+it("'/release' route functions", async () => {
 
   const created = await request(routeTester)
     .post("/create")

@@ -12,7 +12,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 // Mount our own /id route without auth that will use controller.id
 routeTester.use("/id/:_id", controller.id)
 
-it("'/id/:id' route", async () => {
+it("'/id/:id' route functions", async () => {
   const response = await request(routeTester)
     .get("/id/11111")
     .set("Content-Type", "application/json")

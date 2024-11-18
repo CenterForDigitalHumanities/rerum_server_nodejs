@@ -20,7 +20,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 // Mount our own /create route without auth that will use controller.create
 routeTester.use("/unset", [addAuth, controller.patchUnset])
 
-it("'/unset' route", async () => {
+it("'/unset' route functions", async () => {
   const response = await request(routeTester)
     .patch("/unset")
     .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "test_obj":null})

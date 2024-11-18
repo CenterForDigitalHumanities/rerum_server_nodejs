@@ -21,7 +21,7 @@ routeTester.use(express.urlencoded({ extended: false }))
 routeTester.use("/set", [addAuth, controller.patchSet])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
-it("'/set' route", async () => {
+it("'/set' route functions", async () => {
   const response = await request(routeTester)
     .patch("/set")
     .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "test_set":unique})
