@@ -7,7 +7,7 @@ import fs from 'fs'
 let app_stack = app._router.stack
 let api_stack = api_routes.stack
 
-describe('Check to see that all expected top level route patterns exist. _mountTest', () => {
+describe('Check to see that all expected top level route patterns exist.', () => {
 
   it('/v1 -- mounted ', () => {
    let exists = false
@@ -66,7 +66,7 @@ describe('Check to see that all expected top level route patterns exist. _mountT
 
 })
 
-describe('Check to see that all /v1/api/ route patterns exist. _mountTest', () => {
+describe('Check to see that all /v1/api/ route patterns exist.', () => {
 
   it('/v1/api/query -- mounted ', () => {
    let exists = false
