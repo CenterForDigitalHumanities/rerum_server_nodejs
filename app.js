@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import createError from 'http-errors'
 import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
@@ -17,10 +16,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
 
 //Middleware to use
 
@@ -72,7 +67,7 @@ app.use(express.static(path.join(__dirname, 'public')))
  */
 app.all('*', (req, res, next) => {
   if(process.env.DOWN === "true"){
-      res.status(503).json({"message":"RERUM v1 is down for updates or maintenance at this time.  We aplologize for the inconvenience.  Try again later."})
+      res.status(503).json({"message":"RERUM v1 is down for updates or maintenance at this time.  We apologize for the inconvenience.  Try again later."})
   }
   else{
       next() //pass on to the next app.use
