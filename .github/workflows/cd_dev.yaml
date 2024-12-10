@@ -50,7 +50,7 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - 20
+          - 22
         machines:
           - vlcdhp02
     runs-on: ${{ matrix.machines }}
