@@ -871,6 +871,79 @@ const query = async function (req, res, next) {
 }
 
 /**
+ * Initiate a pipeline aggregation in MongoDB
+ * */
+const specialQuery = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    let pipeline = req.body
+    const limit = parseInt(req.query.limit ?? 100)
+    const skip = parseInt(req.query.skip ?? 0)
+    // TODO validate and use pipeline object from the request body
+    try {
+        let manID = "https://store.rerum.io/v1/id/66c7797e08e179393d2cf1b8"
+        let matches = [{"so":"soon"}]
+        let brute = [
+            // Step 1: Detect Annotations bodies noting their 'target' is 'partOf' this Manuscript
+            {
+              $match: { "body.partOf.value": manID }
+            },
+            // Step 2: Using the target of those Annotations lookup the Entity they represent and store them in a witnessFragment property on the Annotation
+            // Note that $match had filtered down the alpha collection, so we use $lookup to look through the whole collection again.
+            {
+                $lookup: {
+                    from: "alpha",
+                    localField: "target",   // Field in `Annotation` referencing `@id` in `alpha` corresponding to a WitnessFragment @id
+                    foreignField: "@id",
+                    pipeline: [ 
+                        //{ "$match": { "@type": "WitnessFragment" } }
+                    ],
+                    as: "witnessFragment"
+                }
+            },
+            // Step 3: Filter Annotations to be only those which are for a WitnessFragment Entity
+            {
+                $match: { "witnessFragment.@type": "WitnessFragment" }
+            },
+            // Step 4: Unwrap the Annotation and just return its corresponding WitnessFragment entity
+            {
+                $project: {
+                    "_id": 0,
+                    "@id": "$witnessFragment.@id",
+                    "@type": "WitnessFragment"
+                }
+            },
+            // Step 5: @id values are an Array of 1 and need to be a string instead
+            {
+                $unwind: { "path": "$@id" }
+            },
+            // Step 6: Expand the WitnessFragment by getting the Annotations that target it and adding their body to the Enntity (TODO)
+            // Step 7: Cache it?
+          ]
+        console.log("Start the aggr")
+        const start = Date.now();
+        let witnessFragments = await db.aggregate(brute).toArray()
+        .then((fragments) => {
+            if (fragments instanceof Error) {
+              throw fragments
+            }
+            return fragments
+          })
+
+        console.log("End the aggr")
+        console.log(witnessFragments.length+" fragments found for this Manuscript")
+        console.log(witnessFragments[0])
+        const end = Date.now()
+        console.log(`Execution time: ${end - start} ms`)
+        res.set(utils.configureLDHeadersFor(witnessFragments))
+        res.json(witnessFragments)
+    }
+    catch (error) {
+        console.error(error)
+        next(createExpressError(error))
+    }
+}
+
+/**
  * Query the MongoDB for objects with the _id provided in the request body or request URL
  * Note this specifically checks for _id, the @id pattern is irrelevant.  
  * Note /v1/id/{blank} does not route here.  It routes to the generic 404
@@ -1757,6 +1830,7 @@ export default {
  overwrite,
  release,
  query,
+ specialQuery,
  id,
  bulkCreate,
  idHeadRequest,
