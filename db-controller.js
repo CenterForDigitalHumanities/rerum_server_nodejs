@@ -871,6 +871,81 @@ const query = async function (req, res, next) {
 }
 
 /**
+* Find relevant Annotations targeting a primitive RERUM entity.
+* Add the descriptive information in the Annotation bodies to the primitive object.
+*
+* Anticipate likely Annotation body formats
+*   - anno.body
+*   - anno.body.value
+*
+* Anticipate likely Annotation target formats
+*   - target: 'uri'
+*   - target: {'id':'uri'}
+*   - target: {'@id':'uri'}
+*
+* Anticipate likely Annotation type formats
+*   - {"type": "Annotation"}
+*   - {"@type": "Annotation"}
+*   - {"@type": "oa:Annotation"}
+*
+* @param primitiveEntity - An existing RERUM object
+* @param GENERATOR - A registered RERUM app's User Agent
+* @param CREATOR - Some kind of string representing a specific user.  Often combined with GENERATOR. 
+* @return the expanded entity object
+*
+*/
+const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=undefined){
+    if(!primitiveEntity?.["@id"] || primitiveEntity?.id) return primitiveEntity
+    const targetId = primitiveEntity["@id"] ?? primitiveEntity.id ?? "unknown"
+    let queryObj = {
+        "__rerum.history.next": { $exists: true, $size: 0 }
+    }
+    let targetPatterns = ["target", "target.@id", "target.id"]
+    let targetConditions = []
+    let annoTypeConditions = [{"type": "Annotation"}, {"@type":"Annotation"}, {"@type":"oa:Annotation"}]
+
+    if (targetId.startsWith("http")) {
+        const httpVersion = targetId.replace(/^https?/, "http")
+        const httpsVersion = targetId.replace(/^https?/, "https")
+        for(const targetKey of targetPatterns){
+            targetConditions.push({ [targetKey]: httpVersion })
+            targetConditions.push({ [targetKey]: httpsVersion })
+        }
+        queryObj["$and"] = [{"$or": targetConditions}, {"$or": annoTypeConditions}]
+    } 
+    else{
+        queryObj["$or"] = annoTypeConditions
+        queryObj.target = targetId
+    }
+
+    // Only expand with data from a specific app
+    if(GENERATOR) queryObj["__rerum.generatedBy"] = GENERATOR
+    // Only expand with data from a specific creator
+    if(CREATOR) queryObj.creator = CREATOR
+
+    // Find Annotations with entity data
+    let matches = await db.find(queryObj).toArray()
+    matches = matches.map(o => {
+        delete o._id
+        return o
+    })
+
+    // Combine the Annotation bodies with the primitive object
+    let expandedEntity = JSON.parse(JSON.stringify(primitiveEntity))
+    for(const anno of matches){
+        const body = anno.body
+        let keys = Object.keys(body)
+        if(!keys || keys.length !== 1) return
+        let key = keys[0]
+        let val = body[key].value ?? body[key]
+        expandedEntity[key] = val
+    }
+
+    // Combine original primitive data properties and regularized expanded properties
+    return expandedEntity
+}
+
+/**
  * Initiate a pipeline aggregation in MongoDB
  * */
 const specialQuery = async function (req, res, next) {
@@ -879,6 +954,7 @@ const specialQuery = async function (req, res, next) {
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
     // TODO validate and use pipeline object from the request body
+    // TODO do we need to use limit and skip?  The response lengths here could be rather susbstantial. 
     try {
         let manID = "https://store.rerum.io/v1/id/66c7797e08e179393d2cf1b8"
         let matches = [{"so":"soon"}]
@@ -916,9 +992,9 @@ const specialQuery = async function (req, res, next) {
             {
                 $unwind: { "path": "$@id" }
             },
-            // Step 6: Expand the WitnessFragment by getting the Annotations that target it and adding their body to the Enntity (TODO)
-            // Step 7: Cache it?
-          ]
+            // Step 6: Cache it?
+        ]
+
         console.log("Start the aggr")
         const start = Date.now();
         let witnessFragments = await db.aggregate(brute).toArray()
@@ -928,12 +1004,28 @@ const specialQuery = async function (req, res, next) {
             }
             return fragments
           })
+        
+        // console.log("Start expanding")
+        // const start2 = Date.now();
 
+        // let expandedFragments = []
+        // for await (const primitive of witnessFragments){
+        //     const expanded = await expand(primitive, "http://store.rerum.io/v1/id/61043ad4ffce846a83e700dd", undefined)
+        //     expandedFragments.push(expanded)
+        // }
+        // witnessFragments = expandedFragments
+
+        // console.log("End expanding")
+        // const end2 = Date.now();
+        // console.log(`Expansion Execution time: ${end2 - start2} ms`)
+        // Expansion Execution time: 170548 ms
+        
         console.log("End the aggr")
         console.log(witnessFragments.length+" fragments found for this Manuscript")
         console.log(witnessFragments[0])
         const end = Date.now()
-        console.log(`Execution time: ${end - start} ms`)
+        console.log(`Total Execution time: ${end - start} ms`)
+        // Total Execution time: 252826 ms
         res.set(utils.configureLDHeadersFor(witnessFragments))
         res.json(witnessFragments)
     }
