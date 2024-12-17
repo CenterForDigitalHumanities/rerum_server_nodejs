@@ -18,6 +18,8 @@ import idRouter from './id.js';
 import compatabilityRouter from './compatability.js';
 // Support POST requests with JSON bodies used for passing queries though to the database.
 import queryRouter from './query.js';
+// Support POST requests with JSON bodies used for passing pipeline queries though to the database.
+import specialQueryRouter from './specialQuery.js';
 // Support POST requests with JSON bodies used for establishing new objects.
 import createRouter from './create.js';
 // Support POST requests with JSON Array bodies used for establishing new objects.
@@ -45,6 +47,9 @@ router.use(staticRouter)
 router.use('/id',idRouter)
 router.use('/api', compatabilityRouter)
 router.use('/api/query', queryRouter)
+
+router.use('/api/specialQuery', specialQueryRouter)
+
 router.use('/api/create', createRouter)
 router.use('/api/bulkCreate', bulkCreateRouter)
 router.use('/api/delete', deleteRouter)
