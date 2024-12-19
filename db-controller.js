@@ -1854,10 +1854,13 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
               throw fragments
             }
             return fragments
-          })
+        })
+        const fragmentSet = new Set(witnessFragments)
+        witnessFragments = Array.from(fragmentSet.values())
         // Note that a server side expand() is available and could be used to expand these fragments here.
         console.log("End GoG WitnessFragment Aggregator")
         console.log(witnessFragments.length+" fragments found for this Manuscript")
+        console.log(witnessFragments[0])
         const end = Date.now()
         console.log(`Total Execution time: ${end - start} ms`)
         res.set(utils.configureLDHeadersFor(witnessFragments))
@@ -1951,7 +1954,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
             // Step 3: Filter Annotations to be only those which are for a WitnessFragment Entity
             {
                 $match: { 
-                    "$or": typeConditions
+                    "$or": fragmentTypeConditions
                 }
             },
             // Step 4: Unwrap the Annotation and just return its corresponding WitnessFragment entity
@@ -1973,22 +1976,31 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
                     from: "alpha",
                     localField: "@id",   // Field in `WitnessFragment` referencing `target` in `alpha` corresponding to a Gloss @id
                     foreignField: "target",
-                    as: "referencesAnnotation"
+                    as: "anno"
                 }
             },
-            // Step 7: Collect together the body.rerfences.value[0] of those Annotations.  Those are the relevant Gloss URIs.
+            // Step 7: Filter Annos down to those that are the 'references' Annotations
+            {
+                $match: { 
+                    "anno.body.references":{ "$exists": true }
+                }
+            },
+            // Step 7: Collect together the body.references.value[] of those Annotations.  Those are the relevant Gloss URIs.
             {
                 $project: {
                     "_id": 0,
-                    "@id": "$referencesAnnotation.body.references.value[0]",
+                    "@id": "$anno.body.references.value",
                     "@type": "Gloss"
                 }
             },
-            // Step 8: @id values are an Array of 1 and need to be a string instead
+            // Step 8: @id values are an Array of and Array 1 because references.value is an Array
             {
                 $unwind: { "path": "$@id" }
             },
-            // Step 9: Cache it?
+            // Step 9: @id values are now an Array of 1 and need to be a string instead
+            {
+                $unwind: { "path": "$@id" }
+            }
         ]
 
         console.log("Start GoG Gloss Aggregator")
@@ -2000,9 +2012,12 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
             }
             return fragments
           })
-        
+        const glossSet = new Set(glosses)
+        glosses = Array.from(glossSet.values())
+        // Note that a server side expand() is available and could be used to expand these fragments here.
         console.log("End GoG Gloss Aggregator")
         console.log(glosses.length+" Glosses found for this Manuscript")
+        console.log(glosses[0])
         const end = Date.now()
         console.log(`Total Execution time: ${end - start} ms`)
         res.set(utils.configureLDHeadersFor(glosses))
