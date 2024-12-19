@@ -1756,7 +1756,7 @@ function parseDocumentID(atID){
  *
  * @return The set of {'@id':'123', '@type':'WitnessFragment'} objects that match this criteria, as an Array
  * */
-const _gog_fragments = async function (req, res, next) {
+const _gog_fragments_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
     const id = agent.split("/").pop()
@@ -1880,7 +1880,7 @@ const _gog_fragments = async function (req, res, next) {
  *
  * @return The set of {'@id':'123', '@type':'Gloss'} objects that match this criteria, as an Array
  * */
-const _gog_glosses = async function (req, res, next) {
+const _gog_glosses_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
     const id = agent.split("/").pop()
@@ -2133,6 +2133,6 @@ export default {
  sinceHeadRequest,
  historyHeadRequest,
  remove,
- _gog_glosses,
- _gog_fragments
+ _gog_glosses_from_manuscript,
+ _gog_fragments_from_manuscript
 }
