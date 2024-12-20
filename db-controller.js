@@ -1759,11 +1759,11 @@ function parseDocumentID(atID){
 const _gog_fragments_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
-    const id = agent.split("/").pop()
+    const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (!id === "61043ad4ffce846a83e700dd") {
+    if (!agentID === "61043ad4ffce846a83e700dd") {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
@@ -1860,7 +1860,6 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
         // Note that a server side expand() is available and could be used to expand these fragments here.
         console.log("End GoG WitnessFragment Aggregator")
         console.log(witnessFragments.length+" fragments found for this Manuscript")
-        console.log(witnessFragments[0])
         const end = Date.now()
         console.log(`Total Execution time: ${end - start} ms`)
         res.set(utils.configureLDHeadersFor(witnessFragments))
@@ -1886,11 +1885,11 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
 const _gog_glosses_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
-    const id = agent.split("/").pop()
+    const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (!id === "61043ad4ffce846a83e700dd") {
+    if (!agentID === "61043ad4ffce846a83e700dd") {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
@@ -2017,7 +2016,6 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
         // Note that a server side expand() is available and could be used to expand these fragments here.
         console.log("End GoG Gloss Aggregator")
         console.log(glosses.length+" Glosses found for this Manuscript")
-        console.log(glosses[0])
         const end = Date.now()
         console.log(`Total Execution time: ${end - start} ms`)
         res.set(utils.configureLDHeadersFor(glosses))

@@ -51,7 +51,10 @@ app.use(
       'Cache-Control',
       'Last-Modified',
       'Link',
-      'X-HTTP-Method-Override'
+      'X-HTTP-Method-Override',
+      'Origin',
+      'Referrer',
+      'User-Agent'
     ],
     "exposedHeaders" : "*",
     "origin" : "*",
@@ -65,7 +68,6 @@ app.use(cookieParser())
 
 //Publicly available scripts, CSS, and HTML pages.
 app.use(express.static(path.join(__dirname, 'public')))
-
 
 /**
  * For any request that comes through to the app, check whether or not we are in maintenance mode.
