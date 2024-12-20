@@ -18,7 +18,7 @@ import idRouter from './id.js';
 import compatabilityRouter from './compatability.js';
 // Support POST requests with JSON bodies used for passing queries though to the database.
 import queryRouter from './query.js';
-// Support POST requests with JSON bodies used for passing pipeline queries though to the database.
+// Support POST requests with JSON bodies used for establishing new objects.
 import createRouter from './create.js';
 // Support POST requests with JSON Array bodies used for establishing new objects.
 import bulkCreateRouter from './bulkCreate.js';
