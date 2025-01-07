@@ -11,6 +11,7 @@ import cors from 'cors'
 import indexRouter from './routes/index.js'
 import apiRouter from './routes/api-routes.js'
 import clientRouter from './routes/client.js'
+import secondsRouter from './routes/seconds.js'
 import _gog_fragmentsRouter from './routes/_gog_fragments_from_manuscript.js';
 import _gog_glossesRouter from './routes/_gog_glosses_from_manuscript.js';
 import rest from './rest.js'
@@ -84,6 +85,8 @@ app.all('*', (req, res, next) => {
 })
 
 app.use('/', indexRouter)
+
+app.use('/seconds', secondsRouter)
 
 app.use('/v1', apiRouter)
 
