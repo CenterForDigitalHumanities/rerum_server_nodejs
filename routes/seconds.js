@@ -9,7 +9,7 @@ router.get('/:_seconds', async (req, res, next) => {
     if (isNaN(time)) time=3000
     if (time > 100000) time = 100000
 
-    let results = "Thanks for waiting ${time/1000} seconds."
+    let results = `Thanks for waiting ${time/1000} seconds.`
     setTimeout(function () {
       res.status(200)
       res.send(results)
