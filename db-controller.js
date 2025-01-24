@@ -1852,7 +1852,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
             // Step 6: Cache it?
         ]
 
-        console.log("Start GoG WitnessFragment Aggregator")
+        // console.log("Start GoG WitnessFragment Aggregator")
         const start = Date.now();
         let witnessFragments = await db.aggregate(witnessFragmentPipeline).toArray()
         .then((fragments) => {
