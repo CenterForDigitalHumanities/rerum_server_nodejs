@@ -1761,6 +1761,8 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     const agent = getAgentClaim(req, next)
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
+    const limit = parseInt(req.query.limit ?? 50)
+    const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (!agentID === "61043ad4ffce846a83e700dd") {
@@ -1813,6 +1815,10 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
                     ]
                 }
             },
+            // Step 1.1 through 1.3 for limit and skip functionality.
+            { $sort : { _id: 1 } },
+            { $skip : skip },
+            { $limit : limit },
             // Step 2: Using the target of those Annotations lookup the Entity they represent and store them in a witnessFragment property on the Annotation
             // Note that $match had filtered down the alpha collection, so we use $lookup to look through the whole collection again.
             // FIXME? a target that is http will not match an @id that is https
@@ -1858,10 +1864,10 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
         const fragmentSet = new Set(witnessFragments)
         witnessFragments = Array.from(fragmentSet.values())
         // Note that a server side expand() is available and could be used to expand these fragments here.
-        console.log("End GoG WitnessFragment Aggregator")
-        console.log(witnessFragments.length+" fragments found for this Manuscript")
-        const end = Date.now()
-        console.log(`Total Execution time: ${end - start} ms`)
+        // console.log("End GoG WitnessFragment Aggregator")
+        // console.log(witnessFragments.length+" fragments found for this Manuscript")
+        // const end = Date.now()
+        // console.log(`Total Execution time: ${end - start} ms`)
         res.set(utils.configureLDHeadersFor(witnessFragments))
         res.json(witnessFragments)
     }
@@ -1887,6 +1893,8 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     const agent = getAgentClaim(req, next)
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
+    const limit = parseInt(req.query.limit ?? 50)
+    const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (!agentID === "61043ad4ffce846a83e700dd") {
@@ -1939,6 +1947,10 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
                     ]
                 }
             },
+            // Step 1.1 through 1.3 for limit and skip functionality.
+            { $sort : { _id: 1 } },
+            { $skip : skip },
+            { $limit : limit },
             // Step 2: Using the target of those Annotations lookup the Entity they represent and store them in a witnessFragment property on the Annotation
             // Note that $match had filtered down the alpha collection, so we use $lookup to look through the whole collection again.
             // FIXME? a target that is http will not match an @id that is https
@@ -2002,8 +2014,8 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
             }
         ]
 
-        console.log("Start GoG Gloss Aggregator")
-        const start = Date.now();
+        // console.log("Start GoG Gloss Aggregator")
+        // const start = Date.now();
         let glosses = await db.aggregate(glossPipeline).toArray()
         .then((fragments) => {
             if (fragments instanceof Error) {
@@ -2014,10 +2026,10 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
         const glossSet = new Set(glosses)
         glosses = Array.from(glossSet.values())
         // Note that a server side expand() is available and could be used to expand these fragments here.
-        console.log("End GoG Gloss Aggregator")
-        console.log(glosses.length+" Glosses found for this Manuscript")
-        const end = Date.now()
-        console.log(`Total Execution time: ${end - start} ms`)
+        // console.log("End GoG Gloss Aggregator")
+        // console.log(glosses.length+" Glosses found for this Manuscript")
+        // const end = Date.now()
+        // console.log(`Total Execution time: ${end - start} ms`)
         res.set(utils.configureLDHeadersFor(glosses))
         res.json(glosses)
     }
