@@ -1761,7 +1761,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     const agent = getAgentClaim(req, next)
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const limit = parseInt(req.query.limit ?? 100)
+    const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
@@ -1893,7 +1893,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     const agent = getAgentClaim(req, next)
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const limit = parseInt(req.query.limit ?? 100)
+    const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
