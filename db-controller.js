@@ -331,11 +331,12 @@ async function _import(req, res, next) {
     delete objectReceived["_rerum"]
     delete objectReceived["_id"]
     delete objectReceived["@id"]
-    delete objectReceived["@context"]
     if(_contextid(objectReceived["@context"])) {
         // id is also protected in this case, so it can't be set.
         delete objectReceived.id
     }
+    delete objectReceived["@context"]
+    
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
     console.log("IMPORT")
     try {
@@ -754,13 +755,13 @@ const overwrite = async function (req, res, next) {
             const id = originalObject["_id"]
             //Get rid of them so we can enforce the order
             delete objectReceived["@id"]
-            delete objectReceived["@context"]
             delete objectReceived["_id"]
             delete objectReceived["__rerum"]
             if(_contextid(objectReceived["@context"])) {
                 // id is also protected in this case, so it can't be set.
                 delete objectReceived.id
             }
+            delete objectReceived["@context"]
             let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
             let result
             try {
