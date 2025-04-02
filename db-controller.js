@@ -9,7 +9,7 @@
  * 
  * @author thehabes 
  */
-import { newID, db } from './database/index.js'
+import { newID, isValidID, db } from './database/index.js'
 import utils from './utils.js'
 const ObjectID = newID
 
@@ -19,6 +19,38 @@ const index = function (req, res, next) {
         status: "connected",
         message: "Not sure what to do"
     })
+}
+
+// Check to see if a disovered @context value is one that negotiates between @id and id
+function _contextid(contextURI) {
+    if(typeof contextURI !== "string") return false
+    const knownContexts = [
+        "iiif.io/api/presentation/3/context.json",
+        "iiif.io/api/presentation/2/context.json",
+        "www.w3.org/ns/anno.jsonld"
+    ]
+    const contextCheck = (c) => contextURI.includes(c)
+    return knownContexts.some(contextCheck)
+}
+
+/**
+ * Modify the JSON for a response body by performing _id, id, and @id negotiation.
+ * Make sure the JSON has the appropriate _id, id, and/or @id value on the way out.
+ */
+const idNegotiation = function (resBody) {
+    if(!resBody) return
+    const providedContext = resBody["@context"]
+    if(!providedContext) return resBody
+
+    let modifiedResBody = JSON.parse(JSON.stringify(resBody))
+    console.log("Negotiate on this")
+    console.log(modifiedResBody)
+    if(_contextid(providedContext)) {
+        modifiedResBody["id"] = modifiedResBody["@id"]
+        delete modifiedResBody["@id"]
+    }
+    delete modifiedResBody["_id"]
+    return modifiedResBody
 }
 
 /**
@@ -69,25 +101,30 @@ const create = async function (req, res, next) {
             slug = slug_json.slug_id
         }
     }
-    const id = ObjectID()
+    
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     rerumProp.__rerum.slug = slug
+    const providedID = provided["_id"]
+    const providedContext = provided["@context"]
+    let _id = isValidID(providedID) ? providedID : ObjectID()
     delete provided["_rerum"]
-    delete provided["_id"]
     delete provided["@id"]
-    delete provided["id"]
     delete provided["@context"]
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
+    if(_contextid(providedContext)) {
+        // id is also protected in this case, so it can't be set.
+        delete provided["id"]
+    }
+    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + _id }, provided, rerumProp, { "_id": _id })
     console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(201)
-        delete newObject._id
+        newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.json(newObject)
     }
@@ -2159,5 +2196,6 @@ export default {
  historyHeadRequest,
  remove,
  _gog_glosses_from_manuscript,
- _gog_fragments_from_manuscript
+ _gog_fragments_from_manuscript,
+ idNegotiation
 }
