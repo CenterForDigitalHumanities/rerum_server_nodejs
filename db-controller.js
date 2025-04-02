@@ -104,7 +104,7 @@ const create = async function (req, res, next) {
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     rerumProp.__rerum.slug = slug
     const providedID = provided._id
-    let _id = isValidID(providedID) ? providedID : ObjectID()
+    const id = isValidID(providedID) ? providedID : ObjectID()
     delete provided["_rerum"]
     delete provided["@id"]
     if(_contextid(provided["@context"])) {
@@ -113,7 +113,7 @@ const create = async function (req, res, next) {
     }
     delete provided["@context"]
     
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + _id }, provided, rerumProp, { "_id": _id })
+    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)
