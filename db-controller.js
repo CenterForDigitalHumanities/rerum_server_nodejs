@@ -39,17 +39,13 @@ function _contextid(contextURI) {
  */
 const idNegotiation = function (resBody) {
     if(!resBody) return
-    const providedContext = resBody["@context"]
-    if(!providedContext) return resBody
-
+    if(!resBody["@context"]) return resBody
     let modifiedResBody = JSON.parse(JSON.stringify(resBody))
-    console.log("Negotiate on this")
-    console.log(modifiedResBody)
-    if(_contextid(providedContext)) {
-        modifiedResBody["id"] = modifiedResBody["@id"]
+    if(_contextid(resBody["@context"])) {
+        modifiedResBody.id = modifiedResBody["@id"]
         delete modifiedResBody["@id"]
     }
-    delete modifiedResBody["_id"]
+    delete modifiedResBody._id
     return modifiedResBody
 }
 
@@ -107,16 +103,16 @@ const create = async function (req, res, next) {
     let provided = JSON.parse(JSON.stringify(req.body))
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     rerumProp.__rerum.slug = slug
-    const providedID = provided["_id"]
-    const providedContext = provided["@context"]
+    const providedID = provided._id
     let _id = isValidID(providedID) ? providedID : ObjectID()
     delete provided["_rerum"]
     delete provided["@id"]
-    delete provided["@context"]
-    if(_contextid(providedContext)) {
+    if(_contextid(provided["@context"])) {
         // id is also protected in this case, so it can't be set.
-        delete provided["id"]
+        delete provided.id
     }
+    delete provided["@context"]
+    
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + _id }, provided, rerumProp, { "_id": _id })
     console.log("CREATE")
     try {
@@ -270,12 +266,16 @@ const putUpdate = async function (req, res, next) {
         }
         else {
             id = ObjectID()
-            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["_rerum"]
             delete objectReceived["_id"]
             delete objectReceived["@id"]
+            if(_contextid(objectReceived["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete objectReceived.id
+            }
             delete objectReceived["@context"]
+            
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             console.log("UPDATE")
             try {
@@ -285,7 +285,7 @@ const putUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -331,8 +331,11 @@ async function _import(req, res, next) {
     delete objectReceived["_rerum"]
     delete objectReceived["_id"]
     delete objectReceived["@id"]
-    delete objectReceived["id"]
     delete objectReceived["@context"]
+    if(_contextid(objectReceived["@context"])) {
+        // id is also protected in this case, so it can't be set.
+        delete objectReceived.id
+    }
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
     console.log("IMPORT")
     try {
@@ -340,7 +343,7 @@ async function _import(req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(200)
-        delete newObject._id
+        newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.json(newObject)
     }
@@ -392,6 +395,10 @@ const patchUpdate = async function (req, res, next) {
             delete objectReceived.__rerum //can't patch this
             delete objectReceived._id //can't patch this
             delete objectReceived["@id"] //can't patch this
+            if(_contextid(objectReceived["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete objectReceived.id
+            }
             //A patch only alters existing keys.  Remove non-existent keys from the object received in the request body.
             for (let k in objectReceived) {
                 if (originalObject.hasOwnProperty(k)) {
@@ -413,7 +420,7 @@ const patchUpdate = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
-                delete originalObject._id
+                originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
@@ -424,6 +431,10 @@ const patchUpdate = async function (req, res, next) {
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
+            if(_contextid(patchedObject["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete patchedObject.id
+            }
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
@@ -434,7 +445,7 @@ const patchUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -473,6 +484,7 @@ const patchSet = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let originalContext
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
     if (objectReceived["@id"]) {
@@ -500,6 +512,10 @@ const patchSet = async function (req, res, next) {
         }
         else {
             patchedObject = JSON.parse(JSON.stringify(originalObject))
+            if(_contextid(patchedObject["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete patchedObject.id
+            }
             //A set only adds new keys.  If the original object had the key, it is ignored here.
             for (let k in objectReceived) {
                 if (originalObject.hasOwnProperty(k)) {
@@ -516,7 +532,7 @@ const patchSet = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
-                delete originalObject._id
+                originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
@@ -527,6 +543,10 @@ const patchSet = async function (req, res, next) {
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
+            if(_contextid(patchedObject["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete patchedObject.id
+            }
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             try {
@@ -536,7 +556,7 @@ const patchSet = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -605,6 +625,10 @@ const patchUnset = async function (req, res, next) {
             delete objectReceived._id //can't unset this
             delete objectReceived.__rerum //can't unset this
             delete objectReceived["@id"] //can't unset this
+            if(_contextid(objectReceived["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete objectReceived.id
+            }
             /**
              * unset does not alter an existing key.  It removes an existing key.
              * The request payload had {key:null} to flag keys to be removed.
@@ -625,7 +649,7 @@ const patchUnset = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
-                delete originalObject._id
+                originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
@@ -636,7 +660,12 @@ const patchUnset = async function (req, res, next) {
             delete patchedObject["_rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
+            if(_contextid(patchedObject["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete patchedObject.id
+            }
             delete patchedObject["@context"]
+            
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UNSET")
             try {
@@ -646,7 +675,7 @@ const patchUnset = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -728,6 +757,10 @@ const overwrite = async function (req, res, next) {
             delete objectReceived["@context"]
             delete objectReceived["_id"]
             delete objectReceived["__rerum"]
+            if(_contextid(objectReceived["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete objectReceived.id
+            }
             let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
             let result
             try {
@@ -740,7 +773,7 @@ const overwrite = async function (req, res, next) {
             }
             res.set(utils.configureWebAnnoHeadersFor(newObject))
             res.location(newObject["@id"])
-            delete newObject._id
+            newObject = idNegotiation(newObject)
             newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
             res.json(newObject)
             return
@@ -856,7 +889,7 @@ const release = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(releasedObject))
                 res.location(releasedObject["@id"])
                 console.log(releasedObject._id+" has been released")
-                delete releasedObject._id
+                releasedObject = idNegotiation(releasedObject)
                 releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
                 res.json(releasedObject)
                 return
@@ -895,11 +928,7 @@ const query = async function (req, res, next) {
     }
     try {
         let matches = await db.find(props).limit(limit).skip(skip).toArray()
-        matches =
-            matches.map(o => {
-                delete o._id
-                return o
-            })
+        matches = matches.map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
@@ -924,7 +953,7 @@ const id = async function (req, res, next) {
             //Support requests with 'If-Modified_Since' headers
             res.set(utils.configureLastModifiedHeader(match))
             res.location(match["@id"])
-            delete match._id
+            match = idNegotiation(match)
             res.json(match)
             return
         }
@@ -975,10 +1004,14 @@ const bulkCreate = async function (req, res, next) {
     // }
     let bulkOps = []
     documents.forEach(d => {
-        const id = ObjectID()
+        const providedID = d._id
+        const id = isValidID(providedID) ? providedID : ObjectID()
         let generatorAgent = getAgentClaim(req, next)
         d = utils.configureRerumOptions(generatorAgent, d)
-        // TODO: check profiles/parameters for 'id' vs '@id' and use that
+        if(_contextid(provided["@context"])) {
+            // id is also protected in this case, so it can't be set.
+            delete d.id
+        }
         d._id = id
         d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
         bulkOps.push({ insertOne : { "document" : d }})
@@ -990,7 +1023,7 @@ const bulkCreate = async function (req, res, next) {
         res.status(201)
         const estimatedResults = bulkOps.map(f=>{
             let doc = f.insertOne.document
-            delete doc._id
+            doc = idNegotiation(doc)
             return doc
         })
         res.json(estimatedResults)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
@@ -1079,10 +1112,7 @@ const since = async function (req, res, next) {
         })
     let descendants = getAllDescendants(all, obj, [])
     descendants =
-        descendants.map(o => {
-            delete o._id
-            return o
-        })
+        descendants.map(o => idNegotiation(o))
     res.set(utils.configureLDHeadersFor(descendants))
     res.json(descendants)
 }
@@ -1120,10 +1150,7 @@ const history = async function (req, res, next) {
         })
     let ancestors = getAllAncestors(all, obj, [])
     ancestors =
-        ancestors.map(o => {
-            delete o._id
-            return o
-        })
+        ancestors.map(o => idNegotiation(o))
     res.set(utils.configureLDHeadersFor(ancestors))
     res.json(ancestors)
 }
