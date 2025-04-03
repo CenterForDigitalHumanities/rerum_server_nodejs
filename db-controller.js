@@ -35,11 +35,13 @@ function _contextid(contextInput) {
     if(Array.isArray(contextInput)) {
         for(const c of contextInput) {
             contextURI = c
+            console.log("For context 2 "+contextURI)
             bool = knownContexts.some(contextCheck)
             if(bool) break
         }
     }
     else {
+        console.log("For context 1 "+contextURI)
         bool = knownContexts.some(contextCheck)
     }
     return bool
@@ -278,6 +280,7 @@ const putUpdate = async function (req, res, next) {
         }
         else {
             id = ObjectID()
+            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["_rerum"]
             delete objectReceived["_id"]
@@ -1021,7 +1024,7 @@ const bulkCreate = async function (req, res, next) {
         const id = isValidID(providedID) ? providedID : ObjectID()
         let generatorAgent = getAgentClaim(req, next)
         d = utils.configureRerumOptions(generatorAgent, d)
-        if(_contextid(provided["@context"])) {
+        if(_contextid(d["@context"])) {
             // id is also protected in this case, so it can't be set.
             delete d.id
         }
