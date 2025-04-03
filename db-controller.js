@@ -1578,9 +1578,9 @@ async function newTreePrime(obj) {
  * @param {Error} originalError `source` for tracing this Error
  * @returns Error for use in Express.next(err)
  */
-function createExpressError(update, originalError = {}) {
-    let err = Error("detected error", { cause: originalError })
-    if (update.code) {
+function createExpressError(err) {
+    let error = {}
+    if (err.code) {
         /**
          * Detection that createExpressError(error) passed in a mongo client error.
          * IMPORTANT!  If you try to write to 'update' when it comes in as a mongo error...
@@ -1591,24 +1591,20 @@ function createExpressError(update, originalError = {}) {
          * If you do update.statusMessage or update.statusCode YOU WILL CAUSE THIS ERROR.
          * Make sure you write to err instead.  Object.assign() will have the same result.
          */
-        switch (update.code) {
+        switch (err.code) {
             case 11000:
                 //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
-                err.statusMessage = `The id provided in the Slug header already exists.  Please use a different Slug.`
-                err.statusCode = 409
+                error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
+                error.statusCode = 409
                 break
             default:
-                err.statusMessage = "There was a mongo error that prevented this request from completing successfully."
-                err.statusCode = 500
+                error.statusMessage = "There was a mongo error that prevented this request from completing successfully."
+                error.statusCode = 500
         }
     }
-    else {
-        //Warning!  If 'update' is considered sent, this will cause a 500.  See notes above.
-        update.statusMessage = update.message
-        update.statusCode = update.status
-    }
-    Object.assign(err, update)
-    return err
+    if(!err.statusCode) error.statusCode === "500"
+    if(!err.statusMessage) error.statusMessage === "Detected Error"
+    return error
 }
 
 /**

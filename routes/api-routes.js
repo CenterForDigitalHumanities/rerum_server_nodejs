@@ -80,7 +80,7 @@ router.use('/history', historyRouter)
  */
 router.use((req, res, next) => {
     const code = res?.statusCode
-    const handledCodes = [401, 403, 405, 500, 501]
+    const handledCodes = [401, 403, 405, 409, 500, 501]
     let msg = res.statusMessage ?? `${code} Route Error`
     if(code && handledCodes.includes(code)) {
         // It was handled upstream in a route file.  It is already the right error and message so send it out.
