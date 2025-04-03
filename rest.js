@@ -36,8 +36,6 @@ const messenger = function (err, req, res, next) {
         next(err)
         return
     }
-    console.log("Error into messenger")
-    console.log(err)
     let error = {}
     error.message = err.statusMessage ?? err.message ?? res.statusMessage ?? res.message ?? ``
     error.status = err.statusCode ?? res.statusCode ?? 500
@@ -98,6 +96,7 @@ The requested web page or resource could not be found.`
             // These are all handled in api-routes.js already.
             break
         case 409:
+            // These are all handled in db-controller createExpressError() already.
             break
         case 503:
             //RERUM is down or readonly.  Handled upstream.
@@ -109,10 +108,8 @@ The requested web page or resource could not be found.`
 RERUM experienced a server issue while performing this action.
 It may not have completed at all, and most likely did not complete successfully.`
     }
-    console.log("Error out with res")
-    console.log(error)
     res.set("Content-Type", "text/plain; charset=utf-8")
-    res.status(error.status).send(error.message).end()
+    res.status(error.status).send(error.message)
 }
 
 export default { checkPatchOverrideSupport, messenger }
