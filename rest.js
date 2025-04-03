@@ -29,7 +29,7 @@ const checkPatchOverrideSupport = function (req, res) {
  * REST is all about communication.  The response code and the textual body are particular.
  * RERUM is all about being clear.  It will build custom responses sometimes for certain scenarios, will remaining RESTful.
  * 
- * Note that the res upstream from this has been converted into err.  res will not have what you are looking for, check err instead. 
+ * You have likely reached this with a next(createExpressError(err)) call.  End here and send the error.
  */
 const messenger = function (err, req, res, next) {
     if (res.headersSent) {
@@ -37,8 +37,8 @@ const messenger = function (err, req, res, next) {
         return
     }
     let error = {}
-    error.message = err.statusMessage ?? err.message ?? res.statusMessage ?? res.message ?? ``
-    error.status = err.statusCode ?? res.statusCode ?? 500
+    error.message = err.statusMessage ?? err.message ?? ``
+    error.status = err.statusCode ?? 500
     if (error.status === 401) {
         //Special handler for token errors from the oauth module
         //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
@@ -47,7 +47,6 @@ const messenger = function (err, req, res, next) {
             error.message += err.headers["WWW-Authenticate"]
         }
     }
-    let genericMessage = ""
     let token = req.header("Authorization")
     if(token && !token.startsWith("Bearer ")){
         error.message +=`
@@ -96,7 +95,7 @@ The requested web page or resource could not be found.`
             // These are all handled in api-routes.js already.
             break
         case 409:
-            // These are all handled in db-controller createExpressError() already.
+            // These are all handled in db-controller.js already.
             break
         case 503:
             //RERUM is down or readonly.  Handled upstream.

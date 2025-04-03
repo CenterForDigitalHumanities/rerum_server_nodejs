@@ -1574,8 +1574,7 @@ async function newTreePrime(obj) {
 
 /**
  * 
- * @param {Object} update `message` and `status` for creating a custom Error
- * @param {Error} originalError `source` for tracing this Error
+ * @param {Object} err An object with `statusMessage` and `statusCode` for error reporting.
  * @returns Error for use in Express.next(err)
  */
 function createExpressError(err) {
