@@ -39,13 +39,14 @@ function _contextid(contextURI) {
  */
 const idNegotiation = function (resBody) {
     if(!resBody) return
+    delete resBody._id
     if(!resBody["@context"]) return resBody
     let modifiedResBody = JSON.parse(JSON.stringify(resBody))
     if(_contextid(resBody["@context"])) {
         modifiedResBody.id = modifiedResBody["@id"]
         delete modifiedResBody["@id"]
     }
-    delete modifiedResBody._id
+    
     return modifiedResBody
 }
 
