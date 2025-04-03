@@ -10,7 +10,7 @@ router.route('/:_id')
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for releasing, please use PATCH to release this object.'
         res.status(405)
-        next(res)
+        next()
     })
 
 export default router

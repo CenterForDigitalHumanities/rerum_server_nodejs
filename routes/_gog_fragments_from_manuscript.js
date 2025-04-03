@@ -9,7 +9,7 @@ router.route('/')
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method.  Please use POST.'
         res.status(405)
-        next(res)
+        next()
     })
 
 export default router

@@ -73,20 +73,21 @@ router.get('/api', (req, res) => {
 })
 router.use('/since', sinceRouter)
 router.use('/history', historyRouter)
+
 /**
- * Use this to catch 404s because of invalid /api/ paths and pass them to the error handler in app.js
- * 
- * Note while we have 501s, they will fall here.  Don't let them trick you.
- * Detect them and send them out, don't hand up to the 404 catcher in app.js
+ * Catch an error coming out of the individual routes.
+ * Send generic 404 site path errors out to app.js
  */
 router.use((req, res, next) => {
-    if (res.statusCode === 501) {
-        //We can remove this once we implement the functions, for now we have to catch it here.
-        let msg = res.statusMessage ?? "This is not yet implemented"
-        res.status(501).send(msg).end()
+    const code = res?.statusCode
+    const handledCodes = [401, 403, 405, 500, 501]
+    let msg = res.statusMessage ?? `${code} Route Error`
+    if(code && handledCodes.includes(code)) {
+        // It was handled upstream in a route file.  It is already the right error and message so send it out.
+        res.status(code).send(msg).end()
     }
     else {
-        //A 404 to pass along to our 404 handler in app.js
+        // Assume 404 and pass along to the general handler in app.js
         next()
     }
 })

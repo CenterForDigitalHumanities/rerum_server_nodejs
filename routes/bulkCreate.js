@@ -11,7 +11,7 @@ router.route('/')
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)
-        next(res)
+        next()
     })
 
 export default router
