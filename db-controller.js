@@ -22,15 +22,27 @@ const index = function (req, res, next) {
 }
 
 // Check to see if a disovered @context value is one that negotiates between @id and id
-function _contextid(contextURI) {
-    if(typeof contextURI !== "string") return false
+function _contextid(contextInput) {
+    if(!Array.isArray(contextInput) && typeof contextInput !== "string") return false
+    let bool = false
+    let contextURI = typeof contextInput === "string" ? contextInput : "unknown"
     const knownContexts = [
         "iiif.io/api/presentation/3/context.json",
         "iiif.io/api/presentation/2/context.json",
         "www.w3.org/ns/anno.jsonld"
     ]
     const contextCheck = (c) => contextURI.includes(c)
-    return knownContexts.some(contextCheck)
+    if(Array.isArray(contextInput)) {
+        for(const c of contextInput) {
+            contextURI = c
+            bool = knownContexts.some(contextCheck)
+            if(bool) break
+        }
+    }
+    else {
+        bool = knownContexts.some(contextCheck)
+    }
+    return bool
 }
 
 /**
@@ -46,7 +58,6 @@ const idNegotiation = function (resBody) {
         modifiedResBody.id = modifiedResBody["@id"]
         delete modifiedResBody["@id"]
     }
-    
     return modifiedResBody
 }
 
