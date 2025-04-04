@@ -1579,23 +1579,16 @@ async function newTreePrime(obj) {
 }
 
 /**
- * 
- * @param {Object} err An object with `statusMessage` and `statusCode` for error reporting.
- * @returns Error for use in Express.next(err)
+ * Recieve an error from a route.  It should already have a statusCode and statusMessage.
+ * Note that this may be a Mongo error that occurred during a database action during a route.
+ * Reformat known mongo errors into regular errors with an apprpriate statusCode and statusMessage.
+ *
+ * @param {Object} err An object with `statusMessage` and `statusCode`, or a Mongo error with 'code', for error reporting
+ * @returns A JSON object with a statusCode and statusMessage to send into rest.js for RESTful erroring.
  */
 function createExpressError(err) {
     let error = {}
     if (err.code) {
-        /**
-         * Detection that createExpressError(error) passed in a mongo client error.
-         * IMPORTANT!  If you try to write to 'update' when it comes in as a mongo error...
-         * 
-            POST /v1/api/create 500
-            Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
-         *
-         * If you do update.statusMessage or update.statusCode YOU WILL CAUSE THIS ERROR.
-         * Make sure you write to err instead.  Object.assign() will have the same result.
-         */
         switch (err.code) {
             case 11000:
                 //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
