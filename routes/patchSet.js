@@ -14,13 +14,13 @@ router.route('/')
         else {
             res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
             res.status(405)
-            next()
+            next(res)
         }
     }) 
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
         res.status(405)
-        next()
+        next(res)
     })
 
 export default router
