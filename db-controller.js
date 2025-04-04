@@ -1064,6 +1064,99 @@ const bulkCreate = async function (req, res, next) {
     }
 }
 
+const bulkUpdate = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    const documents = req.body
+    // TODO: validate documents gatekeeper function?
+    if (!Array.isArray(documents)) {
+        let err = new Error("The request body must be an array of objects.")
+        //err.status = 406
+        err.status = 400
+        next(err)
+        return
+    }
+    if (documents.length === 0) {
+        let err = new Error("No action on an empty array.")
+        //err.status = 406
+        err.status = 400
+        next(err)
+        return
+    }
+    if (documents.filter(d=>!(d["@id"] ?? d.id)).length > 0) {
+        let err = new Error("`/bulkUpdate` will only accept objects with @id or id properties.")
+        //err.status = 422
+        err.status = 400
+        next(err)
+        return
+    }
+    let bulkOps = []
+    documents.forEach(d => {
+        const idReceived = d["@id"] ?? d.id
+        if (idReceived) {
+            if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
+                //This is not a regular update.  This object needs to be imported, it isn't in RERUM yet.
+                return _import(req, res, next)
+            }
+            let id = parseDocumentID(idReceived)
+            let originalObject
+            try {
+                originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            } catch (error) {
+                next(createExpressError(error))
+                return
+            }
+            if (null === originalObject) {
+                //This object is not found.
+                err = Object.assign(err, {
+                    message: `Object not in RERUM even though it has a RERUM URI.  Check if it is an authentic RERUM object. ${err.message}`,
+                    status: 404
+                })
+            }
+            else if (utils.isDeleted(originalObject)) {
+                err = Object.assign(err, {
+                    message: `The object you are trying to update is deleted. ${err.message}`,
+                    status: 403
+                })
+            }
+            else {
+                id = ObjectID()
+                let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+                let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+                delete objectReceived["__rerum"]
+                delete objectReceived["_id"]
+                delete objectReceived["@id"]
+                if(_contextid(objectReceived["@context"])) {
+                    // id is also protected in this case, so it can't be set.
+                    delete objectReceived.id
+                }
+                delete objectReceived["@context"]
+                let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+                bulkOps.push({ insertOne : { "document" : newObject }})    
+            }
+        }
+    })
+    try {
+        let dbResponse = await db.bulkWrite(bulkOps)
+        // Todo go over each response.  For successful ones the history tree needs healed
+        for(const res of dbResponse){
+            alterHistoryNext(originalObject, newObject["@id"])
+        }
+        res.set("Content-Type", "application/json; charset=utf-8")
+        res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
+        res.status(201)
+        const estimatedResults = bulkOps.map(f=>{
+            let doc = f.insertOne.document
+            doc = idNegotiation(doc)
+            return doc
+        })
+        res.json(estimatedResults)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
+    }
+    catch (error) {
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
+        next(createExpressError(error))
+    }
+}
+
 /**
  * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
  * No object is returned, but the Content-Length header is set. 
