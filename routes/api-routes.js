@@ -74,22 +74,7 @@ router.get('/api', (req, res) => {
 router.use('/since', sinceRouter)
 router.use('/history', historyRouter)
 
-/**
- * Catch an error coming out of the individual routes.
- * Send generic 404 site path errors out to app.js
- */
-router.use((req, res, next) => {
-    const code = res?.statusCode
-    const handledCodes = [401, 403, 405, 409, 500, 501]
-    let msg = res.statusMessage ?? `${code} Route Error`
-    if(code && handledCodes.includes(code)) {
-        // It was handled upstream in a route file.  It is already the right error and message so send it out.
-        res.status(code).send(msg).end()
-    }
-    else {
-        // Assume 404 and pass along to the general handler in app.js
-        next()
-    }
-})
+// Note that error responses are handled by rest.js through app.js.  No need to do anything with them here.
+
 // Export API routes
 export default router

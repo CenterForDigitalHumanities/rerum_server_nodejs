@@ -33,7 +33,6 @@ const checkPatchOverrideSupport = function (req, res) {
  */
 const messenger = function (err, req, res, next) {
     if (res.headersSent) {
-        next(err)
         return
     }
     let error = {}
@@ -51,8 +50,6 @@ const messenger = function (err, req, res, next) {
     if(token && !token.startsWith("Bearer ")){
         error.message +=`
 Your token is not in the correct format.  It should be a Bearer token formatted like: "Bearer <token>"`
-        next(err)
-        return
     }
     switch (error.status) {
         case 400:
