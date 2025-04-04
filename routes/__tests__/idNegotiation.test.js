@@ -1,6 +1,5 @@
 import { jest } from "@jest/globals"
 import dotenv from "dotenv"
-dotenv.config()
 import controller from '../../db-controller.js'
 
 it("Functional '@id-id' negotiation on objects returned.", async () => {
