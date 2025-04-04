@@ -21,37 +21,43 @@ const index = function (req, res, next) {
     })
 }
 
-// Check to see if a disovered @context value is one that negotiates between @id and id
+/**
+ * Check if a @context value contains a known @id-id mapping context
+ *
+ * @param contextInput An Array of string URIs or a string URI.
+ * @return A boolean
+ */
 function _contextid(contextInput) {
     if(!Array.isArray(contextInput) && typeof contextInput !== "string") return false
     let bool = false
     let contextURI = typeof contextInput === "string" ? contextInput : "unknown"
+    const contextCheck = (c) => contextURI.includes(c)
     const knownContexts = [
         "store.rerum.io/v1/context.json",
         "iiif.io/api/presentation/3/context.json",
         "iiif.io/api/presentation/2/context.json",
         "www.w3.org/ns/anno.jsonld"
     ]
-    const contextCheck = (c) => contextURI.includes(c)
     if(Array.isArray(contextInput)) {
         for(const c of contextInput) {
             contextURI = c
-            console.log("For context 2 "+contextURI)
             bool = knownContexts.some(contextCheck)
             if(bool) break
         }
     }
     else {
-        console.log("For context 1 "+contextURI)
         bool = knownContexts.some(contextCheck)
     }
     return bool
 }
 
 /**
- * Modify the JSON for a response body by performing _id, id, and @id negotiation.
- * Make sure the JSON has the appropriate _id, id, and/or @id value on the way out.
+ * Modify the JSON of an Express response body by performing _id, id, and @id negotiation.
+ * This ensures the JSON has the appropriate _id, id, and/or @id value on the way out to the client.
  * Make sure the first property is @context and the second property is the negotiated @id/id.
+ *
+ * @param resBody A JSON object representing an Express response body
+ * @return JSON with the appropriate modifications around the 'id;, '@id', and '_id' properties.
  */
 const idNegotiation = function (resBody) {
     if(!resBody) return
