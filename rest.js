@@ -37,7 +37,7 @@ const messenger = function (err, req, res, next) {
     }
     let error = {}
     error.message = err.statusMessage ?? err.message ?? ``
-    error.status = err.statusCode ?? 500
+    error.status = err.statusCode ?? err.status ?? 500
     if (error.status === 401) {
         //Special handler for token errors from the oauth module
         //Token errors come through with a message that we want.  That message is in the error's WWW-Authenticate header
