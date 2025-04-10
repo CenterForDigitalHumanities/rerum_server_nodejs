@@ -987,9 +987,11 @@ const id = async function (req, res, next) {
             res.json(match)
             return
         }
-        let err = new Error(`No RERUM object with id '${id}'`)
-        err.status = 404
-        throw err
+        let err = {
+            "message": `No RERUM object with id '${id}'`,
+            "status": 404
+        } 
+        next(createExpressError(err))
     } catch (error) {
         next(createExpressError(error))
     }
@@ -998,26 +1000,27 @@ const id = async function (req, res, next) {
 const bulkCreate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
+    let err
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
-        let err = new Error("The request body must be an array of objects.")
+        err.message = "The request body must be an array of objects."
         //err.status = 406
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     if (documents.length === 0) {
-        let err = new Error("No action on an empty array.")
+        err.message = "No action on an empty array."
         //err.status = 406
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
-        let err = new Error("`/bulkCreate` will only accept objects without @id or id properties.")
+        err.message = "`/bulkCreate` will only accept objects without @id or id properties.")
         //err.status = 422
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
@@ -1067,26 +1070,27 @@ const bulkCreate = async function (req, res, next) {
 const bulkUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
+    let err = {}
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
-        let err = new Error("The request body must be an array of objects.")
+        err.message = "The request body must be an array of objects.")
         //err.status = 406
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     if (documents.length === 0) {
-        let err = new Error("No action on an empty array.")
+        err.message = "No action on an empty array.")
         //err.status = 406
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     if (documents.filter(d=>!(d["@id"] ?? d.id)).length > 0) {
-        let err = new Error("`/bulkUpdate` will only accept objects with @id or id properties.")
+        err.message = "`/bulkUpdate` will only accept objects with @id or id properties.")
         //err.status = 422
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     let bulkOps = []
@@ -1094,8 +1098,8 @@ const bulkUpdate = async function (req, res, next) {
         const idReceived = d["@id"] ?? d.id
         if (idReceived) {
             if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
-                //This is not a regular update.  This object needs to be imported, it isn't in RERUM yet.
-                return _import(req, res, next)
+                //This would need imported.  This is not supported in the bulk update.  Skip this object, or error.
+                continue
             }
             let id = parseDocumentID(idReceived)
             let originalObject
@@ -1106,45 +1110,45 @@ const bulkUpdate = async function (req, res, next) {
                 return
             }
             if (null === originalObject) {
-                //This object is not found.
-                err = Object.assign(err, {
-                    message: `Object not in RERUM even though it has a RERUM URI.  Check if it is an authentic RERUM object. ${err.message}`,
-                    status: 404
-                })
+                //This object is not found.  Skip it or error
+                continue
             }
-            else if (utils.isDeleted(originalObject)) {
-                err = Object.assign(err, {
-                    message: `The object you are trying to update is deleted. ${err.message}`,
-                    status: 403
-                })
+            if (utils.isDeleted(originalObject)) {
+                continue
             }
-            else {
-                id = ObjectID()
-                let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-                let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
-                delete objectReceived["__rerum"]
-                delete objectReceived["_id"]
-                delete objectReceived["@id"]
-                if(_contextid(objectReceived["@context"])) {
-                    // id is also protected in this case, so it can't be set.
-                    delete objectReceived.id
+            id = ObjectID()
+            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+            delete objectReceived["__rerum"]
+            delete objectReceived["_id"]
+            delete objectReceived["@id"]
+            if(_contextid(objectReceived["@context"])) {
+                // id is also protected in this case, so it can't be set.
+                delete objectReceived.id
+            }
+            delete objectReceived["@context"]
+            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+            bulkOps.push({ insertOne : { "document" : newObject }})
+            let alteredObj = JSON.parse(JSON.stringify(originalObject))
+            if(alteredObj.__rerum.history.next.indexOf(newObject["@id"]) === -1){
+                alteredObj.__rerum.history.next.push(newObject["@id"])
+                const replaceOp = { replaceOne :
+                    {
+                        "filter" : { "_id": alteredObj["_id"] },
+                        "replacement" : alteredObj,
+                        "upsert" : false
+                    }
                 }
-                delete objectReceived["@context"]
-                let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-                bulkOps.push({ insertOne : { "document" : newObject }})    
+                bulkOps.push(replaceOp)
             }
         }
     })
     try {
         let dbResponse = await db.bulkWrite(bulkOps)
-        // Todo go over each response.  For successful ones the history tree needs healed
-        for(const res of dbResponse){
-            alterHistoryNext(originalObject, newObject["@id"])
-        }
         res.set("Content-Type", "application/json; charset=utf-8")
-        res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
-        res.status(201)
-        const estimatedResults = bulkOps.map(f=>{
+        res.set("Link", dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
+        res.status(200)
+        const estimatedResults = bulkOps.filter(f=>f.insertOne).map(f=>{
             let doc = f.insertOne.document
             doc = idNegotiation(doc)
             return doc
@@ -1173,9 +1177,11 @@ const idHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = new Error(`No RERUM object with id '${id}'`)
-        err.status = 404
-        throw err
+        let err = {
+            "message": `No RERUM object with id '${id}'`,
+            "status": 404
+        }
+        next(createExpressError(err))
     } catch (error) {
         next(createExpressError(error))
     }
@@ -1196,9 +1202,11 @@ const queryHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = new Error(`There is no object in the database with id '${id}'.  Check the URL.`)
-        err.status = 404
-        throw err
+        let err = {
+            "message": `There is no object in the database with id '${id}'.  Check the URL.`,
+            "status": 404
+        } 
+        next(createExpressError(err))
     } catch (error) {
         next(createExpressError(error))
     }
@@ -1732,8 +1740,10 @@ function getAgentClaim(req, next) {
             return agent
         }
     }
-    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
-    err.status = 403
+    let err = {
+        "message": "Could not get agent from req.user.  Have you registered with RERUM?",
+        "status": 403
+    }
     next(createExpressError(err))  
 }
 
