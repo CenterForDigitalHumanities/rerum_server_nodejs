@@ -1017,7 +1017,7 @@ const bulkCreate = async function (req, res, next) {
         return
     }
     if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
-        err.message = "`/bulkCreate` will only accept objects without @id or id properties.")
+        err.message = "`/bulkCreate` will only accept objects without @id or id properties."
         //err.status = 422
         err.status = 400
         next(createExpressError(err))
@@ -1073,28 +1073,28 @@ const bulkUpdate = async function (req, res, next) {
     let err = {}
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
-        err.message = "The request body must be an array of objects.")
+        err.message = "The request body must be an array of objects."
         //err.status = 406
         err.status = 400
         next(createExpressError(err))
         return
     }
     if (documents.length === 0) {
-        err.message = "No action on an empty array.")
+        err.message = "No action on an empty array."
         //err.status = 406
         err.status = 400
         next(createExpressError(err))
         return
     }
     if (documents.filter(d=>!(d["@id"] ?? d.id)).length > 0) {
-        err.message = "`/bulkUpdate` will only accept objects with @id or id properties.")
+        err.message = "`/bulkUpdate` will only accept objects with @id or id properties."
         //err.status = 422
         err.status = 400
         next(createExpressError(err))
         return
     }
     let bulkOps = []
-    documents.forEach(d => {
+    for(const d of documents){
         const idReceived = d["@id"] ?? d.id
         if (idReceived) {
             if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
@@ -1142,7 +1142,7 @@ const bulkUpdate = async function (req, res, next) {
                 bulkOps.push(replaceOp)
             }
         }
-    })
+    }
     try {
         let dbResponse = await db.bulkWrite(bulkOps)
         res.set("Content-Type", "application/json; charset=utf-8")
