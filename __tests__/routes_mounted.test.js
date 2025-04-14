@@ -120,6 +120,19 @@ describe('Check to see that all /v1/api/ route patterns exist.', () => {
     expect(exists).toBe(true)
   })
 
+    it('/v1/api/bulkUpdate -- mounted ', () => {
+   let exists = false
+    for (const middleware of api_stack) {
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/bulkUpdate")){
+        exists = true
+        break
+      }
+    }
+    expect(exists).toBe(true)
+  })
+
   it('/v1/api/patch -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
