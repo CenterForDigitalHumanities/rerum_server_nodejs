@@ -1000,7 +1000,7 @@ const id = async function (req, res, next) {
 const bulkCreate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
-    let err
+    let err = {}
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
         err.message = "The request body must be an array of objects."
@@ -1036,10 +1036,10 @@ const bulkCreate = async function (req, res, next) {
     //     }
     // }
     let bulkOps = []
+    let generatorAgent = getAgentClaim(req, next)
     documents.forEach(d => {
         const providedID = d._id
         const id = isValidID(providedID) ? providedID : ObjectID()
-        let generatorAgent = getAgentClaim(req, next)
         d = utils.configureRerumOptions(generatorAgent, d)
         if(_contextid(d["@context"])) {
             // id is also protected in this case, so it can't be set.
@@ -1070,6 +1070,8 @@ const bulkCreate = async function (req, res, next) {
 const bulkUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
+    console.log("DOCUMENTS")
+    console.log(documents)
     let err = {}
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
@@ -1087,13 +1089,15 @@ const bulkUpdate = async function (req, res, next) {
         return
     }
     if (documents.filter(d=>!(d["@id"] ?? d.id)).length > 0) {
-        err.message = "`/bulkUpdate` will only accept objects with @id or id properties."
+        err.message = "All objects in the body of a `/bulkUpdate` must contain an @id or id property."
         //err.status = 422
         err.status = 400
         next(createExpressError(err))
         return
     }
     let bulkOps = []
+    let generatorAgent = getAgentClaim(req, next)
+    console.log("Process docs")
     for(const d of documents){
         const idReceived = d["@id"] ?? d.id
         if (idReceived) {
@@ -1701,8 +1705,10 @@ function createExpressError(err) {
                 error.statusCode = 500
         }
     }
-    if(!err.statusCode) error.statusCode === "500"
-    if(!err.statusMessage) error.statusMessage === "Detected Error"
+    error.statusCode = err.statusCode ?? err.status ?? 500
+    error.statusMessage = err.statusMessage ?? err.message ?? "Detected Error"
+    console.log("Error helper created")
+    console.log(error)
     return error
 }
 
@@ -2336,6 +2342,7 @@ export default {
  query,
  id,
  bulkCreate,
+ bulkUpdate,
  idHeadRequest,
  queryHeadRequest,
  since,

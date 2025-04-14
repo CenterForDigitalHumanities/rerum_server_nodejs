@@ -22,6 +22,8 @@ import queryRouter from './query.js';
 import createRouter from './create.js';
 // Support POST requests with JSON Array bodies used for establishing new objects.
 import bulkCreateRouter from './bulkCreate.js';
+//Support PUT requests with JSON Array bodies used for updating a number of existing objects.
+import bulkUpdateRouter from './bulkUpdate.js';
 // Support DELETE requests like v1/delete/{object id} to mark an object as __deleted.
 import deleteRouter from './delete.js';
 // Support POST requests with JSON bodies used for replacing some existing object.
@@ -47,6 +49,7 @@ router.use('/api', compatabilityRouter)
 router.use('/api/query', queryRouter)
 router.use('/api/create', createRouter)
 router.use('/api/bulkCreate', bulkCreateRouter)
+router.use('/api/bulkUpdate', bulkUpdateRouter)
 router.use('/api/delete', deleteRouter)
 router.use('/api/overwrite', overwriteRouter)
 router.use('/api/update', updateRouter)

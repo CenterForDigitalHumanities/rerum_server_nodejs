@@ -32,9 +32,11 @@ const checkPatchOverrideSupport = function (req, res) {
  * You have likely reached this with a next(createExpressError(err)) call.  End here and send the error.
  */
 const messenger = function (err, req, res, next) {
+    console.log("REST MESSENGER")
     if (res.headersSent) {
         return
     }
+    console.log("GO MESSENGER")
     let error = {}
     error.message = err.statusMessage ?? err.message ?? ``
     error.status = err.statusCode ?? err.status ?? 500
@@ -93,6 +95,9 @@ The requested web page or resource could not be found.`
             break
         case 409:
             // These are all handled in db-controller.js already.
+            break
+        case 501:
+            // Not implemented.  Handled upstream.
             break
         case 503:
             //RERUM is down or readonly.  Handled upstream.
