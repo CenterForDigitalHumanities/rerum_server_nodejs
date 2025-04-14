@@ -32,11 +32,9 @@ const checkPatchOverrideSupport = function (req, res) {
  * You have likely reached this with a next(createExpressError(err)) call.  End here and send the error.
  */
 const messenger = function (err, req, res, next) {
-    console.log("REST MESSENGER")
     if (res.headersSent) {
         return
     }
-    console.log("GO MESSENGER")
     let error = {}
     error.message = err.statusMessage ?? err.message ?? ``
     error.status = err.statusCode ?? err.status ?? 500
@@ -109,6 +107,7 @@ The requested web page or resource could not be found.`
 RERUM experienced a server issue while performing this action.
 It may not have completed at all, and most likely did not complete successfully.`
     }
+    console.error(error)
     res.set("Content-Type", "text/plain; charset=utf-8")
     res.status(error.status).send(error.message)
 }

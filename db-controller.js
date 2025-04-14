@@ -1070,8 +1070,6 @@ const bulkCreate = async function (req, res, next) {
 const bulkUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
-    console.log("DOCUMENTS")
-    console.log(documents)
     let err = {}
     // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
@@ -1097,9 +1095,9 @@ const bulkUpdate = async function (req, res, next) {
     }
     let bulkOps = []
     let generatorAgent = getAgentClaim(req, next)
-    console.log("Process docs")
     for(const d of documents){
-        const idReceived = d["@id"] ?? d.id
+        const objectReceived = d
+        const idReceived = objectReceived["@id"] ?? objectReceived.id
         if (idReceived) {
             if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
                 //This would need imported.  This is not supported in the bulk update.  Skip this object, or error.
@@ -1707,8 +1705,6 @@ function createExpressError(err) {
     }
     error.statusCode = err.statusCode ?? err.status ?? 500
     error.statusMessage = err.statusMessage ?? err.message ?? "Detected Error"
-    console.log("Error helper created")
-    console.log(error)
     return error
 }
 
