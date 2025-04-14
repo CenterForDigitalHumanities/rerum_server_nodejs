@@ -19,20 +19,21 @@
   "license": "UNLICENSED",
   "author": "Research Computing Group <research.computing@slu.edu> (https://slu.edu)",
   "repository": "github:CenterForDigitalHumanities/rerum_server_nodejs",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
-    "stop": "node ./bin/stopApp.js",
     "test": "jest",
     "runtest": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
+    "@jest/globals": "^29.7.0",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "debug": "~4.3.4",
     "dotenv": "~16.3.1",
-    "dotenv-expand": "~10.0.0",
-    "ejs": "~3.1.8",
-    "express": "^4.18.2",
+    "express": "^4.20.0",
     "express-oauth2-jwt-bearer": "~1.6.0",
     "express-urlrewrite": "~2.0.0",
     "http-errors": "~2.0.0",
