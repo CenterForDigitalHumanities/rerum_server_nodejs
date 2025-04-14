@@ -10,6 +10,8 @@ import cors from 'cors'
 import indexRouter from './routes/index.js'
 import apiRouter from './routes/api-routes.js'
 import clientRouter from './routes/client.js'
+import _gog_fragmentsRouter from './routes/_gog_fragments_from_manuscript.js';
+import _gog_glossesRouter from './routes/_gog_glosses_from_manuscript.js';
 import rest from './rest.js'
 import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
@@ -44,7 +46,10 @@ app.use(
       'Cache-Control',
       'Last-Modified',
       'Link',
-      'X-HTTP-Method-Override'
+      'X-HTTP-Method-Override',
+      'Origin',
+      'Referrer',
+      'User-Agent'
     ],
     "exposedHeaders" : "*",
     "origin" : "*",
@@ -58,7 +63,6 @@ app.use(cookieParser())
 
 //Publicly available scripts, CSS, and HTML pages.
 app.use(express.static(path.join(__dirname, 'public')))
-
 
 /**
  * For any request that comes through to the app, check whether or not we are in maintenance mode.
@@ -79,6 +83,9 @@ app.use('/', indexRouter)
 app.use('/v1', apiRouter)
 
 app.use('/client', clientRouter)
+
+app.use('/gog/fragmentsInManuscript', _gog_fragmentsRouter)
+app.use('/gog/glossesInManuscript', _gog_glossesRouter)
 
 /**
  * Handle API errors and warnings RESTfully.  All routes that don't end in res.send() will end up here.
