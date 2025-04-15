@@ -4,6 +4,7 @@ dotenv.config()
 
 const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
 const newID = () => new ObjectId().toHexString()
+const isValidID = (id) => ObjectId.isValid(id)
 const connected = async function () {
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 }).catch(err => err)
@@ -50,6 +51,7 @@ function isValidURL(url) {
 
 export {
     newID,
+    isValidID,
     connected,
     db
 }

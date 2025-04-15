@@ -32,3 +32,7 @@ it("'/id/:id' route functions", async () => {
   expect(response.headers["location"]).toBeTruthy()
 
 })
+
+it.skip("Proper '@id-id' negotation on GET by URI.", async () => {
+  // TODO
+})

@@ -15,7 +15,7 @@ dotenv.config()
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT ?? '3001')
+var port = process.env.PORT ?? 3001
 app.set('port', port)
 
 /**
@@ -41,26 +41,6 @@ server.keepAliveTimeout = 8 * 1000 //8 seconds
 server.headersTimeout = 8.5 * 1000 //8 seconds
 
 /**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  const portCheck = parseInt(val, 10)
-
-  if (isNaN(portCheck)) {
-    // named pipe
-    return val
-  }
-
-  if (portCheck >= 0) {
-    // port number
-    return portCheck
-  }
-
-  return false
-}
-
-/**
  * Event listener for HTTP server "error" event.
  */
 
@@ -69,9 +49,7 @@ function onError(error) {
     throw error
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port
+  var bind = `Port ${port}`
 
   // handle specific listen errors with friendly messages
   switch (error.code) {

@@ -420,10 +420,11 @@
 
         <p>
             Add multiple completely new objects to RERUM and receive an array of the complete records as the response body. 
-            Accepts only a single array of JSON objects in the request body.
-            The array of JSON objects passed in will be created in the order submitted and the response will have the URI 
-            of the new resource or an error message as an array in the same order. When errors are encountered, 
-            the batch process will attempt to continue for all submitted items.
+            Accepts only a single array of JSON objects in the request body.  The '@id' property must not be present on the objects.
+            In cases where the Linked Data @context property maps '@id' to 'id', the 'id' property also must not be present.
+            The array of JSON objects passed may not be created in the order submitted.  The response will have the URI 
+            of the new resource or an error message as an array in the order the order the objects were processed. 
+            When errors are encountered, the batch process will attempt to continue for all submitted items.
         </p>
 
         <p> 
@@ -728,6 +729,80 @@
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"] 
                 </code>
             </p>
+        </p>
+
+        <h3 id="bulk-update">Bulk Update</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Patterns</th>
+                    <th>Payloads</th>
+                    <th>Responses</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">/bulkUpdate</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
+                    <td>201 <code>
+                        <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <ul>
+            <li><strong><code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array RERUM objects
+                to be updated.</li>
+            <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—an array
+                of the resolved records from the update process</li>
+        </ul>
+
+        <p>
+            Update multiple existing RERUM objects at once and recieve an array of the complete records as the response body.
+            Accepts only a single array of JSON objects in the request body.  The '@id' property must be present for each object.
+            In cases where the Linked Data @context property maps '@id' to 'id' either of these properties will be sufficient.
+            The array of JSON objects passed in may not be updated in the order submitted.  The response will have the URI 
+            of the new resource or an error message as an array in the order the objects were processed. When errors are encountered, the batch process will attempt to continue for all submitted items.
+        </p>
+
+        <p> 
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkUpdate", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify([
+                        <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                        <span class="ind2">"hello": "new world",</span>
+                        <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                        <span class="ind2">"goodbye": "old planet"</span>
+                    <span class="ind1">])</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})
+            </code></pre>
+        </p>
+
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="respExample">
+                <span>[</span>
+                    <span class="ind1">{</span>
+                        <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcabc1231231230",</span>
+                        <span class="ind2">"hello": "new world",</span>
+                        <span class="ind2">"__rerum":{...}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">{</span>
+                        <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/defdef4564564567",</span>
+                        <span class="ind2">"goodbye": "old planet",</span>
+                        <span class="ind2"> "__rerum":{...}</span>
+                    <span class="ind1">}</span>
+                <span>]</span>
+            </code></pre>
         </p>
 
         <h3 id="overwrite">Overwrite</h3>
