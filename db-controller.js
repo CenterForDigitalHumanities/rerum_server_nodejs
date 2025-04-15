@@ -1011,7 +1011,7 @@ const bulkCreate = async function (req, res, next) {
             return d
         }
         // Items must not have an @id, and in some cases same for id.
-        const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
+        const idcheck = _contextid(d["@context"]) ? (d.id ?? d["@id"]) : d["@id"]
         if(idcheck) return d
     }) 
     if (gatekeep.length > 0) {
