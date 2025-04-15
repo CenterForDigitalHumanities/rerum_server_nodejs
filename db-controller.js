@@ -1000,13 +1000,20 @@ const bulkCreate = async function (req, res, next) {
         next(createExpressError(err))
         return
     }
-    let gate = documents.filter(d=> {
+    let gatekeep = documents.filter(d=> {
+        // Each item must be valid JSON, but can't be an array.
         if(Array.isArray(d) || typeof d !== "object") return d
+        try {
+            JSON.parse(JSON.stringify(d))
+        } catch (err) {
+            return d
+        }
+        // Items must not have an @id, and in some cases same for id.
         const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
         if(idcheck) return d
     }) 
-    if (gate.length > 1) {
-        err.message = "All objects in the body of a `/bulkCreate` must be JSON and must not contain an @id or id property."
+    if (gatekeep.length > 1) {
+        err.message = "All objects in the body of a `/bulkCreate` must be JSON and must not contain a declared identifier property."
         err.status = 400
         next(createExpressError(err))
         return
@@ -1072,13 +1079,20 @@ const bulkUpdate = async function (req, res, next) {
         next(createExpressError(err))
         return
     }
-    let gate = documents.filter(d => {
+    let gatekeep = documents.filter(d => {
+        // Each item must be valid JSON, but can't be an array.
         if(Array.isArray(d) || typeof d !== "object") return d
+        try {
+            JSON.parse(JSON.stringify(d))
+        } catch (err) {
+            return d
+        }
+        // Items must have an @id, or in some cases an id will do
         const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
         if(!idcheck) return d
     }) 
-    if (gate.length > 1) {
-        err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain an @id or id property."
+    if (gatekeep.length > 1) {
+        err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property."
         err.status = 400
         next(createExpressError(err))
         return
@@ -1091,46 +1105,44 @@ const bulkUpdate = async function (req, res, next) {
         // but we will not update the same thing twice.
         if(encountered.includes(idReceived)) continue
         encountered.push(idReceived)
-        if (idReceived) {
-            if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
-                continue
-            }
-            let id = parseDocumentID(idReceived)
-            let originalObject
-            try {
-                originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
-            } catch (error) {
-                next(createExpressError(error))
-                return
-            }
-            if (null === originalObject) {
-                continue
-            }
-            if (utils.isDeleted(originalObject)) {
-                continue
-            }
-            id = ObjectID()
-            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
-            delete objectReceived["__rerum"]
-            delete objectReceived["_id"]
-            delete objectReceived["@id"]
-            // id is also protected in this case, so it can't be set.
-            if(_contextid(objectReceived["@context"])) delete objectReceived.id
-            delete objectReceived["@context"]
-            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-            bulkOps.push({ insertOne : { "document" : newObject }})
-            if(originalObject.__rerum.history.next.indexOf(newObject["@id"]) === -1){
-                originalObject.__rerum.history.next.push(newObject["@id"])
-                const replaceOp = { replaceOne :
-                    {
-                        "filter" : { "_id": originalObject["_id"] },
-                        "replacement" : originalObject,
-                        "upsert" : false
-                    }
+        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
+            continue
+        }
+        let id = parseDocumentID(idReceived)
+        let originalObject
+        try {
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        } catch (error) {
+            next(createExpressError(error))
+            return
+        }
+        if (null === originalObject) {
+            continue
+        }
+        if (utils.isDeleted(originalObject)) {
+            continue
+        }
+        id = ObjectID()
+        let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+        let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+        delete objectReceived["__rerum"]
+        delete objectReceived["_id"]
+        delete objectReceived["@id"]
+        // id is also protected in this case, so it can't be set.
+        if(_contextid(objectReceived["@context"])) delete objectReceived.id
+        delete objectReceived["@context"]
+        let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+        bulkOps.push({ insertOne : { "document" : newObject }})
+        if(originalObject.__rerum.history.next.indexOf(newObject["@id"]) === -1){
+            originalObject.__rerum.history.next.push(newObject["@id"])
+            const replaceOp = { replaceOne :
+                {
+                    "filter" : { "_id": originalObject["_id"] },
+                    "replacement" : originalObject,
+                    "upsert" : false
                 }
-                bulkOps.push(replaceOp)
             }
+            bulkOps.push(replaceOp)
         }
     }
     try {
