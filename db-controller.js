@@ -1014,7 +1014,7 @@ const bulkCreate = async function (req, res, next) {
         const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
         if(idcheck) return d
     }) 
-    if (gatekeep.length > 1) {
+    if (gatekeep.length > 0) {
         err.message = "All objects in the body of a `/bulkCreate` must be JSON and must not contain a declared identifier property."
         err.status = 400
         next(createExpressError(err))
@@ -1100,11 +1100,14 @@ const bulkUpdate = async function (req, res, next) {
             return d
         }
         // Items must have an @id, or in some cases an id will do
-        const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
+        const idcheck = _contextid(d["@context"]) ? (d.id ?? d["@id"]) : d["@id"]
+        console.log(idcheck)
         if(!idcheck) return d
     })
+    console.log(gatekeep)
+    console.log(gatekeep.length)
     // The empty {}s will cause this error
-    if (gatekeep.length > 1) {
+    if (gatekeep.length > 0) {
         err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property."
         err.status = 400
         next(createExpressError(err))
