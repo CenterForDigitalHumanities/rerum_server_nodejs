@@ -1101,11 +1101,8 @@ const bulkUpdate = async function (req, res, next) {
         }
         // Items must have an @id, or in some cases an id will do
         const idcheck = _contextid(d["@context"]) ? (d.id ?? d["@id"]) : d["@id"]
-        console.log(idcheck)
         if(!idcheck) return d
     })
-    console.log(gatekeep)
-    console.log(gatekeep.length)
     // The empty {}s will cause this error
     if (gatekeep.length > 0) {
         err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property."
