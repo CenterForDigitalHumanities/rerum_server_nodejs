@@ -1017,7 +1017,7 @@ const bulkCreate = async function (req, res, next) {
         err.status = 400
         next(createExpressError(err))
         return
-    })
+    }
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
     // let slug = req.get("Slug")
     // if(slug){
@@ -1096,7 +1096,7 @@ const bulkUpdate = async function (req, res, next) {
         err.status = 400
         next(createExpressError(err))
         return
-    })
+    }
     let bulkOps = []
     let generatorAgent = getAgentClaim(req, next)
     for(const objectReceived of documents){
