@@ -421,9 +421,9 @@
         <p>
             Add multiple completely new objects to RERUM and receive an array of the complete records as the response body. 
             Accepts only a single array of JSON objects in the request body.
-            The array of JSON objects passed in will be created in the order submitted and the response will have the URI 
-            of the new resource or an error message as an array in the same order. When errors are encountered, 
-            the batch process will attempt to continue for all submitted items.
+            The array of JSON objects passed may not be created in the order submitted.  The response will have the URI 
+            of the new resource or an error message as an array in the order the order the objects were processed. 
+            When errors are encountered, the batch process will attempt to continue for all submitted items.
         </p>
 
         <p> 
@@ -760,9 +760,8 @@
         <p>
             Update multiple existing RERUM objects at once and recieve an array of the complete records as the response body.
             Accepts only a single array of JSON objects in the request body.  The '@id' property must be present for each object.
-            The array of JSON objects passed in will be updated in the order submitted and the response will have the URI 
-            of the new resource or an error message as an array in the same order. When errors are encountered, 
-            the batch process will attempt to continue for all submitted items.
+            The array of JSON objects passed in may not be updated in the order submitted.  The response will have the URI 
+            of the new resource or an error message as an array in the order the objects were processed. When errors are encountered, the batch process will attempt to continue for all submitted items.
         </p>
 
         <p> 

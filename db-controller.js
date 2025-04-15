@@ -1035,10 +1035,10 @@ const bulkCreate = async function (req, res, next) {
     // }
 
     // unordered bulkWrite() operations have better performance metrics.
-    let bulkOps = [{'ordered':false}]
+    let bulkOps = []
     const generatorAgent = getAgentClaim(req, next)
-    documents.forEach(d => {
-        // Do not create {}
+    for(let d of documents) {
+        // Do not create empty {}s
         if(Object.keys(d).length === 0) continue
         const providedID = d?._id
         const id = isValidID(providedID) ? providedID : ObjectID()
@@ -1048,9 +1048,9 @@ const bulkCreate = async function (req, res, next) {
         d._id = id
         d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
         bulkOps.push({ insertOne : { "document" : d }})
-    })
+    }
     try {
-        let dbResponse = await db.bulkWrite(bulkOps)
+        let dbResponse = await db.bulkWrite(bulkOps, {'ordered':false})
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(201)
@@ -1111,7 +1111,7 @@ const bulkUpdate = async function (req, res, next) {
         return
     }
     // unordered bulkWrite() operations have better performance metrics.
-    let bulkOps = [{'ordered':false}]
+    let bulkOps = []
     const generatorAgent = getAgentClaim(req, next)
     for(const objectReceived of documents){
         // We know it has an id
@@ -1154,7 +1154,7 @@ const bulkUpdate = async function (req, res, next) {
         }
     }
     try {
-        let dbResponse = await db.bulkWrite(bulkOps)
+        let dbResponse = await db.bulkWrite(bulkOps, {'ordered':false})
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set("Link", dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(200)
