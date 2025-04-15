@@ -17,7 +17,7 @@
  *  X-HTTP-Method-Override header is present, !== PATCH means "no", you have done a POST and are not emulating it as a PATCH, so 405
  *  X-HTTP-Method-Override header is present, == PATCH, and method request is POST means "yes", you are emulating a POST as a PATCH, correct method 200
  *
- *  The error handler sits a level up, so do not res.send() or res.render here.  Just give back a boolean
+ *  The error handler sits a level up, so do not res.send() here.  Just give back a boolean
  */
 const checkPatchOverrideSupport = function (req, res) {
     const override = req.header("X-HTTP-Method-Override")
