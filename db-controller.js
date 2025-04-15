@@ -132,10 +132,8 @@ const create = async function (req, res, next) {
     const id = isValidID(providedID) ? providedID : ObjectID()
     delete provided["__rerum"]
     delete provided["@id"]
-    if(_contextid(provided["@context"])) {
-        // id is also protected in this case, so it can't be set.
-        delete provided.id
-    }
+    // id is also protected in this case, so it can't be set.
+    if(_contextid(provided["@context"])) delete provided.id
     delete provided["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
@@ -296,10 +294,8 @@ const putUpdate = async function (req, res, next) {
             delete objectReceived["__rerum"]
             delete objectReceived["_id"]
             delete objectReceived["@id"]
-            if(_contextid(objectReceived["@context"])) {
-                // id is also protected in this case, so it can't be set.
-                delete objectReceived.id
-            }
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
             
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
@@ -357,10 +353,8 @@ async function _import(req, res, next) {
     delete objectReceived["__rerum"]
     delete objectReceived["_id"]
     delete objectReceived["@id"]
-    if(_contextid(objectReceived["@context"])) {
-        // id is also protected in this case, so it can't be set.
-        delete objectReceived.id
-    }
+    // id is also protected in this case, so it can't be set.
+    if(_contextid(objectReceived["@context"])) delete objectReceived.id
     delete objectReceived["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
@@ -423,10 +417,8 @@ const patchUpdate = async function (req, res, next) {
             delete objectReceived.__rerum //can't patch this
             delete objectReceived._id //can't patch this
             delete objectReceived["@id"] //can't patch this
-            if(_contextid(objectReceived["@context"])) {
-                // id is also protected in this case, so it can't be set.
-                delete objectReceived.id
-            }
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
             //A patch only alters existing keys.  Remove non-existent keys from the object received in the request body.
             for (let k in objectReceived) {
                 if (originalObject.hasOwnProperty(k)) {
@@ -459,10 +451,8 @@ const patchUpdate = async function (req, res, next) {
             delete patchedObject["__rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
-            if(_contextid(patchedObject["@context"])) {
-                // id is also protected in this case, so it can't be set.
-                delete patchedObject.id
-            }
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
@@ -654,10 +644,9 @@ const patchUnset = async function (req, res, next) {
             delete objectReceived._id //can't unset this
             delete objectReceived.__rerum //can't unset this
             delete objectReceived["@id"] //can't unset this
-            if(_contextid(originalObject["@context"])) {
-                // id is also protected in this case, so it can't be unset.
-                delete objectReceived.id
-            }
+            // id is also protected in this case, so it can't be unset.
+            if(_contextid(originalObject["@context"])) delete objectReceived.id
+            
             /**
              * unset does not alter an existing key.  It removes an existing key.
              * The request payload had {key:null} to flag keys to be removed.
@@ -689,12 +678,9 @@ const patchUnset = async function (req, res, next) {
             delete patchedObject["__rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
-            if(_contextid(patchedObject["@context"])) {
-                // id is also protected in this case, so it can't be set.
-                delete patchedObject.id
-            }
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
-            
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UNSET")
             try {
@@ -786,10 +772,8 @@ const overwrite = async function (req, res, next) {
             delete objectReceived["@id"]
             delete objectReceived["_id"]
             delete objectReceived["__rerum"]
-            if(_contextid(objectReceived["@context"])) {
-                // id is also protected in this case, so it can't be set.
-                delete objectReceived.id
-            }
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
             let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
             let result
@@ -1016,13 +1000,17 @@ const bulkCreate = async function (req, res, next) {
         next(createExpressError(err))
         return
     }
-    if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
-        err.message = "`/bulkCreate` will only accept objects without @id or id properties."
-        //err.status = 422
+    let gate = documents.filter(d=> {
+        if(Array.isArray(d) || typeof d !== "object") return d
+        const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
+        if(idcheck) return d
+    }) 
+    if (gate.length > 1) {
+        err.message = "All objects in the body of a `/bulkCreate` must be JSON and must not contain an @id or id property."
         err.status = 400
         next(createExpressError(err))
         return
-    }
+    })
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
     // let slug = req.get("Slug")
     // if(slug){
@@ -1041,10 +1029,8 @@ const bulkCreate = async function (req, res, next) {
         const providedID = d._id
         const id = isValidID(providedID) ? providedID : ObjectID()
         d = utils.configureRerumOptions(generatorAgent, d)
-        if(_contextid(d["@context"])) {
-            // id is also protected in this case, so it can't be set.
-            delete d.id
-        }
+        // id is also protected in this case, so it can't be set.
+        if(_contextid(d["@context"])) delete d.id
         d._id = id
         d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
         bulkOps.push({ insertOne : { "document" : d }})
@@ -1071,7 +1057,7 @@ const bulkUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
     let err = {}
-    // TODO: validate documents gatekeeper function?
+    let encountered = []
     if (!Array.isArray(documents)) {
         err.message = "The request body must be an array of objects."
         //err.status = 406
@@ -1086,21 +1072,27 @@ const bulkUpdate = async function (req, res, next) {
         next(createExpressError(err))
         return
     }
-    if (documents.filter(d=>!(d["@id"] ?? d.id)).length > 0) {
-        err.message = "All objects in the body of a `/bulkUpdate` must contain an @id or id property."
-        //err.status = 422
+    let gate = documents.filter(d => {
+        if(Array.isArray(d) || typeof d !== "object") return d
+        const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
+        if(!idcheck) return d
+    }) 
+    if (gate.length > 1) {
+        err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain an @id or id property."
         err.status = 400
         next(createExpressError(err))
         return
-    }
+    })
     let bulkOps = []
     let generatorAgent = getAgentClaim(req, next)
-    for(const d of documents){
-        const objectReceived = d
+    for(const objectReceived of documents){
+        // We know it has an id
         const idReceived = objectReceived["@id"] ?? objectReceived.id
+        // but we will not update the same thing twice.
+        if(encountered.includes(idReceived)) continue
+        encountered.push(idReceived)
         if (idReceived) {
             if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
-                //This would need imported.  This is not supported in the bulk update.  Skip this object, or error.
                 continue
             }
             let id = parseDocumentID(idReceived)
@@ -1112,7 +1104,6 @@ const bulkUpdate = async function (req, res, next) {
                 return
             }
             if (null === originalObject) {
-                //This object is not found.  Skip it or error
                 continue
             }
             if (utils.isDeleted(originalObject)) {
@@ -1124,20 +1115,17 @@ const bulkUpdate = async function (req, res, next) {
             delete objectReceived["__rerum"]
             delete objectReceived["_id"]
             delete objectReceived["@id"]
-            if(_contextid(objectReceived["@context"])) {
-                // id is also protected in this case, so it can't be set.
-                delete objectReceived.id
-            }
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             bulkOps.push({ insertOne : { "document" : newObject }})
-            let alteredObj = JSON.parse(JSON.stringify(originalObject))
-            if(alteredObj.__rerum.history.next.indexOf(newObject["@id"]) === -1){
-                alteredObj.__rerum.history.next.push(newObject["@id"])
+            if(originalObject.__rerum.history.next.indexOf(newObject["@id"]) === -1){
+                originalObject.__rerum.history.next.push(newObject["@id"])
                 const replaceOp = { replaceOne :
                     {
-                        "filter" : { "_id": alteredObj["_id"] },
-                        "replacement" : alteredObj,
+                        "filter" : { "_id": originalObject["_id"] },
+                        "replacement" : originalObject,
                         "upsert" : false
                     }
                 }
