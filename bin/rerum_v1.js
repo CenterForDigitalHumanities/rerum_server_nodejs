@@ -15,14 +15,14 @@ dotenv.config()
  * Get port from environment and store in Express.
  */
 
-var port = process.env.PORT ?? 3001
+const port = process.env.PORT ?? 3001
 app.set('port', port)
 
 /**
  * Create HTTP server.
  */
 
-var server = http.createServer(app)
+const server = http.createServer(app)
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -48,9 +48,7 @@ function onError(error) {
   if (error.syscall !== 'listen') {
     throw error
   }
-
-  var bind = `Port ${port}`
-
+  const bind = `Port ${port}`
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
@@ -70,8 +68,8 @@ function onError(error) {
 
 function onListening() {
   console.log("LISTENING ON "+port)
-  var addr = server.address()
-  var bind = typeof addr === 'string'
+  const addr = server.address()
+  const bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port
   debug('Listening on ' + bind)
