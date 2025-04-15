@@ -15,7 +15,7 @@ dotenv.config()
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(process.env.PORT ?? '3001')
+const port = process.env.PORT ?? 3001
 app.set('port', port)
 
 /**
@@ -41,26 +41,6 @@ server.keepAliveTimeout = 8 * 1000 //8 seconds
 server.headersTimeout = 8.5 * 1000 //8 seconds
 
 /**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  const portCheck = parseInt(val, 10)
-
-  if (isNaN(portCheck)) {
-    // named pipe
-    return val
-  }
-
-  if (portCheck >= 0) {
-    // port number
-    return portCheck
-  }
-
-  return false
-}
-
-/**
  * Event listener for HTTP server "error" event.
  */
 
@@ -68,21 +48,15 @@ function onError(error) {
   if (error.syscall !== 'listen') {
     throw error
   }
-
-  const bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port
-
+  const bind = `Port ${port}`
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
       console.error(bind + ' requires elevated privileges')
       process.exit(1)
-      break
     case 'EADDRINUSE':
       console.error(bind + ' is already in use')
       process.exit(1)
-      break
     default:
       throw error
   }

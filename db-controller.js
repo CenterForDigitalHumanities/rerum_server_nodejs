@@ -9,7 +9,7 @@
  * 
  * @author thehabes 
  */
-import { newID, db } from './database/index.js'
+import { newID, isValidID, db } from './database/index.js'
 import utils from './utils.js'
 const ObjectID = newID
 
@@ -19,6 +19,59 @@ const index = function (req, res, next) {
         status: "connected",
         message: "Not sure what to do"
     })
+}
+
+/**
+ * Check if a @context value contains a known @id-id mapping context
+ *
+ * @param contextInput An Array of string URIs or a string URI.
+ * @return A boolean
+ */
+function _contextid(contextInput) {
+    if(!Array.isArray(contextInput) && typeof contextInput !== "string") return false
+    let bool = false
+    let contextURI = typeof contextInput === "string" ? contextInput : "unknown"
+    const contextCheck = (c) => contextURI.includes(c)
+    const knownContexts = [
+        "store.rerum.io/v1/context.json",
+        "iiif.io/api/presentation/3/context.json",
+        "www.w3.org/ns/anno.jsonld",
+        "www.w3.org/ns/oa.jsonld"
+    ]
+    if(Array.isArray(contextInput)) {
+        for(const c of contextInput) {
+            contextURI = c
+            bool = knownContexts.some(contextCheck)
+            if(bool) break
+        }
+    }
+    else {
+        bool = knownContexts.some(contextCheck)
+    }
+    return bool
+}
+
+/**
+ * Modify the JSON of an Express response body by performing _id, id, and @id negotiation.
+ * This ensures the JSON has the appropriate _id, id, and/or @id value on the way out to the client.
+ * Make sure the first property is @context and the second property is the negotiated @id/id.
+ *
+ * @param resBody A JSON object representing an Express response body
+ * @return JSON with the appropriate modifications around the 'id;, '@id', and '_id' properties.
+ */
+const idNegotiation = function (resBody) {
+    if(!resBody) return
+    const _id = resBody._id
+    delete resBody._id
+    if(!resBody["@context"]) return resBody
+    let modifiedResBody = JSON.parse(JSON.stringify(resBody))
+    const context = { "@context": resBody["@context"] }
+    if(_contextid(resBody["@context"])) {
+        delete resBody["@id"]
+        delete resBody["@context"]
+        modifiedResBody = Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
+    }
+    return modifiedResBody
 }
 
 /**
@@ -69,17 +122,20 @@ const create = async function (req, res, next) {
             slug = slug_json.slug_id
         }
     }
-    const id = ObjectID()
+    
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     rerumProp.__rerum.slug = slug
-    delete provided["_rerum"]
-    delete provided["_id"]
+    const providedID = provided._id
+    const id = isValidID(providedID) ? providedID : ObjectID()
+    delete provided["__rerum"]
     delete provided["@id"]
-    delete provided["id"]
+    // id is also protected in this case, so it can't be set.
+    if(_contextid(provided["@context"])) delete provided.id
     delete provided["@context"]
+    
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
     try {
@@ -87,7 +143,7 @@ const create = async function (req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(201)
-        delete newObject._id
+        newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.json(newObject)
     }
@@ -235,10 +291,13 @@ const putUpdate = async function (req, res, next) {
             id = ObjectID()
             let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
-            delete objectReceived["_rerum"]
+            delete objectReceived["__rerum"]
             delete objectReceived["_id"]
             delete objectReceived["@id"]
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
+            
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             console.log("UPDATE")
             try {
@@ -248,7 +307,7 @@ const putUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -291,11 +350,13 @@ async function _import(req, res, next) {
     const id = ObjectID()
     let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
-    delete objectReceived["_rerum"]
+    delete objectReceived["__rerum"]
     delete objectReceived["_id"]
     delete objectReceived["@id"]
-    delete objectReceived["id"]
+    // id is also protected in this case, so it can't be set.
+    if(_contextid(objectReceived["@context"])) delete objectReceived.id
     delete objectReceived["@context"]
+    
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
     console.log("IMPORT")
     try {
@@ -303,7 +364,7 @@ async function _import(req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         res.location(newObject["@id"])
         res.status(200)
-        delete newObject._id
+        newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.json(newObject)
     }
@@ -327,8 +388,9 @@ const patchUpdate = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
-    if (objectReceived["@id"]) {
-        let id = parseDocumentID(objectReceived["@id"])
+    const receivedID = objectReceived["@id"] ?? objectReceived.id
+    if (receivedID) {
+        let id = parseDocumentID(receivedID)
         let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -355,6 +417,8 @@ const patchUpdate = async function (req, res, next) {
             delete objectReceived.__rerum //can't patch this
             delete objectReceived._id //can't patch this
             delete objectReceived["@id"] //can't patch this
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
             //A patch only alters existing keys.  Remove non-existent keys from the object received in the request body.
             for (let k in objectReceived) {
                 if (originalObject.hasOwnProperty(k)) {
@@ -376,7 +440,7 @@ const patchUpdate = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
-                delete originalObject._id
+                originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
@@ -384,9 +448,11 @@ const patchUpdate = async function (req, res, next) {
             const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
-            delete patchedObject["_rerum"]
+            delete patchedObject["__rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
@@ -397,7 +463,7 @@ const patchUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -417,7 +483,7 @@ const patchUpdate = async function (req, res, next) {
     else {
         //The http module will not detect this as a 400 on its own
         err = Object.assign(err, {
-            message: `Object in request body must have the property '@id'. ${err.message}`,
+            message: `Object in request body must have the property '@id' or 'id'. ${err.message}`,
             status: 400
         })
     }
@@ -436,10 +502,12 @@ const patchSet = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let originalContext
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
-    if (objectReceived["@id"]) {
-        let id = parseDocumentID(objectReceived["@id"])
+    const receivedID = objectReceived["@id"] ?? objectReceived.id
+    if (receivedID) {
+        let id = parseDocumentID(receivedID)
         let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -463,7 +531,14 @@ const patchSet = async function (req, res, next) {
         }
         else {
             patchedObject = JSON.parse(JSON.stringify(originalObject))
+            if(_contextid(originalObject["@context"])) {
+                // If the original object has a context that needs id protected, make sure you don't set it.
+                delete objectReceived.id
+                delete originalObject.id
+                delete patchedObject.id
+            }
             //A set only adds new keys.  If the original object had the key, it is ignored here.
+            delete objectReceived._id
             for (let k in objectReceived) {
                 if (originalObject.hasOwnProperty(k)) {
                     //Note the possibility of notifying the user that these keys were not processed.
@@ -479,7 +554,7 @@ const patchSet = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
-                delete originalObject._id
+                originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
@@ -487,7 +562,7 @@ const patchSet = async function (req, res, next) {
             const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
-            delete patchedObject["_rerum"]
+            delete patchedObject["__rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
             delete patchedObject["@context"]
@@ -499,7 +574,7 @@ const patchSet = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -519,7 +594,7 @@ const patchSet = async function (req, res, next) {
     else {
         //The http module will not detect this as a 400 on its own
         err = Object.assign(err, {
-            message: `Object in request body must have the property '@id'. ${err.message}`,
+            message: `Object in request body must have the property '@id' or 'id'. ${err.message}`,
             status: 400
         })
     }
@@ -540,8 +615,9 @@ const patchUnset = async function (req, res, next) {
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
-    if (objectReceived["@id"]) {
-        let id = parseDocumentID(objectReceived["@id"])
+    const receivedID = objectReceived["@id"] ?? objectReceived.id
+    if (receivedID) {
+        let id = parseDocumentID(receivedID)
         let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -568,6 +644,9 @@ const patchUnset = async function (req, res, next) {
             delete objectReceived._id //can't unset this
             delete objectReceived.__rerum //can't unset this
             delete objectReceived["@id"] //can't unset this
+            // id is also protected in this case, so it can't be unset.
+            if(_contextid(originalObject["@context"])) delete objectReceived.id
+            
             /**
              * unset does not alter an existing key.  It removes an existing key.
              * The request payload had {key:null} to flag keys to be removed.
@@ -588,7 +667,7 @@ const patchUnset = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 res.location(originalObject["@id"])
                 res.status(200)
-                delete originalObject._id
+                originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.json(originalObject)
                 return
@@ -596,9 +675,11 @@ const patchUnset = async function (req, res, next) {
             const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
-            delete patchedObject["_rerum"]
+            delete patchedObject["__rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UNSET")
@@ -609,7 +690,7 @@ const patchUnset = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     res.location(newObject["@id"])
                     res.status(200)
-                    delete newObject._id
+                    newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.json(newObject)
                     return
@@ -629,7 +710,7 @@ const patchUnset = async function (req, res, next) {
     else {
         //The http module will not detect this as a 400 on its own
         err = Object.assign(err, {
-            message: `Object in request body must have the property '@id'. ${err.message}`,
+            message: `Object in request body must have the property '@id' or 'id'. ${err.message}`,
             status: 400
         })
     }
@@ -647,9 +728,10 @@ const overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let agentRequestingOverwrite = getAgentClaim(req, next)
-    if (objectReceived["@id"]) {
+    const receivedID = objectReceived["@id"] ?? objectReceived.id
+    if (receivedID) {
         console.log("OVERWRITE")
-        let id = parseDocumentID(objectReceived["@id"])
+        let id = parseDocumentID(receivedID)
         let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
@@ -688,9 +770,11 @@ const overwrite = async function (req, res, next) {
             const id = originalObject["_id"]
             //Get rid of them so we can enforce the order
             delete objectReceived["@id"]
-            delete objectReceived["@context"]
             delete objectReceived["_id"]
             delete objectReceived["__rerum"]
+            // id is also protected in this case, so it can't be set.
+            if(_contextid(objectReceived["@context"])) delete objectReceived.id
+            delete objectReceived["@context"]
             let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
             let result
             try {
@@ -703,7 +787,7 @@ const overwrite = async function (req, res, next) {
             }
             res.set(utils.configureWebAnnoHeadersFor(newObject))
             res.location(newObject["@id"])
-            delete newObject._id
+            newObject = idNegotiation(newObject)
             newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
             res.json(newObject)
             return
@@ -712,7 +796,7 @@ const overwrite = async function (req, res, next) {
     else {
         //This is a custom one, the http module will not detect this as a 400 on its own
         err = Object.assign(err, {
-            message: `Object in request body must have the property '@id'. ${err.message}`,
+            message: `Object in request body must have the property '@id' or 'id'. ${err.message}`,
             status: 400
         })
     }
@@ -819,7 +903,7 @@ const release = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(releasedObject))
                 res.location(releasedObject["@id"])
                 console.log(releasedObject._id+" has been released")
-                delete releasedObject._id
+                releasedObject = idNegotiation(releasedObject)
                 releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
                 res.json(releasedObject)
                 return
@@ -858,11 +942,7 @@ const query = async function (req, res, next) {
     }
     try {
         let matches = await db.find(props).limit(limit).skip(skip).toArray()
-        matches =
-            matches.map(o => {
-                delete o._id
-                return o
-            })
+        matches = matches.map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
@@ -887,43 +967,60 @@ const id = async function (req, res, next) {
             //Support requests with 'If-Modified_Since' headers
             res.set(utils.configureLastModifiedHeader(match))
             res.location(match["@id"])
-            delete match._id
+            match = idNegotiation(match)
             res.json(match)
             return
         }
-        let err = new Error(`No RERUM object with id '${id}'`)
-        err.status = 404
-        throw err
+        let err = {
+            "message": `No RERUM object with id '${id}'`,
+            "status": 404
+        } 
+        next(createExpressError(err))
     } catch (error) {
         next(createExpressError(error))
     }
 }
 
+/**
+ * Create many objects at once with the power of MongoDB bulkWrite() operations.
+ * 
+ * @see https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/
+ */
 const bulkCreate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
-    // TODO: validate documents gatekeeper function?
+    let err = {}
     if (!Array.isArray(documents)) {
-        let err = new Error("The request body must be an array of objects.")
-        //err.status = 406
+        err.message = "The request body must be an array of objects."
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
     if (documents.length === 0) {
-        let err = new Error("No action on an empty array.")
-        //err.status = 406
+        err.message = "No action on an empty array."
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
-    if (documents.filter(d=>d["@id"] ?? d.id).length > 0) {
-        let err = new Error("`/bulkCreate` will only accept objects without @id or id properties.")
-        //err.status = 422
+    const gatekeep = documents.filter(d=> {
+        // Each item must be valid JSON, but can't be an array.
+        if(Array.isArray(d) || typeof d !== "object") return d
+        try {
+            JSON.parse(JSON.stringify(d))
+        } catch (err) {
+            return d
+        }
+        // Items must not have an @id, and in some cases same for id.
+        const idcheck = _contextid(d["@context"]) ? (d.id ?? d["@id"]) : d["@id"]
+        if(idcheck) return d
+    }) 
+    if (gatekeep.length > 0) {
+        err.message = "All objects in the body of a `/bulkCreate` must be JSON and must not contain a declared identifier property."
         err.status = 400
-        next(err)
+        next(createExpressError(err))
         return
     }
+
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
     // let slug = req.get("Slug")
     // if(slug){
@@ -936,24 +1033,134 @@ const bulkCreate = async function (req, res, next) {
     //         slug = slug_json.slug_id
     //     }
     // }
+
+    // unordered bulkWrite() operations have better performance metrics.
     let bulkOps = []
-    documents.forEach(d => {
-        const id = ObjectID()
-        let generatorAgent = getAgentClaim(req, next)
+    const generatorAgent = getAgentClaim(req, next)
+    for(let d of documents) {
+        // Do not create empty {}s
+        if(Object.keys(d).length === 0) continue
+        const providedID = d?._id
+        const id = isValidID(providedID) ? providedID : ObjectID()
         d = utils.configureRerumOptions(generatorAgent, d)
-        // TODO: check profiles/parameters for 'id' vs '@id' and use that
+        // id is also protected in this case, so it can't be set.
+        if(_contextid(d["@context"])) delete d.id
         d._id = id
         d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
         bulkOps.push({ insertOne : { "document" : d }})
-    })
+    }
     try {
-        let dbResponse = await db.bulkWrite(bulkOps)
+        let dbResponse = await db.bulkWrite(bulkOps, {'ordered':false})
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(201)
         const estimatedResults = bulkOps.map(f=>{
             let doc = f.insertOne.document
-            delete doc._id
+            doc = idNegotiation(doc)
+            return doc
+        })
+        res.json(estimatedResults)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
+    }
+    catch (error) {
+        //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
+        next(createExpressError(error))
+    }
+}
+
+/**
+ * Update many objects at once with the power of MongoDB bulkWrite() operations.
+ * Make sure to alter object __rerum.history as appropriate.
+ * The same object may be updated more than once, which will create history branches (not straight sticks)
+ *
+ * @see https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/
+ */
+const bulkUpdate = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    const documents = req.body
+    let err = {}
+    let encountered = []
+    if (!Array.isArray(documents)) {
+        err.message = "The request body must be an array of objects."
+        err.status = 400
+        next(createExpressError(err))
+        return
+    }
+    if (documents.length === 0) {
+        err.message = "No action on an empty array."
+        err.status = 400
+        next(createExpressError(err))
+        return
+    }
+    const gatekeep = documents.filter(d => {
+        // Each item must be valid JSON, but can't be an array.
+        if(Array.isArray(d) || typeof d !== "object") return d
+        try {
+            JSON.parse(JSON.stringify(d))
+        } catch (err) {
+            return d
+        }
+        // Items must have an @id, or in some cases an id will do
+        const idcheck = _contextid(d["@context"]) ? (d.id ?? d["@id"]) : d["@id"]
+        if(!idcheck) return d
+    })
+    // The empty {}s will cause this error
+    if (gatekeep.length > 0) {
+        err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property."
+        err.status = 400
+        next(createExpressError(err))
+        return
+    }
+    // unordered bulkWrite() operations have better performance metrics.
+    let bulkOps = []
+    const generatorAgent = getAgentClaim(req, next)
+    for(const objectReceived of documents){
+        // We know it has an id
+        const idReceived = objectReceived["@id"] ?? objectReceived.id
+        // Update the same thing twice?  can vs should.
+        // if(encountered.includes(idReceived)) continue
+        encountered.push(idReceived)
+        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)) continue
+        let id = parseDocumentID(idReceived)
+        let originalObject
+        try {
+            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+        } catch (error) {
+            next(createExpressError(error))
+            return
+        }
+        if (null === originalObject) continue
+        if (utils.isDeleted(originalObject)) continue
+        id = ObjectID()
+        let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+        let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+        delete objectReceived["__rerum"]
+        delete objectReceived["_id"]
+        delete objectReceived["@id"]
+        // id is also protected in this case, so it can't be set.
+        if(_contextid(objectReceived["@context"])) delete objectReceived.id
+        delete objectReceived["@context"]
+        let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+        bulkOps.push({ insertOne : { "document" : newObject }})
+        if(originalObject.__rerum.history.next.indexOf(newObject["@id"]) === -1){
+            originalObject.__rerum.history.next.push(newObject["@id"])
+            const replaceOp = { replaceOne :
+                {
+                    "filter" : { "_id": originalObject["_id"] },
+                    "replacement" : originalObject,
+                    "upsert" : false
+                }
+            }
+            bulkOps.push(replaceOp)
+        }
+    }
+    try {
+        let dbResponse = await db.bulkWrite(bulkOps, {'ordered':false})
+        res.set("Content-Type", "application/json; charset=utf-8")
+        res.set("Link", dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
+        res.status(200)
+        const estimatedResults = bulkOps.filter(f=>f.insertOne).map(f=>{
+            let doc = f.insertOne.document
+            doc = idNegotiation(doc)
             return doc
         })
         res.json(estimatedResults)  // https://www.rfc-editor.org/rfc/rfc7231#section-6.3.2
@@ -980,9 +1187,11 @@ const idHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = new Error(`No RERUM object with id '${id}'`)
-        err.status = 404
-        throw err
+        let err = {
+            "message": `No RERUM object with id '${id}'`,
+            "status": 404
+        }
+        next(createExpressError(err))
     } catch (error) {
         next(createExpressError(error))
     }
@@ -1003,9 +1212,11 @@ const queryHeadRequest = async function (req, res, next) {
             res.sendStatus(200)
             return
         }
-        let err = new Error(`There is no object in the database with id '${id}'.  Check the URL.`)
-        err.status = 404
-        throw err
+        let err = {
+            "message": `There is no object in the database with id '${id}'.  Check the URL.`,
+            "status": 404
+        } 
+        next(createExpressError(err))
     } catch (error) {
         next(createExpressError(error))
     }
@@ -1042,10 +1253,7 @@ const since = async function (req, res, next) {
         })
     let descendants = getAllDescendants(all, obj, [])
     descendants =
-        descendants.map(o => {
-            delete o._id
-            return o
-        })
+        descendants.map(o => idNegotiation(o))
     res.set(utils.configureLDHeadersFor(descendants))
     res.json(descendants)
 }
@@ -1083,10 +1291,7 @@ const history = async function (req, res, next) {
         })
     let ancestors = getAllAncestors(all, obj, [])
     ancestors =
-        ancestors.map(o => {
-            delete o._id
-            return o
-        })
+        ancestors.map(o => idNegotiation(o))
     res.set(utils.configureLDHeadersFor(ancestors))
     res.json(ancestors)
 }
@@ -1485,42 +1690,30 @@ async function newTreePrime(obj) {
 }
 
 /**
- * 
- * @param {Object} update `message` and `status` for creating a custom Error
- * @param {Error} originalError `source` for tracing this Error
- * @returns Error for use in Express.next(err)
+ * Recieve an error from a route.  It should already have a statusCode and statusMessage.
+ * Note that this may be a Mongo error that occurred during a database action during a route.
+ * Reformat known mongo errors into regular errors with an apprpriate statusCode and statusMessage.
+ *
+ * @param {Object} err An object with `statusMessage` and `statusCode`, or a Mongo error with 'code', for error reporting
+ * @returns A JSON object with a statusCode and statusMessage to send into rest.js for RESTful erroring.
  */
-function createExpressError(update, originalError = {}) {
-    let err = Error("detected error", { cause: originalError })
-    if (update.code) {
-        /**
-         * Detection that createExpressError(error) passed in a mongo client error.
-         * IMPORTANT!  If you try to write to 'update' when it comes in as a mongo error...
-         * 
-            POST /v1/api/create 500
-            Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
-         *
-         * If you do update.statusMessage or update.statusCode YOU WILL CAUSE THIS ERROR.
-         * Make sure you write to err instead.  Object.assign() will have the same result.
-         */
-        switch (update.code) {
+function createExpressError(err) {
+    let error = {}
+    if (err.code) {
+        switch (err.code) {
             case 11000:
                 //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
-                err.statusMessage = `The id provided in the Slug header already exists.  Please use a different Slug.`
-                err.statusCode = 409
+                error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
+                error.statusCode = 409
                 break
             default:
-                err.statusMessage = "There was a mongo error that prevented this request from completing successfully."
-                err.statusCode = 500
+                error.statusMessage = "There was a mongo error that prevented this request from completing successfully."
+                error.statusCode = 500
         }
     }
-    else {
-        //Warning!  If 'update' is considered sent, this will cause a 500.  See notes above.
-        update.statusMessage = update.message
-        update.statusCode = update.status
-    }
-    Object.assign(err, update)
-    return err
+    error.statusCode = err.statusCode ?? err.status ?? 500
+    error.statusMessage = err.statusMessage ?? err.message ?? "Detected Error"
+    return error
 }
 
 /**
@@ -1557,8 +1750,10 @@ function getAgentClaim(req, next) {
             return agent
         }
     }
-    let err = new Error("Could not get agent from req.user.  Have you registered with RERUM?")
-    err.status = 403
+    let err = {
+        "message": "Could not get agent from req.user.  Have you registered with RERUM?",
+        "status": 403
+    }
     next(createExpressError(err))  
 }
 
@@ -2151,6 +2346,7 @@ export default {
  query,
  id,
  bulkCreate,
+ bulkUpdate,
  idHeadRequest,
  queryHeadRequest,
  since,
@@ -2159,5 +2355,6 @@ export default {
  historyHeadRequest,
  remove,
  _gog_glosses_from_manuscript,
- _gog_fragments_from_manuscript
+ _gog_fragments_from_manuscript,
+ idNegotiation
 }

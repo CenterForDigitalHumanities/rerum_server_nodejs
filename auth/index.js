@@ -170,7 +170,7 @@ const isGenerator = (obj, userObj) => {
  * @returns Boolean for matching ID.
  */
 const isBot = (userObj) => {
-    return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM] ?? "Error"
+    return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM]
 }
 
 function READONLY(req, res, next) {

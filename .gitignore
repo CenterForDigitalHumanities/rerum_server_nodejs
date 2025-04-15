@@ -107,3 +107,4 @@ dist
 #dotenv
 *.env
 /nbproject/private/
+.hintrc
