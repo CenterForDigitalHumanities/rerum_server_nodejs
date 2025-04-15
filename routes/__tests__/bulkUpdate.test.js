@@ -18,6 +18,6 @@ routeTester.use(express.urlencoded({ extended: false }))
 // Mount our own /bulkCreate route without auth that will use controller.bulkCreate
 routeTester.use("/bulkUpdate", [addAuth, controller.bulkUpdate])
 
-it("'/bulkUpdate' route functions", async () => {
+it.skip("'/bulkUpdate' route functions", async () => {
   // TODO without hitting the v1/id/11111 object because it is already abused.
 })
