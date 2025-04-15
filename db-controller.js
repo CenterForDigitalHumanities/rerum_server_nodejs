@@ -35,7 +35,6 @@ function _contextid(contextInput) {
     const knownContexts = [
         "store.rerum.io/v1/context.json",
         "iiif.io/api/presentation/3/context.json",
-        "iiif.io/api/presentation/2/context.json",
         "www.w3.org/ns/anno.jsonld"
     ]
     if(Array.isArray(contextInput)) {
