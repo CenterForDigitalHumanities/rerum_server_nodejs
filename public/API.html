@@ -72,7 +72,7 @@
                         <ul>
                             <li><a href="#update">Update</a></li>
                             <li><a href="#overwrite">Overwrite</a></li>
-                            <!-- <li><a href="#bulk-update-beta">Bulk Update (beta)</a></li> -->
+                            <li><a href="#bulk-update">Bulk Update</a></li>
                         </ul>
                     </li>
                     <li><a href="#patch">PATCH</a>
@@ -430,7 +430,7 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {</span>
+                <span>const saved_objs = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {</span>
                     <span class="ind1">method: "POST",</span>
                     <span class="ind1">headers:{</span>
                         <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
@@ -745,7 +745,7 @@
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">/bulkUpdate</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
-                    <td>201 <code>
+                    <td>200 <code>
                         <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
             </tbody>
@@ -769,19 +769,19 @@
         <p> 
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/bulkUpdate", {</span>
-                    <span class="ind1">method: "POST",</span>
+                <span>const updated_objs = await fetch("https://devstore.rerum.io/v1/api/bulkUpdate", {</span>
+                    <span class="ind1">method: "PUT",</span>
                     <span class="ind1">headers:{</span>
                         <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
-                    <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify([
+                    <span class="ind1">body: JSON.stringify([{
                         <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
-                        <span class="ind2">"hello": "new world",</span>
+                        <span class="ind2">"hello": "new world"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">{</span>
                         <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
                         <span class="ind2">"goodbye": "old planet"</span>
-                    <span class="ind1">])</span>
-                <span>})</span>
+                    <span class="ind1">}])</span>
                 <span>.then(resp => resp.json())</span>
                 <span>.catch(err => {throw err})
             </code></pre>
