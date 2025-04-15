@@ -981,26 +981,28 @@ const id = async function (req, res, next) {
     }
 }
 
+/**
+ * Create many objects at once with the power of MongoDB bulkWrite() operations.
+ * 
+ * @see https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/
+ */
 const bulkCreate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
     let err = {}
-    // TODO: validate documents gatekeeper function?
     if (!Array.isArray(documents)) {
         err.message = "The request body must be an array of objects."
-        //err.status = 406
         err.status = 400
         next(createExpressError(err))
         return
     }
     if (documents.length === 0) {
         err.message = "No action on an empty array."
-        //err.status = 406
         err.status = 400
         next(createExpressError(err))
         return
     }
-    let gatekeep = documents.filter(d=> {
+    const gatekeep = documents.filter(d=> {
         // Each item must be valid JSON, but can't be an array.
         if(Array.isArray(d) || typeof d !== "object") return d
         try {
@@ -1018,6 +1020,7 @@ const bulkCreate = async function (req, res, next) {
         next(createExpressError(err))
         return
     }
+
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
     // let slug = req.get("Slug")
     // if(slug){
@@ -1030,10 +1033,14 @@ const bulkCreate = async function (req, res, next) {
     //         slug = slug_json.slug_id
     //     }
     // }
-    let bulkOps = []
-    let generatorAgent = getAgentClaim(req, next)
+
+    // unordered bulkWrite() operations have better performance metrics.
+    let bulkOps = [{'ordered':false}]
+    const generatorAgent = getAgentClaim(req, next)
     documents.forEach(d => {
-        const providedID = d._id
+        // Do not create {}
+        if(Object.keys(d).length === 0) continue
+        const providedID = d?._id
         const id = isValidID(providedID) ? providedID : ObjectID()
         d = utils.configureRerumOptions(generatorAgent, d)
         // id is also protected in this case, so it can't be set.
@@ -1060,6 +1067,13 @@ const bulkCreate = async function (req, res, next) {
     }
 }
 
+/**
+ * Update many objects at once with the power of MongoDB bulkWrite() operations.
+ * Make sure to alter object __rerum.history as appropriate.
+ * The same object may be updated more than once, which will create history branches (not straight sticks)
+ *
+ * @see https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/
+ */
 const bulkUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const documents = req.body
@@ -1067,19 +1081,17 @@ const bulkUpdate = async function (req, res, next) {
     let encountered = []
     if (!Array.isArray(documents)) {
         err.message = "The request body must be an array of objects."
-        //err.status = 406
         err.status = 400
         next(createExpressError(err))
         return
     }
     if (documents.length === 0) {
         err.message = "No action on an empty array."
-        //err.status = 406
         err.status = 400
         next(createExpressError(err))
         return
     }
-    let gatekeep = documents.filter(d => {
+    const gatekeep = documents.filter(d => {
         // Each item must be valid JSON, but can't be an array.
         if(Array.isArray(d) || typeof d !== "object") return d
         try {
@@ -1090,24 +1102,24 @@ const bulkUpdate = async function (req, res, next) {
         // Items must have an @id, or in some cases an id will do
         const idcheck = _contextid(d["@context"]) ? d.id ?? d["@id"] : d["@id"]
         if(!idcheck) return d
-    }) 
+    })
+    // The empty {}s will cause this error
     if (gatekeep.length > 1) {
         err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property."
         err.status = 400
         next(createExpressError(err))
         return
     }
-    let bulkOps = []
-    let generatorAgent = getAgentClaim(req, next)
+    // unordered bulkWrite() operations have better performance metrics.
+    let bulkOps = [{'ordered':false}]
+    const generatorAgent = getAgentClaim(req, next)
     for(const objectReceived of documents){
         // We know it has an id
         const idReceived = objectReceived["@id"] ?? objectReceived.id
-        // but we will not update the same thing twice.
-        if(encountered.includes(idReceived)) continue
+        // Update the same thing twice?  can vs should.
+        // if(encountered.includes(idReceived)) continue
         encountered.push(idReceived)
-        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
-            continue
-        }
+        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)) continue
         let id = parseDocumentID(idReceived)
         let originalObject
         try {
@@ -1116,12 +1128,8 @@ const bulkUpdate = async function (req, res, next) {
             next(createExpressError(error))
             return
         }
-        if (null === originalObject) {
-            continue
-        }
-        if (utils.isDeleted(originalObject)) {
-            continue
-        }
+        if (null === originalObject) continue
+        if (utils.isDeleted(originalObject)) continue
         id = ObjectID()
         let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
         let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
