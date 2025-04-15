@@ -420,7 +420,8 @@
 
         <p>
             Add multiple completely new objects to RERUM and receive an array of the complete records as the response body. 
-            Accepts only a single array of JSON objects in the request body.
+            Accepts only a single array of JSON objects in the request body.  The '@id' property must not be present on the objects.
+            In cases where the Linked Data @context property maps '@id' to 'id', the 'id' property also must not be present.
             The array of JSON objects passed may not be created in the order submitted.  The response will have the URI 
             of the new resource or an error message as an array in the order the order the objects were processed. 
             When errors are encountered, the batch process will attempt to continue for all submitted items.
@@ -760,6 +761,7 @@
         <p>
             Update multiple existing RERUM objects at once and recieve an array of the complete records as the response body.
             Accepts only a single array of JSON objects in the request body.  The '@id' property must be present for each object.
+            In cases where the Linked Data @context property maps '@id' to 'id' either of these properties will be sufficient.
             The array of JSON objects passed in may not be updated in the order submitted.  The response will have the URI 
             of the new resource or an error message as an array in the order the objects were processed. When errors are encountered, the batch process will attempt to continue for all submitted items.
         </p>
