@@ -141,10 +141,10 @@ const create = async function (req, res, next) {
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
-        res.location(newObject["@id"])
-        res.status(201)
         newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+        res.location(newObject[_contextid(provided["@context"]) ? "id" : "@id"])
+        res.status(201)
         res.json(newObject)
     }
     catch (error) {
@@ -305,10 +305,10 @@ const putUpdate = async function (req, res, next) {
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
-                    res.location(newObject["@id"])
-                    res.status(200)
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                    res.location(newObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+                    res.status(200)
                     res.json(newObject)
                     return
                 }
@@ -362,10 +362,10 @@ async function _import(req, res, next) {
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
-        res.location(newObject["@id"])
-        res.status(200)
         newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+        res.location(newObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+        res.status(200)
         res.json(newObject)
     }
     catch (error) {
@@ -438,10 +438,10 @@ const patchUpdate = async function (req, res, next) {
                 //Then you aren't actually changing anything...only @id came through
                 //Just hand back the object.  The resulting of patching nothing is the object unchanged.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
-                res.location(originalObject["@id"])
-                res.status(200)
                 originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
+                res.location(originalObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+                res.status(200)
                 res.json(originalObject)
                 return
             }
@@ -461,10 +461,10 @@ const patchUpdate = async function (req, res, next) {
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
-                    res.location(newObject["@id"])
-                    res.status(200)
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                    res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
+                    res.status(200)
                     res.json(newObject)
                     return
                 }
@@ -552,10 +552,10 @@ const patchSet = async function (req, res, next) {
                 //Then you aren't actually changing anything...there are no new properties
                 //Just hand back the object.  The resulting of setting nothing is the object from the request body.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
-                res.location(originalObject["@id"])
-                res.status(200)
                 originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
+                res.location(originalObject[_contextid(provided["@context"]) ? "id":"@id"])
+                res.status(200)
                 res.json(originalObject)
                 return
             }
@@ -572,10 +572,10 @@ const patchSet = async function (req, res, next) {
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
-                    res.location(newObject["@id"])
-                    res.status(200)
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                    res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
+                    res.status(200)
                     res.json(newObject)
                     return
                 }
@@ -665,10 +665,10 @@ const patchUnset = async function (req, res, next) {
                 //Then you aren't actually changing anything...no properties in the request body were removed from the original object.
                 //Just hand back the object.  The resulting of unsetting nothing is the object.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
-                res.location(originalObject["@id"])
-                res.status(200)
                 originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
+                res.location(originalObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+                res.status(200)
                 res.json(originalObject)
                 return
             }
@@ -688,10 +688,10 @@ const patchUnset = async function (req, res, next) {
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
-                    res.location(newObject["@id"])
-                    res.status(200)
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                    res.location(newObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+                    res.status(200)
                     res.json(newObject)
                     return
                 }
@@ -786,9 +786,9 @@ const overwrite = async function (req, res, next) {
                 //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
             }
             res.set(utils.configureWebAnnoHeadersFor(newObject))
-            res.location(newObject["@id"])
             newObject = idNegotiation(newObject)
             newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+            res.location(newObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
             res.json(newObject)
             return
         }
@@ -901,10 +901,10 @@ const release = async function (req, res, next) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
                 res.set(utils.configureWebAnnoHeadersFor(releasedObject))
-                res.location(releasedObject["@id"])
                 console.log(releasedObject._id+" has been released")
                 releasedObject = idNegotiation(releasedObject)
                 releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
+                res.location(releasedObject[_contextid(releasedObject["@context"]) ? "id":"@id"])
                 res.json(releasedObject)
                 return
             } 
@@ -966,8 +966,8 @@ const id = async function (req, res, next) {
             res.set("Cache-Control", "max-age=86400, must-revalidate")
             //Support requests with 'If-Modified_Since' headers
             res.set(utils.configureLastModifiedHeader(match))
-            res.location(match["@id"])
             match = idNegotiation(match)
+            res.location(_contextid(match["@context"]) ? match.id : match["@id"])
             res.json(match)
             return
         }
