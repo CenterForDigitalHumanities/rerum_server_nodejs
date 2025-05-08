@@ -307,7 +307,7 @@ const putUpdate = async function (req, res, next) {
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
-                    res.location(newObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+                    res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
                     res.status(200)
                     res.json(newObject)
                     return
@@ -667,7 +667,7 @@ const patchUnset = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
-                res.location(originalObject[_contextid(objectReceived["@context"]) ? "id":"@id"])
+                res.location(originalObject[_contextid(originalObject["@context"]) ? "id":"@id"])
                 res.status(200)
                 res.json(originalObject)
                 return
