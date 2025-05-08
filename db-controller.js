@@ -143,7 +143,7 @@ const create = async function (req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
-        res.location(newObject["@id"] ?? newObject.id)
+        res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
         res.status(201)
         res.json(newObject)
     }
