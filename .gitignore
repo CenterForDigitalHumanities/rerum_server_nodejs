@@ -108,3 +108,6 @@ dist
 *.env
 /nbproject/private/
 .hintrc
+
+# MacOS
+.DS_Store
