@@ -10,12 +10,12 @@ describe('Overwrite Optimistic Locking', () => {
     let mockDb
     let mockAuth
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Reset mocks
         jest.clearAllMocks()
         
-        mockDb = require('../../db-controller.js')
-        mockAuth = require('../../auth/index.js')
+        mockDb = await import('../../db-controller.js')
+        mockAuth = await import('../../auth/index.js')
         
         // Mock auth to always pass
         mockAuth.checkJwt = jest.fn((req, res, next) => {
@@ -134,9 +134,9 @@ describe('Overwrite Optimistic Locking', () => {
 describe('ID endpoint includes version header', () => {
     let mockDb
 
-    beforeEach(() => {
+    beforeEach(async () => {
         jest.clearAllMocks()
-        mockDb = require('../../db-controller.js')
+        mockDb = await import('../../db-controller.js')
     })
 
     test('should include Current-Overwritten-Version header in GET /id response', async () => {
