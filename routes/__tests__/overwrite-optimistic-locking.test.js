@@ -1,34 +1,36 @@
-import request from 'supertest'
-import app from '../../app.js'
 import { jest } from '@jest/globals'
+import express from 'express'
+import request from 'supertest'
+import controller from '../../db-controller.js'
 
-// Mock the database and auth modules
-const mockOverwrite = jest.fn()
-const mockFindOne = jest.fn()
-const mockReplaceOne = jest.fn()
-const mockCheckJwt = jest.fn((req, res, next) => {
-    req.user = { sub: 'test-user' }
+// Mock the database module
+jest.mock('../../database/index.js', () => ({
+    db: {
+        findOne: jest.fn(),
+        replaceOne: jest.fn()
+    }
+}))
+
+// Import the mocked db after mocking
+import { db } from '../../database/index.js'
+
+// Helper to add auth to requests
+const addAuth = (req, res, next) => {
+    req.user = {"http://store.rerum.io/agent": "test-user"}
     next()
-})
+}
 
-jest.mock('../../db-controller.js', () => ({
-    default: {
-        overwrite: mockOverwrite,
-        findOne: mockFindOne,
-        replaceOne: mockReplaceOne,
-        id: jest.fn()
-    }
-}))
+// Create a test Express app
+const routeTester = express()
+routeTester.use(express.json())
+routeTester.use(express.urlencoded({ extended: false }))
 
-jest.mock('../../auth/index.js', () => ({
-    default: {
-        checkJwt: mockCheckJwt
-    }
-}))
+// Mount our routes
+routeTester.use('/overwrite', [addAuth, controller.overwrite])
+routeTester.use('/id/:_id', controller.id)
 
 describe('Overwrite Optimistic Locking', () => {
     beforeEach(() => {
-        // Reset mocks
         jest.clearAllMocks()
     })
 
@@ -44,10 +46,10 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockFindOne.mockResolvedValue(mockObject)
-        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
+        db.findOne.mockResolvedValue(mockObject)
+        db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .send({
                 '@id': 'http://example.com/test-id',
@@ -70,10 +72,10 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockFindOne.mockResolvedValue(mockObject)
-        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
+        db.findOne.mockResolvedValue(mockObject)
+        db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .set('If-Overwritten-Version', '2025-06-24T10:00:00')
             .send({
@@ -97,9 +99,9 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockFindOne.mockResolvedValue(mockObject)
+        db.findOne.mockResolvedValue(mockObject)
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .set('If-Overwritten-Version', '2025-06-24T10:00:00')
             .send({
@@ -124,10 +126,10 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockFindOne.mockResolvedValue(mockObject)
-        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
+        db.findOne.mockResolvedValue(mockObject)
+        db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .send({
                 '@id': 'http://example.com/test-id',
@@ -154,9 +156,9 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        mockFindOne.mockResolvedValue(mockObject)
+        db.findOne.mockResolvedValue(mockObject)
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .get('/id/test-id')
 
         expect(response.status).toBe(200)
@@ -173,9 +175,9 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        mockFindOne.mockResolvedValue(mockObject)
+        db.findOne.mockResolvedValue(mockObject)
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .get('/id/test-id')
 
         expect(response.status).toBe(200)
