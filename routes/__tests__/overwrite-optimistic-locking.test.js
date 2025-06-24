@@ -3,25 +3,33 @@ import app from '../../app.js'
 import { jest } from '@jest/globals'
 
 // Mock the database and auth modules
-jest.mock('../../db-controller.js')
-jest.mock('../../auth/index.js')
+const mockOverwrite = jest.fn()
+const mockFindOne = jest.fn()
+const mockReplaceOne = jest.fn()
+const mockCheckJwt = jest.fn((req, res, next) => {
+    req.user = { sub: 'test-user' }
+    next()
+})
+
+jest.mock('../../db-controller.js', () => ({
+    default: {
+        overwrite: mockOverwrite,
+        findOne: mockFindOne,
+        replaceOne: mockReplaceOne,
+        id: jest.fn()
+    }
+}))
+
+jest.mock('../../auth/index.js', () => ({
+    default: {
+        checkJwt: mockCheckJwt
+    }
+}))
 
 describe('Overwrite Optimistic Locking', () => {
-    let mockDb
-    let mockAuth
-
-    beforeEach(async () => {
+    beforeEach(() => {
         // Reset mocks
         jest.clearAllMocks()
-        
-        mockDb = await import('../../db-controller.js')
-        mockAuth = await import('../../auth/index.js')
-        
-        // Mock auth to always pass
-        mockAuth.checkJwt = jest.fn((req, res, next) => {
-            req.user = { sub: 'test-user' }
-            next()
-        })
     })
 
     test('should succeed when no version is specified (backwards compatibility)', async () => {
@@ -36,8 +44,8 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
-        mockDb.replaceOne = jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
         const response = await request(app)
             .put('/overwrite')
@@ -62,8 +70,8 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
-        mockDb.replaceOne = jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
         const response = await request(app)
             .put('/overwrite')
@@ -89,7 +97,7 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
         const response = await request(app)
             .put('/overwrite')
@@ -116,8 +124,8 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
-        mockDb.replaceOne = jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
         const response = await request(app)
             .put('/overwrite')
@@ -132,11 +140,8 @@ describe('Overwrite Optimistic Locking', () => {
 })
 
 describe('ID endpoint includes version header', () => {
-    let mockDb
-
-    beforeEach(async () => {
+    beforeEach(() => {
         jest.clearAllMocks()
-        mockDb = await import('../../db-controller.js')
     })
 
     test('should include Current-Overwritten-Version header in GET /id response', async () => {
@@ -149,7 +154,7 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
         const response = await request(app)
             .get('/id/test-id')
@@ -168,7 +173,7 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
         const response = await request(app)
             .get('/id/test-id')
