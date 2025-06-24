@@ -1,18 +1,21 @@
 import { jest } from '@jest/globals'
 import express from 'express'
 import request from 'supertest'
-import controller from '../../db-controller.js'
+
+// Create mock functions
+const mockFindOne = jest.fn()
+const mockReplaceOne = jest.fn()
 
 // Mock the database module
 jest.mock('../../database/index.js', () => ({
     db: {
-        findOne: jest.fn(),
-        replaceOne: jest.fn()
+        findOne: mockFindOne,
+        replaceOne: mockReplaceOne
     }
 }))
 
-// Import the mocked db after mocking
-import { db } from '../../database/index.js'
+// Import controller after mocking
+import controller from '../../db-controller.js'
 
 // Helper to add auth to requests
 const addAuth = (req, res, next) => {
@@ -46,8 +49,8 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        db.findOne.mockResolvedValue(mockObject)
-        db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
         const response = await request(routeTester)
             .put('/overwrite')
@@ -72,8 +75,8 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        db.findOne.mockResolvedValue(mockObject)
-        db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
         const response = await request(routeTester)
             .put('/overwrite')
@@ -99,7 +102,7 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        db.findOne.mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
         const response = await request(routeTester)
             .put('/overwrite')
@@ -126,8 +129,8 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        db.findOne.mockResolvedValue(mockObject)
-        db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
         const response = await request(routeTester)
             .put('/overwrite')
@@ -156,7 +159,7 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        db.findOne.mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
         const response = await request(routeTester)
             .get('/id/test-id')
@@ -175,7 +178,7 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        db.findOne.mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
         const response = await request(routeTester)
             .get('/id/test-id')
