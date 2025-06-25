@@ -766,14 +766,14 @@ const overwrite = async function (req, res, next) {
         else {
             // Optimistic locking check - no expected version is a brutal overwrite
             const expectedVersion = req.get('If-Overwritten-Version') ?? req.body['__expectedVersion']
-            const currentVersion = originalObject.__rerum?.isOverwritten ?? ""
+            const currentVersionTS = originalObject.__rerum?.isOverwritten ?? ""
             
-            if (expectedVersion !== undefined && expectedVersion !== currentVersion) {
+            if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
                 res.status(409)
                 res.json({
                     message: `Version conflict detected. The object has been modified since your last read. Expected version: '${expectedVersion}', current version: '${currentVersion}'. Please fetch the latest version and try again.`,
                     status: 409,
-                    currentVersion
+                    currentVersion: originalObject
                 })
                 return
             }
