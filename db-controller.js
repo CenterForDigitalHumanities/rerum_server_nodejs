@@ -770,11 +770,9 @@ const overwrite = async function (req, res, next) {
             
             if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
                 res.status(409)
-                res.json({
-                    message: `Version conflict detected. The object has been modified since your last read. Expected version: '${expectedVersion}', current version: '${currentVersion}'. Please fetch the latest version and try again.`,
-                    status: 409,
-                    currentVersion: originalObject
-                })
+                res.json(
+                    originalObject
+                )
                 return
             }
             else {
