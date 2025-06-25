@@ -770,9 +770,9 @@ const overwrite = async function (req, res, next) {
             
             if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
                 res.status(409)
-                res.json(
-                    originalObject
-                )
+                res.json({
+                    currentVersion: originalObject
+                })
                 return
             }
             else {
