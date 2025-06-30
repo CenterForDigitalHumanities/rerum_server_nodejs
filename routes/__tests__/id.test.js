@@ -30,6 +30,7 @@ it("'/id/:id' route functions", async () => {
   expect(response.headers["last-modified"]).toBeTruthy()
   expect(response.headers["link"]).toBeTruthy()
   expect(response.headers["location"]).toBeTruthy()
+  expect(response.headers['current-overwritten-version']).toBeDefined()
 
 })
 
