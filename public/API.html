@@ -809,12 +809,18 @@
 
         <p>
             RERUM allows the Generator of a record to overwrite that record.  An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. </span>
-
             Replace a record using a reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete record as the response body.
-
             This will have the effects of update, set, and unset actions. New keys will be created and keys not present in the request will not be present in the resulting record.
-
             The record is replaced in place, or overwritten, and so the <code class="language-plaintext highlighter-rouge">@id</code> will not change and the history connected with this record will not be altered.  The <code>__rerum.isOverwritten</code> property will be set to the date and time of the overwrite.
+        </p>
+        <p>
+            This endpoint supports optimistic locking, if requested. Including the "If-Overwritten-Version" header with the 
+            value of the <code class="language-plaintext highlighter-rouge">__rerum.isOverwritten</code> property of the 
+            record will cause the request to fail if the record has been overwritten since that time. 
+            This is useful for preventing overwriting a record that has been changed by another agent, colliding within an 
+            application that rapidly requests overwrites of the same object, or if an object is held in memory or cache for a 
+            long time prior to the overwrite. Omitting the "If-Overwritten-Version" header or <code class="language-plaintext highlighter-rouge">__rerum.isOverwritten</code> 
+            property will cause the request to succeed regardless.
         </p>
 
         <table>
@@ -865,6 +871,12 @@
             </code></pre>
         </p>
 
+        <p class="alert">
+            In the case of an optimistic locking failure, the response will be a 409 Conflict with a 
+            body containing the current version of the document, in case you would like to automate a 
+            retry of the overwrite request.
+        </p>
+
         <p>
             <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
             <pre><code class="respExample">
@@ -878,12 +890,11 @@
                 <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"
+                Note: resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"
             </p>
             <p class="alert">
-                Note that the <code>@id</code> and <code>__rerum.history</code> properties of the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" have not changed.  This is the difference between /update and /overwrite.  Be careful.
+                Note: the <code>@id</code> and <code>__rerum.history</code> properties of the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" have not changed.  This is the difference between /update and /overwrite.  Be careful.
             </p>
-
         </p>
 
         <!--
