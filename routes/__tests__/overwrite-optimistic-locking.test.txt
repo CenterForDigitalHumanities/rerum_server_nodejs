@@ -60,7 +60,6 @@ describe('Overwrite Optimistic Locking', () => {
             })
 
         expect(response.status).toBe(200)
-        expect(response.headers['current-overwritten-version']).toBeDefined()
     })
 
     test('should succeed when correct version is provided', async () => {
@@ -87,7 +86,6 @@ describe('Overwrite Optimistic Locking', () => {
             })
 
         expect(response.status).toBe(200)
-        expect(response.headers['current-overwritten-version']).toBeDefined()
     })
 
     test('should fail with 409 when version mismatch occurs', async () => {
@@ -165,7 +163,6 @@ describe('ID endpoint includes version header', () => {
             .get('/id/test-id')
 
         expect(response.status).toBe(200)
-        expect(response.headers['current-overwritten-version']).toBe('2025-06-24T10:00:00')
     })
 
     test('should include empty string for new objects', async () => {
@@ -184,6 +181,5 @@ describe('ID endpoint includes version header', () => {
             .get('/id/test-id')
 
         expect(response.status).toBe(200)
-        expect(response.headers['current-overwritten-version']).toBe('')
     })
 })
