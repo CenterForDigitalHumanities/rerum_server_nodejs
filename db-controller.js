@@ -764,33 +764,49 @@ const overwrite = async function (req, res, next) {
             })
         }
         else {
-            let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-            let rerumProp = { "__rerum": originalObject["__rerum"] }
-            rerumProp["__rerum"].isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
-            const id = originalObject["_id"]
-            //Get rid of them so we can enforce the order
-            delete objectReceived["@id"]
-            delete objectReceived["_id"]
-            delete objectReceived["__rerum"]
-            // id is also protected in this case, so it can't be set.
-            if(_contextid(objectReceived["@context"])) delete objectReceived.id
-            delete objectReceived["@context"]
-            let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
-            let result
-            try {
-                result = await db.replaceOne({ "_id": id }, newObject)
-            } catch (error) {
-                next(createExpressError(error))
+            // Optimistic locking check - no expected version is a brutal overwrite
+            const expectedVersion = req.get('If-Overwritten-Version') ?? req.body.__rerum?.isOverwritten
+            const currentVersionTS = originalObject.__rerum?.isOverwritten ?? ""
+            
+            if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
+                res.status(409)
+                res.json({
+                    currentVersion: originalObject
+                })
+                return
             }
-            if (result.modifiedCount == 0) {
-                //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
+            else {
+                let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
+                let rerumProp = { "__rerum": originalObject["__rerum"] }
+                rerumProp["__rerum"].isOverwritten = new Date(Date.now()).toISOString().replace("Z", "")
+                const id = originalObject["_id"]
+                //Get rid of them so we can enforce the order
+                delete objectReceived["@id"]
+                delete objectReceived["_id"]
+                delete objectReceived["__rerum"]
+                // id is also protected in this case, so it can't be set.
+                if(_contextid(objectReceived["@context"])) delete objectReceived.id
+                delete objectReceived["@context"]
+                let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
+                let result
+                try {
+                    result = await db.replaceOne({ "_id": id }, newObject)
+                } catch (error) {
+                    next(createExpressError(error))
+                    return
+                }
+                if (result.modifiedCount == 0) {
+                    //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
+                }
+                // Include current version in response headers for future optimistic locking
+                res.set('Current-Overwritten-Version', rerumProp["__rerum"].isOverwritten)
+                res.set(utils.configureWebAnnoHeadersFor(newObject))
+                newObject = idNegotiation(newObject)
+                newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
+                res.json(newObject)
+                return
             }
-            res.set(utils.configureWebAnnoHeadersFor(newObject))
-            newObject = idNegotiation(newObject)
-            newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
-            res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
-            res.json(newObject)
-            return
         }
     }
     else {

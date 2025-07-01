@@ -1,27 +1,40 @@
-import request from 'supertest'
-import app from '../../app.js'
 import { jest } from '@jest/globals'
+import express from 'express'
+import request from 'supertest'
 
-// Mock the database and auth modules
-jest.mock('../../db-controller.js')
-jest.mock('../../auth/index.js')
+// Create mock functions
+const mockFindOne = jest.fn()
+const mockReplaceOne = jest.fn()
+
+// Mock the database module
+jest.mock('../../database/index.js', () => ({
+    db: {
+        findOne: mockFindOne,
+        replaceOne: mockReplaceOne
+    }
+}))
+
+// Import controller after mocking
+import controller from '../../db-controller.js'
+
+// Helper to add auth to requests
+const addAuth = (req, res, next) => {
+    req.user = {"http://store.rerum.io/agent": "test-user"}
+    next()
+}
+
+// Create a test Express app
+const routeTester = express()
+routeTester.use(express.json())
+routeTester.use(express.urlencoded({ extended: false }))
+
+// Mount our routes
+routeTester.use('/overwrite', [addAuth, controller.overwrite])
+routeTester.use('/id/:_id', controller.id)
 
 describe('Overwrite Optimistic Locking', () => {
-    let mockDb
-    let mockAuth
-
     beforeEach(() => {
-        // Reset mocks
         jest.clearAllMocks()
-        
-        mockDb = require('../../db-controller.js')
-        mockAuth = require('../../auth/index.js')
-        
-        // Mock auth to always pass
-        mockAuth.checkJwt = jest.fn((req, res, next) => {
-            req.user = { sub: 'test-user' }
-            next()
-        })
     })
 
     test('should succeed when no version is specified (backwards compatibility)', async () => {
@@ -36,10 +49,10 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
-        mockDb.replaceOne = jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .send({
                 '@id': 'http://example.com/test-id',
@@ -61,10 +74,10 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
-        mockDb.replaceOne = jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .set('If-Overwritten-Version', '2025-06-24T10:00:00')
             .send({
@@ -87,9 +100,9 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .set('If-Overwritten-Version', '2025-06-24T10:00:00')
             .send({
@@ -114,10 +127,10 @@ describe('Overwrite Optimistic Locking', () => {
             data: 'original-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
-        mockDb.replaceOne = jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        mockFindOne.mockResolvedValue(mockObject)
+        mockReplaceOne.mockResolvedValue({ modifiedCount: 1 })
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .put('/overwrite')
             .send({
                 '@id': 'http://example.com/test-id',
@@ -130,11 +143,8 @@ describe('Overwrite Optimistic Locking', () => {
 })
 
 describe('ID endpoint includes version header', () => {
-    let mockDb
-
     beforeEach(() => {
         jest.clearAllMocks()
-        mockDb = require('../../db-controller.js')
     })
 
     test('should include Current-Overwritten-Version header in GET /id response', async () => {
@@ -147,9 +157,9 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .get('/id/test-id')
 
         expect(response.status).toBe(200)
@@ -165,9 +175,9 @@ describe('ID endpoint includes version header', () => {
             data: 'some-data'
         }
 
-        mockDb.findOne = jest.fn().mockResolvedValue(mockObject)
+        mockFindOne.mockResolvedValue(mockObject)
 
-        const response = await request(app)
+        const response = await request(routeTester)
             .get('/id/test-id')
 
         expect(response.status).toBe(200)
