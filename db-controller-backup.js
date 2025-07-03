@@ -3,7 +3,7 @@
 /**
  * Main controller aggregating all RERUM operations
  * This file now imports from organized controller modules
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author thehabes 
  */
 
 // Import controller modules
