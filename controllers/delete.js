@@ -27,6 +27,7 @@ const deleteObj = async function(req, res, next) {
         id = req.params["_id"] ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["@id"])
     } catch(error){
         next(createExpressError(error))
+        return
     }
     let agentRequestingDelete = getAgentClaim(req, next)
     let originalObject
