@@ -126,7 +126,7 @@ function createExpressError(err) {
 const remove = async function(id) {
     try {
         const result = await db.deleteOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
-        if (!result.deletedCount === 1) {
+        if (result.deletedCount !== 1) {
             throw Error("Could not remove object")
         }
         return true
