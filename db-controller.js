@@ -765,7 +765,7 @@ const overwrite = async function (req, res, next) {
         }
         else {
             // Optimistic locking check - no expected version is a brutal overwrite
-            const expectedVersion = req.get('If-Overwritten-Version') ?? req.body['__expectedVersion']
+            const expectedVersion = req.get('If-Overwritten-Version') ?? req.body.__rerum?.isOverwritten
             const currentVersionTS = originalObject.__rerum?.isOverwritten ?? ""
             
             if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
