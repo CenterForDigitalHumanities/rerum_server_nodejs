@@ -982,6 +982,9 @@ const id = async function (req, res, next) {
             res.set("Cache-Control", "max-age=86400, must-revalidate")
             //Support requests with 'If-Modified_Since' headers
             res.set(utils.configureLastModifiedHeader(match))
+            // Include current version for optimistic locking
+            const currentVersion = match.__rerum?.isOverwritten ?? ""
+            res.set('Current-Overwritten-Version', currentVersion)
             match = idNegotiation(match)
             res.location(_contextid(match["@context"]) ? match.id : match["@id"])
             res.json(match)
