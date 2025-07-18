@@ -38,7 +38,7 @@
     "express-urlrewrite": "~2.0.0",
     "http-errors": "~2.0.0",
     "mongodb": "~6.3.0",
-    "morgan": "~1.10.0"
+    "morgan": "~1.10.1"
   },
   "devDependencies": {
     "@jest-mock/express": "^2.0.2",
