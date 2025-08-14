@@ -1056,17 +1056,13 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/release</code></td>
-                    <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/release/:_id</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">No payload.  This will use the _id hash from the PATCH request url.</code></td>
                     <td>200 <code class="language-plaintext highlighter-rouge">Location: https://devstore.rerum.io/v1/id/11111</code>
-                        <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                    <code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                 </tr>
             </tbody>
         </table>
-        <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record. Must
-                contain <code class="language-plaintext highlighter-rouge">@id</code>.</li>
-        </ul>
         <p>
             RERUM allows for the Generator of a version of a record to assign a <code class="language-plaintext highlighter-rouge">released</code> state.
             Records in released states are locked such that further changes are refused.
@@ -1074,18 +1070,17 @@
             The release action will alter the <code class="language-plaintext highlighter-rouge">__rerum.isReleased</code> of the version identified
             and alter <code class="language-plaintext highlighter-rouge">__rerum.releases</code> properties throughout
             the record's history without making a
-            new history state for the resulting record (the <code class="language-plaintext highlighter-rouge">@id</code> does not change).
+            new history state for the resulting record (the <code class="language-plaintext highlighter-rouge">@id</code> or <code class="language-plaintext highlighter-rouge">id</code> does not change).
         </p>
         <p>
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                <span>const releasedObj = await fetch("https://devstore.rerum.io/v1/api/release", {</span>
+                <span>const releasedObj = await fetch("https://devstore.rerum.io/v1/api/release/abcdef1234567890", {</span>
                     <span class="ind1">method: "PATCH",</span>
                     <span class="ind1">headers:{</span>
                         <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
-                    <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify({"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
+                    <span class="ind1">}</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
                 <span>.catch(err => {throw err})</span>
@@ -1336,6 +1331,13 @@
             provides this <code class="language-plaintext highlighter-rouge">@context</code> in the <code class="language-plaintext highlighter-rouge">Link</code> header and also provides a <code class="language-plaintext highlighter-rouge">@context</code> for the <code class="language-plaintext highlighter-rouge">__rerum</code> terms mentioned above.
         </p>
         <p>http://store.rerum.io/v1/context.json</p>
+        <p>The following @contexts map '@id' to 'id' as well as '@type' to 'type'.</p>
+        <ul>
+            <li>store.rerum.io/v1/context.json</li>
+            <li>iiif.io/api/presentation/3/context.json</li>
+            <li>www.w3.org/ns/anno.jsonld</li>
+            <li>www.w3.org/ns/oa.jsonld</li>
+        </ul>
         <h2 id="iiif">IIIF</h2>
         <p>RERUM fully supports the <a target="_blank" href="https://iiif.io/api/presentation/3.0/">IIIF Presentation API</a>.</p>
         <h2 id="web-annotation">Web Annotation</h2>
