@@ -113,24 +113,18 @@
                 Interacting with RERUM requires server-to-server communication, so we suggest the registrant be the
                 application developer.
                 You may want to
-                <a target="_blank" rel="noopener" href="https://rerum.io/#/future"
-                    class="linkOut">learn more about the concepts around RERUM</a>
+                <a target="_blank" rel="noopener" href="https://rerum.io/#/future" class="linkOut">learn more about the concepts around RERUM</a>
                 before reading the API.
             </p>
             <p class="handHoldy">
                 If you are here for the first time and think you want to use RERUM, please
-                <a target="_blank" rel="noopener" href="https://store.rerum.io/API.html"
-                    class="linkOut">read the API</a> first.
+                <a target="_blank" rel="noopener" href="https://store.rerum.io/API.html" class="linkOut">read the API</a> first.
             </p>
-
             <p class="handHoldy">
-                If you like what you read in <a target="_blank" rel="noopener"
-                    href="https://store.rerum.io/API.html"
-                    class="linkOut">our API documentation</a>
+                If you like what you read in <a target="_blank" rel="noopener" href="https://store.rerum.io/API.html" class="linkOut">our API documentation</a>
                 and want to begin using RERUM as a back stack service please register by clicking below.
                 Be prepared to be routed to Auth0 (don't know why?
-                <a target="_blank" rel="noopener" href="https://store.rerum.io/API.html"
-                    class="linkOut">Read the API</a>).
+                <a target="_blank" rel="noopener" href="https://store.rerum.io/API.html" class="linkOut">Read the API</a>).
             </p>
             <p class="handHoldy">
                 After registering, you will be returned to this page with an Auth0 Authorization code. Use that code at
@@ -143,7 +137,6 @@
             <input class='btn btn-primary btn-large' type="button" id="register" value="Register With RERUM At Auth0" />
         </div>
     </div>
-
     <div class='panel panel-info' name="block">
         <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
         <div class="panel-body">
@@ -157,12 +150,10 @@
             </div>
         </div>
         <div class="panel-footer">
-            <input class='btn btn-primary btn-large' type="button" id="check_status"
-                value="Check my Authorization Status With Auth0" />
+            <input class='btn btn-primary btn-large' type="button" id="check_status" value="Check my Authorization Status With Auth0" />
             <!--<input class='btn btn-primary btn-large' type="button" id="login" value="Login To Get Auth Status" />-->
         </div>
     </div>
-
     <div class='panel panel-info' name="block">
         <div class="panel-heading"> <span class="panel-title">Test RERUM API Access</span> </div>
         <div class="panel-body">
@@ -181,11 +172,9 @@
             </div>
         </div>
         <div class="panel-footer">
-            <input class='btn btn-primary btn-large' type="button" onclick="testAPI()" id="test_api"
-                value="Check Access To RERUM API" />
+            <input class='btn btn-primary btn-large' type="button" onclick="testAPI()" id="test_api" value="Check Access To RERUM API" />
         </div>
     </div>
-
     <div class='panel panel-info' name="block">
         <div class="panel-heading"> <span class="panel-title">Get A New Access Token</span> </div>
         <div class="panel-body">
@@ -204,7 +193,6 @@
             <input class='btn btn-primary btn-large' type="button" id="request_token" value="Get A New Access Token" />
         </div>
     </div>
-
     <div class='panel panel-info' name="block">
         <div class="panel-heading"> <span class="panel-title">Get A New Refresh Token</span> </div>
         <div class="panel-body">
@@ -212,11 +200,9 @@
                 You can supply a valid Auth0 Authorization Code to get a new refresh token. Use "Check my Authorization
                 Status with Auth0" to get a valid code.
             </p>
-            Enter your code: <textarea class="form-control" placeholder="Your Auth0 Authorization Code goes here"
-                id="code_for_refresh_token"></textarea>
+            Enter your code: <textarea class="form-control" placeholder="Your Auth0 Authorization Code goes here" id="code_for_refresh_token"></textarea>
             <br>
-            <textarea readonly class="form-control" id="new_refresh_token"
-                placeholder="Your refresh token will appear here."></textarea>
+            <textarea readonly class="form-control" id="new_refresh_token" placeholder="Your refresh token will appear here."></textarea>
             <div>
                 <span class="status_header"> Status </span>
                 <kbd class="rerumStatus" id="nrtStatus">UNKNOWN</kbd>
@@ -226,82 +212,74 @@
             <input class='btn btn-primary btn-large' type="button" id="refresh_token" value="Get A New Refresh Token" />
         </div>
     </div>
-
     <script type="text/javascript">
-        /*
-         * The process we are mimicking here is https://auth0.com/docs/api-auth/grant/authorization-code and 
-         * https://auth0.com/docs/api-auth/tutorials/client-credentials
-         * https://auth0.com/docs/api-auth/tutorials/authorization-code-grant
-         * https://auth0.com/docs/api/authentication#authorization-code-grant
-         * https://auth0.com/docs/api-auth/grant/implicit
-         * https://auth0.com/docs/api-auth/grant/authorization-code
-         * https://auth0.com/docs/api-auth/tutorials/client-credentials
-         * TEST
-         */
-        let access_token = ""
-        let auth_code = ""
-        let error_code = ""
-        let responseJSON = {}
-        const myURL = document.location.href
+    /*
+     * The process we are mimicking here is https://auth0.com/docs/api-auth/grant/authorization-code and 
+     * https://auth0.com/docs/api-auth/tutorials/client-credentials
+     * https://auth0.com/docs/api-auth/tutorials/authorization-code-grant
+     * https://auth0.com/docs/api/authentication#authorization-code-grant
+     * https://auth0.com/docs/api-auth/grant/implicit
+     * https://auth0.com/docs/api-auth/grant/authorization-code
+     * https://auth0.com/docs/api-auth/tutorials/client-credentials
+     */
+    let access_token = ""
+    let auth_code = ""
+    let error_code = ""
+    let responseJSON = {}
+    const myURL = document.location.href
 
-        if (myURL.indexOf("access_token=") > -1) {
-            //The user registered or asked for a new token through the Client Credentials Grant flow https://auth0.com/docs/api-auth/tutorials/client-credentials
-            //Presumably, they had to come to rerum to do this.  They cannot ask for new access tokens through their servers or front end.
-            access_token = getURLHash("access_token");
-            $("#test_api").show();
-            $("#a_t").val(access_token);
-            $("#check_status").hide();
-            $("#authorizationStatus").html("Thanks for choosing RERUM!  A new token was created for you.  Keep this token in a safe place, you will need it for our API. \n\
-                You can test that your access token will work with RERUM by clicking the 'Test API' button below.  <br> token="+ access_token);
+    if (myURL.indexOf("access_token=") > -1) {
+        //The user registered or asked for a new token through the Client Credentials Grant flow https://auth0.com/docs/api-auth/tutorials/client-credentials
+        //Presumably, they had to come to rerum to do this.  They cannot ask for new access tokens through their servers or front end.
+        access_token = getURLHash("access_token")
+        $("#test_api").show()
+        $("#a_t").val(access_token)
+        $("#check_status").hide()
+        $("#authorizationStatus").html("Thanks for choosing RERUM!  A new token was created for you.  Keep this token in a safe place, you will need it for our API. \n\
+                You can test that your access token will work with RERUM by clicking the 'Test API' button below.  <br> token=" + access_token)
+    } else if (myURL.indexOf("code=") > -1) {
+        //The user simply checked if they were registered.  If so, they get a code.  If not, they get an error.
+        auth_code = getURLVariable("code")
+        $("#code_for_refresh_token").val(auth_code)
+        if (auth_code !== "") {
+            $("#authorizationStatus").html("AUTHORIZED: auth code=" + auth_code + ".  You are registered with the Auth0 RERUM client.  Get a new refresh token using this code.")
+        } else { //Weird
+            $("#authorizationStatus").html("UNAUTHORIZED")
         }
-        else if (myURL.indexOf("code=") > -1) {
-            //The user simply checked if they were registered.  If so, they get a code.  If not, they get an error.
-            auth_code = getURLVariable("code");
-            $("#code_for_refresh_token").val(auth_code);
-            if (auth_code !== "") {
-                $("#authorizationStatus").html("AUTHORIZED: auth code=" + auth_code + ".  You are registered with the Auth0 RERUM client.  Get a new refresh token using this code.");
-            }
-            else { //Weird
-                $("#authorizationStatus").html("UNAUTHORIZED");
-            }
-            $("#check_status").hide();
+        $("#check_status").hide()
+    } else if (myURL.indexOf("error=") > -1) {
+        //The user registered, checked their status or asked for a new access token and there was a problem. 
+        error_code = getURLVariable("error")
+        if (error_code == "login_required") { //What they are asking for requires authentication against their user inside the RERUM Server Auth0 client.
+            $("#authorizationStatus").html("You must login with Auth0 for this check.")
+            $("#login").show()
+        } else if (error_code == "consent_required") { //The user is logged in with auth0 but has not registered with the Rerum Server Auth0 client.
+            $("#authorizationStatus").html("You have never consented to use the API, so you do not have an access token.  Get one to test access to RERUM.")
+        } else if (error_code == "interaction_required") {
+            $("#authorizationStatus").html("There are strange happenings afoot in the void of the web...")
         }
-        else if (myURL.indexOf("error=") > -1) {
-            //The user registered, checked their status or asked for a new access token and there was a problem. 
-            error_code = getURLVariable("error");
-            if (error_code == "login_required") { //What they are asking for requires authentication against their user inside the RERUM Server Auth0 client.
-                $("#authorizationStatus").html("You must login with Auth0 for this check.");
-                $("#login").show();
-            }
-            else if (error_code == "consent_required") { //The user is logged in with auth0 but has not registered with the Rerum Server Auth0 client.
-                $("#authorizationStatus").html("You have never consented to use the API, so you do not have an access token.  Get one to test access to RERUM.");
-            }
-            else if (error_code == "interaction_required") {
-                $("#authorizationStatus").html("There are strange happenings afoot in the void of the web...");
-            }
-            $("#check_status").hide();
-        }
-        else { //User came to web page, we don't know much about them.  
+        $("#check_status").hide()
+    } else { //User came to web page, we don't know much about them.  
 
+    }
+
+    $("#register").click(ev => fetch('/client/register').then(res => res.text()).then(url => location.href = url)) // `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
+
+    $("#request_token").click(function() {
+        const refresh_token = $("#r_t_4_a_t").val()
+        if (!refresh_token) {
+            $("#r_t_4_a_t").attr("placeholder", "You must supply a refresh token here!")
+            $("#r_t_4_a_t").css("border", "2px solid yellow")
+            return false
         }
-
-        $("#register").click(ev => fetch('/client/register').then(res => res.text()).then(url => location.href = url))// `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
-
-        $("#request_token").click(function () {
-            const refresh_token = $("#r_t_4_a_t").val()
-            if (!refresh_token) {
-                $("#r_t_4_a_t").attr("placeholder", "You must supply a refresh token here!")
-                $("#r_t_4_a_t").css("border", "2px solid yellow")
-                return false
-            }
-            fetch('/client/request-new-access-token', {
+        fetch('/client/request-new-access-token', {
                 method: 'post',
                 headers: {
-                    "Content-Type":"application/json; charset=utf-8"
+                    "Content-Type": "application/json; charset=utf-8"
                 },
                 body: JSON.stringify({ refresh_token })
             }).then(resp => {
-                const statusElem = $("#natStatus");
+                const statusElem = $("#natStatus")
                 if (resp.status < 300) {
                     statusElem.html("The refresh token was accepted.")
                     return resp.json()
@@ -311,27 +289,27 @@
                     return Promise.reject("Invalid refresh token.")
                 }
             })
-                .then(token => {
-                    $("#a_t").val(token.access_token)
-                })
-        })
+            .then(token => {
+                $("#a_t").val(token.access_token)
+            })
+    })
 
-        $("#refresh_token").click(function () {
-            //The user would like to request a new access token using the refresh token.  Send them off to log in. 
-            const authorization_code = $("#code_for_refresh_token").val()
-            if (!authorization_code) {
-                $("#code_for_refresh_token").attr("placeholder", "You must supply a code here!")
-                $("#code_for_refresh_token").css("border", "2px solid yellow")
-                return false
-            }
-            $("#code_for_refresh_token").css("border", "none")
-            $("#new_refresh_token").css("border", "none")
-            $("#new_refresh_token").val("")
+    $("#refresh_token").click(function() {
+        //The user would like to request a new access token using the refresh token.  Send them off to log in. 
+        const authorization_code = $("#code_for_refresh_token").val()
+        if (!authorization_code) {
+            $("#code_for_refresh_token").attr("placeholder", "You must supply a code here!")
+            $("#code_for_refresh_token").css("border", "2px solid yellow")
+            return false
+        }
+        $("#code_for_refresh_token").css("border", "none")
+        $("#new_refresh_token").css("border", "none")
+        $("#new_refresh_token").val("")
 
-            fetch('/client/request-new-refresh-token', {
+        fetch('/client/request-new-refresh-token', {
                 method: 'post',
                 headers: {
-                    "Content-Type":"application/json; charset=utf-8"
+                    "Content-Type": "application/json; charset=utf-8"
                 },
                 body: JSON.stringify({ authorization_code })
             }).then(resp => {
@@ -345,72 +323,70 @@
                     return Promise.reject("Invalid authorization code.")
                 }
             })
-                .then(token => {
-                    $("#new_refresh_token").val(token.refresh_token)
-                    $("#a_t").val(token.access_token)
-                })
-        })
-        $("#check_status").click(ev => {
-            fetch('/client/register')
+            .then(token => {
+                $("#new_refresh_token").val(token.refresh_token)
+                $("#a_t").val(token.access_token)
+            })
+    })
+    $("#check_status").click(ev => {
+        fetch('/client/register')
             .then(res => res.text())
-            .then(url => 
-            {
+            .then(url => {
                 console.log(url)
                 location.href = url
             })
-        })
+    })
 
-        // `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
+    // `https://cubap.auth0.com/authorize?response_type=code&client_id=62Jsa9MxHuqhRbO20gTHs9KpKr7Ue7sl&redirect_uri=http://store.rerum.io&state=STATE`)
 
-        function getURLVariable(variable) {
-            const query = window.location.search.substring(1);
-            const vars = query.split("&");
-            for (let i = 0; i < vars.length; i++) {
-                const pair = vars[i].split("=");
-                if (pair[0] == variable) { return pair[1]; }
-            }
-            return false;
+    function getURLVariable(variable) {
+        const query = window.location.search.substring(1)
+        const vars = query.split("&")
+        for (let i = 0; i < vars.length; i++) {
+            const pair = vars[i].split("=")
+            if (pair[0] == variable) { return pair[1] }
+        }
+        return false
+    }
+
+    function getURLHash(variable) {
+        let query = document.location.hash
+        query = query.substr(1)
+        const vars = query.split("&")
+        for (let i = 0; i < vars.length; i++) {
+            const pair = vars[i].split("=")
+            if (pair[0] == variable) { return pair[1] }
+        }
+        return false
+    }
+
+    function testAPI() {
+        const userProvidedToken = $("#a_t").val()
+        if (!userProvidedToken) {
+            $("#a_t").attr("placeholder", "You must supply an access token here!")
+            $("#a_t").css("border", "2px solid yellow")
+            return false
         }
 
-        function getURLHash(variable) {
-            let query = document.location.hash;
-            query = query.substr(1);
-            const vars = query.split("&");
-            for (let i = 0; i < vars.length; i++) {
-                const pair = vars[i].split("=");
-                if (pair[0] == variable) { return pair[1]; }
-            }
-            return false;
-        }
+        $("#a_t").css("border", "none")
+        const statusElem = $("#rerumStatus")
+        statusElem.html("WORKING...")
 
-        function testAPI() {
-            const userProvidedToken = $("#a_t").val()
-            if (!userProvidedToken) {
-                $("#a_t").attr("placeholder", "You must supply an access token here!")
-                $("#a_t").css("border", "2px solid yellow")
-                return false
-            }
-
-            $("#a_t").css("border", "none")
-            const statusElem = $("#rerumStatus")
-            statusElem.html("WORKING...")
-
-            fetch('/client/verify', {
+        fetch('/client/verify', {
                 headers: {
                     Authorization: `Bearer ${userProvidedToken}`
                 }
             })
-                .then(res => {
-                    if (!res.ok) { throw Error("Catch me!") }
-                    statusElem.html("AUTHORIZED")
-                    $("#test_api").show()
-                })
-                .catch(err => {
-                    statusElem.html("UNAUTHORIZED. Refresh your access token and try again. If you still have trouble, <a class='linkOut' href=''>contact us at RERUM</a>.")
-                    $("#a_t").css("border", "2px solid red")
-                })
-        }
-
+            .then(res => {
+                if (!res.ok) { throw Error("Catch me!") }
+                statusElem.html("AUTHORIZED")
+                $("#test_api").show()
+            })
+            .catch(err => {
+                statusElem.html("UNAUTHORIZED. Refresh your access token and try again. If you still have trouble, <a class='linkOut' href=''>contact us at RERUM</a>.")
+                $("#a_t").css("border", "2px solid red")
+            })
+    }
     </script>
 </body>
 
