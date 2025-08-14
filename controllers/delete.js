@@ -24,7 +24,7 @@ const deleteObj = async function(req, res, next) {
     let id
     let err = { message: `` }
     try {
-        id = req.params["_id"] ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["@id"])
+        id = req.params["_id"] ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["@id"]) ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["id"])
     } catch(error){
         next(createExpressError(error))
         return
