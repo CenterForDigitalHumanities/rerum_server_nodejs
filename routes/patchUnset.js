@@ -8,14 +8,13 @@ import rest from '../rest.js'
 router.route('/')
     .patch(auth.checkJwt, controller.patchUnset)
     .post(auth.checkJwt, (req, res, next) => {
-        if (rest.checkPatchOverrideSupport(req, res)) {
-            controller.patchUnset(req, res, next)
-        }
-        else {
+        if (!rest.checkPatchOverrideSupport(req, res)) {
             res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
             res.status(405)
             next(res)
+            return
         }
+        controller.patchUnset(req, res, next)
     }) 
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for updating, please use PATCH to remove keys from this object.'
