@@ -207,7 +207,7 @@ async function getAllVersions(obj) {
          * This is the because some of the @ids have different RERUM URL patterns on them.
          **/
     //All the children of this object will have its @id in __rerum.history.prime
-    const ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
+    const ls_versions = await db.find({ "__rerum.history.prime": { $eq: rootObj['@id'] } }).toArray()
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
