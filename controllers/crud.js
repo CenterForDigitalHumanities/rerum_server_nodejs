@@ -17,20 +17,18 @@ const create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let slug = ""
     if(req.get("Slug")){
-        let slug_json = await generateSlugId(req.get("Slug"), next)
+        const slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
             next(createExpressError(slug_json))
             return
         }
-        else{
-            slug = slug_json.slug_id
-        }
+        slug = slug_json.slug_id
     }
     
-    let generatorAgent = getAgentClaim(req, next)
-    let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
-    let provided = JSON.parse(JSON.stringify(req.body))
-    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
+    const generatorAgent = getAgentClaim(req, next)
+    const context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
+    const provided = JSON.parse(JSON.stringify(req.body))
+    const rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     rerumProp.__rerum.slug = slug
     const providedID = provided._id
     const id = isValidID(providedID) ? providedID : ObjectID()
@@ -40,16 +38,16 @@ const create = async function (req, res, next) {
     if(_contextid(provided["@context"])) delete provided.id
     delete provided["@context"]
     
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
+    const newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
     try {
-        let result = await db.insertOne(newObject)
+        const result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
-        newObject = idNegotiation(newObject)
-        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
-        res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
+        const negotiatedObject = idNegotiation(newObject)
+        negotiatedObject.new_obj_state = JSON.parse(JSON.stringify(negotiatedObject))
+        res.location(negotiatedObject[_contextid(negotiatedObject["@context"]) ? "id":"@id"])
         res.status(201)
-        res.json(newObject)
+        res.json(negotiatedObject)
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
@@ -64,12 +62,12 @@ const create = async function (req, res, next) {
  * */
 const query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let props = req.body
+    const props = req.body
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
     if (Object.keys(props).length === 0) {
         //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
-        let err = {
+        const err = {
             message: "Detected empty JSON object.  You must provide at least one property in the /query request body JSON.",
             status: 400
         }
@@ -93,9 +91,9 @@ const query = async function (req, res, next) {
  * */
 const id = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
+    const id = req.params["_id"]
     try {
-        let match = await db.findOne({"$or": [{"_id": id}, {"__rerum.slug": id}]})
+        const match = await db.findOne({"$or": [{"_id": id}, {"__rerum.slug": id}]})
         if (match) {
             res.set(utils.configureWebAnnoHeadersFor(match))
             //Support built in browser caching
@@ -105,12 +103,12 @@ const id = async function (req, res, next) {
             // Include current version for optimistic locking
             const currentVersion = match.__rerum?.isOverwritten ?? ""
             res.set('Current-Overwritten-Version', currentVersion)
-            match = idNegotiation(match)
-            res.location(_contextid(match["@context"]) ? match.id : match["@id"])
-            res.json(match)
+            const negotiatedMatch = idNegotiation(match)
+            res.location(_contextid(negotiatedMatch["@context"]) ? negotiatedMatch.id : negotiatedMatch["@id"])
+            res.json(negotiatedMatch)
             return
         }
-        let err = {
+        const err = {
             "message": `No RERUM object with id '${id}'`,
             "status": 404
         } 

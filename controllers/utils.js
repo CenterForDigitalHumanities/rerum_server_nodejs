@@ -52,12 +52,12 @@ const idNegotiation = function (resBody) {
     const _id = resBody._id
     delete resBody._id
     if(!resBody["@context"]) return resBody
-    let modifiedResBody = JSON.parse(JSON.stringify(resBody))
+    const modifiedResBody = JSON.parse(JSON.stringify(resBody))
     const context = { "@context": resBody["@context"] }
     if(_contextid(resBody["@context"])) {
         delete resBody["@id"]
         delete resBody["@context"]
-        modifiedResBody = Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
+        return Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
     }
     return modifiedResBody
 }
@@ -71,7 +71,7 @@ const idNegotiation = function (resBody) {
  * 
  */  
 const generateSlugId = async function(slug_id="", next){
-    let slug_return = {"slug_id":"", "code":0}
+    const slug_return = {"slug_id":"", "code":0}
     let slug
     if(slug_id){
         slug_return.slug_id = slug_id
@@ -100,7 +100,7 @@ const index = function (req, res, next) {
 }
 
 function createExpressError(err) {
-    let error = {}
+    const error = {}
     if (err.code) {
         switch (err.code) {
             case 11000:
@@ -145,14 +145,13 @@ const remove = async function(id) {
  */
 function getAgentClaim(req, next) {
     const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
-    let agent = ""
     for (const claimKey of claimKeys) {
-        agent = req.user[claimKey]
+        const agent = req.user[claimKey]
         if (agent) {
             return agent
         }
     }
-    let err = {
+    const err = {
         "message": "Could not get agent from req.user.  Have you registered with RERUM?",
         "status": 403
     }
@@ -181,7 +180,7 @@ async function alterHistoryNext(objToUpdate, newNextID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
     if(objToUpdate.__rerum.history.next.indexOf(newNextID) === -1){
         objToUpdate.__rerum.history.next.push(newNextID)
-        let result = await db.replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
+        const result = await db.replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
         return result.modifiedCount > 0
     }
     return true
@@ -196,9 +195,8 @@ async function alterHistoryNext(objToUpdate, newNextID) {
  * @throws Exception when a JSONObject with no '__rerum' property is provided.
  */
 async function getAllVersions(obj) {
-    let ls_versions
-    let primeID = obj?.__rerum.history.prime
-    let rootObj = ( primeID === "root") 
+    const primeID = obj?.__rerum.history.prime
+    const rootObj = ( primeID === "root") 
     ?   //The obj passed in is root.  So it is the rootObj we need.
         JSON.parse(JSON.stringify(obj))
     :   //The obj passed in knows the ID of root, grab it from Mongo
@@ -209,7 +207,7 @@ async function getAllVersions(obj) {
          * This is the because some of the @ids have different RERUM URL patterns on them.
          **/
     //All the children of this object will have its @id in __rerum.history.prime
-    ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
+    const ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
