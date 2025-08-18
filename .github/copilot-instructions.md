@@ -147,6 +147,13 @@ After making changes, ALWAYS validate these scenarios:
 - **CORS**: Fully open ("*") for cross-origin requests
 - **Specialized Routes**: Gallery of Glosses (GOG) specific endpoints in `_gog_*.js` files
 
+### Coding Style Guidelines
+- **Semicolons**: Avoid unnecessary semicolons (e.g., at the end of most lines)
+- **Control Flow**: Prefer guard clauses over if/else statements when the meaning is clear
+- **Modern JavaScript**: Use optional chaining (`?.`) and nullish coalescing (`??`) operators and ternaries for concise code when it doesn't compromise readability
+- **Language**: Use inclusive language and labels throughout the codebase
+- **Attribution**: Include attribution for contributed code or borrowed code at the top of each file
+
 ### Development Workflow
 1. **After routing changes**: Always run basic route tests: `npm run runtest -- __tests__/routes_mounted.test.js`
 2. **After configuration changes**: Test server startup: `npm start` (should display "LISTENING ON 3005")
