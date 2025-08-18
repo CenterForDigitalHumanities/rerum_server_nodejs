@@ -1,6 +1,7 @@
 import express from 'express'
 const router = express.Router()
 import auth from '../auth/index.js'
+import { getAgentClaim } from '../controllers/utils.js'
 
 router.get('/register', (req, res, next) => {
   //Register means register with the RERUM Server Auth0 client and get a new code for a refresh token.
@@ -18,6 +19,13 @@ router.get('/register', (req, res, next) => {
 
 router.post('/request-new-access-token',auth.generateNewAccessToken)
 router.post('/request-new-refresh-token',auth.generateNewRefreshToken)
-router.get('/verify',auth.checkJwt)
+
+// Verifies good tokens are from RERUM.  Fails with 401 on tokens from other platforms, or bad tokens in genreal.
+router.get('/verify', auth.checkJwt, (req, res, next) => {
+  const generatorAgent = getAgentClaim(req, next)
+  res.set("Content-Type", "text/plain")
+  res.status(200)
+  res.send("The token was verified by Auth0")
+})
 
 export default router
