@@ -190,6 +190,23 @@
                 <input class='btn btn-primary btn-large' type="button" id="refresh_token" value="Get A New Refresh Token" />
             </div>
         </div>
+        <div class='panel panel-info' name="block" id="access-token-display-panel">
+            <div class="panel-heading"> 
+                <span class="panel-title">Access Token</span> 
+            </div>
+            <div class="panel-body">
+                <p class="handHoldy">
+                    When you generate a new refresh token, an access token is also created. 
+                    It will be displayed here automatically. The access token generated from generating
+                    a new access token will also be displayed here
+                </p>
+                <textarea readonly class="form-control" id="a_t" placeholder="Your access token will appear here."></textarea>
+                <div>
+                    <span class="status_header"> Access Token Expiration </span>
+                    <kbd class="rerumStatus" id="refreshAccessExp">UNKNOWN</kbd>
+                </div>
+            </div>
+        </div>
         <div class='panel panel-info' name="block" id="access-token-panel">
             <div class="panel-heading"> <span class="panel-title">Get A New Access Token</span> </div>
             <div class="panel-body">
@@ -197,6 +214,7 @@
                     Your access token to use RERUM expires every 30 days. Has it been that long or longer? Provide your
                     refresh token below to get a new access token.
                     If you lost your refresh token, you can get a new one in "Get A New Refresh Token" below.
+                    The generated access token will be displayed in the box above
                 </p>
                 <textarea class="form-control" placeholder="Your refresh token goes here." id="r_t_4_a_t"></textarea>
                 <div>
@@ -321,14 +339,30 @@
                 })
                 .then(token => {
                     $("#a_t").val(token.access_token);
+
+                    // Calculate expiration (30 days from now)
+                    const expirationDate = new Date();
+                    expirationDate.setDate(expirationDate.getDate() + 30);
+                    const expString = expirationDate.toLocaleString();
+
+                    // Update expiration displays
+                    $("#refreshAccessExp").html(expString);
+                    $("#testAccessExp").html(expString);
+
                     $("#natStatus").html("SUCCESS");
+                    alert("The old access token has been invalidated. A new one is now active.");
                 })
                 .catch(err => {
                     $("#natStatus").html("FAILED. " + err.message);
                 });
         });
 
+        let firstRefreshShown = false;
         $("#refresh_token").click(function() {
+            if (!confirm("Requesting a new refresh token invalidates the old one. Do you want to continue?")) {
+                return; // cancel the request if user clicks "Cancel"
+            }
+
             const authCode = $("#code_for_refresh_token").val();
             if (!authCode) {
                 alert("You must provide an authorization code.");
@@ -351,8 +385,24 @@
                 })
                 .then(token => {
                     $("#new_refresh_token").val(token.refresh_token);
+
+                    // Fill access tokens in both places
                     $("#a_t").val(token.access_token);
+
+                    // Calculate expiration (30 days from now)
+                    const expirationDate = new Date();
+                    expirationDate.setDate(expirationDate.getDate() + 30);
+                    const expString = expirationDate.toLocaleString();
+
+                    // Update expiration displays
+                    $("#refreshAccessExp").html(expString);
+                    $("#testAccessExp").html(expString);
+
                     $("#nrtStatus").html("SUCCESS");
+                    if (!firstRefreshShown) {
+                        alert("Your new Refresh Token replaces the old one. Keep it safe! A new Access Token has also been issued.");
+                        firstRefreshShown = true;
+                    }
                 })
                 .catch(err => {
                     $("#nrtStatus").html("FAILED. " + err.message);
