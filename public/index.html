@@ -23,6 +23,11 @@
             color: #979A9E;
             font-size: 12pt;
         }
+
+        .column {
+            float: left;
+            width: 50%;
+        }
     
         body {
             font-family: 'Open Sans', sans-serif;
@@ -106,7 +111,36 @@
                 consumers can evaluate trustworthiness and relevance</li>
         </ol>
     </div>
-    <div class='panel panel-info' name="block">
+    <div class="column"> <!-- Column for Refresh Token -->
+        <div class='panel panel-info' name="block">
+            
+                <div class="panel-heading"> <span class="panel-title">Refresh Token</span> </div>
+                <div class="panel-body">
+                    <p class="handHoldy">
+                        “⚠️ Most important token. Do not lose it.”
+                    </p>
+                    <p class="handHoldy" id="RefreshTokenDisplay">
+                        Your refresh token will appear here.
+                    </p>
+                </div>
+            
+        </div>
+    </div>
+    <div class="column"> <!-- Column for Access Token -->
+        <div class='panel panel-info' name="block">
+            
+                <div class="panel-heading"> <span class="panel-title">Access Token</span> </div>
+                <div class="panel-body">
+                    <p class="handHoldy">
+                        “Valid for 30 days. You can refresh anytime.”
+                    </p>
+                    <p class="handHoldy" id="AccessTokenDisplay">
+                        Your access token will appear here.
+                    </p>
+                </div>
+        </div>
+    </div>
+    <div class='panel panel-info' name="block"> <!-- Application Registration -->
         <div class="panel-heading"> <span class="panel-title">Application Registration</span> </div>
         <div class="panel-body">
             <p class="handHoldy">
@@ -137,7 +171,7 @@
             <input class='btn btn-primary btn-large' type="button" id="register" value="Register With RERUM At Auth0" />
         </div>
     </div>
-    <div class='panel panel-info' name="block">
+    <div class='panel panel-info' name="block"> <!-- Auth0 Authorization Status -->
         <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
         <div class="panel-body">
             <p class="handHoldy">
@@ -154,7 +188,7 @@
             <!--<input class='btn btn-primary btn-large' type="button" id="login" value="Login To Get Auth Status" />-->
         </div>
     </div>
-    <div class='panel panel-info' name="block">
+    <div class='panel panel-info' name="block"> <!-- Test RERUM API Access -->
         <div class="panel-heading"> <span class="panel-title">Test RERUM API Access</span> </div>
         <div class="panel-body">
             <p class="handHoldy">
@@ -175,7 +209,7 @@
             <input class='btn btn-primary btn-large' type="button" onclick="testAPI()" id="test_api" value="Check Access To RERUM API" />
         </div>
     </div>
-    <div class='panel panel-info' name="block">
+    <div class='panel panel-info' name="block"> <!-- Get A New Access Token -->
         <div class="panel-heading"> <span class="panel-title">Get A New Access Token</span> </div>
         <div class="panel-body">
             <p class="handHoldy">
@@ -193,7 +227,7 @@
             <input class='btn btn-primary btn-large' type="button" id="request_token" value="Get A New Access Token" />
         </div>
     </div>
-    <div class='panel panel-info' name="block">
+    <div class='panel panel-info' name="block"> <!-- Get A New Refresh Token -->
         <div class="panel-heading"> <span class="panel-title">Get A New Refresh Token</span> </div>
         <div class="panel-body">
             <p class="handHoldy">
@@ -325,6 +359,8 @@
             })
             .then(token => {
                 $("#new_refresh_token").val(token.refresh_token)
+                $("#RefreshTokenDisplay").html(token.refresh_token)
+                $("#AccessTokenDisplay").html(token.access_token)
                 $("#a_t").val(token.access_token)
             })
     })
