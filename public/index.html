@@ -281,31 +281,54 @@
     </div>
 
     <script type="text/javascript">
-        function NewRefreshToken(){ // This function generates a new refresh token, needed to generate an access token respectively.
-       const authorization_code = $("#code_for_refresh_token").val()
-       fetch('/client/request-new-refresh-token', {
-        
-                method: 'post',
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8"
-                },
-                body: JSON.stringify({ authorization_code })
-            }).then(resp => {
-                const statusElem = $("#nrtStatus")
-                if (resp.status < 300) {
-                    return resp.json()
-                } else {
-                    $("#code_for_refresh_token").css("border", "2px solid red")
-                    return Promise.reject("Invalid authorization code.")
-                }
-            })
-            .then(token => {
-                $("#new_refresh_token").val(token.refresh_token)
-                $("#a_t").val(token.access_token)
-                
-                $("#RefreshTokenDisplay").val(token.refresh_token)
-                $("#AccessTokenDisplay").val(token.access_token)
-            })  
+        function GenerateTokens(){ // This function generates access and refresh tokens after a user registers.
+        const authCode = $("#code_for_refresh_token").val();
+            if (!authCode) {
+                alert("You must provide an authorization code.");
+                return;
+            }
+            fetch('/client/request-new-refresh-token', {
+                    method: 'post',
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8"
+                    },
+                    body: JSON.stringify({
+                        authorization_code: authCode
+                    })
+                })
+                .then(resp => {
+                    if (!resp.ok) {
+                        throw new Error("Invalid authorization code.");
+                    }
+                    return resp.json();
+                })
+                .then(token => {
+                    $("#new_refresh_token").val(token.refresh_token);
+
+                    // Fill access tokens in both places
+                    $("#a_t").val(token.access_token);
+
+                    // Calculate expiration (30 days from now)
+                    const expirationDate = new Date();
+                    expirationDate.setDate(expirationDate.getDate() + 30);
+                    const expString = expirationDate.toLocaleString();
+
+                    // Update expiration displays
+                    $("#refreshAccessExp").html(expString);
+                    $("#testAccessExp").html(expString);
+
+                    $("#RefreshTokenDisplay").val(token.refresh_token)
+                    $("#AccessTokenDisplay").val(token.access_token)
+
+                    $("#nrtStatus").html("SUCCESS");
+                    if (!firstRefreshShown) {
+                        alert("Your new Refresh Token replaces the old one. Keep it safe! A new Access Token has also been issued.");
+                        firstRefreshShown = true;
+                    }
+                })
+                .catch(err => {
+                    $("#nrtStatus").html("FAILED. " + err.message);
+                }); 
     }
 
         function getURLVariable(variable) {
@@ -334,8 +357,8 @@
         }
 
         $('#show-checks').click(function() {
-            $('#checks-container').slideToggle();
-        });
+        $('#checks-container').slideToggle();
+    });
 
         $(document).ready(function() {
             const myURL = document.location.href;
@@ -353,6 +376,7 @@
                 $('#checks-container').slideDown();
                 $('#panel-checks').hide();
                 alert("Registration successful!");
+                GenerateTokens()
             } else if (errorCode) {
                 $('#authorizationStatus').html(`Authentication Error: ${errorCode.replace(/_/g, ' ')}`);
                 $('#checks-container').slideDown();
@@ -365,6 +389,7 @@
                 .then(res => res.text())
                 .then(url => location.href = url)
                 .catch(err => alert("Error: Could not connect to the registration service."));
+                
         });
 
         $("#check_status").click(ev => {
