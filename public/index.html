@@ -38,7 +38,7 @@
             font-family: serif;
             font-size: 14pt;
         }
-
+        
         .column {
             float: left;
             width: 50%;
@@ -160,31 +160,30 @@
     </div>
 
     <div id="checks-container" style="display: none;">
-        <div class='panel panel-info' name="block" id="token-display-panel"> <!-- Token Displays -->     
-            <div class="panel-heading"> <span class="panel-title">Tokens</span> 
+        <div class='panel panel-info' name="block" id="token-display-panel">
+            <div class="panel-heading"> <span class="panel-title">Tokens</span>
             </div>
             <div class="panel-body">
-                <div class = "column"> <!-- Access Token Column -->                 
-                            <p class="handHoldy">
-                                Access Token: Valid for 30 days. You can refresh anytime.
-                            </p>
-                            <p class="handHoldy">
-                                <textarea readonly class="form-control" id="AccessTokenDisplay" placeholder="Your access token will appear here."></textarea>
-                            </p>                      
+                <div class = "column">
+                    <p class="handHoldy">
+                        Access Token: Valid for 30 days. You can refresh anytime.
+                    </p>
+                    <p class="handHoldy">
+                        <textarea readonly class="form-control" id="AccessTokenDisplay" placeholder="Your access token will appear here."></textarea>
+                    </p>
                 </div>
-                <div class = "column"> <!-- Refresh Token Column -->  
-                            <p class="handHoldy">
-                                Refresh Token: ⚠️ Most important token. Do not lose it.”
-                            </p>
-                            <p class="handHoldy">
-                                <textarea readonly class="form-control" id="RefreshTokenDisplay" placeholder="Your refresh token will appear here."></textarea>
-                            </p>
+                <div class = "column">
+                    <p class="handHoldy">
+                        Refresh Token: ⚠️ Most important token. Do not lose it.”
+                    </p>
+                    <p class="handHoldy">
+                        <textarea readonly class="form-control" id="RefreshTokenDisplay" placeholder="Your refresh token will appear here."></textarea>
+                    </p>
                 </div>
             </div>
             <div class="panel-footer">
-                        <input class='btn btn-primary btn-large' type="button" id="download_token" value="Download Tokens" />
-            </div>                   
-                
+                <input class='btn btn-primary btn-large' type="button" id="download_token" value="Download Tokens" />
+            </div>
         </div>
         <div class='panel panel-info' name="block" id="auth-status-panel">
             <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
@@ -222,12 +221,12 @@
             </div>
         </div>
         <div class='panel panel-info' name="block" id="access-token-display-panel">
-            <div class="panel-heading"> 
-                <span class="panel-title">Access Token</span> 
+            <div class="panel-heading">
+                <span class="panel-title">Access Token</span>
             </div>
             <div class="panel-body">
                 <p class="handHoldy">
-                    When you generate a new refresh token, an access token is also created. 
+                    When you generate a new refresh token, an access token is also created.
                     It will be displayed here automatically. The access token generated from generating
                     a new access token will also be displayed here
                 </p>
@@ -281,56 +280,52 @@
     </div>
 
     <script type="text/javascript">
-        function GenerateTokens(){ // This function generates access and refresh tokens after a user registers.
+        function GenerateTokens(){
         const authCode = $("#code_for_refresh_token").val();
             if (!authCode) {
                 alert("You must provide an authorization code.");
                 return;
             }
             fetch('/client/request-new-refresh-token', {
-                    method: 'post',
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8"
-                    },
-                    body: JSON.stringify({
-                        authorization_code: authCode
-                    })
+                method: 'post',
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                body: JSON.stringify({
+                    authorization_code: authCode
                 })
-                .then(resp => {
-                    if (!resp.ok) {
-                        throw new Error("Invalid authorization code.");
-                    }
-                    return resp.json();
-                })
-                .then(token => {
-                    $("#new_refresh_token").val(token.refresh_token);
+            })
+            .then(resp => {
+                if (!resp.ok) {
+                    throw new Error("Invalid authorization code.");
+                }
+                return resp.json();
+            })
+            .then(token => {
+                $("#new_refresh_token").val(token.refresh_token);
 
-                    // Fill access tokens in both places
-                    $("#a_t").val(token.access_token);
+                $("#a_t").val(token.access_token);
 
-                    // Calculate expiration (30 days from now)
-                    const expirationDate = new Date();
-                    expirationDate.setDate(expirationDate.getDate() + 30);
-                    const expString = expirationDate.toLocaleString();
+                const expirationDate = new Date();
+                expirationDate.setDate(expirationDate.getDate() + 30);
+                const expString = expirationDate.toLocaleString();
 
-                    // Update expiration displays
-                    $("#refreshAccessExp").html(expString);
-                    $("#testAccessExp").html(expString);
+                $("#refreshAccessExp").html(expString);
+                $("#testAccessExp").html(expString);
 
-                    $("#RefreshTokenDisplay").val(token.refresh_token)
-                    $("#AccessTokenDisplay").val(token.access_token)
+                $("#RefreshTokenDisplay").val(token.refresh_token)
+                $("#AccessTokenDisplay").val(token.access_token)
 
-                    $("#nrtStatus").html("SUCCESS");
-                    if (!firstRefreshShown) {
-                        alert("Your new Refresh Token replaces the old one. Keep it safe! A new Access Token has also been issued.");
-                        firstRefreshShown = true;
-                    }
-                })
-                .catch(err => {
-                    $("#nrtStatus").html("FAILED. " + err.message);
-                }); 
-    }
-
+                $("#nrtStatus").html("SUCCESS");
+                if (!firstRefreshShown) {
+                    alert("Your new Refresh Token replaces the old one. Keep it safe! A new Access Token has also been issued.");
+                    firstRefreshShown = true;
+                }
+            })
+            .catch(err => {
+                $("#nrtStatus").html("FAILED. " + err.message);
+            });
+        }
         function getURLVariable(variable) {
             const query = window.location.search.substring(1);
             const vars = query.split("&");
@@ -357,8 +352,8 @@
         }
 
         $('#show-checks').click(function() {
-        $('#checks-container').slideToggle();
-    });
+            $('#checks-container').slideToggle();
+        });
 
         $(document).ready(function() {
             const myURL = document.location.href;
@@ -383,13 +378,12 @@
                 $('#panel-checks').hide();
             }
         });
-
+        
         $("#register").click(ev => {
             fetch('/client/register')
                 .then(res => res.text())
                 .then(url => location.href = url)
                 .catch(err => alert("Error: Could not connect to the registration service."));
-                
         });
 
         $("#check_status").click(ev => {
@@ -423,12 +417,10 @@
                 .then(token => {
                     $("#a_t").val(token.access_token);
 
-                    // Calculate expiration (30 days from now)
                     const expirationDate = new Date();
                     expirationDate.setDate(expirationDate.getDate() + 30);
                     const expString = expirationDate.toLocaleString();
 
-                    // Update expiration displays
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
 
@@ -443,7 +435,7 @@
         let firstRefreshShown = false;
         $("#refresh_token").click(function() {
             if (!confirm("Requesting a new refresh token invalidates the old one. Do you want to continue?")) {
-                return; // cancel the request if user clicks "Cancel"
+                return; 
             }
 
             const authCode = $("#code_for_refresh_token").val();
@@ -469,15 +461,12 @@
                 .then(token => {
                     $("#new_refresh_token").val(token.refresh_token);
 
-                    // Fill access tokens in both places
                     $("#a_t").val(token.access_token);
 
-                    // Calculate expiration (30 days from now)
                     const expirationDate = new Date();
                     expirationDate.setDate(expirationDate.getDate() + 30);
                     const expString = expirationDate.toLocaleString();
 
-                    // Update expiration displays
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
 
@@ -492,9 +481,9 @@
                 });
         });
 
-        $("#download_token").click(function(){ // This function downloads the access and refresh tokens to a .txt file
+        $("#download_token").click(function(){
             const link = document.createElement("a")
-            const AccessTokenDownload = $("#AccessTokenDisplay").val() 
+            const AccessTokenDownload = $("#AccessTokenDisplay").val()
             const RefreshTokenDownload = $("#RefreshTokenDisplay").val()
             const content = ["Access Token: " + AccessTokenDownload + "\nRefresh Token: " + RefreshTokenDownload]
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
