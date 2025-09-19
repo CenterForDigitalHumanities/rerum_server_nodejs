@@ -173,6 +173,22 @@
     </div>
 
     <div id="checks-container" style="display: none;">
+        <div class='panel panel-info' name="block" id="auth-status-panel">
+            <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
+            <div class="panel-body">
+                <p class="handHoldy">
+                    If you believe you are already registered and want to check on your status, follow the prompts below.
+                    You will be routed to Auth0 so we can verify who you are.
+                </p>
+                <div>
+                    <span class="status_header"> Auth0 Status </span>
+                    <kbd class="rerumStatus" id="authorizationStatus">UNKNOWN</kbd>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <input class='btn btn-primary btn-large' type="button" id="check_status" value="Check my Authorization Status With Auth0" />
+            </div>
+        </div>
         <div class='panel panel-info' name="block" id="token-display-panel">
             <div class="panel-heading"> <span class="panel-title">Tokens</span>
             </div>
@@ -196,22 +212,6 @@
             </div>
             <div class="panel-footer">
                 <input class='btn btn-primary btn-large' type="button" id="download_token" value="Download Tokens" />
-            </div>
-        </div>
-        <div class='panel panel-info' name="block" id="auth-status-panel">
-            <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
-            <div class="panel-body">
-                <p class="handHoldy">
-                    If you believe you are already registered and want to check on your status, follow the prompts below.
-                    You will be routed to Auth0 so we can verify who you are.
-                </p>
-                <div>
-                    <span class="status_header"> Auth0 Status </span>
-                    <kbd class="rerumStatus" id="authorizationStatus">UNKNOWN</kbd>
-                </div>
-            </div>
-            <div class="panel-footer">
-                <input class='btn btn-primary btn-large' type="button" id="check_status" value="Check my Authorization Status With Auth0" />
             </div>
         </div>
         <div class='panel panel-info' name="block" id="refresh-token-panel">
@@ -481,6 +481,7 @@
 
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
+                    $("#AccessTokenDisplay").val(token.access_token);
 
                     $("#natStatus").html("SUCCESS");
                     alert("The old access token has been invalidated. A new one is now active.");
@@ -527,6 +528,8 @@
 
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
+                    $("#RefreshTokenDisplay").val(token.refresh_token);
+                    $("#AccessTokenDisplay").val(token.access_token);
 
                     $("#nrtStatus").html("SUCCESS");
                     if (!firstRefreshShown) {
