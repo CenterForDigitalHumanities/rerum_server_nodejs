@@ -150,6 +150,19 @@
                 <div class="panel-body">
                     <p>
                         If you are already registered and need to manage your tokens or check your status, click the button below.
+                        When you click <strong>Checks</strong>, several panels will appear to help you manage authentication:
+                    </p>
+                    <ul>
+                        <li><strong>Tokens</strong> — Displays your most recent Access Token and Refresh Token.</li>
+                        <li><strong>Auth0 Authorization Status</strong> — Shows whether you are currently recognized by Auth0.</li>
+                        <li><strong>Get A New Refresh Token</strong> — Lets you exchange an Auth0 Authorization Code for a brand new Refresh Token. ⚠️ This invalidates your old Refresh Token.</li>
+                        <li><strong>Access Token</strong> — Displays the Access Token generated alongside your Refresh Token and shows its expiration date.</li>
+                        <li><strong>Get A New Access Token</strong> — Allows you to generate a new Access Token using your Refresh Token.</li>
+                        <li><strong>Verify Any Token</strong> — Paste in any Access Token to check whether it is still valid.</li>
+                        <li><strong>Test RERUM API Access</strong> — Uses your Access Token to test if you can reach the RERUM API successfully.</li>
+                    </ul>
+                    <p>
+                        Use these tools to keep your tokens up to date and verify access to the RERUM services.
                     </p>
                 </div>
                 <div class="panel-footer">
@@ -256,6 +269,24 @@
                 <input class='btn btn-primary btn-large' type="button" id="request_token" value="Get A New Access Token" />
             </div>
         </div>
+        <div class='panel panel-info' name="block" id="verify-any-token-panel">
+            <div class="panel-heading"> 
+                <span class="panel-title">Verify Any Token</span> 
+            </div>
+            <div class="panel-body">
+                <p class="handHoldy">
+                Paste any access token here to check if it is still valid.
+                </p>
+                <textarea class="form-control" id="any_token_input" placeholder="Your token goes here."></textarea>
+                    <div>
+                        <span class="status_header"> Token Status </span>
+                        <kbd class="rerumStatus" id="anyTokenStatus">UNKNOWN</kbd>
+                    </div>
+            </div>
+            <div class="panel-footer">
+                <input class='btn btn-primary btn-large' type="button" id="verify_any_token" value="Verify Token" />
+            </div>
+        </div>
         <div class='panel panel-info' name="block" id="test-api-panel">
             <div class="panel-heading"> <span class="panel-title">Test RERUM API Access</span> </div>
             <div class="panel-body">
@@ -356,28 +387,55 @@
         });
 
         $(document).ready(function() {
-            const myURL = document.location.href;
             const authCode = getURLVariable("code");
             const errorCode = getURLVariable("error");
             const login = getURLVariable("login");
 
+            // Successful login flow (explicit flag)
             if (login === "true") {
-                alert("Successfully logged in!");
+                alert("Login successful — your auth token has been generated.");
+                $('#checks-container').slideDown();
+                $('#panel-checks').hide();
+                clearQueryParams();
+                return;
             }
 
+            // Registration or login based on history
             if (authCode) {
                 $('#code_for_refresh_token').val(authCode);
                 $('#authorizationStatus').html("AUTHORIZED: Auth0 code found. You are registered. Use the button below to get a new refresh token.");
                 $('#checks-container').slideDown();
                 $('#panel-checks').hide();
-                alert("Registration successful!");
-                GenerateTokens()
-            } else if (errorCode) {
+
+                if (!localStorage.getItem("hasRegistered")) {
+                    // First time seeing a code → registration
+                    alert("Registration successful — login through Auth0 authorization to receive your auth token.");
+                    localStorage.setItem("hasRegistered", "true");
+                } else {
+                    // Already registered → treat this as login
+                    alert("Login successful — your auth token has been generated.");
+                }
+                clearQueryParams();
+                return;
+            }
+
+            // Error flow
+            if (errorCode) {
                 $('#authorizationStatus').html(`Authentication Error: ${errorCode.replace(/_/g, ' ')}`);
                 $('#checks-container').slideDown();
                 $('#panel-checks').hide();
+                alert(`Authentication Error: ${errorCode.replace(/_/g, ' ')}`);
+                clearQueryParams();
             }
         });
+
+        // Helper to remove query params from URL after handling
+        function clearQueryParams() {
+            if (window.history.replaceState) {
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
         
         $("#register").click(ev => {
             fetch('/client/register')
@@ -492,6 +550,37 @@
             link.click();
             URL.revokeObjectURL(link.href);
         })
+
+        // Verify any token (access only for now)
+        $("#verify_any_token").click(function() {
+            const token = $("#any_token_input").val().trim();
+            if (!token) {
+                alert("Please paste a token.");
+                return;
+            }
+
+            // Simple malformed check (JWT should have 3 parts)
+            if (token.split(".").length !== 3) {
+                $("#anyTokenStatus").html("❌ Malformed token.");
+                return;
+            }
+
+            fetch('/client/verify', {
+                headers: {
+                Authorization: `Bearer ${token}`
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                throw new Error("Unauthorized");
+                }
+                // If the server says OK, then ✅ valid
+                $("#anyTokenStatus").html("✅ Token is valid");
+            })
+            .catch(() => {
+                $("#anyTokenStatus").html("❌ Token expired or invalid.");
+            });
+        });
 
         function testAPI() {
             const userProvidedToken = $("#a_t").val();
