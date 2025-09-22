@@ -38,7 +38,7 @@
             font-family: serif;
             font-size: 14pt;
         }
-        
+
         .column {
             float: left;
             width: 33%;
@@ -48,7 +48,7 @@
             float: right;
             width: 9%;
         }
-        
+
         h1 {
             cursor: pointer;
             font-weight: 300;
@@ -141,7 +141,7 @@
                         <a target="_blank" rel="noopener" href="https://store.rerum.io/API.html" class="linkOut">Read the API</a>).
                     </p>
                     <p class="handHoldy">
-                        After registering, you will be returned to this page with an Auth0 Authorization code. 
+                        After registering, you will be returned to this page with an Auth0 Authorization code.
                     </p>
                 </div>
                 <div class="panel-footer">
@@ -158,12 +158,10 @@
                         When you click <strong>Checks</strong>, several panels will appear to help you manage authentication:
                     </p>
                     <ul>
-                        <li><strong>Tokens</strong> — Displays your most recent Access Token and Refresh Token.</li>
                         <li><strong>Auth0 Authorization Status</strong> — Shows whether you are currently recognized by Auth0.</li>
                         <li><strong>Get A New Refresh Token</strong> — Lets you exchange an Auth0 Authorization Code for a brand new Refresh Token. ⚠️ This invalidates your old Refresh Token.</li>
                         <li><strong>Access Token</strong> — Displays the Access Token generated alongside your Refresh Token and shows its expiration date.</li>
                         <li><strong>Get A New Access Token</strong> — Allows you to generate a new Access Token using your Refresh Token.</li>
-                        <li><strong>Verify Any Token</strong> — Paste in any Access Token to check whether it is still valid.</li>
                         <li><strong>Test RERUM API Access</strong> — Uses your Access Token to test if you can reach the RERUM API successfully.</li>
                     </ul>
                     <p>
@@ -194,31 +192,6 @@
                 <input class='btn btn-primary btn-large' type="button" id="check_status" value="Check my Authorization Status With Auth0" />
             </div>
         </div>
-        <div class='panel panel-info' name="block" id="token-display-panel">
-            <div class="panel-heading"> <span class="panel-title">Tokens</span>
-            </div>
-            <div class="panel-body">
-                <div class = "column">
-                    <p class="handHoldy">
-                        Access Token: Valid for 30 days. You can refresh anytime.
-                    </p>
-                    <p class="handHoldy">
-                        <textarea readonly class="form-control" id="AccessTokenDisplay" placeholder="Your access token will appear here."></textarea>
-                    </p>
-                </div>
-                <div class = "column">
-                    <p class="handHoldy">
-                        Refresh Token: ⚠️ Most important token. Do not lose it.”
-                    </p>
-                    <p class="handHoldy">
-                        <textarea readonly class="form-control" id="RefreshTokenDisplay" placeholder="Your refresh token will appear here."></textarea>
-                    </p>
-                </div>
-            </div>
-            <div class="panel-footer">
-                <input class='btn btn-primary btn-large' type="button" id="download_token" value="Download Tokens" />
-            </div>
-        </div>
         <div class='panel panel-info' name="block" id="refresh-token-panel">
             <div class="panel-heading"> <span class="panel-title">Get A New Refresh Token</span> </div>
             <div class="panel-body">
@@ -233,14 +206,14 @@
                 <div>
                 <div class="column">
                     <span class="status_header"> Status </span>
-                        <kbd class="rerumStatus" id="nrtStatus">UNKNOWN</kbd>  
-                </div> 
+                        <kbd class="rerumStatus" id="nrtStatus">UNKNOWN</kbd>
+                </div>
                 <div class="column2">
                     <input class='btn btn-primary btn-large' type="button" id="copy_refresh_token" value="Copy" />
                 </div>
                 <div class="column2">
                     <input class='btn btn-primary btn-large' type="button" id="download_refresh_token" value="Download" />
-                </div>  
+                </div>
                 </div>
             </div>
             <div class="panel-footer">
@@ -261,14 +234,14 @@
                 <div>
                     <div class="column">
                         <span class="status_header"> Access Token Expiration </span>
-                        <kbd class="rerumStatus" id="refreshAccessExp">UNKNOWN</kbd> 
+                        <kbd class="rerumStatus" id="refreshAccessExp">UNKNOWN</kbd>
                     </div>
                     <div class="column2">
                         <input class='btn btn-primary btn-large' type="button" id="copy_access_token" value="Copy" />
                     </div>
                     <div class="column2">
                         <input class='btn btn-primary btn-large' type="button" id="download_access_token" value="Download" />
-                    </div>  
+                    </div>
                 </div>
             </div>
         </div>
@@ -289,24 +262,6 @@
             </div>
             <div class="panel-footer">
                 <input class='btn btn-primary btn-large' type="button" id="request_token" value="Get A New Access Token" />
-            </div>
-        </div>
-        <div class='panel panel-info' name="block" id="verify-any-token-panel">
-            <div class="panel-heading"> 
-                <span class="panel-title">Verify Any Token</span> 
-            </div>
-            <div class="panel-body">
-                <p class="handHoldy">
-                Paste any access token here to check if it is still valid.
-                </p>
-                <textarea class="form-control" id="any_token_input" placeholder="Your token goes here."></textarea>
-                    <div>
-                        <span class="status_header"> Token Status </span>
-                        <kbd class="rerumStatus" id="anyTokenStatus">UNKNOWN</kbd>
-                    </div>
-            </div>
-            <div class="panel-footer">
-                <input class='btn btn-primary btn-large' type="button" id="verify_any_token" value="Verify Token" />
             </div>
         </div>
         <div class='panel panel-info' name="block" id="test-api-panel">
@@ -412,7 +367,7 @@
                 window.history.replaceState({}, document.title, cleanUrl);
             }
         }
-        
+
         $("#register").click(ev => {
             fetch('/client/register')
                 .then(res => res.text())
@@ -457,7 +412,6 @@
 
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
-                    $("#AccessTokenDisplay").val(token.access_token);
 
                     $("#natStatus").html("SUCCESS");
                     alert("The old access token has been invalidated. A new one is now active.");
@@ -470,7 +424,7 @@
         let firstRefreshShown = false;
         $("#refresh_token").click(function() {
             if (!confirm("Requesting a new refresh token invalidates the old one. Do you want to continue?")) {
-                return; 
+                return;
             }
 
             const authCode = $("#code_for_refresh_token").val();
@@ -504,8 +458,6 @@
 
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
-                    $("#RefreshTokenDisplay").val(token.refresh_token);
-                    $("#AccessTokenDisplay").val(token.access_token);
 
                     $("#nrtStatus").html("SUCCESS");
                     if (!firstRefreshShown) {
@@ -528,18 +480,6 @@
             link.click();
             URL.revokeObjectURL(link.href);
         })
-        
-        $("#download_token").click(function(){
-            const link = document.createElement("a")
-            const AccessTokenDownload = $("#AccessTokenDisplay").val()
-            const RefreshTokenDownload = $("#RefreshTokenDisplay").val()
-            const content = ["Access Token: " + AccessTokenDownload + "\nRefresh Token: " + RefreshTokenDownload]
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            link.href = URL.createObjectURL(blob);
-            link.download = "AccessToken.txt";
-            link.click();
-            URL.revokeObjectURL(link.href);
-        })
 
         $("#download_refresh_token").click(function(){
             const link = document.createElement("a")
@@ -552,8 +492,7 @@
             URL.revokeObjectURL(link.href);
         })
 
-        $("#copy_access_token").click(async function(){ 
-            
+        $("#copy_access_token").click(async function(){
             const copyText = $("#a_t").val()
             try {
                 await navigator.clipboard.writeText(copyText);
@@ -564,8 +503,7 @@
             }
         });
 
-        $("#copy_refresh_token").click(async function(){ 
-            
+        $("#copy_refresh_token").click(async function(){
             const copyText = $("#new_refresh_token").val()
             try {
                 await navigator.clipboard.writeText(copyText);
@@ -574,37 +512,6 @@
                 console.error('Failed to copy: ', err);
                 alert('Failed to copy text.');
             }
-        });
-
-        // Verify any token (access only for now)
-        $("#verify_any_token").click(function() {
-            const token = $("#any_token_input").val().trim();
-            if (!token) {
-                alert("Please paste a token.");
-                return;
-            }
-
-            // Simple malformed check (JWT should have 3 parts)
-            if (token.split(".").length !== 3) {
-                $("#anyTokenStatus").html("❌ Malformed token.");
-                return;
-            }
-
-            fetch('/client/verify', {
-                headers: {
-                Authorization: `Bearer ${token}`
-                }
-            })
-            .then(res => {
-                if (!res.ok) {
-                throw new Error("Unauthorized");
-                }
-                // If the server says OK, then ✅ valid
-                $("#anyTokenStatus").html("✅ Token is valid");
-            })
-            .catch(() => {
-                $("#anyTokenStatus").html("❌ Token expired or invalid.");
-            });
         });
 
         function testAPI() {
