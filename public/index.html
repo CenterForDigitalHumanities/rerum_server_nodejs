@@ -178,6 +178,34 @@
     </div>
 
     <div id="checks-container" style="display: none;">
+<<<<<<< HEAD
+=======
+        <div class='panel panel-info' name="block" id="token-display-panel">
+            <div class="panel-heading"> <span class="panel-title">Tokens</span>
+            </div>
+            <div class="panel-body">
+                <div class = "column">
+                    <p class="handHoldy">
+                        Access Token: Valid for 30 days. You can refresh anytime.
+                    </p>
+                    <p class="handHoldy">
+                        <textarea readonly class="form-control" id="AccessTokenDisplay" placeholder="Your access token will appear here."></textarea>
+                    </p>
+                </div>
+                <div class = "column">
+                    <p class="handHoldy">
+                        Refresh Token: ⚠️ Most important token. Do not lose it.”
+                    </p>
+                    <p class="handHoldy">
+                        <textarea readonly class="form-control" id="RefreshTokenDisplay" placeholder="Your refresh token will appear here."></textarea>
+                    </p>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <input class='btn btn-primary btn-large' type="button" id="download_token" value="Download Tokens" />
+            </div>
+        </div>
+>>>>>>> e6b953490c7f519860861f9b8358aba19ad40531
         <div class='panel panel-info' name="block" id="auth-status-panel">
             <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
             <div class="panel-body">
@@ -308,8 +336,12 @@
     </div>
 
     <script type="text/javascript">
+<<<<<<< HEAD
         /*
         function CheckAuthorizationStatus(){
+=======
+        function GenerateTokens(){
+>>>>>>> e6b953490c7f519860861f9b8358aba19ad40531
         const authCode = $("#code_for_refresh_token").val();
             if (!authCode) {
                 alert("You must provide an authorization code.");
@@ -331,6 +363,7 @@
                 return resp.json();
             })
             .then(token => {
+<<<<<<< HEAD
                 alert("Your Auth0 code is valid! ✅ You are now authorized to use the RERUM API");
             })
             .catch(err => {
@@ -338,7 +371,32 @@
             });
         }
         */
+=======
+                $("#new_refresh_token").val(token.refresh_token);
 
+                $("#a_t").val(token.access_token);
+
+                const expirationDate = new Date();
+                expirationDate.setDate(expirationDate.getDate() + 30);
+                const expString = expirationDate.toLocaleString();
+
+                $("#refreshAccessExp").html(expString);
+                $("#testAccessExp").html(expString);
+
+                $("#RefreshTokenDisplay").val(token.refresh_token)
+                $("#AccessTokenDisplay").val(token.access_token)
+>>>>>>> e6b953490c7f519860861f9b8358aba19ad40531
+
+                $("#nrtStatus").html("SUCCESS");
+                if (!firstRefreshShown) {
+                    alert("Your new Refresh Token replaces the old one. Keep it safe! A new Access Token has also been issued.");
+                    firstRefreshShown = true;
+                }
+            })
+            .catch(err => {
+                $("#nrtStatus").html("FAILED. " + err.message);
+            });
+        }
         function getURLVariable(variable) {
             const query = window.location.search.substring(1);
             const vars = query.split("&");
@@ -410,6 +468,7 @@
                 clearQueryParams();
             }
         });
+<<<<<<< HEAD
 
         // Helper to remove query params from URL after handling
         function clearQueryParams() {
@@ -418,6 +477,8 @@
                 window.history.replaceState({}, document.title, cleanUrl);
             }
         }
+=======
+>>>>>>> e6b953490c7f519860861f9b8358aba19ad40531
         
         $("#register").click(ev => {
             fetch('/client/register')
@@ -522,10 +583,18 @@
                 });
         });
 
+<<<<<<< HEAD
         $("#download_access_token").click(function(){
             const link = document.createElement("a")
             const AccessTokenDownload = $("#a_t").val()
             const content = [AccessTokenDownload]
+=======
+        $("#download_token").click(function(){
+            const link = document.createElement("a")
+            const AccessTokenDownload = $("#AccessTokenDisplay").val()
+            const RefreshTokenDownload = $("#RefreshTokenDisplay").val()
+            const content = ["Access Token: " + AccessTokenDownload + "\nRefresh Token: " + RefreshTokenDownload]
+>>>>>>> e6b953490c7f519860861f9b8358aba19ad40531
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             link.href = URL.createObjectURL(blob);
             link.download = "AccessToken.txt";
