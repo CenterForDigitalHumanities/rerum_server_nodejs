@@ -38,10 +38,15 @@
             font-family: serif;
             font-size: 14pt;
         }
-
+        
         .column {
             float: left;
-            width: 50%;
+            width: 33%;
+        }
+
+        .column2 {
+            float: right;
+            width: 9%;
         }
         
         h1 {
@@ -150,6 +155,19 @@
                 <div class="panel-body">
                     <p>
                         If you are already registered and need to manage your tokens or check your status, click the button below.
+                        When you click <strong>Checks</strong>, several panels will appear to help you manage authentication:
+                    </p>
+                    <ul>
+                        <li><strong>Tokens</strong> — Displays your most recent Access Token and Refresh Token.</li>
+                        <li><strong>Auth0 Authorization Status</strong> — Shows whether you are currently recognized by Auth0.</li>
+                        <li><strong>Get A New Refresh Token</strong> — Lets you exchange an Auth0 Authorization Code for a brand new Refresh Token. ⚠️ This invalidates your old Refresh Token.</li>
+                        <li><strong>Access Token</strong> — Displays the Access Token generated alongside your Refresh Token and shows its expiration date.</li>
+                        <li><strong>Get A New Access Token</strong> — Allows you to generate a new Access Token using your Refresh Token.</li>
+                        <li><strong>Verify Any Token</strong> — Paste in any Access Token to check whether it is still valid.</li>
+                        <li><strong>Test RERUM API Access</strong> — Uses your Access Token to test if you can reach the RERUM API successfully.</li>
+                    </ul>
+                    <p>
+                        Use these tools to keep your tokens up to date and verify access to the RERUM services.
                     </p>
                 </div>
                 <div class="panel-footer">
@@ -160,32 +178,6 @@
     </div>
 
     <div id="checks-container" style="display: none;">
-        <div class='panel panel-info' name="block" id="token-display-panel"> <!-- Token Displays -->     
-            <div class="panel-heading"> <span class="panel-title">Tokens</span> 
-            </div>
-            <div class="panel-body">
-                <div class = "column"> <!-- Access Token Column -->                 
-                            <p class="handHoldy">
-                                Access Token: Valid for 30 days. You can refresh anytime.
-                            </p>
-                            <p class="handHoldy">
-                                <textarea readonly class="form-control" id="AccessTokenDisplay" placeholder="Your access token will appear here."></textarea>
-                            </p>                      
-                </div>
-                <div class = "column"> <!-- Refresh Token Column -->  
-                            <p class="handHoldy">
-                                Refresh Token: ⚠️ Most important token. Do not lose it.”
-                            </p>
-                            <p class="handHoldy">
-                                <textarea readonly class="form-control" id="RefreshTokenDisplay" placeholder="Your refresh token will appear here."></textarea>
-                            </p>
-                </div>
-            </div>
-            <div class="panel-footer">
-                        <input class='btn btn-primary btn-large' type="button" id="download_token" value="Download Tokens" />
-            </div>                   
-                
-        </div>
         <div class='panel panel-info' name="block" id="auth-status-panel">
             <div class="panel-heading"> <span class="panel-title">Auth0 Authorization Status</span> </div>
             <div class="panel-body">
@@ -212,9 +204,18 @@
                 Enter your code: <textarea class="form-control" placeholder="Your Auth0 Authorization Code goes here" id="code_for_refresh_token"></textarea>
                 <br>
                 <textarea readonly class="form-control" id="new_refresh_token" placeholder="Your refresh token will appear here."></textarea>
+
                 <div>
+                <div class="column">
                     <span class="status_header"> Status </span>
-                    <kbd class="rerumStatus" id="nrtStatus">UNKNOWN</kbd>
+                        <kbd class="rerumStatus" id="nrtStatus">UNKNOWN</kbd>  
+                </div> 
+                <div class="column2">
+                    <input class='btn btn-primary btn-large' type="button" id="copy_refresh_token" value="Copy" />
+                </div>
+                <div class="column2">
+                    <input class='btn btn-primary btn-large' type="button" id="download_refresh_token" value="Download" />
+                </div> 
                 </div>
             </div>
             <div class="panel-footer">
@@ -222,19 +223,27 @@
             </div>
         </div>
         <div class='panel panel-info' name="block" id="access-token-display-panel">
-            <div class="panel-heading"> 
-                <span class="panel-title">Access Token</span> 
+            <div class="panel-heading">
+                <span class="panel-title">Access Token</span>
             </div>
             <div class="panel-body">
                 <p class="handHoldy">
-                    When you generate a new refresh token, an access token is also created. 
+                    When you generate a new refresh token, an access token is also created.
                     It will be displayed here automatically. The access token generated from generating
                     a new access token will also be displayed here
                 </p>
                 <textarea readonly class="form-control" id="a_t" placeholder="Your access token will appear here."></textarea>
                 <div>
-                    <span class="status_header"> Access Token Expiration </span>
-                    <kbd class="rerumStatus" id="refreshAccessExp">UNKNOWN</kbd>
+                    <div class="column">
+                        <span class="status_header"> Access Token Expiration </span>
+                        <kbd class="rerumStatus" id="refreshAccessExp">UNKNOWN</kbd> 
+                    </div>
+                    <div class="column2">
+                        <input class='btn btn-primary btn-large' type="button" id="copy_access_token" value="Copy" />
+                    </div>
+                    <div class="column2">
+                        <input class='btn btn-primary btn-large' type="button" id="download_access_token" value="Download" />
+                    </div> 
                 </div>
             </div>
         </div>
@@ -255,6 +264,24 @@
             </div>
             <div class="panel-footer">
                 <input class='btn btn-primary btn-large' type="button" id="request_token" value="Get A New Access Token" />
+            </div>
+        </div>
+        <div class='panel panel-info' name="block" id="verify-any-token-panel">
+            <div class="panel-heading"> 
+                <span class="panel-title">Verify Any Token</span> 
+            </div>
+            <div class="panel-body">
+                <p class="handHoldy">
+                Paste any access token here to check if it is still valid.
+                </p>
+                <textarea class="form-control" id="any_token_input" placeholder="Your token goes here."></textarea>
+                    <div>
+                        <span class="status_header"> Token Status </span>
+                        <kbd class="rerumStatus" id="anyTokenStatus">UNKNOWN</kbd>
+                    </div>
+            </div>
+            <div class="panel-footer">
+                <input class='btn btn-primary btn-large' type="button" id="verify_any_token" value="Verify Token" />
             </div>
         </div>
         <div class='panel panel-info' name="block" id="test-api-panel">
@@ -281,55 +308,36 @@
     </div>
 
     <script type="text/javascript">
-        function GenerateTokens(){ // This function generates access and refresh tokens after a user registers.
+        /*
+        function CheckAuthorizationStatus(){
         const authCode = $("#code_for_refresh_token").val();
             if (!authCode) {
                 alert("You must provide an authorization code.");
                 return;
             }
             fetch('/client/request-new-refresh-token', {
-                    method: 'post',
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8"
-                    },
-                    body: JSON.stringify({
-                        authorization_code: authCode
-                    })
+                method: 'post',
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                body: JSON.stringify({
+                    authorization_code: authCode
                 })
-                .then(resp => {
-                    if (!resp.ok) {
-                        throw new Error("Invalid authorization code.");
-                    }
-                    return resp.json();
-                })
-                .then(token => {
-                    $("#new_refresh_token").val(token.refresh_token);
-
-                    // Fill access tokens in both places
-                    $("#a_t").val(token.access_token);
-
-                    // Calculate expiration (30 days from now)
-                    const expirationDate = new Date();
-                    expirationDate.setDate(expirationDate.getDate() + 30);
-                    const expString = expirationDate.toLocaleString();
-
-                    // Update expiration displays
-                    $("#refreshAccessExp").html(expString);
-                    $("#testAccessExp").html(expString);
-
-                    $("#RefreshTokenDisplay").val(token.refresh_token)
-                    $("#AccessTokenDisplay").val(token.access_token)
-
-                    $("#nrtStatus").html("SUCCESS");
-                    if (!firstRefreshShown) {
-                        alert("Your new Refresh Token replaces the old one. Keep it safe! A new Access Token has also been issued.");
-                        firstRefreshShown = true;
-                    }
-                })
-                .catch(err => {
-                    $("#nrtStatus").html("FAILED. " + err.message);
-                }); 
-    }
+            })
+            .then(resp => {
+                if (!resp.ok) {
+                    throw new Error("Invalid authorization code.");
+                }
+                return resp.json();
+            })
+            .then(token => {
+                alert("Your Auth0 code is valid! ✅ You are now authorized to use the RERUM API");
+            })
+            .catch(err => {
+                $("#nrtStatus").html("FAILED. " + err.message);
+            });
+        }
+        */
 
         function getURLVariable(variable) {
             const query = window.location.search.substring(1);
@@ -357,39 +365,65 @@
         }
 
         $('#show-checks').click(function() {
-        $('#checks-container').slideToggle();
-    });
+            $('#checks-container').slideToggle();
+        });
 
         $(document).ready(function() {
-            const myURL = document.location.href;
             const authCode = getURLVariable("code");
             const errorCode = getURLVariable("error");
             const login = getURLVariable("login");
 
+            // Successful login flow (explicit flag)
             if (login === "true") {
-                alert("Successfully logged in!");
+                alert("Login successful — your auth token has been generated.");
+                $('#checks-container').slideDown();
+                $('#panel-checks').hide();
+                clearQueryParams();
+                return;
             }
 
+            // Registration or login based on history
             if (authCode) {
                 $('#code_for_refresh_token').val(authCode);
-                $('#authorizationStatus').html("AUTHORIZED: Auth0 code found. You are registered. Use the button below to get a new refresh token.");
+                $('#authorizationStatus').html("✅");
                 $('#checks-container').slideDown();
                 $('#panel-checks').hide();
-                alert("Registration successful!");
-                GenerateTokens()
-            } else if (errorCode) {
-                $('#authorizationStatus').html(`Authentication Error: ${errorCode.replace(/_/g, ' ')}`);
+
+                if (!localStorage.getItem("hasRegistered")) {
+                    // First time seeing a code → registration
+                    alert("Registration successful — login through Auth0 authorization to receive your auth token.");
+                    localStorage.setItem("hasRegistered", "true");
+                } else {
+                    // Already registered → treat this as login
+                    alert("Login successful — your auth token has been generated.");
+                }
+                clearQueryParams();
+                return;
+            }
+
+            // Error flow
+            if (errorCode) {
+                $('#authorizationStatus').html("❌");
                 $('#checks-container').slideDown();
                 $('#panel-checks').hide();
+                alert(`Authentication Error: ${errorCode.replace(/_/g, ' ')}`);
+                clearQueryParams();
             }
         });
 
+        // Helper to remove query params from URL after handling
+        function clearQueryParams() {
+            if (window.history.replaceState) {
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+        
         $("#register").click(ev => {
             fetch('/client/register')
                 .then(res => res.text())
                 .then(url => location.href = url)
                 .catch(err => alert("Error: Could not connect to the registration service."));
-                
         });
 
         $("#check_status").click(ev => {
@@ -423,14 +457,13 @@
                 .then(token => {
                     $("#a_t").val(token.access_token);
 
-                    // Calculate expiration (30 days from now)
                     const expirationDate = new Date();
                     expirationDate.setDate(expirationDate.getDate() + 30);
                     const expString = expirationDate.toLocaleString();
 
-                    // Update expiration displays
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
+                    $("#AccessTokenDisplay").val(token.access_token);
 
                     $("#natStatus").html("SUCCESS");
                     alert("The old access token has been invalidated. A new one is now active.");
@@ -443,7 +476,7 @@
         let firstRefreshShown = false;
         $("#refresh_token").click(function() {
             if (!confirm("Requesting a new refresh token invalidates the old one. Do you want to continue?")) {
-                return; // cancel the request if user clicks "Cancel"
+                return; 
             }
 
             const authCode = $("#code_for_refresh_token").val();
@@ -469,15 +502,12 @@
                 .then(token => {
                     $("#new_refresh_token").val(token.refresh_token);
 
-                    // Fill access tokens in both places
                     $("#a_t").val(token.access_token);
 
-                    // Calculate expiration (30 days from now)
                     const expirationDate = new Date();
                     expirationDate.setDate(expirationDate.getDate() + 30);
                     const expString = expirationDate.toLocaleString();
 
-                    // Update expiration displays
                     $("#refreshAccessExp").html(expString);
                     $("#testAccessExp").html(expString);
 
@@ -492,17 +522,82 @@
                 });
         });
 
-        $("#download_token").click(function(){ // This function downloads the access and refresh tokens to a .txt file
+        $("#download_access_token").click(function(){
             const link = document.createElement("a")
-            const AccessTokenDownload = $("#AccessTokenDisplay").val() 
-            const RefreshTokenDownload = $("#RefreshTokenDisplay").val()
-            const content = ["Access Token: " + AccessTokenDownload + "\nRefresh Token: " + RefreshTokenDownload]
+            const AccessTokenDownload = $("#a_t").val()
+            const content = [AccessTokenDownload]
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             link.href = URL.createObjectURL(blob);
-            link.download = "Tokens.txt";
+            link.download = "AccessToken.txt";
             link.click();
             URL.revokeObjectURL(link.href);
         })
+
+        $("#download_refresh_token").click(function(){
+            const link = document.createElement("a")
+            const RefreshTokenDownload = $("#new_refresh_token").val()
+            const content = [RefreshTokenDownload]
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            link.href = URL.createObjectURL(blob);
+            link.download = "RefreshToken.txt";
+            link.click();
+            URL.revokeObjectURL(link.href);
+        })
+
+        $("#copy_access_token").click(async function(){ 
+            
+            const copyText = $("#a_t").val()
+            try {
+                await navigator.clipboard.writeText(copyText);
+                alert("Copied the text: " + copyText);
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy text.');
+            }
+        });
+
+        $("#copy_refresh_token").click(async function(){ 
+            
+            const copyText = $("#new_refresh_token").val()
+            try {
+                await navigator.clipboard.writeText(copyText);
+                alert("Copied the text: " + copyText);
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy text.');
+            }
+        });
+
+        // Verify any token (access only for now)
+        $("#verify_any_token").click(function() {
+            const token = $("#any_token_input").val().trim();
+            if (!token) {
+                alert("Please paste a token.");
+                return;
+            }
+
+            // Simple malformed check (JWT should have 3 parts)
+            if (token.split(".").length !== 3) {
+                $("#anyTokenStatus").html("❌ Malformed token.");
+                return;
+            }
+
+            fetch('/client/verify', {
+                headers: {
+                Authorization: `Bearer ${token}`
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                throw new Error("Unauthorized");
+                }
+                // If the server says OK, then ✅ valid
+                $("#anyTokenStatus").html("✅ Token is valid");
+            })
+            .catch(() => {
+                $("#anyTokenStatus").html("❌ Token expired or invalid.");
+            });
+        });
 
         function testAPI() {
             const userProvidedToken = $("#a_t").val();
@@ -529,3 +624,12 @@
 </body>
 
 </html>
+
+
+        
+   
+
+
+
+
+
