@@ -269,24 +269,6 @@
                 <input class='btn btn-primary btn-large' type="button" id="request_token" value="Get A New Access Token" />
             </div>
         </div>
-        <div class='panel panel-info' name="block" id="verify-any-token-panel">
-            <div class="panel-heading"> 
-                <span class="panel-title">Verify Any Token</span> 
-            </div>
-            <div class="panel-body">
-                <p class="handHoldy">
-                Paste any access token here to check if it is still valid.
-                </p>
-                <textarea class="form-control" id="any_token_input" placeholder="Your token goes here."></textarea>
-                    <div>
-                        <span class="status_header"> Token Status </span>
-                        <kbd class="rerumStatus" id="anyTokenStatus">UNKNOWN</kbd>
-                    </div>
-            </div>
-            <div class="panel-footer">
-                <input class='btn btn-primary btn-large' type="button" id="verify_any_token" value="Verify Token" />
-            </div>
-        </div>
         <div class='panel panel-info' name="block" id="test-api-panel">
             <div class="panel-heading"> <span class="panel-title">Test RERUM API Access</span> </div>
             <div class="panel-body">
@@ -553,37 +535,6 @@
             link.click();
             URL.revokeObjectURL(link.href);
         })
-
-        // Verify any token (access only for now)
-        $("#verify_any_token").click(function() {
-            const token = $("#any_token_input").val().trim();
-            if (!token) {
-                alert("Please paste a token.");
-                return;
-            }
-
-            // Simple malformed check (JWT should have 3 parts)
-            if (token.split(".").length !== 3) {
-                $("#anyTokenStatus").html("❌ Malformed token.");
-                return;
-            }
-
-            fetch('/client/verify', {
-                headers: {
-                Authorization: `Bearer ${token}`
-                }
-            })
-            .then(res => {
-                if (!res.ok) {
-                throw new Error("Unauthorized");
-                }
-                // If the server says OK, then ✅ valid
-                $("#anyTokenStatus").html("✅ Token is valid");
-            })
-            .catch(() => {
-                $("#anyTokenStatus").html("❌ Token expired or invalid.");
-            });
-        });
 
         function testAPI() {
             const userProvidedToken = $("#a_t").val();
