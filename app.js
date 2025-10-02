@@ -69,7 +69,7 @@ app.use(express.static(path.join(__dirname, 'public')))
  * If we are, then show the sad puppy.  Otherwise, continue on.
  * This is without middleware
  */
-app.all('*', (req, res, next) => {
+app.all('*_', (req, res, next) => {
   if(process.env.DOWN === "true"){
       res.status(503).json({"message":"RERUM v1 is down for updates or maintenance at this time.  We apologize for the inconvenience.  Try again later."})
   }
