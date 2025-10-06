@@ -6,7 +6,6 @@
  */
 
 import request from "supertest"
-import { jest } from "@jest/globals"
 import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
 import fs from "fs"
