@@ -8,12 +8,6 @@ import expressListEndpoints from "express-list-endpoints"
 let app_stack = expressListEndpoints(app.router)
 let api_stack = expressListEndpoints(api_routes)
 
-// console.log("APP STACK")
-// console.log(app_stack)
-
-// console.log("API STACK")
-// console.log(api_stack)
-
 describe.skip('Check to see that all expected top level route patterns exist. co_ol', () => {
 
   it('/v1 -- mounted ', () => {
