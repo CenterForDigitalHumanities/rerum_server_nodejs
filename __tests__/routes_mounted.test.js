@@ -3,10 +3,6 @@ import { jest } from "@jest/globals"
 import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
 import fs from 'fs'
-import expressListEndpoints from "express-list-endpoints"
-
-let app_stack = expressListEndpoints(app.router)
-let api_stack = expressListEndpoints(api_routes)
 
 describe.skip('Check to see that all expected top level route patterns exist. co_ol', () => {
 
