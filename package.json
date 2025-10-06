@@ -34,7 +34,6 @@
     "debug": "~4.4.3",
     "dotenv": "~17.2.3",
     "express": "^5.1.0",
-    "express-list-endpoints": "^7.1.1",
     "express-oauth2-jwt-bearer": "~1.7.1",
     "express-urlrewrite": "~2.0.3",
     "mongodb": "~6.20.0",
