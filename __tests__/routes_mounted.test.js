@@ -4,64 +4,68 @@ import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
 import fs from 'fs'
 
-let app_stack = app._router.stack
+/**
+ * Express 5 Route Detection
+ * 
+ * Key changes from Express 4 to Express 5:
+ * 1. Router is accessed via app.router (not app._router)
+ * 2. Layers use 'matchers' array instead of 'regexp' property
+ * 3. Each matcher is a function that tests if a path matches
+ * 4. Matchers return match info including path and params, or false
+ * 
+ * This approach checks routes without making HTTP requests by
+ * directly inspecting the Express app's routing table.
+ */
+let app_stack = app.router.stack
 let api_stack = api_routes.stack
+
+/**
+ * Helper function to check if a route exists in Express 5
+ * In Express 5, layers use 'matchers' instead of 'regexp'
+ * @param {Array} stack - The router stack to search
+ * @param {string} testPath - The path to test for
+ * @returns {boolean} - True if the route exists
+ */
+function routeExists(stack, testPath) {
+  for (const layer of stack) {
+    // Check if layer has matchers (Express 5)
+    if (layer.matchers && layer.matchers.length > 0) {
+      const matcher = layer.matchers[0]
+      const match = matcher(testPath)
+      if (match && match.path) {
+        return true
+      }
+    }
+    // Also check route.path directly if it exists
+    if (layer.route && layer.route.path) {
+      if (layer.route.path === testPath || layer.route.path.includes(testPath)) {
+        return true
+      }
+    }
+  }
+  return false
+}
 
 describe('Check to see that all expected top level route patterns exist.', () => {
 
   it('/v1 -- mounted ', () => {
-   let exists = false
-    for (const middleware of app_stack) {
-      if (middleware.regexp && middleware.regexp.toString().includes("/v1")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(app_stack, '/v1')).toBe(true)
   })
 
   it('/client -- mounted ', () => {
-   let exists = false
-    for (const middleware of app_stack) {
-      if (middleware.regexp && middleware.regexp.toString().includes("/client")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(app_stack, '/client')).toBe(true)
   })
 
   it('/v1/id/{_id} -- mounted', () => {
-    let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp && middleware.regexp.toString().includes("/id")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/id')).toBe(true)
   })
 
   it('/v1/since/{_id} -- mounted', () => {
-    let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp && middleware.regexp.toString().includes("/since")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/since')).toBe(true)
   })
 
   it('/v1/history/{_id} -- mounted', () => {
-    let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp && middleware.regexp.toString().includes("/history")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/history')).toBe(true)
   })
 
 })
@@ -69,133 +73,43 @@ describe('Check to see that all expected top level route patterns exist.', () =>
 describe('Check to see that all /v1/api/ route patterns exist.', () => {
 
   it('/v1/api/query -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/query")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/query')).toBe(true)
   })
 
   it('/v1/api/create -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/create")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/create')).toBe(true)
   })
 
   it('/v1/api/bulkCreate -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/bulkCreate")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/bulkCreate')).toBe(true)
   })
 
   it('/v1/api/update -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/update")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/update')).toBe(true)
   })
 
   it('/v1/api/bulkUpdate -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/bulkUpdate")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/bulkUpdate')).toBe(true)
   })
 
   it('/v1/api/patch -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/patch")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/patch')).toBe(true)
   })
 
   it('/v1/api/set -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp
-        && middleware.regexp.toString().includes("/api") 
-        && middleware.regexp.toString().includes("/set")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/set')).toBe(true)
   })
 
   it('/v1/api/unset -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/unset")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/unset')).toBe(true)
   })
 
   it('/v1/api/delete/{id} -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/delete")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/delete')).toBe(true)
   })
 
   it('/v1/api/release/{id} -- mounted ', () => {
-   let exists = false
-    for (const middleware of api_stack) {
-      if (middleware.regexp 
-        && middleware.regexp.toString().includes("/api")
-        && middleware.regexp.toString().includes("/release")){
-        exists = true
-        break
-      }
-    }
-    expect(exists).toBe(true)
+    expect(routeExists(api_stack, '/api/release')).toBe(true)
   })
 
 })
