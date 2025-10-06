@@ -1,27 +1,21 @@
+/**
+ * Express Route Detection
+ * 
+ * This approach checks routes without making HTTP requests by
+ * directly inspecting the Express app's routing table.
+ */
+
 import request from "supertest"
 import { jest } from "@jest/globals"
 import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
 import fs from 'fs'
 
-/**
- * Express 5 Route Detection
- * 
- * Key changes from Express 4 to Express 5:
- * 1. Router is accessed via app.router (not app._router)
- * 2. Layers use 'matchers' array instead of 'regexp' property
- * 3. Each matcher is a function that tests if a path matches
- * 4. Matchers return match info including path and params, or false
- * 
- * This approach checks routes without making HTTP requests by
- * directly inspecting the Express app's routing table.
- */
 let app_stack = app.router.stack
 let api_stack = api_routes.stack
 
 /**
- * Helper function to check if a route exists in Express 5
- * In Express 5, layers use 'matchers' instead of 'regexp'
+ * Check if a route exists in the Express app
  * @param {Array} stack - The router stack to search
  * @param {string} testPath - The path to test for
  * @returns {boolean} - True if the route exists
@@ -141,5 +135,7 @@ describe('Check to see that critical repo files are present', () => {
     expect(fs.existsSync(filePath+"CONTRIBUTING.md")).toBeTruthy()
     expect(fs.existsSync(filePath+"README.md")).toBeTruthy()
     expect(fs.existsSync(filePath+"LICENSE")).toBeTruthy()
+    expect(fs.existsSync(filePath+".gitignore")).toBeTruthy()
+    expect(fs.existsSync(filePath+"jest.config.js")).toBeTruthy()
   })
 })
