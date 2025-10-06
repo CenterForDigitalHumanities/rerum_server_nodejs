@@ -9,7 +9,7 @@ import request from "supertest"
 import { jest } from "@jest/globals"
 import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
-import fs from 'fs'
+import fs from "fs"
 
 let app_stack = app.router.stack
 let api_stack = api_routes.stack
@@ -137,5 +137,6 @@ describe('Check to see that critical repo files are present', () => {
     expect(fs.existsSync(filePath+"LICENSE")).toBeTruthy()
     expect(fs.existsSync(filePath+".gitignore")).toBeTruthy()
     expect(fs.existsSync(filePath+"jest.config.js")).toBeTruthy()
+    expect(fs.existsSync(filePath+"package.json")).toBeTruthy()
   })
 })
