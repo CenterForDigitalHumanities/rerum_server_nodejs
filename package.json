@@ -37,12 +37,10 @@
     "express-list-endpoints": "^7.1.1",
     "express-oauth2-jwt-bearer": "~1.7.1",
     "express-urlrewrite": "~2.0.3",
-    "http-errors": "~2.0.0",
     "mongodb": "~6.20.0",
     "morgan": "~1.10.1"
   },
   "devDependencies": {
-    "@jest-mock/express": "^3.0.0",
     "jest": "^30.2.0",
     "supertest": "^7.1.4"
   }
