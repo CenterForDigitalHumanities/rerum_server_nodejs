@@ -4,12 +4,15 @@ import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
 import fs from 'fs'
 
-describe.skip('Check to see that all expected top level route patterns exist. co_ol', () => {
+let app_stack = app._router.stack
+let api_stack = api_routes.stack
+
+describe('Check to see that all expected top level route patterns exist.', () => {
 
   it('/v1 -- mounted ', () => {
    let exists = false
     for (const middleware of app_stack) {
-      if (middleware.path && middleware.path.includes("/v1")){
+      if (middleware.regexp && middleware.regexp.toString().includes("/v1")){
         exists = true
         break
       }
@@ -20,7 +23,7 @@ describe.skip('Check to see that all expected top level route patterns exist. co
   it('/client -- mounted ', () => {
    let exists = false
     for (const middleware of app_stack) {
-      if (middleware.path && middleware.path.includes("/client")){
+      if (middleware.regexp && middleware.regexp.toString().includes("/client")){
         exists = true
         break
       }
@@ -31,7 +34,7 @@ describe.skip('Check to see that all expected top level route patterns exist. co
   it('/v1/id/{_id} -- mounted', () => {
     let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path && middleware.path.includes("/id")){
+      if (middleware.regexp && middleware.regexp.toString().includes("/id")){
         exists = true
         break
       }
@@ -42,7 +45,7 @@ describe.skip('Check to see that all expected top level route patterns exist. co
   it('/v1/since/{_id} -- mounted', () => {
     let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path && middleware.path.includes("/since")){
+      if (middleware.regexp && middleware.regexp.toString().includes("/since")){
         exists = true
         break
       }
@@ -53,7 +56,7 @@ describe.skip('Check to see that all expected top level route patterns exist. co
   it('/v1/history/{_id} -- mounted', () => {
     let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path && middleware.path.includes("/history")){
+      if (middleware.regexp && middleware.regexp.toString().includes("/history")){
         exists = true
         break
       }
@@ -63,14 +66,14 @@ describe.skip('Check to see that all expected top level route patterns exist. co
 
 })
 
-describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
+describe('Check to see that all /v1/api/ route patterns exist.', () => {
 
   it('/v1/api/query -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/query")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/query")){
         exists = true
         break
       }
@@ -81,9 +84,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/create -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/create")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/create")){
         exists = true
         break
       }
@@ -94,9 +97,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/bulkCreate -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/bulkCreate")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/bulkCreate")){
         exists = true
         break
       }
@@ -107,9 +110,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/update -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/update")){
+      if (middleware.regexp
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/update")){
         exists = true
         break
       }
@@ -120,9 +123,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/bulkUpdate -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/bulkUpdate")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/bulkUpdate")){
         exists = true
         break
       }
@@ -133,9 +136,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/patch -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/patch")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/patch")){
         exists = true
         break
       }
@@ -146,9 +149,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/set -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path
-        && middleware.path.includes("/api") 
-        && middleware.path.includes("/set")){
+      if (middleware.regexp
+        && middleware.regexp.toString().includes("/api") 
+        && middleware.regexp.toString().includes("/set")){
         exists = true
         break
       }
@@ -159,9 +162,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/unset -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/unset")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/unset")){
         exists = true
         break
       }
@@ -172,9 +175,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/delete/{id} -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/delete")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/delete")){
         exists = true
         break
       }
@@ -185,9 +188,9 @@ describe.skip('Check to see that all /v1/api/ route patterns exist.', () => {
   it('/v1/api/release/{id} -- mounted ', () => {
    let exists = false
     for (const middleware of api_stack) {
-      if (middleware.path 
-        && middleware.path.includes("/api")
-        && middleware.path.includes("/release")){
+      if (middleware.regexp 
+        && middleware.regexp.toString().includes("/api")
+        && middleware.regexp.toString().includes("/release")){
         exists = true
         break
       }
