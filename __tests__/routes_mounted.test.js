@@ -92,6 +92,10 @@ describe('Check to see that all /v1/api/ route patterns exist.', () => {
     expect(routeExists(api_stack, '/api/bulkUpdate')).toBe(true)
   })
 
+  it('/v1/api/overwrite -- mounted ', () => {
+    expect(routeExists(api_stack, '/api/overwrite')).toBe(true)
+  })
+
   it('/v1/api/patch -- mounted ', () => {
     expect(routeExists(api_stack, '/api/patch')).toBe(true)
   })
