@@ -25,15 +25,11 @@ function routeExists(stack, testPath) {
     if (layer.matchers && layer.matchers.length > 0) {
       const matcher = layer.matchers[0]
       const match = matcher(testPath)
-      if (match && match.path) {
-        return true
-      }
+      if (match && match.path) return true
     }
     // Also check route.path directly if it exists
     if (layer.route && layer.route.path) {
-      if (layer.route.path === testPath || layer.route.path.includes(testPath)) {
-        return true
-      }
+      if (layer.route.path === testPath || layer.route.path.includes(testPath)) return true
     }
   }
   return false
