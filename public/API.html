@@ -542,6 +542,7 @@
             Search behavior:
         </p>
         <ul>
+            <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1 resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
             <li>Standard linguistic analysis is applied (stemming, stop words, etc.)</li>
             <li>Multi-word searches find documents containing <strong>all</strong> the words (AND logic)</li>
@@ -649,6 +650,7 @@
             Search behavior:
         </p>
         <ul>
+            <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1 resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
             <li>Uses a "slop" value (default: 2) that allows up to 2 intervening words between search terms</li>
             <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
@@ -744,7 +746,7 @@
                 <span>]</span>
             </code></pre>
             <p class="alert">
-                Phrase search is generally faster than wildcard search and provides a good balance of precision and recall. Results are sorted by relevance with the <code>__rerum.score</code> property indicating match quality.
+                Results are returned sorted by relevance score in descending order. The __rerum.score property indicates match quality.
             </p>
         </p>
         <h3 id="http-post-method-override">HTTP POST Method Override</h3>
