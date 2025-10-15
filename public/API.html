@@ -59,6 +59,8 @@
                             <li><a href="#create">Create</a></li>
                             <li><a href="#bulk-create">Bulk Create</a></li>
                             <li><a href="#custom-query">Custom Query</a></li>
+                            <li><a href="#text-search">Text Search</a></li>
+                            <li><a href="#phrase-search">Phrase Search</a></li>
                             <li><a href="#http-post-method-override">HTTP POST Method Override</a></li>
                         </ul>
                     </li>
@@ -503,6 +505,246 @@
                     <span class="ind1">})</span>
                 <span>}</span>
             </code></pre>
+        </p>
+        <h3 id="text-search">Text Search</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Pattern</th>
+                    <th>Payload</th>
+                    <th>Response</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">/search?limit=100&skip=0</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">{JSON} or "string"</code></td>
+                    <td>200 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
+                </tr>
+            </tbody>
+        </table>
+        <ul>
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object with a <code class="language-plaintext highlighter-rouge">searchText</code> property containing the text to search for, and an optional <code class="language-plaintext highlighter-rouge">options</code> property for search configuration</li>
+            <li><strong><code class="language-plaintext highlighter-rouge">"string"</code></strong>—Alternatively, a plain string to search for</li>
+            <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—An array of annotation objects matching the search, sorted by relevance score</li>
+        </ul>
+        <p>
+            The Text Search endpoint performs a full-text search across annotation text content in both IIIF Presentation API 3.0 and 2.1 resources. This endpoint searches for exact word matches (case-insensitive) and tokenizes the search text, finding documents that contain all the search terms anywhere in their text content.
+        </p>
+        <p>
+            The search covers multiple text fields depending on the IIIF version:
+        </p>
+        <ul>
+            <li><strong>IIIF 3.0 fields:</strong> <code class="language-plaintext highlighter-rouge">body.value</code>, <code class="language-plaintext highlighter-rouge">bodyValue</code>, and nested structures in <code class="language-plaintext highlighter-rouge">items</code> and <code class="language-plaintext highlighter-rouge">annotations</code></li>
+            <li><strong>IIIF 2.1 fields:</strong> <code class="language-plaintext highlighter-rouge">resource.chars</code>, <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in AnnotationLists, Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and Manifest sequences</li>
+        </ul>
+        <p>
+            Search behavior:
+        </p>
+        <ul>
+            <li>Searches are case-insensitive</li>
+            <li>Standard linguistic analysis is applied (stemming, stop words, etc.)</li>
+            <li>Multi-word searches find documents containing <strong>all</strong> the words (AND logic)</li>
+            <li>Partial word matches are NOT supported (use wildcards for that)</li>
+            <li>Results are sorted by relevance score (highest first)</li>
+            <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
+        </ul>
+        <p>
+            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters can be used for pagination. By default, <code class="language-plaintext highlighter-rouge">limit=100</code> and <code class="language-plaintext highlighter-rouge">skip=0</code>. It is recommended to use a limit of 100 or less for optimal performance.
+        </p>
+        <p class="alert">
+            Note: This endpoint requires MongoDB Atlas Search indexes named "presi3AnnotationText" and "presi2AnnotationText" to be configured on the database.
+        </p>
+        <p>
+            <div class="exHeading">Javascript Example (JSON Object)</div>
+            <pre><code class="jsExample"> 
+                <span>const search_results = await fetch("https://devstore.rerum.io/v1/api/search?limit=50&skip=0", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({</span>
+                        <span class="ind2">"searchText": "medieval manuscript illumination"</span>
+                    <span class="ind1">})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
+            </code></pre>
+        </p>
+        <p>
+            <div class="exHeading">Javascript Example (Plain String)</div>
+            <pre><code class="jsExample"> 
+                <span>const search_results = await fetch("https://devstore.rerum.io/v1/api/search", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify("medieval manuscript")</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
+            </code></pre>
+        </p>
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="respExample">
+                <span>[</span>
+                    <span class="ind1">{</span>
+                      <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
+                      <span class="ind2">"type": "Annotation",</span>
+                      <span class="ind2">"body": {</span>
+                        <span class="ind3">"value": "This medieval manuscript contains beautiful illumination..."</span>
+                      <span class="ind2">},</span>
+                      <span class="ind2">"__rerum":{</span>
+                        <span class="ind3">...,</span>
+                        <span class="ind3">"score": 4.567</span>
+                      <span class="ind2">}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">{</span>
+                      <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
+                      <span class="ind2">"type": "Annotation",</span>
+                      <span class="ind2">"bodyValue": "Study of manuscript illumination from the medieval period",</span>
+                      <span class="ind2">"__rerum":{</span>
+                        <span class="ind3">...,</span>
+                        <span class="ind3">"score": 3.892</span>
+                      <span class="ind2">}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">...</span>
+                <span>]</span>
+            </code></pre>
+            <p class="alert">
+                Results are returned sorted by relevance score in descending order. The <code>__rerum.score</code> property indicates match quality.
+            </p>
+        </p>
+        <h3 id="phrase-search">Phrase Search</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Pattern</th>
+                    <th>Payload</th>
+                    <th>Response</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">/search/phrase?limit=100&skip=0</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">{JSON} or "string"</code></td>
+                    <td>200 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
+                </tr>
+            </tbody>
+        </table>
+        <ul>
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object with a <code class="language-plaintext highlighter-rouge">searchText</code> property containing the phrase to search for, and an optional <code class="language-plaintext highlighter-rouge">options</code> property (default <code>slop: 2</code>)</li>
+            <li><strong><code class="language-plaintext highlighter-rouge">"string"</code></strong>—Alternatively, a plain string phrase to search for</li>
+            <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—An array of annotation objects matching the phrase search, sorted by relevance score</li>
+        </ul>
+        <p>
+            The Phrase Search endpoint performs a proximity-based search for multi-word phrases, finding documents where search terms appear near each other in sequence. This is more precise than standard text search for multi-word queries while still being flexible enough to allow for minor variations.
+        </p>
+        <p>
+            The phrase search uses a "slop" value (default: 2) that allows up to 2 intervening words between search terms. This means the words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence.
+        </p>
+        <p>
+            Like the standard text search, this endpoint searches across both IIIF Presentation API 3.0 and 2.1 resources, covering the same text fields.
+        </p>
+        <p>
+            Phrase matching examples with slop: 2:
+        </p>
+        <ul>
+            <li><code>"medieval manuscript"</code> matches:
+                <ul>
+                    <li>✓ "medieval manuscript"</li>
+                    <li>✓ "medieval illuminated manuscript"</li>
+                    <li>✓ "manuscript from medieval times"</li>
+                    <li>✗ "medieval art with many beautiful decorated manuscripts" (too many words between)</li>
+                </ul>
+            </li>
+            <li><code>"Bryan Haberberger"</code> matches:
+                <ul>
+                    <li>✓ "Bryan Haberberger"</li>
+                    <li>✓ "Bryan the Haberberger"</li>
+                    <li>✓ "Bryan A. Haberberger"</li>
+                    <li>✗ "Bryan loves to eat hamburgers with Haberberger" (too many words between)</li>
+                </ul>
+            </li>
+        </ul>
+        <p>
+            Use cases:
+        </p>
+        <ul>
+            <li>Finding exact or near-exact phrases</li>
+            <li>Searching for names or titles</li>
+            <li>Looking for specific multi-word concepts</li>
+            <li>When you need more precision than standard search but more flexibility than exact matching</li>
+        </ul>
+        <p>
+            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters work the same as in the standard text search endpoint for pagination support.
+        </p>
+        <p>
+            <div class="exHeading">Javascript Example</div>
+            <pre><code class="jsExample"> 
+                <span>const phrase_results = await fetch("https://devstore.rerum.io/v1/api/search/phrase?limit=50", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({</span>
+                        <span class="ind2">"searchText": "illuminated manuscript"</span>
+                    <span class="ind1">})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
+            </code></pre>
+        </p>
+        <p>
+            <div class="exHeading">Javascript Example with Custom Slop</div>
+            <pre><code class="jsExample"> 
+                <span>const phrase_results = await fetch("https://devstore.rerum.io/v1/api/search/phrase", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers:{</span>
+                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify({</span>
+                        <span class="ind2">"searchText": "illuminated manuscript",</span>
+                        <span class="ind2">"options": {</span>
+                            <span class="ind3">"slop": 5</span>
+                        <span class="ind2">}</span>
+                    <span class="ind1">})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
+            </code></pre>
+        </p>
+        <p>
+            <div class="exHeading">Here is what the response <code>resp</code> looks like:</div>
+            <pre><code class="respExample">
+                <span>[</span>
+                    <span class="ind1">{</span>
+                      <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/fedcba0987654321",</span>
+                      <span class="ind2">"type": "Annotation",</span>
+                      <span class="ind2">"body": {</span>
+                        <span class="ind3">"value": "The beautifully illuminated medieval manuscript..."</span>
+                      <span class="ind2">},</span>
+                      <span class="ind2">"__rerum":{</span>
+                        <span class="ind3">...,</span>
+                        <span class="ind3">"score": 5.234</span>
+                      <span class="ind2">}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">{</span>
+                      <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/9876543210fedcba",</span>
+                      <span class="ind2">"type": "Annotation",</span>
+                      <span class="ind2">"bodyValue": "This manuscript features illuminated letters",</span>
+                      <span class="ind2">"__rerum":{</span>
+                        <span class="ind3">...,</span>
+                        <span class="ind3">"score": 4.781</span>
+                      <span class="ind2">}</span>
+                    <span class="ind1">},</span>
+                    <span class="ind1">...</span>
+                <span>]</span>
+            </code></pre>
+            <p class="alert">
+                Phrase search is generally faster than wildcard search and provides a good balance of precision and recall. Results are sorted by relevance with the <code>__rerum.score</code> property indicating match quality.
+            </p>
         </p>
         <h3 id="http-post-method-override">HTTP POST Method Override</h3>
         <p class="alert"> This section is non-normative. </p>
