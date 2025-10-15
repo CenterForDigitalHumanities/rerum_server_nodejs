@@ -1,6 +1,5 @@
 import express from 'express'
 const router = express.Router()
-//This controller will handle all MongoDB interactions.
 import controller from '../db-controller.js'
 
 router.route('/')
@@ -18,5 +17,8 @@ router.route('/phrase')
         res.status(405)
         next(res)
     })
+
+// Note that there are more search functions available in the controller, such as controller.searchFuzzily
+// They can be used through additional endpoints here when we are ready.
 
 export default router

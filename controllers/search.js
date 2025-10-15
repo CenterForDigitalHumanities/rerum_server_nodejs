@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Basic CRUD operations for RERUM v1
- * @author Claude Sonnet 4, cubap, thehabes
+ * Search ($search) operations for RERUM v1
+ * @author thehabes
  */
 import { db } from '../database/index.js'
 import utils from '../utils.js'
