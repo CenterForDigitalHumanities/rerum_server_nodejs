@@ -207,12 +207,12 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
     return [
         [
             { $search: presi3Query },
-            { $addFields: { score: { $meta: "searchScore" } } },
+            { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
             { $limit: limit + skip }
         ],
         [
             { $search: presi2Query },
-            { $addFields: { score: { $meta: "searchScore" } } },
+            { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
             { $limit: limit + skip }
         ]
     ]
@@ -268,7 +268,7 @@ const searchAsWords = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
+        next(createExpressError(err))
         return
     }
     const limit = parseInt(req.query.limit ?? 100)
@@ -289,7 +289,7 @@ const searchAsWords = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        next(createExpressError(error))
     }
 }
 
@@ -355,7 +355,7 @@ const searchAsPhrase = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
+        next(createExpressError(err))
         return
     }
     const limit = parseInt(req.query.limit ?? 100)
@@ -380,7 +380,7 @@ const searchAsPhrase = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        next(createExpressError(error))
     }
 }
 

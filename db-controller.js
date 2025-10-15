@@ -29,7 +29,7 @@ export default {
     overwrite,
     release,
     query,
-    searchAsWord,
+    searchAsWords,
     searchAsPhrase,
     id,
     bulkCreate,

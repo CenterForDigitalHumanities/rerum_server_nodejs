@@ -4,7 +4,7 @@ const router = express.Router()
 import controller from '../db-controller.js'
 
 router.route('/')
-    .post(controller.searchAsWord)
+    .post(controller.searchAsWords)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for search.  Please use POST.'
         res.status(405)
