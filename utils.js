@@ -42,7 +42,7 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
     }
     else{
         //We are either updating an existing RERUM object or creating a new one.
-        if(received_options.hasOwnProperty("history")){
+        if(received_options?.history){
             history = received_options.history
             if(update){
                 //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
@@ -68,7 +68,7 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
             history_prime = "root"
             history_previous = ""
         }
-        if(received_options.hasOwnProperty("releases")){
+        if(received_options?.releases){
             releases = received_options.releases
             releases_previous = releases.previous
         }
@@ -86,7 +86,7 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
     rerumOptions.alpha = true
     rerumOptions.APIversion = process.env.RERUM_API_VERSION
     //It is important for the cache workflow that these be properly formatted.  
-    let creationDateTime = new Date(Date.now()).toISOString().replace("Z", "")
+    const creationDateTime = new Date(Date.now()).toISOString().replace("Z", "")
     rerumOptions.createdAt = creationDateTime
     rerumOptions.isOverwritten = ""
     rerumOptions.isReleased = ""
@@ -101,18 +101,14 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
  * Check this object for deleted status.  deleted objects in RERUM look like {"@id":"{some-id}", __deleted:{object properties}}
  */ 
 const isDeleted = function(obj){
-    return obj.hasOwnProperty("__deleted")
+    return obj?.__deleted !== undefined
 }
 
 /**
  * Check this object for released status.  Released objects in RERUM look like {"@id":"{some-id}", __rerum:{"isReleased" : "ISO-DATE-TIME"}}
  */ 
 const isReleased = function(obj){
-    let bool = 
-    (obj.hasOwnProperty("__rerum") && 
-        obj.__rerum.hasOwnProperty("isReleased") && 
-        obj.__rerum.isReleased !== "")
-    return bool
+    return obj?.__rerum?.isReleased !== undefined && obj.__rerum.isReleased !== ""
 }
 
 /**
@@ -130,17 +126,17 @@ const isGenerator = function(origObj, changeAgent){
  * return a JSON object.  keys are header names, values are header values.
  */
 const configureWebAnnoHeadersFor = function(obj){
-    let headers = {}
+    const headers = {}
     if(isLD(obj)){
         headers["Content-Type"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
     if(isContainerType(obj)){
-        headers["Link"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
+        headers.Link = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
     else{
-        headers["Link"] = "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\""
+        headers.Link = "<http://www.w3.org/ns/ldp#Resource>; rel=\"type\""
     }
-    headers["Allow"] = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
+    headers.Allow = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
     return headers
 }
 
@@ -154,20 +150,20 @@ const configureLDHeadersFor = function(obj){
     //Note that the optimal situation would be to be able to detect the LD-ness of this object
     //What we have are the arrays returned from the aformentioned getters (/query, /since, /history)
     //We know we want them to be LD and that they likely contain LD things, but the arrays don't have an @context
-    let headers = {}
+    const headers = {}
     /**
     if(isLD(obj)){
-        headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
+        headers["Content-Type"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     } 
     else {
         // This breaks Web Annotation compliance, but allows us to return requested
         // objects without misrepresenting the content.
-        headers["Content-Type"] = "application/json;charset=utf-8;"
+        headers["Content-Type"] = "application/json;charset=utf-8"
     }
     */
-    headers["Allow"] = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
-    headers["Content-Type"] = 'application/ld+json;charset=utf-8;profile="http://www.w3.org/ns/anno.jsonld"'
-    headers["Link"] = '<http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"'
+    headers.Allow = "GET,OPTIONS,HEAD,PUT,PATCH,DELETE,POST"
+    headers["Content-Type"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
+    headers.Link = "<http://store.rerum.io/v1/context.json>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
     return headers
 }
 
@@ -177,8 +173,7 @@ const configureLDHeadersFor = function(obj){
  * return boolean
  */ 
 const isContainerType = function(obj){
-    let answer = false
-    let typestring = obj["@type"] ?? obj.type ?? ""
+    const typestring = obj["@type"] ?? obj.type ?? ""
     const knownContainerTypes = [
         "ItemList",
         "AnnotationPage",
@@ -194,11 +189,10 @@ const isContainerType = function(obj){
     for(const t of knownContainerTypes){
         //Dang those pesky prefixes...circumventing exact match for now
         if(typestring.includes(t)){
-            answer = true
-            break
+            return true
         }
     }
-    return answer
+    return false
     //return knownContainerTypes.includes(typestring)
 }
 
@@ -220,15 +214,10 @@ const isLD = function(obj){
  */ 
 const configureLastModifiedHeader = function(obj){
     let date = ""
-    if(obj.__rerum){
-        if(!obj.__rerum.isOverwritten === ""){
-            date = obj.__rerum.isOverwritten
-        }
-        else{
-            date = obj.__rerum.createdAt
-        }
+    if(obj?.__rerum){
+        date = obj.__rerum.isOverwritten !== "" ? obj.__rerum.isOverwritten : obj.__rerum.createdAt
     }
-    else if(obj.__deleted){
+    else if(obj?.__deleted){
         date = obj.__deleted.time
     }
     //Note that dates like 2021-05-26T10:39:19.328 have been rounded to 2021-05-26T10:39:19 in browser headers.  Account for that here.
