@@ -551,8 +551,14 @@
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
         <p>
-            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters can be used for pagination. By default, <code class="language-plaintext highlighter-rouge">limit=100</code> and <code class="language-plaintext highlighter-rouge">skip=0</code>. It is recommended to use a limit of 100 or less for optimal performance.
+            Use cases:
         </p>
+        <ul>
+            <li>General full-text search across annotation content</li>
+            <li>Finding all annotations containing specific keywords or concepts</li>
+            <li>Broad discovery when exact word order doesn't matter</li>
+            <li>Best for single-word searches or when all search terms should appear anywhere in the document</li>
+        </ul>
         <p>
             <div class="exHeading">Javascript Example (JSON Object)</div>
             <pre><code class="jsExample"> 
