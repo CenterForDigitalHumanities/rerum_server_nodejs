@@ -539,6 +539,10 @@
             <li><strong>IIIF 2.1 fields:</strong> <code class="language-plaintext highlighter-rouge">resource.chars</code>, <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in AnnotationLists, Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and Manifest <code class="language-plaintext highlighter-rouge">sequences</code></li>
         </ul>
         <p>
+            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            <p class="alert"> Note that your application may experience strange behavior with large limits, such as ?limit=1000. It is recommended to use a limit of 100 or less. If you expect there are more than 100 matching records, use a paged search to make consecutive requests until all records all gathered.</p>
+        </p>
+        <p>
             Search behavior:
         </p>
         <ul>
@@ -653,12 +657,16 @@
             <li><strong>IIIF 2.1 fields:</strong> <code class="language-plaintext highlighter-rouge">resource.chars</code>, <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in AnnotationLists, Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and Manifest <code class="language-plaintext highlighter-rouge">sequences</code></li>
         </ul>
         <p>
+            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            <p class="alert"> Note that your application may experience strange behavior with large limits, such as ?limit=1000. It is recommended to use a limit of 100 or less. If you expect there are more than 100 matching records, use a paged search to make consecutive requests until all records all gathered.</p>
+        </p>
+        <p>
             Search behavior:
         </p>
         <ul>
             <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1 resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
-            <li>Uses a "slop" value (default: 2) that allows up to 2 intervening words between search terms</li>
+            <li>Uses a "slop" value (default: 2) that allows up to 2 intervening words between search terms.  You may supply a different slop as an option.</li>
             <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
             <li>More precise than standard text search for multi-word queries</li>
             <li>Results are sorted by relevance score (highest first)</li>
@@ -688,22 +696,6 @@
         </ul>
         <p>
             The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters work the same as in the standard text search endpoint for pagination support.
-        </p>
-        <p>
-            <div class="exHeading">Javascript Example</div>
-            <pre><code class="jsExample"> 
-                <span>const phrase_results = await fetch("https://devstore.rerum.io/v1/api/search/phrase?limit=50", {</span>
-                    <span class="ind1">method: "POST",</span>
-                    <span class="ind1">headers:{</span>
-                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
-                    <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify({</span>
-                        <span class="ind2">"searchText": "illuminated manuscript"</span>
-                    <span class="ind1">})</span>
-                <span>})</span>
-                <span>.then(resp => resp.json())</span>
-                <span>.catch(err => {throw err})</span>
-            </code></pre>
         </p>
         <p>
             <div class="exHeading">Javascript Example with Custom Slop</div>
