@@ -646,6 +646,17 @@
             <li><strong>IIIF 2.1 fields:</strong> <code class="language-plaintext highlighter-rouge">resource.chars</code>, <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in AnnotationLists, Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and Manifest <code class="language-plaintext highlighter-rouge">sequences</code></li>
         </ul>
         <p>
+            Search behavior:
+        </p>
+        <ul>
+            <li>Searches are case-insensitive</li>
+            <li>Uses a "slop" value (default: 2) that allows up to 2 intervening words between search terms</li>
+            <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
+            <li>More precise than standard text search for multi-word queries</li>
+            <li>Results are sorted by relevance score (highest first)</li>
+            <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
+        </ul>
+        <p>
             Phrase matching examples with slop: 2:
         </p>
         <ul>
