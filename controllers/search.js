@@ -682,8 +682,8 @@ const searchAlikes = async function (req, res, next) {
         // Apply pagination after merging
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(paginatedResults))
-        res.json(paginatedResults)
+        res.set(utils.configureLDHeadersFor(results))
+        res.json(results)
     } catch (error) {
         console.error(error)
         next(utils.createExpressError(error))
