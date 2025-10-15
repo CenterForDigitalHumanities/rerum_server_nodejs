@@ -455,7 +455,7 @@ const searchFuzzily = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        next(createExpressError(error))
     }
 }
 
@@ -525,7 +525,7 @@ const searchWildly = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
+        next(createExpressError(err))
         return
     }
     // Require wildcards in the search text
@@ -534,7 +534,7 @@ const searchWildly = async function (req, res, next) {
             message: "Wildcards must be used in wildcard search. Use '*' to match any characters or '?' to match a single character.",
             status: 400
         }
-        next(utils.createExpressError(err))
+        next(createExpressError(err))
         return
     }
     const limit = parseInt(req.query.limit ?? 100)
@@ -552,7 +552,7 @@ const searchWildly = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        next(createExpressError(error))
     }
 }
 
@@ -629,7 +629,7 @@ const searchAlikes = async function (req, res, next) {
             message: "You must provide a JSON document in the request body to find similar documents.",
             status: 400
         }
-        next(utils.createExpressError(err))
+        next(createExpressError(err))
         return
     }
     const limit = parseInt(req.query.limit ?? 100)
@@ -686,7 +686,7 @@ const searchAlikes = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        next(createExpressError(error))
     }
 }
 
