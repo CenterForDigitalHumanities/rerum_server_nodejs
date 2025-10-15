@@ -263,6 +263,7 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
 const searchAsWords = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
+    const searchOptions = req.body?.options ?? {}
     if (!searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
@@ -273,15 +274,12 @@ const searchAsWords = async function (req, res, next) {
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
-    
-    const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: {} }, limit, skip)
-    
+    const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: searchOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
             db.aggregate(queryPresi3).toArray().catch((err) => { console.error("Presi3 error:", err.message); return [] }),
             db.aggregate(queryPresi2).toArray().catch((err) => { console.error("Presi2 error:", err.message); return [] })
         ])
-        
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
@@ -350,6 +348,10 @@ const searchAsWords = async function (req, res, next) {
 const searchAsPhrase = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
+    const phraseOptions = req.body?.options ?? 
+    {
+        slop: 2
+    }
     if (!searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
@@ -360,10 +362,6 @@ const searchAsPhrase = async function (req, res, next) {
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
-    
-    const phraseOptions = {
-        slop: 2
-    }
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "phrase", options: phraseOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -426,6 +424,14 @@ const searchAsPhrase = async function (req, res, next) {
 const searchFuzzily = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
+    const fuzzyOptions = req.body?.options ?? 
+    {
+        fuzzy: {
+            maxEdits: 1,
+            prefixLength: 2,
+            maxExpansions: 50
+        }
+    }
     if (!searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
@@ -436,13 +442,6 @@ const searchFuzzily = async function (req, res, next) {
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
-    const fuzzyOptions = {
-        fuzzy: {
-            maxEdits: 1,
-            prefixLength: 2,
-            maxExpansions: 50
-        }
-    }
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: fuzzyOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -517,6 +516,10 @@ const searchFuzzily = async function (req, res, next) {
 const searchWildly = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
+    const wildcardOptions = req.body?.options ?? 
+    {
+        allowAnalyzedField: true
+    }
     if (!searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
@@ -536,9 +539,6 @@ const searchWildly = async function (req, res, next) {
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
-    const wildcardOptions = {
-        allowAnalyzedField: true
-    }
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "wildcard", options: wildcardOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
