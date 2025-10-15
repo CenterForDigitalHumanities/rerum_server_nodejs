@@ -437,7 +437,7 @@ const searchFuzzily = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
+        next(createExpressError(err))
         return
     }
     const limit = parseInt(req.query.limit ?? 100)
