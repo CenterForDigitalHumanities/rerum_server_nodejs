@@ -4,9 +4,9 @@
  * Basic CRUD operations for RERUM v1
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError, getAgentClaim, parseDocumentID } from './utils.js'
+import { idNegotiation, createExpressError } from './utils.js'
 
 /**
  * Merges and deduplicates results from multiple MongoDB Atlas Search index queries.
@@ -283,8 +283,8 @@ const searchAsWords = async function (req, res, next) {
         ])
         
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
-        const results = merged.slice(skip, skip + limit)
-        
+        let results = merged.slice(skip, skip + limit)
+        results = results.map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
@@ -374,8 +374,8 @@ const searchAsPhrase = async function (req, res, next) {
         ])
         
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
-        const results = merged.slice(skip, skip + limit)
-        
+        let results = merged.slice(skip, skip + limit)
+        results = results.map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
