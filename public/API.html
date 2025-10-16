@@ -532,11 +532,11 @@
             The Text Search endpoint performs a full-text search across Annotation text content. It searches for exact word matches and tokenizes the search text, finding documents that contain all the search terms anywhere in their text content.
         </p>
         <p>
-            The search covers multiple text fields depending on the syntax of objects.  In particular it covers the current Web Annotation syntax, IIIF Presentation API 2.1 syntax, and IIIF Presentation API 3.0 syntax.  See below for specific details.
+            The search covers multiple text fields depending on the syntax of objects.  In particular it covers the current Web Annotation syntax, IIIF Presentation API 3.0 syntax, and IIIF Presentation API 2.1 syntax<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>.  See below for specific details.
         </p>
         <ul>
-            <li><strong>IIIF 3.0 fields:</strong> <code class="language-plaintext highlighter-rouge">body.value</code>, <code class="language-plaintext highlighter-rouge">bodyValue</code>, and nested structures in <code class="language-plaintext highlighter-rouge">items</code> and <code class="language-plaintext highlighter-rouge">annotations</code></li>
-            <li><strong>IIIF 2.1 fields:</strong> <code class="language-plaintext highlighter-rouge">resource.chars</code>, <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in AnnotationLists, Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and Manifest <code class="language-plaintext highlighter-rouge">sequences</code></li>
+            <li><strong>IIIF Presentation API 3.0 & Web Annotation fields:</strong> Annotation <code class="language-plaintext highlighter-rouge">body.value</code>, Annotation <code class="language-plaintext highlighter-rouge">bodyValue</code>, and nested structures in AnnotationPage <code class="language-plaintext highlighter-rouge">items</code>, Canvas <code class="language-plaintext highlighter-rouge">annotations</code>, and Manifest <code class="language-plaintext highlighter-rouge">items</code>.</li>
+            <li><strong>IIIF Presentation API 2.1 fields<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>:</strong> oa:Annotation <code class="language-plaintext highlighter-rouge">resource.chars</code>, oa:Annotation <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in sc:AnnotationList <code class="language-plaintext highlighter-rouge">resources</code>, sc:Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and sc:Manifest <code class="language-plaintext highlighter-rouge">sequences</code>.</li>
         </ul>
         <p>
             To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
@@ -546,11 +546,11 @@
             Search behavior:
         </p>
         <ul>
-            <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1 resource types that have the text embedded within their structure.</li>
+            <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span> resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
+            <li>Partial word matches and wildcards are NOT supported in this search</li>
             <li>Standard linguistic analysis is applied (stemming, stop words, etc.)</li>
             <li>Multi-word searches find documents containing <strong>all</strong> the words (AND logic)</li>
-            <li>Partial word matches are NOT supported in this search (coming soon)</li>
             <li>Results are sorted by relevance score (highest first)</li>
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
@@ -650,11 +650,11 @@
             The Phrase Search endpoint performs a proximity-based search for multi-word phrases, finding documents where search terms appear near each other in sequence. This is more precise than standard text search for multi-word queries while still being flexible enough to allow for minor variations.
         </p>
         <p>
-            The search covers multiple text fields depending on the syntax of objects.  In particular it covers the current Web Annotation syntax, IIIF Presentation API 2.1 syntax, and IIIF Presentation API 3.0 syntax.  See below for specific details.
+            The search covers multiple text fields depending on the syntax of objects.  In particular it covers the current Web Annotation syntax, IIIF Presentation API 3.0 syntax, and IIIF Presentation API 2.1 syntax<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>.  See below for specific details.
         </p>
         <ul>
-            <li><strong>IIIF 3.0 fields:</strong> <code class="language-plaintext highlighter-rouge">body.value</code>, <code class="language-plaintext highlighter-rouge">bodyValue</code>, and nested structures in <code class="language-plaintext highlighter-rouge">items</code> and <code class="language-plaintext highlighter-rouge">annotations</code></li>
-            <li><strong>IIIF 2.1 fields:</strong> <code class="language-plaintext highlighter-rouge">resource.chars</code>, <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in AnnotationLists, Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and Manifest <code class="language-plaintext highlighter-rouge">sequences</code></li>
+            <li><strong>IIIF Presentation API 3.0 & Web Annotation fields:</strong> Annotation <code class="language-plaintext highlighter-rouge">body.value</code>, Annotation <code class="language-plaintext highlighter-rouge">bodyValue</code>, and nested structures in AnnotationPage <code class="language-plaintext highlighter-rouge">items</code>, Canvas <code class="language-plaintext highlighter-rouge">annotations</code>, and Manifest <code class="language-plaintext highlighter-rouge">items</code>.</li>
+            <li><strong>IIIF Presentation API 2.1 fields<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>:</strong> oa:Annotation <code class="language-plaintext highlighter-rouge">resource.chars</code>, oa:Annotation <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in sc:AnnotationList <code class="language-plaintext highlighter-rouge">resources</code>, sc:Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and sc:Manifest <code class="language-plaintext highlighter-rouge">sequences</code>.</li>
         </ul>
         <p>
             To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
@@ -664,8 +664,9 @@
             Search behavior:
         </p>
         <ul>
-            <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1 resource types that have the text embedded within their structure.</li>
+            <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span> resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
+            <li>Partial word matches and wildcards are NOT supported in this search</li>
             <li>Uses a "slop" value (default: 2) that allows intervening words between search terms (up to the default or provided value).  You may supply your own <code class="language-plaintext highlighter-rouge">slop</code> option.</li>
             <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
             <li>More precise than standard text search for multi-word queries</li>

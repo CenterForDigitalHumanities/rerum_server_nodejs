@@ -6521,7 +6521,16 @@ pre {
 
 code span{
     display: block;
-    position relaitve;
+    position: relative;
+}
+
+span.dep {
+    position: relative;
+    display: inline-block;
+    font-size: 10pt;
+    top: -10px; 
+    cursor: help;
+    user-select: none;
 }
 
 span.ind1{
