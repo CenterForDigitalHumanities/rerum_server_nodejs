@@ -2,9 +2,10 @@ import express from 'express'
 const router = express.Router()
 //This controller will handle all MongoDB interactions.
 import controller from '../db-controller.js'
+import { cacheId } from '../cache/middleware.js'
 
 router.route('/:_id')
-    .get(controller.id)
+    .get(cacheId, controller.id)
     .head(controller.idHeadRequest)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method, please use GET.'

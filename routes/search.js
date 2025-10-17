@@ -1,9 +1,10 @@
 import express from 'express'
 const router = express.Router()
 import controller from '../db-controller.js'
+import { cacheSearch, cacheSearchPhrase } from '../cache/middleware.js'
 
 router.route('/')
-    .post(controller.searchAsWords)
+    .post(cacheSearch, controller.searchAsWords)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for search.  Please use POST.'
         res.status(405)
@@ -11,7 +12,7 @@ router.route('/')
     })
 
 router.route('/phrase')
-    .post(controller.searchAsPhrase)
+    .post(cacheSearchPhrase, controller.searchAsPhrase)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for search.  Please use POST.'
         res.status(405)

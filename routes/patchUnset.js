@@ -4,10 +4,11 @@ const router = express.Router()
 import controller from '../db-controller.js'
 import auth from '../auth/index.js'
 import rest from '../rest.js'
+import { invalidateCache } from '../cache/middleware.js'
 
 router.route('/')
-    .patch(auth.checkJwt, controller.patchUnset)
-    .post(auth.checkJwt, (req, res, next) => {
+    .patch(auth.checkJwt, invalidateCache, controller.patchUnset)
+    .post(auth.checkJwt, invalidateCache, (req, res, next) => {
         if (rest.checkPatchOverrideSupport(req, res)) {
             controller.patchUnset(req, res, next)
         }
