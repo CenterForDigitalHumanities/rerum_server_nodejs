@@ -271,57 +271,167 @@ const cacheSince = (req, res, next) => {
  * Invalidates cache entries when objects are created, updated, or deleted
  */
 const invalidateCache = (req, res, next) => {
-    // Store original json method
+    console.log(`[CACHE INVALIDATE] Middleware triggered for ${req.method} ${req.path}`)
+    
+    // Store original response methods
     const originalJson = res.json.bind(res)
+    const originalSend = res.send.bind(res)
+    const originalSendStatus = res.sendStatus.bind(res)
+    
+    // Track if we've already performed invalidation to prevent duplicates
+    let invalidationPerformed = false
 
-    // Override json method to invalidate cache after successful writes
-    res.json = (data) => {
+    // Common invalidation logic
+    const performInvalidation = (data) => {
+        // Prevent duplicate invalidation
+        if (invalidationPerformed) {
+            console.log('[CACHE INVALIDATE] Skipping duplicate invalidation')
+            return
+        }
+        invalidationPerformed = true
+        
+        console.log(`[CACHE INVALIDATE] Response handler called with status ${res.statusCode}`)
+        
         // Only invalidate on successful write operations
         if (res.statusCode >= 200 && res.statusCode < 300) {
-            const path = req.path
+            // Use originalUrl to get the full path (req.path only shows the path within the mounted router)
+            const path = req.originalUrl || req.path
+            console.log(`[CACHE INVALIDATE] Processing path: ${path} (originalUrl: ${req.originalUrl}, path: ${req.path})`)
             
             // Determine what to invalidate based on the operation
             if (path.includes('/create') || path.includes('/bulkCreate')) {
-                // For creates, invalidate all queries and searches
-                console.log('Cache INVALIDATE: create operation')
-                cache.invalidate(/^(query|search|searchPhrase):/)
+                // For creates, use smart invalidation based on the created object's properties
+                console.log('[CACHE INVALIDATE] Create operation detected - using smart cache invalidation')
+                
+                // Extract the created object(s)
+                const createdObjects = path.includes('/bulkCreate') 
+                    ? (Array.isArray(data) ? data : [data])
+                    : [data?.new_obj_state ?? data]
+                
+                // Collect all property keys from created objects to invalidate matching queries
+                const invalidatedKeys = new Set()
+                
+                for (const obj of createdObjects) {
+                    if (!obj) continue
+                    
+                    // Invalidate caches that query for any property in the created object
+                    // This ensures queries matching this object will be refreshed
+                    cache.invalidateByObject(obj, invalidatedKeys)
+                }
+                
+                console.log(`[CACHE INVALIDATE] Invalidated ${invalidatedKeys.size} cache entries using smart invalidation`)
+                if (invalidatedKeys.size > 0) {
+                    console.log(`[CACHE INVALIDATE] Invalidated keys: ${Array.from(invalidatedKeys).slice(0, 5).join(', ')}${invalidatedKeys.size > 5 ? '...' : ''}`)
+                }
             } 
             else if (path.includes('/update') || path.includes('/patch') || 
                      path.includes('/overwrite') || path.includes('/bulkUpdate')) {
-                // For updates, invalidate the specific ID, its history/since, and all queries/searches
-                const id = data?._id ?? data?.["@id"]?.split('/').pop()
-                if (id) {
-                    console.log(`Cache INVALIDATE: update operation for ${id}`)
-                    cache.invalidateById(id)
-                    // Also invalidate history and since for this object and related objects
-                    cache.invalidate(new RegExp(`^(history|since):`))
+                // For updates, use smart invalidation based on the updated object
+                console.log('[CACHE INVALIDATE] Update operation detected - using smart cache invalidation')
+                
+                // Extract updated object (response may contain new_obj_state or the object directly)
+                const updatedObject = data?.new_obj_state ?? data
+                const objectId = updatedObject?._id ?? updatedObject?.["@id"]
+                
+                if (updatedObject && objectId) {
+                    const invalidatedKeys = new Set()
+                    
+                    // Invalidate the specific ID cache
+                    const idKey = `id:${objectId.split('/').pop()}`
+                    cache.delete(idKey)
+                    invalidatedKeys.add(idKey)
+                    
+                    // Smart invalidation for queries that match this object
+                    cache.invalidateByObject(updatedObject, invalidatedKeys)
+                    
+                    // Invalidate history/since for this object AND its version chain
+                    const objIdShort = objectId.split('/').pop()
+                    const previousId = updatedObject?.__rerum?.history?.previous?.split('/').pop()
+                    const primeId = updatedObject?.__rerum?.history?.prime?.split('/').pop()
+                    
+                    // Build pattern that matches current, previous, and prime IDs
+                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                    const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
+                    const historyCount = cache.invalidate(historyPattern)
+                    
+                    console.log(`[CACHE INVALIDATE] Invalidated ${invalidatedKeys.size} cache entries (${historyCount} history/since for chain: ${versionIds})`)
+                    if (invalidatedKeys.size > 0) {
+                        console.log(`[CACHE INVALIDATE] Invalidated keys: ${Array.from(invalidatedKeys).slice(0, 5).join(', ')}${invalidatedKeys.size > 5 ? '...' : ''}`)
+                    }
                 } else {
-                    // Fallback to invalidating everything
-                    console.log('Cache INVALIDATE: update operation (full)')
+                    // Fallback to broad invalidation if we can't extract the object
+                    console.log('[CACHE INVALIDATE] Update operation (fallback - no object data)')
                     cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
                 }
             }
             else if (path.includes('/delete')) {
-                // For deletes, invalidate the specific ID, its history/since, and all queries/searches
-                const id = data?._id ?? req.body?.["@id"]?.split('/').pop()
-                if (id) {
-                    console.log(`Cache INVALIDATE: delete operation for ${id}`)
-                    cache.invalidateById(id)
-                    // Also invalidate history and since
-                    cache.invalidate(new RegExp(`^(history|since):`))
+                // For deletes, use smart invalidation based on the deleted object
+                console.log('[CACHE INVALIDATE] Delete operation detected - using smart cache invalidation')
+                
+                // Get the deleted object from res.locals (set by delete controller before deletion)
+                const deletedObject = res.locals.deletedObject
+                const objectId = deletedObject?._id ?? deletedObject?.["@id"]
+                
+                if (deletedObject && objectId) {
+                    const invalidatedKeys = new Set()
+                    
+                    // Invalidate the specific ID cache
+                    const idKey = `id:${objectId.split('/').pop()}`
+                    cache.delete(idKey)
+                    invalidatedKeys.add(idKey)
+                    
+                    // Smart invalidation for queries that matched this object
+                    cache.invalidateByObject(deletedObject, invalidatedKeys)
+                    
+                    // Invalidate history/since for this object AND its version chain
+                    const objIdShort = objectId.split('/').pop()
+                    const previousId = deletedObject?.__rerum?.history?.previous?.split('/').pop()
+                    const primeId = deletedObject?.__rerum?.history?.prime?.split('/').pop()
+                    
+                    // Build pattern that matches current, previous, and prime IDs
+                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                    const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
+                    const historyCount = cache.invalidate(historyPattern)
+                    
+                    console.log(`[CACHE INVALIDATE] Invalidated ${invalidatedKeys.size} cache entries (${historyCount} history/since for chain: ${versionIds})`)
+                    if (invalidatedKeys.size > 0) {
+                        console.log(`[CACHE INVALIDATE] Invalidated keys: ${Array.from(invalidatedKeys).slice(0, 5).join(', ')}${invalidatedKeys.size > 5 ? '...' : ''}`)
+                    }
                 } else {
-                    console.log('Cache INVALIDATE: delete operation (full)')
+                    // Fallback to broad invalidation if we can't extract the object
+                    console.log('[CACHE INVALIDATE] Delete operation (fallback - no object data from res.locals)')
                     cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
                 }
             }
             else if (path.includes('/release')) {
                 // Release creates a new version, invalidate all including history/since
-                console.log('Cache INVALIDATE: release operation')
+                console.log('[CACHE INVALIDATE] Cache INVALIDATE: release operation')
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
         }
+    }
 
+    // Override json method to invalidate cache after successful writes
+    res.json = (data) => {
+        performInvalidation(data)
         return originalJson(data)
+    }
+
+    // Override send method (used by some endpoints)
+    res.send = (data) => {
+        performInvalidation(data)
+        return originalSend(data)
+    }
+
+    // Override sendStatus method (used by delete endpoint with 204 No Content)
+    res.sendStatus = (statusCode) => {
+        res.statusCode = statusCode
+        // For delete operations, we need to get the object ID from params
+        // Since there's no response data with 204, we can't do smart matching
+        // Fallback: invalidate all caches (will be caught by the delete handler above)
+        const deleteData = { "@id": req.params._id }
+        performInvalidation(deleteData)
+        return originalSendStatus(statusCode)
     }
 
     next()

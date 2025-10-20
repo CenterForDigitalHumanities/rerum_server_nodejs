@@ -88,6 +88,8 @@ const deleteObj = async function(req, res, next) {
             }
             //204 to say it is deleted and there is nothing in the body
             console.log("Object deleted: " + preserveID)
+            // Store the deleted object for cache invalidation middleware to use for smart invalidation
+            res.locals.deletedObject = safe_original
             res.sendStatus(204)
             return
         }

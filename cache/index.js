@@ -52,8 +52,8 @@ class LRUCache {
      * @returns {string} Cache key
      */
     generateKey(type, params) {
-        if (type === 'id') {
-            return `id:${params}`
+        if (type === 'id' || type === 'history' || type === 'since') {
+            return `${type}:${params}`
         }
         // For query and search, create a stable key from the params object
         // Use a custom replacer to ensure consistent key ordering at all levels
@@ -247,6 +247,102 @@ class LRUCache {
         
         this.stats.invalidations += count
         return count
+    }
+
+    /**
+     * Smart invalidation based on object properties
+     * Only invalidates query/search caches that could potentially match this object
+     * @param {Object} obj - The created/updated object
+     * @param {Set} invalidatedKeys - Set to track which keys were invalidated (optional)
+     * @returns {number} - Number of cache entries invalidated
+     */
+    invalidateByObject(obj, invalidatedKeys = new Set()) {
+        if (!obj || typeof obj !== 'object') return 0
+        
+        let count = 0
+        
+        // Get all query/search cache keys
+        for (const cacheKey of this.cache.keys()) {
+            // Only check query and search caches (not id, history, since, gog)
+            if (!cacheKey.startsWith('query:') && 
+                !cacheKey.startsWith('search:') && 
+                !cacheKey.startsWith('searchPhrase:')) {
+                continue
+            }
+            
+            // Extract the query parameters from the cache key
+            // Format: "query:{...json...}" or "search:{...json...}"
+            const colonIndex = cacheKey.indexOf(':')
+            if (colonIndex === -1) continue
+            
+            try {
+                const queryJson = cacheKey.substring(colonIndex + 1)
+                const queryParams = JSON.parse(queryJson)
+                
+                // Check if the created object matches this query
+                if (this.objectMatchesQuery(obj, queryParams)) {
+                    this.delete(cacheKey)
+                    invalidatedKeys.add(cacheKey)
+                    count++
+                }
+            } catch (e) {
+                // If we can't parse the cache key, skip it
+                continue
+            }
+        }
+        
+        this.stats.invalidations += count
+        return count
+    }
+
+    /**
+     * Check if an object matches a query
+     * @param {Object} obj - The object to check
+     * @param {Object} query - The query parameters
+     * @returns {boolean} - True if object could match this query
+     */
+    objectMatchesQuery(obj, query) {
+        // For query endpoint: check if object matches the query body
+        if (query.body && typeof query.body === 'object') {
+            return this.objectContainsProperties(obj, query.body)
+        }
+        
+        // For direct queries (like {"type":"Cachetest"}), check if object matches
+        return this.objectContainsProperties(obj, query)
+    }
+
+    /**
+     * Check if an object contains all properties specified in a query
+     * @param {Object} obj - The object to check
+     * @param {Object} queryProps - The properties to match
+     * @returns {boolean} - True if object contains all query properties with matching values
+     */
+    objectContainsProperties(obj, queryProps) {
+        for (const [key, value] of Object.entries(queryProps)) {
+            // Skip pagination and internal parameters
+            if (key === 'limit' || key === 'skip' || key === '__rerum') {
+                continue
+            }
+            
+            // Check if object has this property
+            if (!(key in obj)) {
+                return false
+            }
+            
+            // For simple values, check equality
+            if (typeof value !== 'object' || value === null) {
+                if (obj[key] !== value) {
+                    return false
+                }
+            } else {
+                // For nested objects, recursively check
+                if (!this.objectContainsProperties(obj[key], value)) {
+                    return false
+                }
+            }
+        }
+        
+        return true
     }
 
     /**
