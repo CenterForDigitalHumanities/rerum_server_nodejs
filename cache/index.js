@@ -3,7 +3,7 @@
 /**
  * In-memory LRU cache implementation for RERUM API
  * Caches query, search, and id lookup results to reduce MongoDB Atlas load
- * @author Claude Sonnet 4
+ * @author thehabes
  */
 
 /**
@@ -298,6 +298,4 @@ const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 300000) // 5 minutes default
 
 const cache = new LRUCache(CACHE_MAX_SIZE, CACHE_TTL)
 
-// Export cache instance and class
-export { cache, LRUCache }
 export default cache

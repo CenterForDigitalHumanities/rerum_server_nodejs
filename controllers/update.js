@@ -3,7 +3,7 @@
 /**
  * Update controller aggregator for RERUM operations
  * This file imports and re-exports all update operations
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 // Import individual update operations

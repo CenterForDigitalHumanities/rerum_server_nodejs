@@ -1,7 +1,7 @@
 /**
  * Cache layer tests for RERUM API
  * Verifies that all read endpoints have functioning cache middleware
- * @author Claude Sonnet 4
+ * @author thehabes
  */
 
 import { jest } from '@jest/globals'

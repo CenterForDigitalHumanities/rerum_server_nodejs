@@ -3,7 +3,7 @@
 /**
  * Gallery of Glosses (GOG) controller for RERUM operations
  * Handles specialized operations for the Gallery of Glosses application
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'

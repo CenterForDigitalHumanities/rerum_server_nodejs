@@ -3,7 +3,7 @@
 /**
  * PATCH Unset controller for RERUM operations
  * Handles PATCH operations that remove keys
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'

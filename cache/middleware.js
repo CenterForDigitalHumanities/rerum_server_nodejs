@@ -3,7 +3,7 @@
 /**
  * Cache middleware for RERUM API routes
  * Provides caching for read operations and invalidation for write operations
- * @author Claude Sonnet 4
+ * @author thehabes
  */
 
 import cache from './index.js'

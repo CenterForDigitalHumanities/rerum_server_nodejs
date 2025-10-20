@@ -3,7 +3,7 @@
 /**
  * PUT Update controller for RERUM operations
  * Handles PUT updates and import operations
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'

@@ -3,7 +3,7 @@
 /**
  * PATCH Update controller for RERUM operations
  * Handles PATCH updates that modify existing keys
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'

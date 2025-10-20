@@ -3,7 +3,7 @@
 /**
  * History controller for RERUM operations
  * Handles history, since, and HEAD request operations
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'

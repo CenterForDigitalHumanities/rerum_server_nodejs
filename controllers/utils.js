@@ -2,7 +2,7 @@
 
 /**
  * Utility functions for RERUM controllers
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
