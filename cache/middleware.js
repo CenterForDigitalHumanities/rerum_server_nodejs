@@ -355,6 +355,90 @@ const cacheClear = (req, res) => {
     })
 }
 
+/**
+ * Cache middleware for GOG fragments endpoint
+ * Caches POST requests for WitnessFragment entities from ManuscriptWitness
+ * Cache key includes ManuscriptWitness URI and pagination parameters
+ */
+const cacheGogFragments = (req, res, next) => {
+    // Only cache if request has valid body with ManuscriptWitness
+    const manID = req.body?.["ManuscriptWitness"]
+    if (!manID || !manID.startsWith("http")) {
+        return next()
+    }
+
+    const limit = parseInt(req.query.limit ?? 50)
+    const skip = parseInt(req.query.skip ?? 0)
+    
+    // Generate cache key from ManuscriptWitness URI and pagination
+    const cacheKey = `gog-fragments:${manID}:limit=${limit}:skip=${skip}`
+    
+    const cachedResponse = cache.get(cacheKey)
+    if (cachedResponse) {
+        console.log(`Cache HIT for GOG fragments: ${manID}`)
+        res.set('X-Cache', 'HIT')
+        res.set('Content-Type', 'application/json; charset=utf-8')
+        res.json(cachedResponse)
+        return
+    }
+
+    console.log(`Cache MISS for GOG fragments: ${manID}`)
+    res.set('X-Cache', 'MISS')
+
+    // Intercept res.json to cache the response
+    const originalJson = res.json.bind(res)
+    res.json = (data) => {
+        if (res.statusCode === 200 && Array.isArray(data)) {
+            cache.set(cacheKey, data)
+        }
+        return originalJson(data)
+    }
+
+    next()
+}
+
+/**
+ * Cache middleware for GOG glosses endpoint
+ * Caches POST requests for Gloss entities from ManuscriptWitness
+ * Cache key includes ManuscriptWitness URI and pagination parameters
+ */
+const cacheGogGlosses = (req, res, next) => {
+    // Only cache if request has valid body with ManuscriptWitness
+    const manID = req.body?.["ManuscriptWitness"]
+    if (!manID || !manID.startsWith("http")) {
+        return next()
+    }
+
+    const limit = parseInt(req.query.limit ?? 50)
+    const skip = parseInt(req.query.skip ?? 0)
+    
+    // Generate cache key from ManuscriptWitness URI and pagination
+    const cacheKey = `gog-glosses:${manID}:limit=${limit}:skip=${skip}`
+    
+    const cachedResponse = cache.get(cacheKey)
+    if (cachedResponse) {
+        console.log(`Cache HIT for GOG glosses: ${manID}`)
+        res.set('X-Cache', 'HIT')
+        res.set('Content-Type', 'application/json; charset=utf-8')
+        res.json(cachedResponse)
+        return
+    }
+
+    console.log(`Cache MISS for GOG glosses: ${manID}`)
+    res.set('X-Cache', 'MISS')
+
+    // Intercept res.json to cache the response
+    const originalJson = res.json.bind(res)
+    res.json = (data) => {
+        if (res.statusCode === 200 && Array.isArray(data)) {
+            cache.set(cacheKey, data)
+        }
+        return originalJson(data)
+    }
+
+    next()
+}
+
 export {
     cacheQuery,
     cacheSearch,
@@ -362,6 +446,8 @@ export {
     cacheId,
     cacheHistory,
     cacheSince,
+    cacheGogFragments,
+    cacheGogGlosses,
     invalidateCache,
     cacheStats,
     cacheClear

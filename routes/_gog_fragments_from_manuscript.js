@@ -3,9 +3,10 @@ const router = express.Router()
 //This controller will handle all MongoDB interactions.
 import controller from '../db-controller.js'
 import auth from '../auth/index.js'
+import { cacheGogFragments } from '../cache/middleware.js'
 
 router.route('/')
-    .post(auth.checkJwt, controller._gog_fragments_from_manuscript)
+    .post(auth.checkJwt, cacheGogFragments, controller._gog_fragments_from_manuscript)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method.  Please use POST.'
         res.status(405)
