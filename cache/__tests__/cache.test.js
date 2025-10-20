@@ -16,8 +16,8 @@ import {
     cacheGogGlosses,
     cacheStats,
     cacheClear
-} from './middleware.js'
-import cache from './index.js'
+} from '../middleware.js'
+import cache from '../index.js'
 
 describe('Cache Middleware Tests', () => {
     let mockReq
