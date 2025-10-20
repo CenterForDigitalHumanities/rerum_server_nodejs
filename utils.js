@@ -9,7 +9,7 @@
 
 /**
  * Add the __rerum properties object to a given JSONObject.If __rerum already exists, it will be overwritten because this method is only called on new objects. Properties for consideration are:
-APIversion        —1.0.0
+APIversion        —1.1.0
 history.prime     —if it has an @id, import from that, else "root"
 history.next      —always [] 
 history.previous  —if it has an @id, @id

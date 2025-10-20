@@ -39,7 +39,7 @@ npm install
 Create a file named `.env` in the root folder.  In the above example, the root is `/code_folder/rerum_api`.  `/code_folder/rerum_api/.env` looks like this:
 
 ```shell
-RERUM_API_VERSION = 1.0.0
+RERUM_API_VERSION = 1.1.0
 COLLECTION_ACCEPTEDSERVER = acceptedServer
 COLLECTION_V0 = annotation
 AUDIENCE = http://rerum.io/api

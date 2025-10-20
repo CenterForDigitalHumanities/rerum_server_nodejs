@@ -28,7 +28,7 @@ RERUM API v1 is a NodeJS web service for interaction with the RERUM digital obje
 3. **Create .env configuration file** (required for operation):
    ```bash
    # Create .env file in repository root
-   RERUM_API_VERSION=1.0.0
+   RERUM_API_VERSION=1.1.0
    RERUM_BASE=http://localhost:3005
    RERUM_PREFIX=http://localhost:3005/v1/
    RERUM_ID_PREFIX=http://localhost:3005/v1/id/

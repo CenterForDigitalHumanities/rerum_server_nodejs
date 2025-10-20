@@ -105,6 +105,14 @@ describe('Check to see that all /v1/api/ route patterns exist.', () => {
     expect(routeExists(api_stack, '/api/release')).toBe(true)
   })
 
+  it('/v1/api/search -- mounted ', () => {
+    expect(routeExists(api_stack, '/api/search')).toBe(true)
+  })
+
+  it('/v1/api/search/phrase -- mounted ', () => {
+    expect(routeExists(api_stack, '/api/search/phrase')).toBe(true)
+  })
+
 })
 
 describe('Check to see that critical static files are present', () => {
