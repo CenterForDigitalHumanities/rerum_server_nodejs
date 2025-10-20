@@ -122,6 +122,31 @@ describe('Cache Middleware Tests', () => {
             cacheQuery(mockReq, mockRes, mockNext)
             expect(mockRes.headers['X-Cache']).toBe('MISS')
         })
+
+        it('should create different cache keys for different query bodies', () => {
+            mockReq.method = 'POST'
+            mockReq.query = { limit: '100', skip: '0' }
+            
+            // First request for Annotations
+            mockReq.body = { type: 'Annotation' }
+            cacheQuery(mockReq, mockRes, mockNext)
+            mockRes.json([{ id: '1', type: 'Annotation' }])
+            
+            // Reset mocks for second request
+            mockRes.headers = {}
+            const jsonSpy = jest.fn()
+            mockRes.json = jsonSpy
+            mockNext = jest.fn()
+            
+            // Second request for Person (different body, should be MISS)
+            mockReq.body = { type: 'Person' }
+            cacheQuery(mockReq, mockRes, mockNext)
+            
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+            expect(mockNext).toHaveBeenCalled()
+            // json was replaced by middleware, so check it wasn't called before next()
+            expect(jsonSpy).not.toHaveBeenCalled()
+        })
     })
 
     describe('cacheSearch middleware', () => {

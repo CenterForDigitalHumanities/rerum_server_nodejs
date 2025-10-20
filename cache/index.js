@@ -56,7 +56,18 @@ class LRUCache {
             return `id:${params}`
         }
         // For query and search, create a stable key from the params object
-        const sortedParams = JSON.stringify(params, Object.keys(params).sort())
+        // Use a custom replacer to ensure consistent key ordering at all levels
+        const sortedParams = JSON.stringify(params, (key, value) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                return Object.keys(value)
+                    .sort()
+                    .reduce((sorted, key) => {
+                        sorted[key] = value[key]
+                        return sorted
+                    }, {})
+            }
+            return value
+        })
         return `${type}:${sortedParams}`
     }
 
