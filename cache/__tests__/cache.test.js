@@ -48,6 +48,10 @@ describe('Cache Middleware Tests', () => {
                 }
                 return this
             }),
+            status: jest.fn(function(code) {
+                this.statusCode = code
+                return this
+            }),
             json: jest.fn(function(data) {
                 this.jsonData = data
                 return this
@@ -366,7 +370,7 @@ describe('Cache Middleware Tests', () => {
             expect(stats.stats).toHaveProperty('hits')
             expect(stats.stats).toHaveProperty('misses')
             expect(stats.stats).toHaveProperty('hitRate')
-            expect(stats.stats).toHaveProperty('size')
+            expect(stats.stats).toHaveProperty('length')
         })
 
         it('should include details when requested', () => {
@@ -526,6 +530,10 @@ describe('GOG Endpoint Cache Middleware', () => {
                 } else {
                     this.headers[key] = value
                 }
+                return this
+            }),
+            status: jest.fn(function(code) {
+                this.statusCode = code
                 return this
             }),
             json: jest.fn(function(data) {
