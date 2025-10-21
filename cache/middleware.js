@@ -333,6 +333,7 @@ const invalidateCache = (req, res, next) => {
                 }
             } 
             else if (path.includes('/update') || path.includes('/patch') || 
+                     path.includes('/set') || path.includes('/unset') ||
                      path.includes('/overwrite') || path.includes('/bulkUpdate')) {
                 // For updates, use smart invalidation based on the updated object
                 console.log('[CACHE INVALIDATE] Update operation detected - using smart cache invalidation')
