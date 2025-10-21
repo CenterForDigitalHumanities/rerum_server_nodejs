@@ -471,11 +471,7 @@ const invalidateCache = (req, res, next) => {
 const cacheStats = (req, res) => {
     const stats = cache.getStats()
     const details = req.query.details === 'true' ? cache.getStats() : undefined
-    
-    res.json({
-        stats,
-        details
-    })
+    res.status(200).json(stats)
 }
 
 /**
@@ -486,7 +482,7 @@ const cacheClear = (req, res) => {
     const sizeBefore = cache.cache.size
     cache.clear()
     
-    res.json({
+    res.status(200).json({
         message: 'Cache cleared',
         entriesCleared: sizeBefore,
         currentSize: cache.cache.size
