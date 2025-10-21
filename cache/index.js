@@ -23,15 +23,17 @@ class CacheNode {
 /**
  * LRU (Least Recently Used) Cache implementation
  * Features:
+ * - Fixed length limit with automatic eviction
  * - Fixed size limit with automatic eviction
  * - O(1) get and set operations
  * - TTL (Time To Live) support for cache entries
+ * - Passive expiration upon access
  * - Statistics tracking (hits, misses, evictions)
  * - Pattern-based invalidation for cache clearing
  */
 class LRUCache {
-    constructor(maxSize = 1000, maxBytes = 1000000000, ttl = 300000) { // Default: 1000 entries, 1000 MB, 5 minutes TTL
-        this.maxSize = maxSize
+    constructor(maxLength = 1000, maxBytes = 1000000000, ttl = 300000) { // Default: 1000 entries, 1000 MB, 5 minutes TTL
+        this.maxLength = maxLength
         this.maxBytes = maxBytes
         this.life = Date.now()
         this.ttl = ttl // Time to live in milliseconds
@@ -54,9 +56,7 @@ class LRUCache {
      * @returns {string} Cache key
      */
     generateKey(type, params) {
-        if (type === 'id' || type === 'history' || type === 'since') {
-            return `${type}:${params}`
-        }
+        if (type === 'id' || type === 'history' || type === 'since') return `${type}:${params}` 
         // For query and search, create a stable key from the params object
         // Use a custom replacer to ensure consistent key ordering at all levels
         const sortedParams = JSON.stringify(params, (key, value) => {
@@ -176,7 +176,7 @@ class LRUCache {
         if (!this.tail) this.tail = newNode
 
         // Check length limit
-        if (this.cache.size > this.maxSize) this.removeTail()
+        if (this.cache.size > this.maxLength) this.removeTail()
         
         // Check size limit
         let bytes = Buffer.byteLength(JSON.stringify(this.cache), 'utf8')
@@ -360,11 +360,11 @@ class LRUCache {
      * Clear all cache entries
      */
     clear() {
-        const size = this.cache.size
+        const length = this.cache.size
         this.cache.clear()
         this.head = null
         this.tail = null
-        this.stats.invalidations += size
+        this.stats.invalidations += length
     }
 
     /**
@@ -377,11 +377,11 @@ class LRUCache {
 
         return {
             ...this.stats,
-            size: this.cache.size,
+            length: this.cache.size,
             bytes: Buffer.byteLength(JSON.stringify(this.cache), 'utf8'),
-            lifespan: readableAge(Date.now() - this.life)
-            maxSize: this.maxSize,
-            maxBytes: this.maxBytes
+            lifespan: readableAge(Date.now() - this.life),
+            maxLength: this.maxLength,
+            maxBytes: this.maxBytes,
             hitRate: `${hitRate}%`,
             ttl: this.ttl
         }
@@ -402,7 +402,7 @@ class LRUCache {
                 key: current.key,
                 age: readableAge(Date.now() - current.timestamp),
                 hits: current.hits,
-                size: JSON.stringify(current.value).length,
+                length: JSON.stringify(current.value).length,
                 bytes: Buffer.byteLength(JSON.stringify(current.value), 'utf8')
             })
             current = current.next
@@ -427,9 +427,9 @@ class LRUCache {
 
 // Create singleton cache instance
 // Configuration can be adjusted via environment variables
-const CACHE_MAX_SIZE = parseInt(process.env.CACHE_MAX_SIZE ?? 1000)
+const CACHE_MAX_LENGTH = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
 const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1000 MB
 const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 10000) // 5 minutes default
-const cache = new LRUCache(CACHE_MAX_SIZE, CACHE_TTL)
+const cache = new LRUCache(CACHE_MAX_LENGTH, CACHE_TTL)
 // Could also export this 'cache' as a instance of the LRUCache Class, but no use case for it yet.
 export default cache
