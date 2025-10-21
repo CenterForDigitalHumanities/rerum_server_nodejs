@@ -150,6 +150,20 @@ class LRUCache {
     }
 
     /**
+     * Calculate the total byte size of cached values
+     * @returns {number} Total bytes used by cache
+     */
+    calculateByteSize() {
+        let totalBytes = 0
+        for (const [key, node] of this.cache.entries()) {
+            // Calculate size of key + value
+            totalBytes += Buffer.byteLength(key, 'utf8')
+            totalBytes += Buffer.byteLength(JSON.stringify(node.value), 'utf8')
+        }
+        return totalBytes
+    }
+
+    /**
      * Set value in cache
      * @param {string} key - Cache key
      * @param {*} value - Value to cache
@@ -180,12 +194,12 @@ class LRUCache {
         if (this.cache.size > this.maxLength) this.removeTail()
         
         // Check size limit
-        let bytes = Buffer.byteLength(JSON.stringify(this.cache), 'utf8')
+        let bytes = this.calculateByteSize()
         if (bytes > this.maxBytes) {
             console.warn("Cache byte size exceeded.  Objects are being evicted.")
-            while (bytes > this.maxBytes) {
+            while (bytes > this.maxBytes && this.cache.size > 0) {
                 this.removeTail()
-                bytes = Buffer.byteLength(JSON.stringify(this.cache), 'utf8')
+                bytes = this.calculateByteSize()
             }
         }
 
@@ -379,7 +393,7 @@ class LRUCache {
         return {
             ...this.stats,
             length: this.cache.size,
-            bytes: Buffer.byteLength(JSON.stringify(this.cache), 'utf8'),
+            bytes: this.calculateByteSize(),
             lifespan: this.readableAge(Date.now() - this.life),
             maxLength: this.maxLength,
             maxBytes: this.maxBytes,
