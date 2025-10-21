@@ -4,7 +4,7 @@
 
 The cache testing suite includes two test files that provide comprehensive coverage of the RERUM API caching layer:
 
-1. **`cache.test.js`** - Middleware functionality tests (48 tests)
+1. **`cache.test.js`** - Middleware functionality tests (36 tests)
 2. **`cache-limits.test.js`** - Limit enforcement tests (12 tests)
 
 ## Test Execution
@@ -26,15 +26,15 @@ npm run runtest -- cache/__tests__/cache-limits.test.js
 ### Expected Results
 ```
 ✅ Test Suites: 2 passed, 2 total
-✅ Tests:       60 passed, 60 total
-⚡ Time:        ~1.2s
+✅ Tests:       48 passed, 48 total
+⚡ Time:        ~1.5s
 ```
 
 ---
 
-## cache.test.js - Middleware Functionality (48 tests)
+## cache.test.js - Middleware Functionality (36 tests)
 
-### ✅ Read Endpoint Caching (30 tests)
+### ✅ Read Endpoint Caching (26 tests)
 
 #### 1. cacheQuery Middleware (5 tests)
 - ✅ Pass through on non-POST requests
@@ -85,8 +85,8 @@ npm run runtest -- cache/__tests__/cache-limits.test.js
 ### ✅ Cache Management (4 tests)
 
 #### cacheStats Endpoint (2 tests)
-- ✅ Return cache statistics (hits, misses, hitRate, size)
-- ✅ Include details when requested with `?details=true`
+- ✅ Return cache statistics at top level (hits, misses, hitRate, length, bytes, etc.)
+- ✅ Include details array when requested with `?details=true`
 
 #### cacheClear Endpoint (1 test)
 - ✅ Clear all cache entries
@@ -290,7 +290,7 @@ bash /tmp/test_history_since_caching.sh
 
 ### Unit Tests (cache.test.js) - What They're Good For
 
-✅ **Fast** - 0.33 seconds for 36 tests
+✅ **Fast** - ~1.5 seconds for 36 tests
 ✅ **Isolated** - No database or server required  
 ✅ **Focused** - Tests individual middleware functions
 ✅ **Reliable** - No flaky network/database issues
@@ -630,7 +630,7 @@ These tests run automatically in the CI/CD pipeline:
 
 ## Performance
 
-Test execution is fast (~400ms) because:
+Test execution is fast (~1.5s) because:
 - No database connections required
 - Pure in-memory cache operations
 - Mocked HTTP request/response objects
@@ -650,9 +650,9 @@ Update tests when:
 ### Test Review Checklist
 
 Before merging cache changes:
-- [ ] All 25 tests passing
+- [ ] All 48 tests passing (36 middleware + 12 limits)
 - [ ] New endpoints have corresponding tests
-- [ ] Cache behavior verified manually (see TEST_RESULTS.md)
+- [ ] Cache behavior verified manually
 - [ ] Documentation updated
 
 ## Related Documentation
@@ -664,7 +664,7 @@ Before merging cache changes:
 ---
 
 **Test Coverage Summary**:
-- **cache.test.js**: 48 tests covering middleware functionality
+- **cache.test.js**: 36 tests covering middleware functionality
 - **cache-limits.test.js**: 12 tests covering limit enforcement
-- **Total**: 60 tests, all passing ✅
+- **Total**: 48 tests, all passing ✅
 - **Last Updated**: October 21, 2025

@@ -232,26 +232,54 @@ Cache Key: gogGlosses:https://example.org/manuscript/123:50:0
 Returns cache performance metrics:
 ```json
 {
-  "stats": {
-    "hits": 1234,
-    "misses": 456,
-    "hitRate": "73.02%",
-    "size": 234,
-    "maxSize": 1000,
-    "invalidations": 89
-  }
+  "hits": 1234,
+  "misses": 456,
+  "hitRate": "73.02%",
+  "evictions": 12,
+  "sets": 1801,
+  "invalidations": 89,
+  "length": 234,
+  "bytes": 2457600,
+  "lifespan": "5 minutes 32 seconds",
+  "maxLength": 1000,
+  "maxBytes": 1000000000,
+  "ttl": 300000
 }
 ```
 
 **With Details** (`?details=true`):
 ```json
 {
-  "stats": { ... },
-  "details": {
-    "keys": ["id:123", "query:{...}", ...],
-    "oldestEntry": "2025-01-15T10:23:45.678Z",
-    "newestEntry": "2025-01-15T14:56:12.345Z"
-  }
+  "hits": 1234,
+  "misses": 456,
+  "hitRate": "73.02%",
+  "evictions": 12,
+  "sets": 1801,
+  "invalidations": 89,
+  "length": 234,
+  "bytes": 2457600,
+  "lifespan": "5 minutes 32 seconds",
+  "maxLength": 1000,
+  "maxBytes": 1000000000,
+  "ttl": 300000,
+  "details": [
+    {
+      "position": 0,
+      "key": "id:507f1f77bcf86cd799439011",
+      "age": "2 minutes 15 seconds",
+      "hits": 45,
+      "length": 183,
+      "bytes": 183
+    },
+    {
+      "position": 1,
+      "key": "query:{\"type\":\"Annotation\"}",
+      "age": "5 minutes 2 seconds",
+      "hits": 12,
+      "length": 27000,
+      "bytes": 27000
+    }
+  ]
 }
 ```
 
