@@ -470,8 +470,9 @@ const invalidateCache = (req, res, next) => {
  */
 const cacheStats = (req, res) => {
     const stats = cache.getStats()
-    const details = req.query.details === 'true' ? cache.getStats() : undefined
-    res.status(200).json(stats)
+    const response = { stats }
+    if (req.query.details === 'true') response.details = cache.getDetailsByEntry()
+    res.status(200).json(response)
 }
 
 /**
