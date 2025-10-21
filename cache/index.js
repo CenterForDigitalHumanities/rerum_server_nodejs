@@ -135,6 +135,7 @@ class LRUCache {
 
         // Check if expired
         if (this.isExpired(node)) {
+            console.log("Expired node will be removed.")
             this.delete(key)
             this.stats.misses++
             return null
@@ -379,7 +380,7 @@ class LRUCache {
             ...this.stats,
             length: this.cache.size,
             bytes: Buffer.byteLength(JSON.stringify(this.cache), 'utf8'),
-            lifespan: readableAge(Date.now() - this.life),
+            lifespan: this.readableAge(Date.now() - this.life),
             maxLength: this.maxLength,
             maxBytes: this.maxBytes,
             hitRate: `${hitRate}%`,
@@ -400,7 +401,7 @@ class LRUCache {
             entries.push({
                 position,
                 key: current.key,
-                age: readableAge(Date.now() - current.timestamp),
+                age: this.readableAge(Date.now() - current.timestamp),
                 hits: current.hits,
                 length: JSON.stringify(current.value).length,
                 bytes: Buffer.byteLength(JSON.stringify(current.value), 'utf8')
@@ -417,9 +418,10 @@ class LRUCache {
         const minutes = Math.floor(seconds / 60)
         const hours = Math.floor(minutes / 60)
         const days = Math.floor(hours / 24)
-        parts.push(`${Math.floor(days)} day${Math.floor(dats) !== 1 ? 's' : ''}`)
-        parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`)
-        parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`)
+        let parts = []
+        if (days > 0) parts.push(`${Math.floor(days)} day${Math.floor(days) !== 1 ? 's' : ''}`)
+        if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`)
+        if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`)
         parts.push(`${seconds} second${seconds !== 1 ? 's' : ''}`)
         return parts.join(", ")
     }
@@ -429,7 +431,7 @@ class LRUCache {
 // Configuration can be adjusted via environment variables
 const CACHE_MAX_LENGTH = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
 const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1000 MB
-const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 10000) // 5 minutes default
-const cache = new LRUCache(CACHE_MAX_LENGTH, CACHE_TTL)
-// Could also export this 'cache' as a instance of the LRUCache Class, but no use case for it yet.
+const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 300000) // 5 minutes default
+const cache = new LRUCache(CACHE_MAX_LENGTH, CACHE_MAX_BYTES, CACHE_TTL)
+
 export default cache

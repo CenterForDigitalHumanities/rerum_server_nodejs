@@ -35,7 +35,7 @@ const cacheQuery = (req, res, next) => {
         console.log(`Cache HIT: query`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
-        res.json(cachedResult)
+        res.status(200).json(cachedResult)
         return
     }
 
@@ -54,8 +54,8 @@ const cacheQuery = (req, res, next) => {
         return originalJson(data)
     }
 
-    console.log("CACHE DETAILS")
-    console.log(cache.getDetails())
+    console.log("CACHE STATS")
+    console.log(cache.getStats())
     next()
 }
 
@@ -86,7 +86,7 @@ const cacheSearch = (req, res, next) => {
         console.log(`Cache HIT: search "${searchText}"`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
-        res.json(cachedResult)
+        res.status(200).json(cachedResult)
         return
     }
 
@@ -101,8 +101,8 @@ const cacheSearch = (req, res, next) => {
         return originalJson(data)
     }
 
-    console.log("CACHE DETAILS")
-    console.log(cache.getDetails())
+    console.log("CACHE STATS")
+    console.log(cache.getStats())
     next()
 }
 
@@ -133,7 +133,7 @@ const cacheSearchPhrase = (req, res, next) => {
         console.log(`Cache HIT: search phrase "${searchText}"`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
-        res.json(cachedResult)
+        res.status(200).json(cachedResult)
         return
     }
 
@@ -148,8 +148,8 @@ const cacheSearchPhrase = (req, res, next) => {
         return originalJson(data)
     }
 
-    console.log("CACHE DETAILS")
-    console.log(cache.getDetails())
+    console.log("CACHE STATS")
+    console.log(cache.getStats())
     next()
 }
 
@@ -176,7 +176,7 @@ const cacheId = (req, res, next) => {
         res.set('X-Cache', 'HIT')
         // Apply same headers as the original controller
         res.set("Cache-Control", "max-age=86400, must-revalidate")
-        res.json(cachedResult)
+        res.status(200).json(cachedResult)
         return
     }
 
@@ -191,8 +191,8 @@ const cacheId = (req, res, next) => {
         return originalJson(data)
     }
 
-    console.log("CACHE DETAILS")
-    console.log(cache.getDetails())
+    console.log("CACHE STATS")
+    console.log(cache.getStats())
     next()
 }
 
@@ -450,7 +450,7 @@ const invalidateCache = (req, res, next) => {
  */
 const cacheStats = (req, res) => {
     const stats = cache.getStats()
-    const details = req.query.details === 'true' ? cache.getDetails() : undefined
+    const details = req.query.details === 'true' ? cache.getStats() : undefined
     
     res.json({
         stats,
