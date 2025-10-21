@@ -344,19 +344,29 @@ const invalidateCache = (req, res, next) => {
                 if (updatedObject && objectId) {
                     const invalidatedKeys = new Set()
                     
-                    // Invalidate the specific ID cache
+                    // Invalidate the specific ID cache for the NEW object
                     const idKey = `id:${objectId.split('/').pop()}`
                     cache.delete(idKey)
                     invalidatedKeys.add(idKey)
+                    
+                    // Extract version chain IDs
+                    const objIdShort = objectId.split('/').pop()
+                    const previousId = updatedObject?.__rerum?.history?.previous?.split('/').pop()
+                    const primeId = updatedObject?.__rerum?.history?.prime?.split('/').pop()
+                    
+                    // CRITICAL: Also invalidate the PREVIOUS object's ID cache
+                    // When UPDATE creates a new version, the old ID should show the old object
+                    // but we need to invalidate it so clients get fresh data
+                    if (previousId && previousId !== 'root') {
+                        const prevIdKey = `id:${previousId}`
+                        cache.delete(prevIdKey)
+                        invalidatedKeys.add(prevIdKey)
+                    }
                     
                     // Smart invalidation for queries that match this object
                     cache.invalidateByObject(updatedObject, invalidatedKeys)
                     
                     // Invalidate history/since for this object AND its version chain
-                    const objIdShort = objectId.split('/').pop()
-                    const previousId = updatedObject?.__rerum?.history?.previous?.split('/').pop()
-                    const primeId = updatedObject?.__rerum?.history?.prime?.split('/').pop()
-                    
                     // Build pattern that matches current, previous, and prime IDs
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
@@ -388,14 +398,23 @@ const invalidateCache = (req, res, next) => {
                     cache.delete(idKey)
                     invalidatedKeys.add(idKey)
                     
-                    // Smart invalidation for queries that matched this object
-                    cache.invalidateByObject(deletedObject, invalidatedKeys)
-                    
-                    // Invalidate history/since for this object AND its version chain
+                    // Extract version chain IDs
                     const objIdShort = objectId.split('/').pop()
                     const previousId = deletedObject?.__rerum?.history?.previous?.split('/').pop()
                     const primeId = deletedObject?.__rerum?.history?.prime?.split('/').pop()
                     
+                    // CRITICAL: Also invalidate the PREVIOUS object's ID cache
+                    // When DELETE removes an object, the previous version may still be cached
+                    if (previousId && previousId !== 'root') {
+                        const prevIdKey = `id:${previousId}`
+                        cache.delete(prevIdKey)
+                        invalidatedKeys.add(prevIdKey)
+                    }
+                    
+                    // Smart invalidation for queries that matched this object
+                    cache.invalidateByObject(deletedObject, invalidatedKeys)
+                    
+                    // Invalidate history/since for this object AND its version chain
                     // Build pattern that matches current, previous, and prime IDs
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
