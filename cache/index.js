@@ -2,7 +2,8 @@
 
 /**
  * In-memory LRU cache implementation for RERUM API
- * Caches query, search, and id lookup results to reduce MongoDB Atlas load
+ * Caches read operation results to reduce MongoDB Atlas load.
+ * Uses smart invalidation during writes to invalidate affected cached reads.
  * @author thehabes
  */
 
@@ -95,6 +96,7 @@ class LRUCache {
 
     /**
      * Remove tail node (least recently used)
+     * Record eviction by increasing eviction count.
      */
     removeTail() {
         if (!this.tail) return null
@@ -123,6 +125,7 @@ class LRUCache {
 
     /**
      * Get value from cache
+     * Record hits and misses for the stats
      * @param {string} key - Cache key
      * @returns {*} Cached value or null if not found/expired
      */
@@ -166,6 +169,7 @@ class LRUCache {
 
     /**
      * Set value in cache
+     * Record the set for the stats
      * @param {string} key - Cache key
      * @param {*} value - Value to cache
      */
@@ -174,6 +178,7 @@ class LRUCache {
 
         // Check if key already exists
         if (this.cache.has(key)) {
+            // This set overwrites this existing node and moves it to the head.
             const node = this.cache.get(key)
             node.value = value
             node.timestamp = Date.now()
@@ -235,16 +240,12 @@ class LRUCache {
         if (typeof pattern === 'string') {
             // Simple string matching
             for (const key of this.cache.keys()) {
-                if (key.includes(pattern)) {
-                    keysToDelete.push(key)
-                }
+                if (key.includes(pattern)) keysToDelete.push(key)
             }
         } else if (pattern instanceof RegExp) {
             // Regex matching
             for (const key of this.cache.keys()) {
-                if (pattern.test(key)) {
-                    keysToDelete.push(key)
-                }
+                if (pattern.test(key)) keysToDelete.push(key)        
             }
         }
 
@@ -252,28 +253,6 @@ class LRUCache {
         this.stats.invalidations += keysToDelete.length
         
         return keysToDelete.length
-    }
-
-    /**
-     * Invalidate cache for a specific object ID
-     * This clears the ID cache and any query/search results that might contain it
-     * @param {string} id - Object ID to invalidate
-     */
-    invalidateById(id) {
-        const idKey = `id:${id}`
-        let count = 0
-        
-        // Delete direct ID cache
-        if (this.delete(idKey)) {
-            count++
-        }
-
-        // Invalidate all queries and searches (conservative approach)
-        // In a production environment, you might want to be more selective
-        count += this.invalidate(/^(query|search|searchPhrase):/)
-        
-        this.stats.invalidations += count
-        return count
     }
 
     /**
@@ -330,10 +309,7 @@ class LRUCache {
      */
     objectMatchesQuery(obj, query) {
         // For query endpoint: check if object matches the query body
-        if (query.body && typeof query.body === 'object') {
-            return this.objectContainsProperties(obj, query.body)
-        }
-        
+        if (query.body && typeof query.body === 'object') return this.objectContainsProperties(obj, query.body)
         // For direct queries (like {"type":"CacheTest"}), check if object matches
         return this.objectContainsProperties(obj, query)
     }
