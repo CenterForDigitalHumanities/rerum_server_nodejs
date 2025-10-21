@@ -365,12 +365,11 @@ describe('Cache Middleware Tests', () => {
             cacheStats(mockReq, mockRes)
             
             expect(mockRes.json).toHaveBeenCalled()
-            const stats = mockRes.json.mock.calls[0][0]
-            expect(stats).toHaveProperty('stats')
-            expect(stats.stats).toHaveProperty('hits')
-            expect(stats.stats).toHaveProperty('misses')
-            expect(stats.stats).toHaveProperty('hitRate')
-            expect(stats.stats).toHaveProperty('length')
+            const response = mockRes.json.mock.calls[0][0]
+            expect(response).toHaveProperty('hits')
+            expect(response).toHaveProperty('misses')
+            expect(response).toHaveProperty('hitRate')
+            expect(response).toHaveProperty('length')
         })
 
         it('should include details when requested', () => {
@@ -380,6 +379,8 @@ describe('Cache Middleware Tests', () => {
             
             const response = mockRes.json.mock.calls[0][0]
             expect(response).toHaveProperty('details')
+            expect(response).toHaveProperty('hits')
+            expect(response).toHaveProperty('misses')
         })
     })
 
