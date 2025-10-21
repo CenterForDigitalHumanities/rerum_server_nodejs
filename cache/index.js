@@ -30,9 +30,10 @@ class CacheNode {
  * - Passive expiration upon access
  * - Statistics tracking (hits, misses, evictions)
  * - Pattern-based invalidation for cache clearing
+ * Default: 1000 entries, 1GB, 5 minutes TTL
  */
 class LRUCache {
-    constructor(maxLength = 1000, maxBytes = 1000000000, ttl = 300000) { // Default: 1000 entries, 1000 MB, 5 minutes TTL
+    constructor(maxLength = 1000, maxBytes = 1000000000, ttl = 300000) {
         this.maxLength = maxLength
         this.maxBytes = maxBytes
         this.life = Date.now()
@@ -333,7 +334,7 @@ class LRUCache {
             return this.objectContainsProperties(obj, query.body)
         }
         
-        // For direct queries (like {"type":"Cachetest"}), check if object matches
+        // For direct queries (like {"type":"CacheTest"}), check if object matches
         return this.objectContainsProperties(obj, query)
     }
 
@@ -444,7 +445,7 @@ class LRUCache {
 // Create singleton cache instance
 // Configuration can be adjusted via environment variables
 const CACHE_MAX_LENGTH = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
-const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1000 MB
+const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1GB
 const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 300000) // 5 minutes default
 const cache = new LRUCache(CACHE_MAX_LENGTH, CACHE_MAX_BYTES, CACHE_TTL)
 
