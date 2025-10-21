@@ -53,9 +53,6 @@ const cacheQuery = (req, res, next) => {
         }
         return originalJson(data)
     }
-
-    console.log("CACHE STATS")
-    console.log(cache.getStats())
     next()
 }
 
@@ -100,9 +97,6 @@ const cacheSearch = (req, res, next) => {
         }
         return originalJson(data)
     }
-
-    console.log("CACHE STATS")
-    console.log(cache.getStats())
     next()
 }
 
@@ -147,9 +141,6 @@ const cacheSearchPhrase = (req, res, next) => {
         }
         return originalJson(data)
     }
-
-    console.log("CACHE STATS")
-    console.log(cache.getStats())
     next()
 }
 
@@ -190,9 +181,6 @@ const cacheId = (req, res, next) => {
         }
         return originalJson(data)
     }
-
-    console.log("CACHE STATS")
-    console.log(cache.getStats())
     next()
 }
 
