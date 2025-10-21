@@ -63,6 +63,7 @@ const create = async function (req, res, next) {
  * The return is always an array, even if 0 or 1 objects in the return.
  * */
 const query = async function (req, res, next) {
+    console.log("QUERY TO MONGODB")
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
     const limit = parseInt(req.query.limit ?? 100)
@@ -92,6 +93,7 @@ const query = async function (req, res, next) {
  * Note /v1/id/{blank} does not route here.  It routes to the generic 404
  * */
 const id = async function (req, res, next) {
+    console.log("_id TO MONGODB")
     res.set("Content-Type", "application/json; charset=utf-8")
     let id = req.params["_id"]
     try {
