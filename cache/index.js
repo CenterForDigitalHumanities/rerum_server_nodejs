@@ -394,7 +394,6 @@ class LRUCache {
                 key: current.key,
                 age: this.readableAge(Date.now() - current.timestamp),
                 hits: current.hits,
-                length: JSON.stringify(current.value).length,
                 bytes: Buffer.byteLength(JSON.stringify(current.value), 'utf8')
             })
             current = current.next
