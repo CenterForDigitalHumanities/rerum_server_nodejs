@@ -7,16 +7,59 @@ The RERUM API implements an LRU (Least Recently Used) cache with smart invalidat
 ## Cache Configuration
 
 ### Default Settings
-- **Max Size**: 1000 entries
+- **Max Length**: 1000 entries
+- **Max Bytes**: 1GB (1,000,000,000 bytes)
 - **TTL (Time-To-Live)**: 5 minutes (300,000ms)
 - **Eviction Policy**: LRU (Least Recently Used)
 - **Storage**: In-memory (per server instance)
 
 ### Environment Variables
 ```bash
-CACHE_MAX_SIZE=1000      # Maximum number of cached entries
-CACHE_TTL=300000         # Time-to-live in milliseconds
+CACHE_MAX_LENGTH=1000        # Maximum number of cached entries
+CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes
+CACHE_TTL=300000             # Time-to-live in milliseconds
 ```
+
+### Limit Enforcement Details
+
+The cache implements **dual limits** for defense-in-depth:
+
+1. **Length Limit (1000 entries)**
+   - Primary working limit
+   - Ensures diverse cache coverage
+   - Prevents cache thrashing from too many unique queries
+   - Reached first under normal operation
+
+2. **Byte Limit (1GB)**
+   - Secondary safety limit
+   - Prevents memory exhaustion
+   - Protects against accidentally large result sets
+   - Guards against malicious queries
+
+**Balance Analysis**: With typical RERUM queries (100 items per page at ~269 bytes per annotation):
+- 1000 entries = ~26 MB (2.7% of 1GB limit)
+- Length limit reached first in 99%+ of scenarios
+- Byte limit only activates for edge cases (e.g., entries > 1MB each)
+
+**Eviction Behavior**:
+- When length limit exceeded: Remove least recently used entry
+- When byte limit exceeded: Remove LRU entries until under limit
+- Both limits checked on every cache write operation
+
+**Byte Size Calculation**:
+```javascript
+// Accurately calculates total cache memory usage
+calculateByteSize() {
+    let totalBytes = 0
+    for (const [key, node] of this.cache.entries()) {
+        totalBytes += Buffer.byteLength(key, 'utf8')
+        totalBytes += Buffer.byteLength(JSON.stringify(node.value), 'utf8')
+    }
+    return totalBytes
+}
+```
+
+This ensures the byte limit is properly enforced (fixed in PR #225).
 
 ## Cached Endpoints
 

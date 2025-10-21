@@ -38,6 +38,7 @@
 │     │   (In-Memory)     │          │                            │
 │     │                   │          │                            │
 │     │  Max: 1000 items  │          │                            │
+│     │  Max: 1GB bytes   │          │                            │
 │     │  TTL: 5 minutes   │          │                            │
 │     │  Eviction: LRU    │          │                            │
 │     │                   │          │                            │
@@ -274,9 +275,10 @@ Client Write Request (CREATE/UPDATE/DELETE)
 │  │                 Statistics                        │    │
 │  │                                                   │    │
 │  │  • hits: 1234        • size: 850/1000            │    │
-│  │  • misses: 567       • hitRate: 68.51%           │    │
-│  │  • evictions: 89     • ttl: 300000ms             │    │
-│  │  • sets: 1801        • invalidations: 45         │    │
+│  │  • misses: 567       • bytes: 22.1MB/1000MB     │    │
+│  │  • evictions: 89     • hitRate: 68.51%           │    │
+│  │  • sets: 1801        • ttl: 300000ms             │    │
+│  │  • invalidations: 45                             │    │
 │  └──────────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────────┘
 ```
@@ -321,8 +323,45 @@ Client Write Request (CREATE/UPDATE/DELETE)
 │                      │                 │                     │
 │  Expected Hit Rate:  60-80% for read-heavy workloads        │
 │  Speed Improvement:  60-800x for cached requests            │
-│  Memory Usage:       ~2-10MB (1000 entries @ 2-10KB each)   │
+│  Memory Usage:       ~26MB (1000 typical entries)           │
 │  Database Load:      Reduced by hit rate percentage         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Limit Enforcement
+
+The cache enforces both entry count and memory size limits:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Cache Limits (Dual)                        │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│  Limit Type     │  Default    │  Purpose                     │
+│─────────────────┼─────────────┼──────────────────────────────│
+│  Length (count) │  1000       │  Ensures cache diversity     │
+│                 │             │  Prevents cache thrashing     │
+│                 │             │  PRIMARY working limit        │
+│                 │                                             │
+│  Bytes (size)   │  1GB        │  Prevents memory exhaustion  │
+│                 │             │  Safety net for edge cases   │
+│                 │             │  Guards against huge objects │
+│                                                               │
+│  Balance: With typical RERUM queries (100 items/page),       │
+│           1000 entries = ~26 MB (2.7% of 1GB limit)          │
+│                                                               │
+│  Typical entry sizes:                                        │
+│    • ID lookup:        ~183 bytes                            │
+│    • Query (10 items): ~2.7 KB                               │
+│    • Query (100 items): ~27 KB                               │
+│    • GOG (50 items):   ~13.5 KB                              │
+│                                                               │
+│  The length limit (1000) will be reached first in normal     │
+│  operation. The byte limit provides protection against       │
+│  accidentally caching very large result sets.                │
+│                                                               │
+│  Eviction: When either limit is exceeded, LRU entries        │
+│           are removed until both limits are satisfied        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -363,17 +402,22 @@ Client Write Request (CREATE/UPDATE/DELETE)
 ## Configuration and Tuning
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│               Environment-Specific Settings               │
-├──────────────────────────────────────────────────────────┤
-│                                                           │
-│  Environment   │  CACHE_MAX_SIZE  │  CACHE_TTL          │
-│────────────────┼──────────────────┼─────────────────────│
-│  Development   │  500             │  300000 (5 min)     │
-│  Staging       │  1000            │  300000 (5 min)     │
-│  Production    │  2000-5000       │  600000 (10 min)    │
-│  High Traffic  │  5000+           │  300000 (5 min)     │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                  Environment-Specific Settings                        │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  Environment  │ MAX_LENGTH │ MAX_BYTES │  TTL                        │
+│───────────────┼────────────┼───────────┼─────────────────────────────│
+│  Development  │  500       │  500MB    │  300000 (5 min)             │
+│  Staging      │  1000      │  1GB      │  300000 (5 min)             │
+│  Production   │  1000      │  1GB      │  600000 (10 min)            │
+│  High Traffic │  2000      │  2GB      │  300000 (5 min)             │
+│                                                                       │
+│  Recommendation: Keep defaults (1000 entries, 1GB) unless:           │
+│    • Abundant memory available → Increase MAX_BYTES for safety       │
+│    • Low cache hit rate → Increase MAX_LENGTH for diversity          │
+│    • Memory constrained → Decrease both limits proportionally        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
