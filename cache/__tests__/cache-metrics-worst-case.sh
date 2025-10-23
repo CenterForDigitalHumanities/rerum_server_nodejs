@@ -1,17 +1,18 @@
 #!/bin/bash
 
 ################################################################################
-# RERUM Cache Comprehensive Metrics & Functionality Test
+# RERUM Cache WORST-CASE Scenario Performance Test
 # 
-# Combines:
-# - Integration testing (endpoint functionality with cache)
-# - Performance testing (read/write speed with/without cache)
-# - Limit enforcement testing (cache boundaries)
+# Tests the absolute worst-case scenario for cache performance:
+# - Read operations: Query for data NOT in cache (cache miss, full scan)
+# - Write operations: Invalidate data NOT matching cache (full scan, no invalidations)
 #
-# Produces: /cache/docs/CACHE_METRICS_REPORT.md
+# This measures maximum overhead when cache provides NO benefit.
+#
+# Produces: /cache/docs/CACHE_METRICS_WORST_CASE_REPORT.md
 #
 # Author: GitHub Copilot
-# Date: October 22, 2025
+# Date: October 23, 2025
 ################################################################################
 
 # Exit on error (disabled for better error reporting)
@@ -21,7 +22,7 @@
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
 # Default token - can be overridden by RERUM_TEST_TOKEN environment variable or user input
-AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwczovL2RldnN0b3JlLnJlcnVtLmlvL3YxL2lkLzY4ZDZkZDZhNzE4ZWUyOTRmMTk0YmUwNCIsImh0dHA6Ly9yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL3JlcnVtLmlvL2FwcF9mbGFnIjpbInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJ0cGVuIl0sImlzcyI6Imh0dHBzOi8vY3ViYXAuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDY4ZDZkZDY0YmRhMmNkNzdhMTA2MWMxNyIsImF1ZCI6Imh0dHA6Ly9yZXJ1bS5pby9hcGkiLCJpYXQiOjE3NjEyNDE2MTIsImV4cCI6MTc2MzgzMzYxMiwic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsImF6cCI6IjYySnNhOU14SHVxaFJiTzIwZ1RIczlLcEtyN1VlN3NsIn0.IhZjdPPzziR5i9e3JEveus80LGgKxOvNRSb0rusOH5tmeB-8Ll6F58QhluwVDeTD9xZE-DHrZn5UYqbKUnnzjKnmYGH1gfRhhpxltNF69QiD7nG8YopTvDWSjFSvh4OwTzFWrBax-VlixhBFJ1dP3xB8QFW64K6aNeg5oUx0qQ3g1uFWPkg1z6Q1OWQsL0alTuxHN2eYxWcyTLmFfMh7OF8EgCgPffYpowa76En11WfMEz4JFdTH24Xx-6NEYU9BA72Z7BmMyHrg50njQqS8oT0jpjtsW9HaMMRAFM5rqsZYnBeZ1GNiR_HgMK0pqnCI3GJZ9GR7NCSAmk9rzbEd8g}"
+AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwczovL2RldnN0b3JlLnJlcnVtLmlvL3YxL2lkLzY4ZDZkZDZhNzE4ZWUyOTRmMTk0YmUwNCIsImh0dHA6Ly9yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL3JlcnVtLmlvL2FwcF9mbGFnIjpbInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJ0cGVuIl0sImlzcyI6Imh0dHBzOi8vY3ViYXAuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDY4ZDZkZDY0YmRhMmNkNzdhMTA2MWMxNyIsImF1ZCI6Imh0dHA6Ly9yZXJ1bS5pby9hcGkiLCJpYXQiOjE3NjEyNTExOTMsImV4cCI6MTc2Mzg0MzE5Mywic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsImF6cCI6IjYySnNhOU14SHVxaFJiTzIwZ1RIczlLcEtyN1VlN3NsIn0.RQNhU4OE-MbsQX5aIvCcHpvInaXTQvfdPT8bLGrUVTnsuE8xxk-qDlNrYtSG4BUWpKiGFonjJTNQy75G2PJo46IaGqyZk75GW03iY2cfBXml2W5qfFZ0sUJ2rUtkQEUEGeRYNq0QaVfYEaU76kP_43jn_dB4INP6sp_Xo-hfmmF_aF1-utN31UjnKzZMfC2BCTQwYR5DUjCh8Yqvwus2k5CmiY4Y8rmNOrM6Y0cFWhehOYRgQAea-hRLBGk1dLnU4u7rI9STaQSjANuSNHcFQFypmrftryAEEwksRnip5vQdYzfzZ7Ay4iV8mm2eO4ThKSI5m5kBVyP0rbTcmJUftQ}"
 
 # Test configuration
 CACHE_FILL_SIZE=1000
@@ -52,8 +53,10 @@ declare -A ENDPOINT_DESCRIPTIONS
 # Array to store created object IDs for cleanup
 declare -a CREATED_IDS=()
 
-# Report file
-REPORT_FILE="$(pwd)/cache/docs/CACHE_METRICS_REPORT.md"
+# Report file - go up to repo root first
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPORT_FILE="$REPO_ROOT/cache/docs/CACHE_METRICS_WORST_CASE_REPORT.md"
 
 ################################################################################
 # Helper Functions
@@ -1728,13 +1731,14 @@ test_create_endpoint_empty() {
 
 # Create endpoint - full cache version
 test_create_endpoint_full() {
-    log_section "Testing /api/create Endpoint (Full Cache)"
+    log_section "Testing /api/create Endpoint (Full Cache - Worst Case)"
     
     generate_create_body() {
-        echo "{\"type\":\"CreatePerfTest\",\"timestamp\":$(date +%s%3N),\"random\":$RANDOM}"
+        echo "{\"type\":\"WORST_CASE_WRITE_UNIQUE_99999\",\"timestamp\":$(date +%s%3N),\"random\":$RANDOM}"
     }
     
     log_info "Testing create with full cache (${CACHE_FILL_SIZE} entries, 100 operations)..."
+    echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
     
     # Call function directly (not in subshell) so CREATED_IDS changes persist
     run_write_performance_test "create" "create" "POST" "generate_create_body" 100
@@ -1750,11 +1754,11 @@ test_create_endpoint_full() {
         local overhead=$((full_avg - empty_avg))
         local overhead_pct=$((overhead * 100 / empty_avg))
         
-        # Display clamped value (0 or positive) but store actual value for report
+        # WORST-CASE TEST: Always show actual overhead (including negative)
+        # Negative values indicate DB variance, not cache efficiency
+        log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
         if [ $overhead -lt 0 ]; then
-            log_info "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
-        else
-            log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
+            log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
         fi
     fi
 }
@@ -1823,11 +1827,11 @@ test_update_endpoint_empty() {
 
 # Update endpoint - full cache version
 test_update_endpoint_full() {
-    log_section "Testing /api/update Endpoint (Full Cache)"
+    log_section "Testing /api/update Endpoint (Full Cache - Worst Case)"
     
     local NUM_ITERATIONS=50
     
-    local test_id=$(create_test_object '{"type":"UpdateTest","value":"original"}')
+    local test_id=$(create_test_object '{"type":"WORST_CASE_WRITE_UNIQUE_99999","value":"original"}')
     
     if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
         log_failure "Failed to create test object for update test"
@@ -1835,6 +1839,7 @@ test_update_endpoint_full() {
     fi
     
     log_info "Testing update with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
+    echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
     
     declare -a full_times=()
     local full_total=0
@@ -1880,11 +1885,10 @@ test_update_endpoint_full() {
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
     
-    # Display clamped value (0 or positive) but store actual value for report
+    # WORST-CASE TEST: Always show actual overhead (including negative)
+    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
     if [ $overhead -lt 0 ]; then
-        log_info "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
-    else
-        log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
 }
 
@@ -1923,13 +1927,14 @@ test_patch_endpoint_empty() {
 }
 
 test_patch_endpoint_full() {
-    log_section "Testing /api/patch Endpoint (Full Cache)"
+    log_section "Testing /api/patch Endpoint (Full Cache - Worst Case)"
     local NUM_ITERATIONS=50
     
-    local test_id=$(create_test_object '{"type":"PatchTest","value":1}')
+    local test_id=$(create_test_object '{"type":"WORST_CASE_WRITE_UNIQUE_99999","value":1}')
     [ -z "$test_id" ] && return
     
     log_info "Testing patch with full cache ($NUM_ITERATIONS iterations)..."
+    echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
     declare -a times=()
     local total=0 success=0
     
@@ -1954,11 +1959,10 @@ test_patch_endpoint_full() {
     local overhead=$((avg - empty))
     local overhead_pct=$((overhead * 100 / empty))
     
-    # Display clamped value (0 or positive) but store actual value for report
+    # WORST-CASE TEST: Always show actual overhead (including negative)
+    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${avg}ms]"
     if [ $overhead -lt 0 ]; then
-        log_info "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
-    else
-        log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
 }
 
@@ -1988,10 +1992,14 @@ test_set_endpoint_empty() {
 }
 
 test_set_endpoint_full() {
-    log_section "Testing /api/set Endpoint (Full Cache)"
+    log_section "Testing /api/set Endpoint (Full Cache - Worst Case)"
     local NUM_ITERATIONS=50
-    local test_id=$(create_test_object '{"type":"SetTest","value":"original"}')
+    local test_id=$(create_test_object '{"type":"WORST_CASE_WRITE_UNIQUE_99999","value":"original"}')
     [ -z "$test_id" ] && return
+    
+    log_info "Testing set with full cache ($NUM_ITERATIONS iterations)..."
+    echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
+    
     local total=0 success=0
     for i in $(seq 1 $NUM_ITERATIONS); do
         local result=$(measure_endpoint "${API_BASE}/api/set" "PATCH" "{\"@id\":\"$test_id\",\"fullProp$i\":\"value$i\"}" "Set" true)
@@ -2008,12 +2016,13 @@ test_set_endpoint_full() {
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["set"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["set"] - ENDPOINT_COLD_TIMES["set"]))
+    local empty=${ENDPOINT_COLD_TIMES["set"]}
+    local full=${ENDPOINT_WARM_TIMES["set"]}
     
-    # Display clamped value (0 or positive) but store actual value for report
+    # WORST-CASE TEST: Always show actual overhead (including negative)
+    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance)"
-    else
-        log_info "Overhead: ${overhead}ms"
+        log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
 }
 
@@ -2044,11 +2053,15 @@ test_unset_endpoint_empty() {
 }
 
 test_unset_endpoint_full() {
-    log_section "Testing /api/unset Endpoint (Full Cache)"
+    log_section "Testing /api/unset Endpoint (Full Cache - Worst Case)"
     local NUM_ITERATIONS=50
-    local props='{"type":"UnsetTest2"'; for i in $(seq 1 $NUM_ITERATIONS); do props+=",\"prop$i\":\"val$i\""; done; props+='}'
+    local props='{"type":"WORST_CASE_WRITE_UNIQUE_99999"'; for i in $(seq 1 $NUM_ITERATIONS); do props+=",\"prop$i\":\"val$i\""; done; props+='}'
     local test_id=$(create_test_object "$props")
     [ -z "$test_id" ] && return
+    
+    log_info "Testing unset with full cache ($NUM_ITERATIONS iterations)..."
+    echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
+    
     local total=0 success=0
     for i in $(seq 1 $NUM_ITERATIONS); do
         local result=$(measure_endpoint "${API_BASE}/api/unset" "PATCH" "{\"@id\":\"$test_id\",\"prop$i\":null}" "Unset" true)
@@ -2065,12 +2078,13 @@ test_unset_endpoint_full() {
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["unset"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["unset"] - ENDPOINT_COLD_TIMES["unset"]))
+    local empty=${ENDPOINT_COLD_TIMES["unset"]}
+    local full=${ENDPOINT_WARM_TIMES["unset"]}
     
-    # Display clamped value (0 or positive) but store actual value for report
+    # WORST-CASE TEST: Always show actual overhead (including negative)
+    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance)"
-    else
-        log_info "Overhead: ${overhead}ms"
+        log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
 }
 
@@ -2100,13 +2114,17 @@ test_overwrite_endpoint_empty() {
 }
 
 test_overwrite_endpoint_full() {
-    log_section "Testing /api/overwrite Endpoint (Full Cache)"
+    log_section "Testing /api/overwrite Endpoint (Full Cache - Worst Case)"
     local NUM_ITERATIONS=50
-    local test_id=$(create_test_object '{"type":"OverwriteTest","value":"original"}')
+    local test_id=$(create_test_object '{"type":"WORST_CASE_WRITE_UNIQUE_99999","value":"original"}')
     [ -z "$test_id" ] && return
+    
+    log_info "Testing overwrite with full cache ($NUM_ITERATIONS iterations)..."
+    echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
+    
     local total=0 success=0
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local result=$(measure_endpoint "${API_BASE}/api/overwrite" "PUT" "{\"@id\":\"$test_id\",\"type\":\"OverwriteTest\",\"value\":\"v$i\"}" "Overwrite" true)
+        local result=$(measure_endpoint "${API_BASE}/api/overwrite" "PUT" "{\"@id\":\"$test_id\",\"type\":\"WORST_CASE_WRITE_UNIQUE_99999\",\"value\":\"v$i\"}" "Overwrite" true)
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "200" ] && { total=$((total + time)); success=$((success + 1)); }
         
@@ -2120,12 +2138,13 @@ test_overwrite_endpoint_full() {
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["overwrite"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["overwrite"] - ENDPOINT_COLD_TIMES["overwrite"]))
+    local empty=${ENDPOINT_COLD_TIMES["overwrite"]}
+    local full=${ENDPOINT_WARM_TIMES["overwrite"]}
     
-    # Display clamped value (0 or positive) but store actual value for report
+    # WORST-CASE TEST: Always show actual overhead (including negative)
+    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance)"
-    else
-        log_info "Overhead: ${overhead}ms"
+        log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
 }
 
@@ -2158,8 +2177,12 @@ test_delete_endpoint_empty() {
 }
 
 test_delete_endpoint_full() {
-    log_section "Testing /api/delete Endpoint (Full Cache)"
+    log_section "Testing /api/delete Endpoint (Full Cache - Worst Case)"
     local NUM_ITERATIONS=50
+    
+    log_info "Testing delete with full cache ($NUM_ITERATIONS iterations)..."
+    echo "[INFO] Deleting objects with unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
+    
     local num_created=${#CREATED_IDS[@]}
     local start_idx=$NUM_ITERATIONS
     [ $num_created -lt $((NUM_ITERATIONS * 2)) ] && { log_warning "Not enough objects (have: $num_created, need: $((NUM_ITERATIONS * 2)))"; return; }
@@ -2183,12 +2206,13 @@ test_delete_endpoint_full() {
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["delete"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["delete"] - ENDPOINT_COLD_TIMES["delete"]))
+    local empty=${ENDPOINT_COLD_TIMES["delete"]}
+    local full=${ENDPOINT_WARM_TIMES["delete"]}
     
-    # Display clamped value (0 or positive) but store actual value for report
+    # WORST-CASE TEST: Always show actual overhead (including negative)
+    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance) (deleted: $success)"
-    else
-        log_info "Overhead: ${overhead}ms (deleted: $success)"
+        log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
 }
 
@@ -2243,42 +2267,45 @@ main() {
     fill_cache $CACHE_FILL_SIZE
     
     # ============================================================
-    # PHASE 3: Read endpoints on FULL cache (verify speedup)
+    # PHASE 3: Read endpoints on FULL cache (WORST CASE - cache misses)
     # ============================================================
     echo ""
-    log_section "PHASE 3: Read Endpoints on FULL Cache (Verify Speedup)"
-    echo "[INFO] Testing read endpoints with full cache (${CACHE_FILL_SIZE} entries) to verify performance improvement..."
+    log_section "PHASE 3: Read Endpoints on FULL Cache (WORST CASE - Cache Misses)"
+    echo "[INFO] Testing read endpoints with full cache (${CACHE_FILL_SIZE} entries) using queries that DON'T match cache..."
+    echo "[INFO] This measures maximum overhead when cache provides NO benefit (full scan, no hits)..."
     
-    # Test read endpoints with the full cache WITHOUT clearing it
-    # Just measure the performance, don't re-test functionality
-    log_info "Testing /api/query with full cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"CreatePerfTest"}' "Query with full cache")
-    log_success "Query with full cache"
+    # Test read endpoints with queries that will NOT be in the cache (worst case)
+    # Cache is filled with PerfTest, Annotation, and general queries
+    # Query for types that don't exist to force full cache scan with no hits
     
-    log_info "Testing /api/search with full cache..."
-    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"annotation","limit":5}' "Search with full cache")
-    log_success "Search with full cache"
+    log_info "Testing /api/query with full cache (cache miss - worst case)..."
+    local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"NonExistentType999","limit":5}' "Query with full cache (miss)")
+    log_success "Query with full cache (cache miss)"
     
-    log_info "Testing /api/search/phrase with full cache..."
-    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"test annotation","limit":5}' "Search phrase with full cache")
-    log_success "Search phrase with full cache"
+    log_info "Testing /api/search with full cache (cache miss - worst case)..."
+    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"xyzNonExistentQuery999","limit":5}' "Search with full cache (miss)")
+    log_success "Search with full cache (cache miss)"
     
-    # For ID, history, since - use objects created in Phase 1 if available
+    log_info "Testing /api/search/phrase with full cache (cache miss - worst case)..."
+    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"xyzNonExistent phrase999","limit":5}' "Search phrase with full cache (miss)")
+    log_success "Search phrase with full cache (cache miss)"
+    
+    # For ID, history, since - use objects created in Phase 1 (these will cause cache misses too)
     if [ ${#CREATED_IDS[@]} -gt 0 ]; then
         local test_id="${CREATED_IDS[0]}"
-        log_info "Testing /api/id with full cache..."
-        result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with full cache")
-        log_success "ID retrieval with full cache"
+        log_info "Testing /api/id with full cache (cache miss - worst case)..."
+        result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with full cache (miss)")
+        log_success "ID retrieval with full cache (cache miss)"
         
-        log_info "Testing /api/history with full cache..."
-        result=$(measure_endpoint "${test_id}/history" "GET" "" "History with full cache")
-        log_success "History with full cache"
+        log_info "Testing /api/history with full cache (cache miss - worst case)..."
+        result=$(measure_endpoint "${test_id}/history" "GET" "" "History with full cache (miss)")
+        log_success "History with full cache (cache miss)"
     fi
     
-    log_info "Testing /api/since with full cache..."
+    log_info "Testing /api/since with full cache (cache miss - worst case)..."
     local since_timestamp=$(($(date +%s) - 3600))
-    result=$(measure_endpoint "${API_BASE}/api/since/${since_timestamp}" "GET" "" "Since with full cache")
-    log_success "Since with full cache"
+    result=$(measure_endpoint "${API_BASE}/api/since/${since_timestamp}" "GET" "" "Since with full cache (miss)")
+    log_success "Since with full cache (cache miss)"
     
     # ============================================================
     # PHASE 4: Clear cache for write baseline
@@ -2315,11 +2342,12 @@ main() {
     fill_cache $CACHE_FILL_SIZE
     
     # ============================================================
-    # PHASE 7: Write endpoints on FULL cache (measure invalidation)
+    # PHASE 7: Write endpoints on FULL cache (WORST CASE - no invalidations)
     # ============================================================
     echo ""
-    log_section "PHASE 7: Write Endpoints on FULL Cache (Measure Invalidation Overhead)"
-    echo "[INFO] Testing write endpoints with full cache to measure cache invalidation overhead..."
+    log_section "PHASE 7: Write Endpoints on FULL Cache (WORST CASE - No Invalidations)"
+    echo "[INFO] Testing write endpoints with full cache (${CACHE_FILL_SIZE} entries) using objects that DON'T match cache..."
+    echo "[INFO] This measures maximum overhead when cache invalidation scans entire cache but finds nothing to invalidate..."
     
     # Store number of created objects before full cache tests
     local full_cache_start_count=${#CREATED_IDS[@]}
