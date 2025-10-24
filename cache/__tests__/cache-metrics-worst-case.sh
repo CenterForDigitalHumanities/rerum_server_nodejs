@@ -102,6 +102,18 @@ log_warning() {
     echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
+log_overhead() {
+    local overhead=$1
+    shift  # Remove first argument, rest is the message
+    local message="$@"
+    
+    if [ $overhead -le 0 ]; then
+        echo -e "${GREEN}[PASS]${NC} $message"
+    else
+        echo -e "${YELLOW}[PASS]${NC} $message"
+    fi
+}
+
 # Check server connectivity
 check_server() {
     log_info "Checking server connectivity at ${BASE_URL}..."
@@ -225,6 +237,7 @@ fill_cache() {
     log_info "Filling cache to $target_size entries with diverse query patterns..."
     
     # Strategy: Use parallel requests for much faster cache filling
+    # Create truly unique queries by varying the query content itself
     # Process in batches of 100 parallel requests (good balance of speed vs server load)
     local batch_size=100
     local completed=0
@@ -240,18 +253,20 @@ fill_cache() {
             (
                 local pattern=$((count % 3))
                 
+                # Create truly unique cache entries by varying query parameters
+                # Use unique type values so each creates a distinct cache key
                 if [ $pattern -eq 0 ]; then
                     curl -s -X POST "${API_BASE}/api/query" \
                         -H "Content-Type: application/json" \
-                        -d "{\"type\":\"PerfTest\",\"limit\":10,\"skip\":$count}" > /dev/null 2>&1
+                        -d "{\"type\":\"WorstCaseFill_$count\",\"limit\":100}" > /dev/null 2>&1
                 elif [ $pattern -eq 1 ]; then
-                    curl -s -X POST "${API_BASE}/api/query" \
+                    curl -s -X POST "${API_BASE}/api/search" \
                         -H "Content-Type: application/json" \
-                        -d "{\"type\":\"Annotation\",\"limit\":10,\"skip\":$count}" > /dev/null 2>&1
+                        -d "{\"searchText\":\"worst_case_$count\",\"limit\":100}" > /dev/null 2>&1
                 else
-                    curl -s -X POST "${API_BASE}/api/query" \
+                    curl -s -X POST "${API_BASE}/api/search/phrase" \
                         -H "Content-Type: application/json" \
-                        -d "{\"limit\":10,\"skip\":$count}" > /dev/null 2>&1
+                        -d "{\"searchText\":\"worst fill $count\",\"limit\":100}" > /dev/null 2>&1
                 fi
             ) &
         done
@@ -274,13 +289,17 @@ fill_cache() {
     echo "[INFO] Cache stats - Actual size: ${final_size}, Max allowed: ${max_length}, Target: ${target_size}"
     
     if [ "$final_size" -lt "$target_size" ] && [ "$final_size" -eq "$max_length" ]; then
-        log_warning "Cache is full at max capacity (${max_length}). Unable to fill to ${target_size} entries."
-        log_warning "To test with ${target_size} entries, set CACHE_MAX_LENGTH=${target_size} in .env and restart server."
+        log_failure "Cache is full at max capacity (${max_length}) but target was ${target_size}"
+        log_info "To test with ${target_size} entries, set CACHE_MAX_LENGTH=${target_size} in .env and restart server."
+        exit 1
     elif [ "$final_size" -lt "$target_size" ]; then
-        log_warning "Cache size (${final_size}) is less than target (${target_size})"
+        log_failure "Cache size (${final_size}) is less than target (${target_size})"
+        log_info "This may indicate TTL expiration, cache eviction, or non-unique queries."
+        log_info "Current CACHE_TTL: $(echo "$final_stats" | jq -r '.ttl' 2>/dev/null || echo 'unknown')ms"
+        exit 1
     fi
     
-    log_success "Cache filled to ${final_size} entries (~33% matching test type)"
+    log_success "Cache filled to ${final_size} entries (non-matching for worst case testing)"
 }
 
 # Warm up the system (JIT compilation, connection pools, OS caches)
@@ -610,11 +629,11 @@ test_create_endpoint() {
         local overhead=$((full_avg - empty_avg))
         local overhead_pct=$((overhead * 100 / empty_avg))
         if [ $overhead -gt 0 ]; then
-            log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
+            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
             log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
             log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
         else
-            log_info "No measurable overhead"
+            log_overhead 0 "No measurable overhead"
         fi
     fi
 }
@@ -730,7 +749,7 @@ test_update_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -859,7 +878,7 @@ test_delete_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median (deleted: $empty_success)"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median (deleted: $full_success)"
 }
@@ -1059,7 +1078,7 @@ test_patch_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1163,7 +1182,7 @@ test_set_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1283,7 +1302,7 @@ test_unset_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1387,7 +1406,7 @@ test_overwrite_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1793,7 +1812,7 @@ test_create_endpoint_full() {
         
         # WORST-CASE TEST: Always show actual overhead (including negative)
         # Negative values indicate DB variance, not cache efficiency
-        log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
+        log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
         if [ $overhead -lt 0 ]; then
             log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
         fi
@@ -1923,7 +1942,7 @@ test_update_endpoint_full() {
     local overhead_pct=$((overhead * 100 / empty_avg))
     
     # WORST-CASE TEST: Always show actual overhead (including negative)
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
     if [ $overhead -lt 0 ]; then
         log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
@@ -1997,7 +2016,7 @@ test_patch_endpoint_full() {
     local overhead_pct=$((overhead * 100 / empty))
     
     # WORST-CASE TEST: Always show actual overhead (including negative)
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${avg}ms]"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${avg}ms]"
     if [ $overhead -lt 0 ]; then
         log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
@@ -2057,7 +2076,7 @@ test_set_endpoint_full() {
     local full=${ENDPOINT_WARM_TIMES["set"]}
     
     # WORST-CASE TEST: Always show actual overhead (including negative)
-    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
+    log_overhead $overhead "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
     if [ $overhead -lt 0 ]; then
         log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
@@ -2119,7 +2138,7 @@ test_unset_endpoint_full() {
     local full=${ENDPOINT_WARM_TIMES["unset"]}
     
     # WORST-CASE TEST: Always show actual overhead (including negative)
-    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
+    log_overhead $overhead "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
     if [ $overhead -lt 0 ]; then
         log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
@@ -2179,7 +2198,7 @@ test_overwrite_endpoint_full() {
     local full=${ENDPOINT_WARM_TIMES["overwrite"]}
     
     # WORST-CASE TEST: Always show actual overhead (including negative)
-    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
+    log_overhead $overhead "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
     if [ $overhead -lt 0 ]; then
         log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi
@@ -2259,7 +2278,7 @@ test_delete_endpoint_full() {
     local full=${ENDPOINT_WARM_TIMES["delete"]}
     
     # WORST-CASE TEST: Always show actual overhead (including negative)
-    log_info "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
+    log_overhead $overhead "Overhead: ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
     if [ $overhead -lt 0 ]; then
         log_info "  ⚠️  Negative overhead due to DB performance variance between runs"
     fi

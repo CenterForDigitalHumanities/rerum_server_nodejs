@@ -101,6 +101,18 @@ log_warning() {
     echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
+log_overhead() {
+    local overhead=$1
+    shift  # Remove first argument, rest is the message
+    local message="$@"
+    
+    if [ $overhead -le 0 ]; then
+        echo -e "${GREEN}[PASS]${NC} $message"
+    else
+        echo -e "${YELLOW}[PASS]${NC} $message"
+    fi
+}
+
 # Check server connectivity
 check_server() {
     log_info "Checking server connectivity at ${BASE_URL}..."
@@ -224,6 +236,7 @@ fill_cache() {
     log_info "Filling cache to $target_size entries with diverse query patterns..."
     
     # Strategy: Use parallel requests for much faster cache filling
+    # Create truly unique queries by varying the query content itself
     # Process in batches of 100 parallel requests (good balance of speed vs server load)
     local batch_size=100
     local completed=0
@@ -239,10 +252,10 @@ fill_cache() {
             (
                 local pattern=$((count % 3))
                 
-                # First 3 requests create the cache entries we'll test for hits
-                # Remaining requests add diversity using skip parameter
+                # First 3 requests create the cache entries we'll test for hits in Phase 4
+                # Remaining requests use unique query parameters to create distinct cache entries
                 if [ $count -lt 3 ]; then
-                    # These will be queried in Phase 3 for cache hits
+                    # These will be queried in Phase 4 for cache hits
                     if [ $pattern -eq 0 ]; then
                         curl -s -X POST "${API_BASE}/api/query" \
                             -H "Content-Type: application/json" \
@@ -257,19 +270,20 @@ fill_cache() {
                             -d "{\"searchText\":\"test annotation\"}" > /dev/null 2>&1
                     fi
                 else
-                    # Add diversity to fill cache with different entries
+                    # Create truly unique cache entries by varying query parameters
+                    # Use unique type/search values so each creates a distinct cache key
                     if [ $pattern -eq 0 ]; then
                         curl -s -X POST "${API_BASE}/api/query" \
                             -H "Content-Type: application/json" \
-                            -d "{\"type\":\"CreatePerfTest\",\"skip\":$count}" > /dev/null 2>&1
+                            -d "{\"type\":\"CacheFill_$count\",\"limit\":100}" > /dev/null 2>&1
                     elif [ $pattern -eq 1 ]; then
                         curl -s -X POST "${API_BASE}/api/search" \
                             -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"annotation\",\"skip\":$count}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"cache_entry_$count\",\"limit\":100}" > /dev/null 2>&1
                     else
                         curl -s -X POST "${API_BASE}/api/search/phrase" \
                             -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"test annotation\",\"skip\":$count}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"fill cache $count\",\"limit\":100}" > /dev/null 2>&1
                     fi
                 fi
             ) &
@@ -293,10 +307,14 @@ fill_cache() {
     echo "[INFO] Cache stats - Actual size: ${final_size}, Max allowed: ${max_length}, Target: ${target_size}"
     
     if [ "$final_size" -lt "$target_size" ] && [ "$final_size" -eq "$max_length" ]; then
-        log_warning "Cache is full at max capacity (${max_length}). Unable to fill to ${target_size} entries."
-        log_warning "To test with ${target_size} entries, set CACHE_MAX_LENGTH=${target_size} in .env and restart server."
+        log_failure "Cache is full at max capacity (${max_length}) but target was ${target_size}"
+        log_info "To test with ${target_size} entries, set CACHE_MAX_LENGTH=${target_size} in .env and restart server."
+        exit 1
     elif [ "$final_size" -lt "$target_size" ]; then
-        log_warning "Cache size (${final_size}) is less than target (${target_size})"
+        log_failure "Cache size (${final_size}) is less than target (${target_size})"
+        log_info "This may indicate TTL expiration, cache eviction, or non-unique queries."
+        log_info "Current CACHE_TTL: $(echo "$final_stats" | jq -r '.ttl' 2>/dev/null || echo 'unknown')ms"
+        exit 1
     fi
     
     log_success "Cache filled to ${final_size} entries (query, search, search/phrase patterns)"
@@ -629,11 +647,11 @@ test_create_endpoint() {
         local overhead=$((full_avg - empty_avg))
         local overhead_pct=$((overhead * 100 / empty_avg))
         if [ $overhead -gt 0 ]; then
-            log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
+            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
             log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
             log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
         else
-            log_info "No measurable overhead"
+            log_overhead $overhead "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
         fi
     fi
 }
@@ -749,7 +767,7 @@ test_update_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -878,7 +896,7 @@ test_delete_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median (deleted: $empty_success)"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median (deleted: $full_success)"
 }
@@ -1078,7 +1096,7 @@ test_patch_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1182,7 +1200,7 @@ test_set_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1302,7 +1320,7 @@ test_unset_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1406,7 +1424,7 @@ test_overwrite_endpoint() {
     
     local overhead=$((full_avg - empty_avg))
     local overhead_pct=$((overhead * 100 / empty_avg))
-    log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
     log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
@@ -1811,9 +1829,9 @@ test_create_endpoint_full() {
         
         # Display clamped value (0 or positive) but store actual value for report
         if [ $overhead -lt 0 ]; then
-            log_info "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+            log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
         else
-            log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
+            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
         fi
     fi
 }
@@ -1941,9 +1959,9 @@ test_update_endpoint_full() {
     
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_info "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
     else
-        log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     fi
 }
 
@@ -2015,9 +2033,9 @@ test_patch_endpoint_full() {
     
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_info "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
     else
-        log_info "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
     fi
 }
 
@@ -2070,9 +2088,9 @@ test_set_endpoint_full() {
     
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance)"
     else
-        log_info "Overhead: ${overhead}ms"
+        log_overhead $overhead "Overhead: ${overhead}ms"
     fi
 }
 
@@ -2127,9 +2145,9 @@ test_unset_endpoint_full() {
     
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance)"
     else
-        log_info "Overhead: ${overhead}ms"
+        log_overhead $overhead "Overhead: ${overhead}ms"
     fi
 }
 
@@ -2182,9 +2200,9 @@ test_overwrite_endpoint_full() {
     
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance)"
     else
-        log_info "Overhead: ${overhead}ms"
+        log_overhead $overhead "Overhead: ${overhead}ms"
     fi
 }
 
@@ -2257,9 +2275,9 @@ test_delete_endpoint_full() {
     
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_info "Overhead: 0ms (negligible - within statistical variance) (deleted: $success)"
+        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance) (deleted: $success)"
     else
-        log_info "Overhead: ${overhead}ms (deleted: $success)"
+        log_overhead $overhead "Overhead: ${overhead}ms (deleted: $success)"
     fi
 }
 
