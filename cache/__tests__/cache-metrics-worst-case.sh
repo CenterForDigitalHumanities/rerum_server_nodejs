@@ -2343,9 +2343,14 @@ main() {
     fi
     
     log_info "Testing /since with full cache (cache miss - worst case)..."
-    local since_timestamp=$(($(date +%s) - 3600))
-    result=$(measure_endpoint "${API_BASE}/since/${since_timestamp}" "GET" "" "Since with full cache (miss)")
-    log_success "Since with full cache (cache miss)"
+    # Use an existing object ID from CREATED_IDS array
+    if [ ${#CREATED_IDS[@]} -gt 0 ]; then
+        local since_id=$(echo "${CREATED_IDS[0]}" | sed 's|.*/||')
+        result=$(measure_endpoint "${API_BASE}/since/${since_id}" "GET" "" "Since with full cache (miss)")
+        log_success "Since with full cache (cache miss)"
+    else
+        log_warning "Skipping since test - no created objects available"
+    fi
     
     # ============================================================
     # PHASE 4: Clear cache for write baseline
