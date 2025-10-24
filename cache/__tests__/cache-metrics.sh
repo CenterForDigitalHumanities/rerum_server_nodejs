@@ -21,7 +21,7 @@
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
 # Default token - can be overridden by RERUM_TEST_TOKEN environment variable or user input
-AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwczovL2RldnN0b3JlLnJlcnVtLmlvL3YxL2lkLzY4ZDZkZDZhNzE4ZWUyOTRmMTk0YmUwNCIsImh0dHA6Ly9yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL3JlcnVtLmlvL2FwcF9mbGFnIjpbInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJ0cGVuIl0sImlzcyI6Imh0dHBzOi8vY3ViYXAuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDY4ZDZkZDY0YmRhMmNkNzdhMTA2MWMxNyIsImF1ZCI6Imh0dHA6Ly9yZXJ1bS5pby9hcGkiLCJpYXQiOjE3NjEzMTUyNjQsImV4cCI6MTc2MzkwNzI2NCwic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsImF6cCI6IjYySnNhOU14SHVxaFJiTzIwZ1RIczlLcEtyN1VlN3NsIn0.PKIRovrdRtBfGLeoGU18ry-kXTTWv8NfkPkY3BfirjH-4g9vVln7jzjf0AeoikaXYbwSatdDXwcOiOHbok_xnshcbKQEGU23G_mnxvqjkdjFU1jin6Xmajj2R3ooo-bRtCZEuu0_j4DS6C43vHKSbl-bHY9-DDEKSG-H5MC0rfJrHnfzfunyA4tKcOH5d1AYg0yxsyEhNiKR5oVQGHetbn6Eu8jweb9gQpVuCnx-mZpmD_P8gHvuKjTRjvvTJ3Jpr9hs8xmjYO6de4fZYds0f79UT3Nbh138Mp62i4I75NKf7eQm7FED7z3wnqObzcmp9RNLoa9TVEgw8k_gBZ7P2Q}"
+AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwOi8vc3RvcmUucmVydW0uaW8vdjEvaWQvNjI1NzJiYTcxZDk3NGQxMzExYWJkNjczIiwiaHR0cDovL3JlcnVtLmlvL3VzZXJfcm9sZXMiOnsicm9sZXMiOlsiZHVuYmFyX3VzZXJfY29udHJpYnV0b3IiLCJnbG9zc2luZ191c2VyX2FkbWluIiwibHJkYV91c2VyX2FkbWluIiwicmVydW1fdXNlcl9hZG1pbiIsInRwZW5fdXNlcl9hZG1pbiJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX2NvbnRyaWJ1dG9yIiwiZ2xvc3NpbmdfdXNlcl9hZG1pbiIsImxyZGFfdXNlcl9hZG1pbiIsInJlcnVtX3VzZXJfYWRtaW4iLCJ0cGVuX3VzZXJfYWRtaW4iXX0sImh0dHA6Ly9yZXJ1bS5pby9hcHBfZmxhZyI6WyJyZXJ1bSIsImRsYSIsImxyZGEiLCJnbG9zc2luZyIsInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJyZXJ1bSIsImRsYSIsImxyZGEiLCJnbG9zc2luZyIsInRwZW4iXSwiaXNzIjoiaHR0cHM6Ly9jdWJhcC5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjI1NzJiYTY0MzI1YTIwMDZhNDNlYzY5IiwiYXVkIjoiaHR0cDovL3JlcnVtLmlvL2FwaSIsImlhdCI6MTc2MTMyMzc4NywiZXhwIjoxNzYzOTE1Nzg3LCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwiYXpwIjoiNjJKc2E5TXhIdXFoUmJPMjBnVEhzOUtwS3I3VWU3c2wifQ.PTYcCcIGQwZ06YbcBC0MY3MlTFnNE0XrpBhrmjnjFtfPKJEJD7TfAYoA9HXMjluQvxmJeqtITY-_CX3s8ba9r1wb4AtEVzHVeZ_MUImyN2jrdRAsH-bZFGnmTDleYN841dxtZsY1i4tKJqheg1EPut5MzzRbmGFFSvvVLrUUo0K07xa8zcC7RZrVbJb3zKV2rVQdFvkhY6uSKMTmNqhHA-J3ezrDd-aQvxhNNxlt-aO1tPt3ybCukzkMaG2m-o4pWgpagybQvXscZb0u48LcJGbPAq-K503U34V_j5Tu9KXh75mFcaZmtp5zu8lQv6y34FVyAhxYeVWuq6w6nWNOsg}"
 
 # Test configuration
 CACHE_FILL_SIZE=1000
@@ -193,7 +193,8 @@ measure_endpoint() {
     # Handle curl failure (connection timeout, etc)
     if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
         http_code="000"
-        log_warning "Endpoint $endpoint timed out or connection failed"
+        # Log to stderr to avoid polluting the return value
+        echo "[WARN] Endpoint $endpoint timed out or connection failed" >&2
     fi
     
     echo "$time|$http_code|$(echo "$response" | head -n-1)"
@@ -2299,14 +2300,16 @@ main() {
         result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with full cache")
         log_success "ID retrieval with full cache"
         
+        # Extract just the ID portion for history endpoint
+        local obj_id=$(echo "$test_id" | sed 's|.*/||')
         log_info "Testing /api/history with full cache..."
-        result=$(measure_endpoint "${test_id}/history" "GET" "" "History with full cache")
+        result=$(measure_endpoint "${API_BASE}/history/${obj_id}" "GET" "" "History with full cache")
         log_success "History with full cache"
     fi
     
     log_info "Testing /api/since with full cache..."
     local since_timestamp=$(($(date +%s) - 3600))
-    result=$(measure_endpoint "${API_BASE}/api/since/${since_timestamp}" "GET" "" "Since with full cache")
+    result=$(measure_endpoint "${API_BASE}/since/${since_timestamp}" "GET" "" "Since with full cache")
     log_success "Since with full cache"
     
     # ============================================================
