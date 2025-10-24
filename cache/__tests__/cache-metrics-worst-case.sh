@@ -2262,11 +2262,13 @@ main() {
     log_header "RERUM Cache Comprehensive Metrics & Functionality Test"
     
     echo "This test suite will:"
-    echo "  1. Verify all API endpoints are functional with cache layer"
-    echo "  2. Measure read/write performance with empty cache"
-    echo "  3. Fill cache to 1000 entries"
-    echo "  4. Measure all endpoints with full cache (invalidation overhead)"
-    echo "  5. Generate comprehensive metrics report"
+    echo "  1. Test read endpoints with EMPTY cache (baseline performance)"
+    echo "  2. Fill cache to 1000 entries"
+    echo "  3. Test read endpoints with FULL cache (verify speedup)"
+    echo "  4. Clear cache and test write endpoints with EMPTY cache (baseline)"
+    echo "  5. Fill cache to 1000 entries again"
+    echo "  6. Test write endpoints with FULL cache (measure invalidation overhead)"
+    echo "  7. Generate comprehensive metrics report"
     echo ""
     
     # Setup
