@@ -1,6 +1,6 @@
 # RERUM Cache Metrics & Functionality Report
 
-**Generated**: Fri Oct 24 18:32:51 UTC 2025  
+**Generated**: Fri Oct 24 20:52:42 UTC 2025  
 **Test Duration**: Full integration and performance suite  
 **Server**: http://localhost:3001
 
@@ -8,17 +8,17 @@
 
 ## Executive Summary
 
-**Overall Test Results**: 25 passed, 0 failed, 0 skipped (25 total)
+**Overall Test Results**: 27 passed, 0 failed, 0 skipped (27 total)
 
 ### Cache Performance Summary
 
 | Metric | Value |
 |--------|-------|
-| Cache Hits | 2320 |
-| Cache Misses | 2445 |
-| Hit Rate | 48.69% |
-| Cache Size | 668 entries |
-| Invalidations | 1544 |
+| Cache Hits | 0 |
+| Cache Misses | 1013 |
+| Hit Rate | 0.00% |
+| Cache Size | 1000 entries |
+| Invalidations | 6 |
 
 ---
 
@@ -48,12 +48,12 @@
 
 | Endpoint | Cold Cache (DB) | Warm Cache (Memory) | Speedup | Benefit |
 |----------|-----------------|---------------------|---------|---------|
-| `/query` | 349 | N/A | N/A | N/A |
-| `/search` | 25 | N/A | N/A | N/A |
-| `/searchPhrase` | 29 | N/A | N/A | N/A |
-| `/id` | 408 | N/A | N/A | N/A |
-| `/history` | 720 | N/A | N/A | N/A |
-| `/since` | 719 | N/A | N/A | N/A |
+| `/query` | 365 | N/A | N/A | N/A |
+| `/search` | 137 | N/A | N/A | N/A |
+| `/searchPhrase` | 27 | N/A | N/A | N/A |
+| `/id` | 413 | N/A | N/A | N/A |
+| `/history` | 715 | N/A | N/A | N/A |
+| `/since` | 733 | N/A | N/A | N/A |
 
 **Interpretation**:
 - **Cold Cache**: First request hits database (cache miss)
@@ -69,13 +69,13 @@
 
 | Endpoint | Empty Cache | Full Cache (1000 entries) | Overhead | Impact |
 |----------|-------------|---------------------------|----------|--------|
-| `/create` | 27ms | 23ms | -4ms | ✅ None |
-| `/update` | 422ms | 423ms | +1ms | ✅ Negligible |
-| `/patch` | 422ms | 424ms | +2ms | ✅ Negligible |
-| `/set` | 427ms | 423ms | -4ms | ✅ None |
-| `/unset` | 421ms | 446ms | +25ms | ⚠️  Moderate |
-| `/delete` | 442ms | 424ms | -18ms | ✅ None |
-| `/overwrite` | 432ms | 429ms | -3ms | ✅ None |
+| `/create` | 22ms | 25ms | +3ms | ✅ Negligible |
+| `/update` | 424ms | 425ms | +1ms | ✅ Negligible |
+| `/patch` | 438ms | 427ms | -11ms | ✅ None |
+| `/set` | 425ms | 426ms | +1ms | ✅ Negligible |
+| `/unset` | 424ms | 428ms | +4ms | ✅ Negligible |
+| `/delete` | 443ms | 424ms | -19ms | ✅ None |
+| `/overwrite` | 424ms | 432ms | +8ms | ✅ Low |
 
 **Interpretation**:
 - **Empty Cache**: Write with no cache to invalidate
@@ -97,9 +97,9 @@
 - Net benefit on 1000 reads: ~0ms saved (assuming 70% hit rate)
 
 **Cache Costs (Writes)**:
-- Average overhead per write: ~0ms
+- Average overhead per write: ~-1ms
 - Overhead percentage: ~0%
-- Net cost on 1000 writes: ~0ms
+- Net cost on 1000 writes: ~-1000ms
 - Tested endpoints: create, update, patch, set, unset, delete, overwrite
 
 **Break-Even Analysis**:
@@ -111,17 +111,17 @@ For a workload with:
 
 ```
 Without Cache:
-  800 reads × 349ms = 279200ms
-  200 writes × 27ms = 5400ms
-  Total: 284600ms
+  800 reads × 365ms = 292000ms
+  200 writes × 22ms = 4400ms
+  Total: 296400ms
 
 With Cache:
   560 cached reads × 5ms = 2800ms
-  240 uncached reads × 349ms = 83760ms
-  200 writes × 23ms = 4600ms
-  Total: 91160ms
+  240 uncached reads × 365ms = 87600ms
+  200 writes × 25ms = 5000ms
+  Total: 95400ms
 
-Net Improvement: 193440ms faster (~68% improvement)
+Net Improvement: 201000ms faster (~68% improvement)
 ```
 
 ---
@@ -132,8 +132,8 @@ Net Improvement: 193440ms faster (~68% improvement)
 
 The cache layer provides:
 1. **Significant read performance improvements** (0ms average speedup)
-2. **Minimal write overhead** (0ms average, ~0% of write time)
-3. **All endpoints functioning correctly** (25 passed tests)
+2. **Minimal write overhead** (-1ms average, ~0% of write time)
+3. **All endpoints functioning correctly** (27 passed tests)
 
 ### 📊 Monitoring Recommendations
 
@@ -148,7 +148,7 @@ In production, monitor:
 Current cache configuration:
 - Max entries: 1000
 - Max size: 1000000000 bytes
-- TTL: 300 seconds
+- TTL: 600 seconds
 
 Consider tuning based on:
 - Workload patterns (read/write ratio)
@@ -176,6 +176,6 @@ Consider tuning based on:
 
 ---
 
-**Report Generated**: Fri Oct 24 18:32:51 UTC 2025  
+**Report Generated**: Fri Oct 24 20:52:42 UTC 2025  
 **Format Version**: 1.0  
 **Test Suite**: cache-metrics.sh

@@ -630,304 +630,6 @@ run_write_performance_test() {
     echo "$avg_time|$median_time|$min_time|$max_time" > /tmp/rerum_write_stats
 }
 
-test_create_endpoint() {
-    log_section "Testing /api/create Endpoint (Write Performance)"
-    
-    ENDPOINT_DESCRIPTIONS["create"]="Create new objects"
-    
-    # Body generator function
-    generate_create_body() {
-        echo "{\"type\":\"CreatePerfTest\",\"timestamp\":$(date +%s%3N),\"random\":$RANDOM}"
-    }
-    
-    clear_cache
-    
-    # Test with empty cache (100 operations)
-    log_info "Testing create with empty cache (100 operations)..."
-    local empty_stats=$(run_write_performance_test "create" "create" "POST" "generate_create_body" 100)
-    local empty_avg=$(echo "$empty_stats" | cut -d'|' -f1)
-    local empty_median=$(echo "$empty_stats" | cut -d'|' -f2)
-    
-    ENDPOINT_COLD_TIMES["create"]=$empty_avg
-    
-    if [ "$empty_avg" = "0" ]; then
-        log_failure "Create endpoint failed"
-        ENDPOINT_STATUS["create"]="❌ Failed"
-        return
-    fi
-    
-    log_success "Create endpoint functional (empty cache avg: ${empty_avg}ms)"
-    ENDPOINT_STATUS["create"]="✅ Functional"
-    
-    # Fill cache with 1000 entries using diverse query patterns
-    fill_cache $CACHE_FILL_SIZE
-    
-    # Test with full cache (100 operations)
-    log_info "Testing create with full cache (${CACHE_FILL_SIZE} entries, 100 operations)..."
-    local full_stats=$(run_write_performance_test "create" "create" "POST" "generate_create_body" 100)
-    local full_avg=$(echo "$full_stats" | cut -d'|' -f1)
-    local full_median=$(echo "$full_stats" | cut -d'|' -f2)
-    
-    ENDPOINT_WARM_TIMES["create"]=$full_avg
-    
-    if [ "$full_avg" != "0" ]; then
-        local overhead=$((full_avg - empty_avg))
-        local overhead_pct=$((overhead * 100 / empty_avg))
-        if [ $overhead -gt 0 ]; then
-            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
-            log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
-            log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
-        else
-            log_overhead $overhead "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
-        fi
-    fi
-}
-
-test_update_endpoint() {
-    log_section "Testing /api/update Endpoint"
-    
-    ENDPOINT_DESCRIPTIONS["update"]="Update existing objects"
-    
-    local NUM_ITERATIONS=50
-    
-    # Create a single test object to reuse for all iterations
-    log_info "Creating test object to reuse for all update operations..."
-    local test_id=$(create_test_object '{"type":"UpdateTest","value":"original"}')
-    
-    if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
-        log_failure "Failed to create test object for update test"
-        ENDPOINT_STATUS["update"]="❌ Failed"
-        return
-    fi
-    
-    # Test with empty cache (multiple iterations on same object)
-    clear_cache
-    log_info "Testing update with empty cache ($NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a empty_times=()
-    local empty_total=0
-    local empty_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Get the full object to update
-        local full_object=$(curl -s "$test_id" 2>/dev/null)
-        
-        # Modify the value
-        local update_body=$(echo "$full_object" | jq ". + {value: \"updated_$i\"}" 2>/dev/null)
-        
-        # Measure ONLY the update operation
-        local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
-            "$update_body" \
-            "Update object" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            empty_times+=($time)
-            empty_total=$((empty_total + time))
-            empty_success=$((empty_success + 1))
-        fi
-    done
-    
-    if [ $empty_success -eq 0 ]; then
-        log_failure "Update endpoint failed"
-        ENDPOINT_STATUS["update"]="❌ Failed"
-        ENDPOINT_COLD_TIMES["update"]="N/A"
-        ENDPOINT_WARM_TIMES["update"]="N/A"
-        return
-    fi
-    
-    # Calculate empty cache statistics
-    local empty_avg=$((empty_total / empty_success))
-    IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
-    unset IFS
-    local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
-    ENDPOINT_COLD_TIMES["update"]=$empty_avg
-    log_success "Update endpoint functional (empty cache avg: ${empty_avg}ms, median: ${empty_median}ms)"
-    ENDPOINT_STATUS["update"]="✅ Functional"
-    
-    # Cache is already filled with 1000 entries from create test - reuse it
-    log_info "Using cache already filled to ${CACHE_FILL_SIZE} entries from create test..."
-    
-    # Test with full cache (same object, multiple iterations)
-    log_info "Testing update with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a full_times=()
-    local full_total=0
-    local full_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Get the full object to update
-        local full_object=$(curl -s "$test_id" 2>/dev/null)
-        
-        # Modify the value
-        local update_body=$(echo "$full_object" | jq ". + {value: \"updated_full_$i\"}" 2>/dev/null)
-        
-        # Measure ONLY the update operation
-        local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
-            "$update_body" \
-            "Update object" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            full_times+=($time)
-            full_total=$((full_total + time))
-            full_success=$((full_success + 1))
-        fi
-    done
-    
-    if [ $full_success -eq 0 ]; then
-        log_warning "Update with full cache failed"
-        ENDPOINT_WARM_TIMES["update"]="N/A"
-        return
-    fi
-    
-    # Calculate full cache statistics
-    local full_avg=$((full_total / full_success))
-    IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
-    unset IFS
-    local full_median=${sorted_full[$((full_success / 2))]}
-    
-    ENDPOINT_WARM_TIMES["update"]=$full_avg
-    
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
-    log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
-    log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
-}
-
-test_delete_endpoint() {
-    log_section "Testing /api/delete Endpoint"
-    
-    ENDPOINT_DESCRIPTIONS["delete"]="Delete objects"
-    
-    local NUM_ITERATIONS=50
-    
-    # Check if we have enough objects from create test
-    local num_created=${#CREATED_IDS[@]}
-    if [ $num_created -lt $((NUM_ITERATIONS * 2)) ]; then
-        log_warning "Not enough objects created (have $num_created, need $((NUM_ITERATIONS * 2)))"
-        log_warning "Skipping delete test"
-        ENDPOINT_STATUS["delete"]="⚠️ Skipped"
-        return
-    fi
-    
-    log_info "Using ${num_created} objects created during create test for deletion..."
-    
-    # Test with empty cache (delete first half of created objects)
-    clear_cache
-    log_info "Testing delete with empty cache ($NUM_ITERATIONS iterations)..."
-    
-    declare -a empty_times=()
-    local empty_total=0
-    local empty_success=0
-    
-    for i in $(seq 0 $((NUM_ITERATIONS - 1))); do
-        local test_id="${CREATED_IDS[$i]}"
-        
-        if [ -z "$test_id" ]; then
-            continue
-        fi
-        
-        # Extract just the ID portion for the delete endpoint
-        local obj_id=$(echo "$test_id" | sed 's|.*/||')
-        
-        # Skip if obj_id is invalid
-        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
-            continue
-        fi
-        
-        # Measure ONLY the delete operation
-        local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete object" true 60)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "204" ]; then
-            empty_times+=($time)
-            empty_total=$((empty_total + time))
-            empty_success=$((empty_success + 1))
-        fi
-    done
-    
-    if [ $empty_success -eq 0 ]; then
-        log_failure "Delete endpoint failed"
-        ENDPOINT_STATUS["delete"]="❌ Failed"
-        ENDPOINT_COLD_TIMES["delete"]="N/A"
-        ENDPOINT_WARM_TIMES["delete"]="N/A"
-        return
-    fi
-    
-    # Calculate empty cache statistics
-    local empty_avg=$((empty_total / empty_success))
-    IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
-    unset IFS
-    local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
-    ENDPOINT_COLD_TIMES["delete"]=$empty_avg
-    log_success "Delete endpoint functional (empty cache avg: ${empty_avg}ms, median: ${empty_median}ms, deleted: $empty_success)"
-    ENDPOINT_STATUS["delete"]="✅ Functional"
-    
-    # Cache is already filled with 1000 entries from create test - reuse it
-    log_info "Using cache already filled to ${CACHE_FILL_SIZE} entries from create test..."
-    
-    # Test with full cache (delete second half of created objects)
-    log_info "Testing delete with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations)..."
-    
-    declare -a full_times=()
-    local full_total=0
-    local full_success=0
-    
-    for i in $(seq $NUM_ITERATIONS $((NUM_ITERATIONS * 2 - 1))); do
-        local test_id="${CREATED_IDS[$i]}"
-        
-        if [ -z "$test_id" ]; then
-            continue
-        fi
-        
-        # Extract just the ID portion for the delete endpoint
-        local obj_id=$(echo "$test_id" | sed 's|.*/||')
-        
-        # Skip if obj_id is invalid
-        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
-            continue
-        fi
-        
-        # Measure ONLY the delete operation
-        local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete object" true 60)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "204" ]; then
-            full_times+=($time)
-            full_total=$((full_total + time))
-            full_success=$((full_success + 1))
-        fi
-    done
-    
-    if [ $full_success -eq 0 ]; then
-        log_warning "Delete with full cache failed"
-        ENDPOINT_WARM_TIMES["delete"]="N/A"
-        return
-    fi
-    
-    # Calculate full cache statistics
-    local full_avg=$((full_total / full_success))
-    IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
-    unset IFS
-    local full_median=${sorted_full[$((full_success / 2))]}
-    
-    ENDPOINT_WARM_TIMES["delete"]=$full_avg
-    
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
-    log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median (deleted: $empty_success)"
-    log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median (deleted: $full_success)"
-}
-
 test_history_endpoint() {
     log_section "Testing /history/:id Endpoint"
     
@@ -1022,438 +724,6 @@ test_since_endpoint() {
         log_failure "Since endpoint failed (HTTP $cold_code)"
         ENDPOINT_STATUS["since"]="❌ Failed"
     fi
-}
-
-test_patch_endpoint() {
-    log_section "Testing /api/patch Endpoint"
-    
-    ENDPOINT_DESCRIPTIONS["patch"]="Patch existing object properties"
-    
-    local NUM_ITERATIONS=50
-    
-    # Create a single test object to reuse for all iterations
-    log_info "Creating test object to reuse for all patch operations..."
-    local test_id=$(create_test_object '{"type":"PatchTest","value":1}')
-    
-    if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
-        log_failure "Failed to create test object for patch test"
-        ENDPOINT_STATUS["patch"]="❌ Failed"
-        return
-    fi
-    
-    # Test with empty cache (multiple iterations on same object)
-    clear_cache
-    log_info "Testing patch with empty cache ($NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a empty_times=()
-    local empty_total=0
-    local empty_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the patch operation
-        local result=$(measure_endpoint "${API_BASE}/api/patch" "PATCH" \
-            "{\"@id\":\"$test_id\",\"value\":$((i + 1))}" \
-            "Patch object" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            empty_times+=($time)
-            empty_total=$((empty_total + time))
-            empty_success=$((empty_success + 1))
-        fi
-    done
-    
-    if [ $empty_success -eq 0 ]; then
-        log_failure "Patch endpoint failed"
-        ENDPOINT_STATUS["patch"]="❌ Failed"
-        ENDPOINT_COLD_TIMES["patch"]="N/A"
-        ENDPOINT_WARM_TIMES["patch"]="N/A"
-        return
-    fi
-    
-    # Calculate empty cache statistics
-    local empty_avg=$((empty_total / empty_success))
-    IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
-    unset IFS
-    local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
-    ENDPOINT_COLD_TIMES["patch"]=$empty_avg
-    log_success "Patch endpoint functional (empty cache avg: ${empty_avg}ms, median: ${empty_median}ms)"
-    ENDPOINT_STATUS["patch"]="✅ Functional"
-    
-    # Cache is already filled with 1000 entries from create test - reuse it
-    log_info "Using cache already filled to ${CACHE_FILL_SIZE} entries from create test..."
-    
-    # Test with full cache (same object, multiple iterations)
-    log_info "Testing patch with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a full_times=()
-    local full_total=0
-    local full_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the patch operation
-        local result=$(measure_endpoint "${API_BASE}/api/patch" "PATCH" \
-            "{\"@id\":\"$test_id\",\"value\":$((i + 100))}" \
-            "Patch object" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            full_times+=($time)
-            full_total=$((full_total + time))
-            full_success=$((full_success + 1))
-        fi
-    done
-    
-    if [ $full_success -eq 0 ]; then
-        log_warning "Patch with full cache failed"
-        ENDPOINT_WARM_TIMES["patch"]="N/A"
-        return
-    fi
-    
-    # Calculate full cache statistics
-    local full_avg=$((full_total / full_success))
-    IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
-    unset IFS
-    local full_median=${sorted_full[$((full_success / 2))]}
-    
-    ENDPOINT_WARM_TIMES["patch"]=$full_avg
-    
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
-    log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
-    log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
-}
-
-test_set_endpoint() {
-    log_section "Testing /api/set Endpoint"
-    
-    ENDPOINT_DESCRIPTIONS["set"]="Add new properties to objects"
-    
-    local NUM_ITERATIONS=50
-    
-    # Create a single test object to reuse for all iterations
-    log_info "Creating test object to reuse for all set operations..."
-    local test_id=$(create_test_object '{"type":"SetTest","value":"original"}')
-    
-    if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
-        log_failure "Failed to create test object for set test"
-        ENDPOINT_STATUS["set"]="❌ Failed"
-        return
-    fi
-    
-    # Test with empty cache (multiple iterations on same object)
-    clear_cache
-    log_info "Testing set with empty cache ($NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a empty_times=()
-    local empty_total=0
-    local empty_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the set operation
-        local result=$(measure_endpoint "${API_BASE}/api/set" "PATCH" \
-            "{\"@id\":\"$test_id\",\"newProp$i\":\"newValue$i\"}" \
-            "Set property" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            empty_times+=($time)
-            empty_total=$((empty_total + time))
-            empty_success=$((empty_success + 1))
-        fi
-    done
-    
-    if [ $empty_success -eq 0 ]; then
-        log_failure "Set endpoint failed"
-        ENDPOINT_STATUS["set"]="❌ Failed"
-        ENDPOINT_COLD_TIMES["set"]="N/A"
-        ENDPOINT_WARM_TIMES["set"]="N/A"
-        return
-    fi
-    
-    # Calculate empty cache statistics
-    local empty_avg=$((empty_total / empty_success))
-    IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
-    unset IFS
-    local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
-    ENDPOINT_COLD_TIMES["set"]=$empty_avg
-    log_success "Set endpoint functional (empty cache avg: ${empty_avg}ms, median: ${empty_median}ms)"
-    ENDPOINT_STATUS["set"]="✅ Functional"
-    
-    # Cache is already filled with 1000 entries from create test - reuse it
-    log_info "Using cache already filled to ${CACHE_FILL_SIZE} entries from create test..."
-    
-    # Test with full cache (same object, multiple iterations)
-    log_info "Testing set with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a full_times=()
-    local full_total=0
-    local full_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the set operation
-        local result=$(measure_endpoint "${API_BASE}/api/set" "PATCH" \
-            "{\"@id\":\"$test_id\",\"fullProp$i\":\"fullValue$i\"}" \
-            "Set property" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            full_times+=($time)
-            full_total=$((full_total + time))
-            full_success=$((full_success + 1))
-        fi
-    done
-    
-    if [ $full_success -eq 0 ]; then
-        log_warning "Set with full cache failed"
-        ENDPOINT_WARM_TIMES["set"]="N/A"
-        return
-    fi
-    
-    # Calculate full cache statistics
-    local full_avg=$((full_total / full_success))
-    IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
-    unset IFS
-    local full_median=${sorted_full[$((full_success / 2))]}
-    
-    ENDPOINT_WARM_TIMES["set"]=$full_avg
-    
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
-    log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
-    log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
-}
-
-test_unset_endpoint() {
-    log_section "Testing /api/unset Endpoint"
-    
-    ENDPOINT_DESCRIPTIONS["unset"]="Remove properties from objects"
-    
-    local NUM_ITERATIONS=50
-    
-    # Create a single test object with multiple properties to unset
-    log_info "Creating test object to reuse for all unset operations..."
-    # Pre-populate with properties we'll remove
-    local props='{"type":"UnsetTest"'
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        props+=",\"tempProp$i\":\"removeMe$i\""
-    done
-    props+='}'
-    
-    local test_id=$(create_test_object "$props")
-    
-    if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
-        log_failure "Failed to create test object for unset test"
-        ENDPOINT_STATUS["unset"]="❌ Failed"
-        return
-    fi
-    
-    # Test with empty cache (multiple iterations on same object)
-    clear_cache
-    log_info "Testing unset with empty cache ($NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a empty_times=()
-    local empty_total=0
-    local empty_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the unset operation
-        local result=$(measure_endpoint "${API_BASE}/api/unset" "PATCH" \
-            "{\"@id\":\"$test_id\",\"tempProp$i\":null}" \
-            "Unset property" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            empty_times+=($time)
-            empty_total=$((empty_total + time))
-            empty_success=$((empty_success + 1))
-        fi
-    done
-    
-    if [ $empty_success -eq 0 ]; then
-        log_failure "Unset endpoint failed"
-        ENDPOINT_STATUS["unset"]="❌ Failed"
-        ENDPOINT_COLD_TIMES["unset"]="N/A"
-        ENDPOINT_WARM_TIMES["unset"]="N/A"
-        return
-    fi
-    
-    # Calculate empty cache statistics
-    local empty_avg=$((empty_total / empty_success))
-    IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
-    unset IFS
-    local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
-    ENDPOINT_COLD_TIMES["unset"]=$empty_avg
-    log_success "Unset endpoint functional (empty cache avg: ${empty_avg}ms, median: ${empty_median}ms)"
-    ENDPOINT_STATUS["unset"]="✅ Functional"
-    
-    # Cache is already filled with 1000 entries from create test - reuse it
-    log_info "Using cache already filled to ${CACHE_FILL_SIZE} entries from create test..."
-    
-    # Create a new test object with properties for the full cache test
-    log_info "Creating second test object for full cache test..."
-    local props2='{"type":"UnsetTest2"'
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        props2+=",\"fullProp$i\":\"removeMe$i\""
-    done
-    props2+='}'
-    local test_id2=$(create_test_object "$props2")
-    
-    # Test with full cache (same object, multiple iterations)
-    log_info "Testing unset with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a full_times=()
-    local full_total=0
-    local full_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the unset operation
-        local result=$(measure_endpoint "${API_BASE}/api/unset" "PATCH" \
-            "{\"@id\":\"$test_id2\",\"fullProp$i\":null}" \
-            "Unset property" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            full_times+=($time)
-            full_total=$((full_total + time))
-            full_success=$((full_success + 1))
-        fi
-    done
-    
-    if [ $full_success -eq 0 ]; then
-        log_warning "Unset with full cache failed"
-        ENDPOINT_WARM_TIMES["unset"]="N/A"
-        return
-    fi
-    
-    # Calculate full cache statistics
-    local full_avg=$((full_total / full_success))
-    IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
-    unset IFS
-    local full_median=${sorted_full[$((full_success / 2))]}
-    
-    ENDPOINT_WARM_TIMES["unset"]=$full_avg
-    
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
-    log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
-    log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
-}
-
-test_overwrite_endpoint() {
-    log_section "Testing /api/overwrite Endpoint"
-    
-    ENDPOINT_DESCRIPTIONS["overwrite"]="Overwrite objects in place"
-    
-    local NUM_ITERATIONS=50
-    
-    # Create a single test object to reuse for all iterations
-    log_info "Creating test object to reuse for all overwrite operations..."
-    local test_id=$(create_test_object '{"type":"OverwriteTest","value":"original"}')
-    
-    if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
-        log_failure "Failed to create test object for overwrite test"
-        ENDPOINT_STATUS["overwrite"]="❌ Failed"
-        return
-    fi
-    
-    # Test with empty cache (multiple iterations on same object)
-    clear_cache
-    log_info "Testing overwrite with empty cache ($NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a empty_times=()
-    local empty_total=0
-    local empty_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the overwrite operation
-        local result=$(measure_endpoint "${API_BASE}/api/overwrite" "PUT" \
-            "{\"@id\":\"$test_id\",\"type\":\"OverwriteTest\",\"value\":\"overwritten_$i\"}" \
-            "Overwrite object" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            empty_times+=($time)
-            empty_total=$((empty_total + time))
-            empty_success=$((empty_success + 1))
-        fi
-    done
-    
-    if [ $empty_success -eq 0 ]; then
-        log_failure "Overwrite endpoint failed"
-        ENDPOINT_STATUS["overwrite"]="❌ Failed"
-        ENDPOINT_COLD_TIMES["overwrite"]="N/A"
-        ENDPOINT_WARM_TIMES["overwrite"]="N/A"
-        return
-    fi
-    
-    # Calculate empty cache statistics
-    local empty_avg=$((empty_total / empty_success))
-    IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
-    unset IFS
-    local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
-    ENDPOINT_COLD_TIMES["overwrite"]=$empty_avg
-    log_success "Overwrite endpoint functional (empty cache avg: ${empty_avg}ms, median: ${empty_median}ms)"
-    ENDPOINT_STATUS["overwrite"]="✅ Functional"
-    
-    # Cache is already filled with 1000 entries from create test - reuse it
-    log_info "Using cache already filled to ${CACHE_FILL_SIZE} entries from create test..."
-    
-    # Test with full cache (same object, multiple iterations)
-    log_info "Testing overwrite with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
-    
-    declare -a full_times=()
-    local full_total=0
-    local full_success=0
-    
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Measure ONLY the overwrite operation
-        local result=$(measure_endpoint "${API_BASE}/api/overwrite" "PUT" \
-            "{\"@id\":\"$test_id\",\"type\":\"OverwriteTest\",\"value\":\"overwritten_full_$i\"}" \
-            "Overwrite object" true)
-        local time=$(echo "$result" | cut -d'|' -f1)
-        local code=$(echo "$result" | cut -d'|' -f2)
-        
-        if [ "$code" == "200" ]; then
-            full_times+=($time)
-            full_total=$((full_total + time))
-            full_success=$((full_success + 1))
-        fi
-    done
-    
-    if [ $full_success -eq 0 ]; then
-        log_warning "Overwrite with full cache failed"
-        ENDPOINT_WARM_TIMES["overwrite"]="N/A"
-        return
-    fi
-    
-    # Calculate full cache statistics
-    local full_avg=$((full_total / full_success))
-    IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
-    unset IFS
-    local full_median=${sorted_full[$((full_success / 2))]}
-    
-    ENDPOINT_WARM_TIMES["overwrite"]=$full_avg
-    
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
-    log_info "  Empty cache: ${empty_avg}ms avg, ${empty_median}ms median"
-    log_info "  Full cache:  ${full_avg}ms avg, ${full_median}ms median"
 }
 
 test_search_phrase_endpoint() {
@@ -1788,7 +1058,8 @@ Consider tuning based on:
 **Test Suite**: cache-metrics.sh
 EOF
 
-    log_success "Report generated: $REPORT_FILE"
+    # Don't increment test counters for report generation (not a test)
+    echo -e "${GREEN}[PASS]${NC} Report generated: $REPORT_FILE"
     echo ""
     echo -e "${CYAN}Report location: ${REPORT_FILE}${NC}"
 }
@@ -1885,10 +1156,12 @@ test_update_endpoint_empty() {
     declare -a empty_times=()
     local empty_total=0
     local empty_success=0
-    local full_object="$test_obj"
+    local empty_failures=0
+    # Maintain a stable base object without response metadata
+    local base_object=$(echo "$test_obj" | jq 'del(.__rerum)' 2>/dev/null)
     
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local update_body=$(echo "$full_object" | jq ".value = \"updated_$i\"" 2>/dev/null)
+        local update_body=$(echo "$base_object" | jq '.value = "updated_'"$i"'"' 2>/dev/null)
         
         local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
             "$update_body" \
@@ -1901,8 +1174,10 @@ test_update_endpoint_empty() {
             empty_times+=($time)
             empty_total=$((empty_total + time))
             empty_success=$((empty_success + 1))
-            # Update full_object with the response for next iteration
-            full_object="$response"
+            # Update base_object value only, maintaining stable structure
+            base_object=$(echo "$base_object" | jq '.value = "updated_'"$i"'"' 2>/dev/null)
+        else
+            empty_failures=$((empty_failures + 1))
         fi
         
         # Progress indicator
@@ -1914,10 +1189,17 @@ test_update_endpoint_empty() {
     echo "" >&2
     
     if [ $empty_success -eq 0 ]; then
-        log_failure "Update endpoint failed"
+        log_failure "Update endpoint failed (all requests failed)"
         ENDPOINT_STATUS["update"]="❌ Failed"
         return
+    elif [ $empty_failures -gt 0 ]; then
+        log_warning "$empty_success/$NUM_ITERATIONS successful"
+        log_failure "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
+        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
+        return
     fi
+    
+    log_success "$empty_success/$NUM_ITERATIONS successful"
     
     local empty_avg=$((empty_total / empty_success))
     IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
@@ -1948,10 +1230,12 @@ test_update_endpoint_full() {
     declare -a full_times=()
     local full_total=0
     local full_success=0
-    local full_object="$test_obj"
+    local full_failures=0
+    # Maintain a stable base object without response metadata
+    local base_object=$(echo "$test_obj" | jq 'del(.__rerum)' 2>/dev/null)
     
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local update_body=$(echo "$full_object" | jq ".value = \"updated_full_$i\"" 2>/dev/null)
+        local update_body=$(echo "$base_object" | jq '.value = "updated_full_'"$i"'"' 2>/dev/null)
         
         local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
             "$update_body" \
@@ -1964,8 +1248,10 @@ test_update_endpoint_full() {
             full_times+=($time)
             full_total=$((full_total + time))
             full_success=$((full_success + 1))
-            # Update full_object with the response for next iteration
-            full_object="$response"
+            # Update base_object value only, maintaining stable structure
+            base_object=$(echo "$base_object" | jq '.value = "updated_full_'"$i"'"' 2>/dev/null)
+        else
+            full_failures=$((full_failures + 1))
         fi
         
         # Progress indicator
@@ -1977,9 +1263,16 @@ test_update_endpoint_full() {
     echo "" >&2
     
     if [ $full_success -eq 0 ]; then
-        log_warning "Update with full cache failed"
+        log_warning "Update with full cache failed (all requests failed)"
+        return
+    elif [ $full_failures -gt 0 ]; then
+        log_warning "$full_success/$NUM_ITERATIONS successful"
+        log_warning "Update with full cache had partial failures: $full_failures/$NUM_ITERATIONS failed"
+        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($full_failures/$NUM_ITERATIONS)"
         return
     fi
+    
+    log_success "$full_success/$NUM_ITERATIONS successful"
     
     local full_avg=$((full_total / full_success))
     IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
@@ -2027,7 +1320,16 @@ test_patch_endpoint_empty() {
     done
     echo "" >&2
     
-    [ $success -eq 0 ] && { log_failure "Patch failed"; ENDPOINT_STATUS["patch"]="❌ Failed"; return; }
+    if [ $success -eq 0 ]; then
+        log_failure "Patch failed"
+        ENDPOINT_STATUS["patch"]="❌ Failed"
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     local avg=$((total / success))
     ENDPOINT_COLD_TIMES["patch"]=$avg
     log_success "Patch functional"
@@ -2059,7 +1361,14 @@ test_patch_endpoint_full() {
     done
     echo "" >&2
     
-    [ $success -eq 0 ] && return
+    if [ $success -eq 0 ]; then
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     local avg=$((total / success))
     ENDPOINT_WARM_TIMES["patch"]=$avg
     local empty=${ENDPOINT_COLD_TIMES["patch"]}
@@ -2093,7 +1402,16 @@ test_set_endpoint_empty() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && { ENDPOINT_STATUS["set"]="❌ Failed"; return; }
+    
+    if [ $success -eq 0 ]; then
+        ENDPOINT_STATUS["set"]="❌ Failed"
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     ENDPOINT_COLD_TIMES["set"]=$((total / success))
     log_success "Set functional"
     ENDPOINT_STATUS["set"]="✅ Functional"
@@ -2117,7 +1435,15 @@ test_set_endpoint_full() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && return
+    
+    if [ $success -eq 0 ]; then
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     ENDPOINT_WARM_TIMES["set"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["set"] - ENDPOINT_COLD_TIMES["set"]))
     
@@ -2149,7 +1475,16 @@ test_unset_endpoint_empty() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && { ENDPOINT_STATUS["unset"]="❌ Failed"; return; }
+    
+    if [ $success -eq 0 ]; then
+        ENDPOINT_STATUS["unset"]="❌ Failed"
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     ENDPOINT_COLD_TIMES["unset"]=$((total / success))
     log_success "Unset functional"
     ENDPOINT_STATUS["unset"]="✅ Functional"
@@ -2174,7 +1509,15 @@ test_unset_endpoint_full() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && return
+    
+    if [ $success -eq 0 ]; then
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     ENDPOINT_WARM_TIMES["unset"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["unset"] - ENDPOINT_COLD_TIMES["unset"]))
     
@@ -2205,7 +1548,16 @@ test_overwrite_endpoint_empty() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && { ENDPOINT_STATUS["overwrite"]="❌ Failed"; return; }
+    
+    if [ $success -eq 0 ]; then
+        ENDPOINT_STATUS["overwrite"]="❌ Failed"
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     ENDPOINT_COLD_TIMES["overwrite"]=$((total / success))
     log_success "Overwrite functional"
     ENDPOINT_STATUS["overwrite"]="✅ Functional"
@@ -2229,7 +1581,15 @@ test_overwrite_endpoint_full() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && return
+    
+    if [ $success -eq 0 ]; then
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful"
+    else
+        log_success "$success/$NUM_ITERATIONS successful"
+    fi
+    
     ENDPOINT_WARM_TIMES["overwrite"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["overwrite"] - ENDPOINT_COLD_TIMES["overwrite"]))
     
@@ -2269,7 +1629,16 @@ test_delete_endpoint_empty() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && { ENDPOINT_STATUS["delete"]="❌ Failed"; return; }
+    
+    if [ $success -eq 0 ]; then
+        ENDPOINT_STATUS["delete"]="❌ Failed"
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful (deleted: $success)"
+    else
+        log_success "$success/$NUM_ITERATIONS successful (deleted: $success)"
+    fi
+    
     ENDPOINT_COLD_TIMES["delete"]=$((total / success))
     log_success "Delete functional"
     ENDPOINT_STATUS["delete"]="✅ Functional"
@@ -2304,7 +1673,15 @@ test_delete_endpoint_full() {
         fi
     done
     echo "" >&2
-    [ $success -eq 0 ] && return
+    
+    if [ $success -eq 0 ]; then
+        return
+    elif [ $success -lt $NUM_ITERATIONS ]; then
+        log_warning "$success/$NUM_ITERATIONS successful (deleted: $success)"
+    else
+        log_success "$success/$NUM_ITERATIONS successful (deleted: $success)"
+    fi
+    
     ENDPOINT_WARM_TIMES["delete"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["delete"] - ENDPOINT_COLD_TIMES["delete"]))
     
@@ -2404,8 +1781,9 @@ main() {
     log_success "Search phrase with full cache"
     
     # For ID, history, since - use objects created in Phase 1/2 if available
-    if [ ${#CREATED_IDS[@]} -gt 0 ]; then
-        local test_id="${CREATED_IDS[0]}"
+    # Use object index 100+ to avoid objects that will be deleted by DELETE tests (indices 0-99)
+    if [ ${#CREATED_IDS[@]} -gt 100 ]; then
+        local test_id="${CREATED_IDS[100]}"
         log_info "Testing /id with full cache..."
         result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with full cache")
         log_success "ID retrieval with full cache"
@@ -2418,9 +1796,9 @@ main() {
     fi
     
     log_info "Testing /since with full cache..."
-    # Use an existing object ID from CREATED_IDS array
-    if [ ${#CREATED_IDS[@]} -gt 0 ]; then
-        local since_id=$(echo "${CREATED_IDS[0]}" | sed 's|.*/||')
+    # Use an existing object ID from CREATED_IDS array (index 100+ to avoid deleted objects)
+    if [ ${#CREATED_IDS[@]} -gt 100 ]; then
+        local since_id=$(echo "${CREATED_IDS[100]}" | sed 's|.*/||')
         result=$(measure_endpoint "${API_BASE}/since/${since_id}" "GET" "" "Since with full cache")
         log_success "Since with full cache"
     else
