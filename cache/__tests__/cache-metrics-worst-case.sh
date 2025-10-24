@@ -751,6 +751,11 @@ test_delete_endpoint() {
         # Extract just the ID portion for the delete endpoint
         local obj_id=$(echo "$test_id" | sed 's|.*/||')
         
+        # Skip if obj_id is invalid
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+            continue
+        fi
+        
         # Measure ONLY the delete operation
         local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete object" true 60)
         local time=$(echo "$result" | cut -d'|' -f1)
@@ -800,6 +805,11 @@ test_delete_endpoint() {
         
         # Extract just the ID portion for the delete endpoint
         local obj_id=$(echo "$test_id" | sed 's|.*/||')
+        
+        # Skip if obj_id is invalid
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+            continue
+        fi
         
         # Measure ONLY the delete operation
         local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete object" true 60)
@@ -2165,6 +2175,12 @@ test_delete_endpoint_empty() {
     local total=0 success=0
     for i in $(seq 0 $((NUM_ITERATIONS - 1))); do
         local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
+        
+        # Skip if obj_id is invalid
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+            continue
+        fi
+        
         local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete" true 60)
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "204" ] && { total=$((total + time)); success=$((success + 1)); }
@@ -2199,6 +2215,12 @@ test_delete_endpoint_full() {
     for i in $(seq $start_idx $((start_idx + NUM_ITERATIONS - 1))); do
         iteration=$((iteration + 1))
         local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
+        
+        # Skip if obj_id is invalid
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+            continue
+        fi
+        
         local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete" true 60)
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "204" ] && { total=$((total + time)); success=$((success + 1)); }
