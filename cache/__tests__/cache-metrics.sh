@@ -2250,7 +2250,7 @@ test_delete_endpoint_full() {
 }
 
 ################################################################################
-# Main Test Flow
+# Main Test Flow (REFACTORED TO 5 PHASES - OPTIMIZED)
 ################################################################################
 
 main() {
@@ -2261,13 +2261,10 @@ main() {
     
     echo "This test suite will:"
     echo "  1. Test read endpoints with EMPTY cache (baseline performance)"
-    echo "  2. Fill cache to 1000 entries"
-    echo "  3. Test read endpoints with FULL cache (verify speedup)"
-    echo "  4. Clear cache and test write endpoints with EMPTY cache (baseline)"
-    echo "     Note: Cache cleared to measure pure write performance without invalidation overhead"
-    echo "  5. Fill cache to 1000 entries again"
-    echo "  6. Test write endpoints with FULL cache (measure invalidation overhead)"
-    echo "  7. Generate comprehensive metrics report"
+    echo "  2. Test write endpoints with EMPTY cache (baseline performance)"
+    echo "  3. Fill cache to 1000 entries"
+    echo "  4. Test read endpoints with FULL cache (measure speedup vs baseline)"
+    echo "  5. Test write endpoints with FULL cache (measure invalidation overhead vs baseline)"
     echo ""
     
     # Setup
@@ -2275,14 +2272,14 @@ main() {
     get_auth_token
     warmup_system
     
-    # Run all tests following Modified Third Option
+    # Run optimized 5-phase test flow
     log_header "Running Functionality & Performance Tests"
     
     # ============================================================
     # PHASE 1: Read endpoints on EMPTY cache (baseline)
     # ============================================================
     echo ""
-    log_section "PHASE 1: Read Endpoints on EMPTY Cache (Baseline)"
+    log_section "PHASE 1: Read Endpoints with EMPTY Cache (Baseline)"
     echo "[INFO] Testing read endpoints without cache to establish baseline performance..."
     clear_cache
     
@@ -2295,22 +2292,37 @@ main() {
     test_since_endpoint
     
     # ============================================================
-    # PHASE 2: Fill cache with 1000 entries
+    # PHASE 2: Write endpoints on EMPTY cache (baseline)
     # ============================================================
     echo ""
-    log_section "PHASE 2: Fill Cache with 1000 Entries"
-    echo "[INFO] Filling cache to test read performance at scale..."
+    log_section "PHASE 2: Write Endpoints with EMPTY Cache (Baseline)"
+    echo "[INFO] Testing write endpoints without cache to establish baseline performance..."
+    
+    # Cache is already empty from Phase 1
+    test_create_endpoint_empty
+    test_update_endpoint_empty
+    test_patch_endpoint_empty
+    test_set_endpoint_empty
+    test_unset_endpoint_empty
+    test_overwrite_endpoint_empty
+    test_delete_endpoint_empty  # Uses objects from create_empty test
+    
+    # ============================================================
+    # PHASE 3: Fill cache with 1000 entries
+    # ============================================================
+    echo ""
+    log_section "PHASE 3: Fill Cache with 1000 Entries"
+    echo "[INFO] Filling cache to test performance at scale..."
     fill_cache $CACHE_FILL_SIZE
     
     # ============================================================
-    # PHASE 3: Read endpoints on FULL cache (verify speedup)
+    # PHASE 4: Read endpoints on FULL cache (verify speedup)
     # ============================================================
     echo ""
-    log_section "PHASE 3: Read Endpoints on FULL Cache (Verify Speedup)"
-    echo "[INFO] Testing read endpoints with full cache (${CACHE_FILL_SIZE} entries) to verify performance improvement..."
+    log_section "PHASE 4: Read Endpoints with FULL Cache (Measure Speedup)"
+    echo "[INFO] Testing read endpoints with full cache (${CACHE_FILL_SIZE} entries) to measure speedup vs Phase 1..."
     
-    # Test read endpoints with the full cache WITHOUT clearing it
-    # Just measure the performance, don't re-test functionality
+    # Test read endpoints WITHOUT clearing cache - reuse what was filled in Phase 3
     # IMPORTANT: Queries must match cache fill patterns (default limit=100, skip=0) to get cache hits
     log_info "Testing /api/query with full cache..."
     local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"CreatePerfTest"}' "Query with full cache")
@@ -2324,7 +2336,7 @@ main() {
     result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test annotation"}' "Search phrase with full cache")
     log_success "Search phrase with full cache"
     
-    # For ID, history, since - use objects created in Phase 1 if available
+    # For ID, history, since - use objects created in Phase 1/2 if available
     if [ ${#CREATED_IDS[@]} -gt 0 ]; then
         local test_id="${CREATED_IDS[0]}"
         log_info "Testing /id with full cache..."
@@ -2349,49 +2361,13 @@ main() {
     fi
     
     # ============================================================
-    # PHASE 4: Clear cache for write baseline
+    # PHASE 5: Write endpoints on FULL cache (measure invalidation)
     # ============================================================
     echo ""
-    log_section "PHASE 4: Clear Cache for Write Baseline"
-    echo "[INFO] Clearing cache to establish write performance baseline..."
-    clear_cache
+    log_section "PHASE 5: Write Endpoints with FULL Cache (Measure Invalidation Overhead)"
+    echo "[INFO] Testing write endpoints with full cache (${CACHE_FILL_SIZE} entries) to measure invalidation overhead vs Phase 2..."
     
-    # ============================================================
-    # PHASE 5: Write endpoints on EMPTY cache (baseline)
-    # ============================================================
-    echo ""
-    log_section "PHASE 5: Write Endpoints on EMPTY Cache (Baseline)"
-    echo "[INFO] Testing write endpoints without cache to establish baseline performance..."
-    
-    # Store number of created objects before empty cache tests
-    local empty_cache_start_count=${#CREATED_IDS[@]}
-    
-    test_create_endpoint_empty
-    test_update_endpoint_empty
-    test_patch_endpoint_empty
-    test_set_endpoint_empty
-    test_unset_endpoint_empty
-    test_overwrite_endpoint_empty
-    test_delete_endpoint_empty  # Uses objects from create_empty test
-    
-    # ============================================================
-    # PHASE 6: Fill cache again with 1000 entries
-    # ============================================================
-    echo ""
-    log_section "PHASE 6: Fill Cache Again for Write Comparison"
-    echo "[INFO] Filling cache with 1000 entries to measure write invalidation overhead..."
-    fill_cache $CACHE_FILL_SIZE
-    
-    # ============================================================
-    # PHASE 7: Write endpoints on FULL cache (measure invalidation)
-    # ============================================================
-    echo ""
-    log_section "PHASE 7: Write Endpoints on FULL Cache (Measure Invalidation Overhead)"
-    echo "[INFO] Testing write endpoints with full cache to measure cache invalidation overhead..."
-    
-    # Store number of created objects before full cache tests
-    local full_cache_start_count=${#CREATED_IDS[@]}
-    
+    # Cache is already full from Phase 3 - reuse it without refilling
     test_create_endpoint_full
     test_update_endpoint_full
     test_patch_endpoint_full

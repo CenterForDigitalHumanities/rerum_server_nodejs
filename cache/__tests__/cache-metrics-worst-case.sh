@@ -2252,24 +2252,21 @@ test_delete_endpoint_full() {
 }
 
 ################################################################################
-# Main Test Flow
+# Main Test Flow (REFACTORED TO 5 PHASES - OPTIMIZED)
 ################################################################################
 
 main() {
     # Capture start time
     local start_time=$(date +%s)
     
-    log_header "RERUM Cache Comprehensive Metrics & Functionality Test"
+    log_header "RERUM Cache WORST CASE Metrics Test"
     
     echo "This test suite will:"
     echo "  1. Test read endpoints with EMPTY cache (baseline performance)"
-    echo "  2. Fill cache to 1000 entries"
-    echo "  3. Test read endpoints with FULL cache (verify speedup)"
-    echo "  4. Clear cache and test write endpoints with EMPTY cache (baseline)"
-    echo "     Note: Cache cleared to measure pure write performance without invalidation overhead"
-    echo "  5. Fill cache to 1000 entries again"
-    echo "  6. Test write endpoints with FULL cache (measure invalidation overhead)"
-    echo "  7. Generate comprehensive metrics report"
+    echo "  2. Test write endpoints with EMPTY cache (baseline performance)"
+    echo "  3. Fill cache to 1000 entries (intentionally NON-matching for worst case)"
+    echo "  4. Test read endpoints with FULL cache (cache misses - worst case)"
+    echo "  5. Test write endpoints with FULL cache (maximum invalidation overhead)"
     echo ""
     
     # Setup
@@ -2277,14 +2274,14 @@ main() {
     get_auth_token
     warmup_system
     
-    # Run all tests following Modified Third Option
-    log_header "Running Functionality & Performance Tests"
+    # Run optimized 5-phase test flow
+    log_header "Running Functionality & Performance Tests (Worst Case Scenario)"
     
     # ============================================================
     # PHASE 1: Read endpoints on EMPTY cache (baseline)
     # ============================================================
     echo ""
-    log_section "PHASE 1: Read Endpoints on EMPTY Cache (Baseline)"
+    log_section "PHASE 1: Read Endpoints with EMPTY Cache (Baseline)"
     echo "[INFO] Testing read endpoints without cache to establish baseline performance..."
     clear_cache
     
@@ -2297,38 +2294,51 @@ main() {
     test_since_endpoint
     
     # ============================================================
-    # PHASE 2: Fill cache with 1000 entries
+    # PHASE 2: Write endpoints on EMPTY cache (baseline)
     # ============================================================
     echo ""
-    log_section "PHASE 2: Fill Cache with 1000 Entries"
-    echo "[INFO] Filling cache to test read performance at scale..."
+    log_section "PHASE 2: Write Endpoints with EMPTY Cache (Baseline)"
+    echo "[INFO] Testing write endpoints without cache to establish baseline performance..."
+    
+    # Cache is already empty from Phase 1
+    test_create_endpoint_empty
+    test_update_endpoint_empty
+    test_patch_endpoint_empty
+    test_set_endpoint_empty
+    test_unset_endpoint_empty
+    test_overwrite_endpoint_empty
+    test_delete_endpoint_empty  # Uses objects from create_empty test
+    
+    # ============================================================
+    # PHASE 3: Fill cache with 1000 entries (WORST CASE)
+    # ============================================================
+    echo ""
+    log_section "PHASE 3: Fill Cache with 1000 Entries (Worst Case - Non-Matching)"
+    echo "[INFO] Filling cache with entries that will NEVER match test queries (worst case)..."
     fill_cache $CACHE_FILL_SIZE
     
     # ============================================================
-    # PHASE 3: Read endpoints on FULL cache (WORST CASE - cache misses)
+    # PHASE 4: Read endpoints on FULL cache (worst case - cache misses)
     # ============================================================
     echo ""
-    log_section "PHASE 3: Read Endpoints on FULL Cache (WORST CASE - Cache Misses)"
-    echo "[INFO] Testing read endpoints with full cache (${CACHE_FILL_SIZE} entries) using queries that DON'T match cache..."
-    echo "[INFO] This measures maximum overhead when cache provides NO benefit (full scan, no hits)..."
+    log_section "PHASE 4: Read Endpoints with FULL Cache (Worst Case - Cache Misses)"
+    echo "[INFO] Testing read endpoints with full cache (${CACHE_FILL_SIZE} entries) - all cache misses..."
     
-    # Test read endpoints with queries that will NOT be in the cache (worst case)
-    # Cache is filled with PerfTest, Annotation, and general queries
-    # Query for types that don't exist to force full cache scan with no hits
-    
+    # Test read endpoints WITHOUT clearing cache - but queries intentionally don't match
+    # This measures the overhead of scanning the cache without getting hits
     log_info "Testing /api/query with full cache (cache miss - worst case)..."
-    local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"NonExistentType999","limit":5}' "Query with full cache (miss)")
+    local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"NonExistentType"}' "Query with cache miss")
     log_success "Query with full cache (cache miss)"
     
     log_info "Testing /api/search with full cache (cache miss - worst case)..."
-    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"xyzNonExistentQuery999","limit":5}' "Search with full cache (miss)")
+    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"zzznomatchzzz"}' "Search with cache miss")
     log_success "Search with full cache (cache miss)"
     
     log_info "Testing /api/search/phrase with full cache (cache miss - worst case)..."
-    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"xyzNonExistent phrase999","limit":5}' "Search phrase with full cache (miss)")
+    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"zzz no match zzz"}' "Search phrase with cache miss")
     log_success "Search phrase with full cache (cache miss)"
     
-    # For ID, history, since - use objects created in Phase 1 (these will cause cache misses too)
+    # For ID, history, since - use objects created in Phase 1/2 if available
     if [ ${#CREATED_IDS[@]} -gt 0 ]; then
         local test_id="${CREATED_IDS[0]}"
         log_info "Testing /id with full cache (cache miss - worst case)..."
@@ -2353,50 +2363,14 @@ main() {
     fi
     
     # ============================================================
-    # PHASE 4: Clear cache for write baseline
+    # PHASE 5: Write endpoints on FULL cache (worst case - maximum invalidation)
     # ============================================================
     echo ""
-    log_section "PHASE 4: Clear Cache for Write Baseline"
-    echo "[INFO] Clearing cache to establish write performance baseline..."
-    clear_cache
+    log_section "PHASE 5: Write Endpoints with FULL Cache (Worst Case - Maximum Invalidation Overhead)"
+    echo "[INFO] Testing write endpoints with full cache (${CACHE_FILL_SIZE} entries) - all entries must be scanned..."
     
-    # ============================================================
-    # PHASE 5: Write endpoints on EMPTY cache (baseline)
-    # ============================================================
-    echo ""
-    log_section "PHASE 5: Write Endpoints on EMPTY Cache (Baseline)"
-    echo "[INFO] Testing write endpoints without cache to establish baseline performance..."
-    
-    # Store number of created objects before empty cache tests
-    local empty_cache_start_count=${#CREATED_IDS[@]}
-    
-    test_create_endpoint_empty
-    test_update_endpoint_empty
-    test_patch_endpoint_empty
-    test_set_endpoint_empty
-    test_unset_endpoint_empty
-    test_overwrite_endpoint_empty
-    test_delete_endpoint_empty  # Uses objects from create_empty test
-    
-    # ============================================================
-    # PHASE 6: Fill cache again with 1000 entries
-    # ============================================================
-    echo ""
-    log_section "PHASE 6: Fill Cache Again for Write Comparison"
-    echo "[INFO] Filling cache with 1000 entries to measure write invalidation overhead..."
-    fill_cache $CACHE_FILL_SIZE
-    
-    # ============================================================
-    # PHASE 7: Write endpoints on FULL cache (WORST CASE - no invalidations)
-    # ============================================================
-    echo ""
-    log_section "PHASE 7: Write Endpoints on FULL Cache (WORST CASE - No Invalidations)"
-    echo "[INFO] Testing write endpoints with full cache (${CACHE_FILL_SIZE} entries) using objects that DON'T match cache..."
-    echo "[INFO] This measures maximum overhead when cache invalidation scans entire cache but finds nothing to invalidate..."
-    
-    # Store number of created objects before full cache tests
-    local full_cache_start_count=${#CREATED_IDS[@]}
-    
+    # Cache is already full from Phase 3 - reuse it without refilling
+    # This measures worst-case invalidation: scanning all 1000 entries without finding matches
     test_create_endpoint_full
     test_update_endpoint_full
     test_patch_endpoint_full
