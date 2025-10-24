@@ -423,7 +423,7 @@ test_search_endpoint() {
 }
 
 test_id_endpoint() {
-    log_section "Testing /api/id/:id Endpoint"
+    log_section "Testing /id/:id Endpoint"
     
     ENDPOINT_DESCRIPTIONS["id"]="Retrieve object by ID"
     
@@ -873,7 +873,7 @@ test_delete_endpoint() {
 }
 
 test_history_endpoint() {
-    log_section "Testing /api/history Endpoint"
+    log_section "Testing /history/:id Endpoint"
     
     ENDPOINT_DESCRIPTIONS["history"]="Get object version history"
     
@@ -928,7 +928,7 @@ test_history_endpoint() {
 }
 
 test_since_endpoint() {
-    log_section "Testing /api/since Endpoint"
+    log_section "Testing /since/:id Endpoint"
     
     ENDPOINT_DESCRIPTIONS["since"]="Get objects modified since timestamp"
     
@@ -2327,18 +2327,18 @@ main() {
     # For ID, history, since - use objects created in Phase 1 if available
     if [ ${#CREATED_IDS[@]} -gt 0 ]; then
         local test_id="${CREATED_IDS[0]}"
-        log_info "Testing /api/id with full cache..."
+        log_info "Testing /id with full cache..."
         result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with full cache")
         log_success "ID retrieval with full cache"
         
         # Extract just the ID portion for history endpoint
         local obj_id=$(echo "$test_id" | sed 's|.*/||')
-        log_info "Testing /api/history with full cache..."
+        log_info "Testing /history with full cache..."
         result=$(measure_endpoint "${API_BASE}/history/${obj_id}" "GET" "" "History with full cache")
         log_success "History with full cache"
     fi
     
-    log_info "Testing /api/since with full cache..."
+    log_info "Testing /since with full cache..."
     local since_timestamp=$(($(date +%s) - 3600))
     result=$(measure_endpoint "${API_BASE}/since/${since_timestamp}" "GET" "" "Since with full cache")
     log_success "Since with full cache"
