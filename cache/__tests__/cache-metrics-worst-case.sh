@@ -136,31 +136,45 @@ get_auth_token() {
         exit 1
     fi
     
-    # Test the token
+    # Validate JWT format (3 parts separated by dots)
     log_info "Validating token..."
-    local test_response=$(curl -s -w "\n%{http_code}" -X POST "${API_BASE}/api/create" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -d '{"type":"TokenTest","__rerum":{"test":true}}' 2>/dev/null)
-    
-    local http_code=$(echo "$test_response" | tail -n1)
-    
-    if [ "$http_code" == "201" ]; then
-        log_success "Token is valid"
-        # Clean up test object
-        local test_id=$(echo "$test_response" | head -n-1 | grep -o '"@id":"[^"]*"' | cut -d'"' -f4)
-        if [ -n "$test_id" ]; then
-            curl -s -X DELETE "${test_id}" \
-                -H "Authorization: Bearer ${AUTH_TOKEN}" > /dev/null 2>&1
-        fi
-    elif [ "$http_code" == "401" ]; then
-        echo -e "${RED}ERROR: Token is expired or invalid (HTTP 401)${NC}"
-        echo "Please obtain a fresh token from: https://devstore.rerum.io/"
+    if ! echo "$AUTH_TOKEN" | grep -qE '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'; then
+        echo -e "${RED}ERROR: Token is not a valid JWT format${NC}"
+        echo "Expected format: header.payload.signature"
         exit 1
+    fi
+    
+    # Extract and decode payload (second part of JWT)
+    local payload=$(echo "$AUTH_TOKEN" | cut -d. -f2)
+    # Add padding if needed for base64 decoding
+    local padded_payload="${payload}$(printf '%*s' $((4 - ${#payload} % 4)) '' | tr ' ' '=')"
+    local decoded_payload=$(echo "$padded_payload" | base64 -d 2>/dev/null)
+    
+    if [ -z "$decoded_payload" ]; then
+        echo -e "${RED}ERROR: Failed to decode JWT payload${NC}"
+        exit 1
+    fi
+    
+    # Extract expiration time (exp field in seconds since epoch)
+    local exp=$(echo "$decoded_payload" | grep -o '"exp":[0-9]*' | cut -d: -f2)
+    
+    if [ -z "$exp" ]; then
+        echo -e "${YELLOW}WARNING: Token does not contain 'exp' field${NC}"
+        echo "Proceeding anyway, but token may be rejected by server..."
     else
-        echo -e "${RED}ERROR: Token validation failed (HTTP $http_code)${NC}"
-        echo "Response: $(echo "$test_response" | head -n-1)"
-        exit 1
+        local current_time=$(date +%s)
+        if [ "$exp" -lt "$current_time" ]; then
+            echo -e "${RED}ERROR: Token is expired${NC}"
+            echo "Token expired at: $(date -d @$exp)"
+            echo "Current time: $(date -d @$current_time)"
+            echo "Please obtain a fresh token from: https://devstore.rerum.io/"
+            exit 1
+        else
+            local time_remaining=$((exp - current_time))
+            local hours=$((time_remaining / 3600))
+            local minutes=$(( (time_remaining % 3600) / 60 ))
+            log_success "Token is valid (expires in ${hours}h ${minutes}m)"
+        fi
     fi
 }
 
