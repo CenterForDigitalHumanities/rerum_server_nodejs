@@ -21,8 +21,8 @@
 # Configuration
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
-# Default token - can be overridden by RERUM_TEST_TOKEN environment variable or user input
-AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwOi8vc3RvcmUucmVydW0uaW8vdjEvaWQvNjI1NzJiYTcxZDk3NGQxMzExYWJkNjczIiwiaHR0cDovL3JlcnVtLmlvL3VzZXJfcm9sZXMiOnsicm9sZXMiOlsiZHVuYmFyX3VzZXJfY29udHJpYnV0b3IiLCJnbG9zc2luZ191c2VyX2FkbWluIiwibHJkYV91c2VyX2FkbWluIiwicmVydW1fdXNlcl9hZG1pbiIsInRwZW5fdXNlcl9hZG1pbiJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX2NvbnRyaWJ1dG9yIiwiZ2xvc3NpbmdfdXNlcl9hZG1pbiIsImxyZGFfdXNlcl9hZG1pbiIsInJlcnVtX3VzZXJfYWRtaW4iLCJ0cGVuX3VzZXJfYWRtaW4iXX0sImh0dHA6Ly9yZXJ1bS5pby9hcHBfZmxhZyI6WyJyZXJ1bSIsImRsYSIsImxyZGEiLCJnbG9zc2luZyIsInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJyZXJ1bSIsImRsYSIsImxyZGEiLCJnbG9zc2luZyIsInRwZW4iXSwiaXNzIjoiaHR0cHM6Ly9jdWJhcC5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjI1NzJiYTY0MzI1YTIwMDZhNDNlYzY5IiwiYXVkIjoiaHR0cDovL3JlcnVtLmlvL2FwaSIsImlhdCI6MTc2MTMyMzc4NywiZXhwIjoxNzYzOTE1Nzg3LCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwiYXpwIjoiNjJKc2E5TXhIdXFoUmJPMjBnVEhzOUtwS3I3VWU3c2wifQ.PTYcCcIGQwZ06YbcBC0MY3MlTFnNE0XrpBhrmjnjFtfPKJEJD7TfAYoA9HXMjluQvxmJeqtITY-_CX3s8ba9r1wb4AtEVzHVeZ_MUImyN2jrdRAsH-bZFGnmTDleYN841dxtZsY1i4tKJqheg1EPut5MzzRbmGFFSvvVLrUUo0K07xa8zcC7RZrVbJb3zKV2rVQdFvkhY6uSKMTmNqhHA-J3ezrDd-aQvxhNNxlt-aO1tPt3ybCukzkMaG2m-o4pWgpagybQvXscZb0u48LcJGbPAq-K503U34V_j5Tu9KXh75mFcaZmtp5zu8lQv6y34FVyAhxYeVWuq6w6nWNOsg}"
+# Auth token will be prompted from user
+AUTH_TOKEN=""
 
 # Test configuration
 CACHE_FILL_SIZE=1000
@@ -117,25 +117,17 @@ check_server() {
 get_auth_token() {
     log_header "Authentication Setup"
     
-    # Check if token already set (from environment variable or default)
-    if [ -n "$AUTH_TOKEN" ]; then
-        if [ -n "$RERUM_TEST_TOKEN" ]; then
-            log_info "Using token from RERUM_TEST_TOKEN environment variable"
-        else
-            log_info "Using default authentication token"
-        fi
-    else
-        echo ""
-        echo "This test requires a valid Auth0 bearer token to test write operations."
-        echo "Please obtain a fresh token from: https://devstore.rerum.io/"
-        echo ""
-        echo -n "Enter your bearer token: "
-        read -r AUTH_TOKEN
-        
-        if [ -z "$AUTH_TOKEN" ]; then
-            echo -e "${RED}ERROR: No token provided. Exiting.${NC}"
-            exit 1
-        fi
+    echo ""
+    echo "This test requires a valid Auth0 bearer token to test write operations."
+    echo "Please obtain a fresh token from: https://devstore.rerum.io/"
+    echo ""
+    echo -n "Enter your bearer token (or press Enter to skip): "
+    read -r AUTH_TOKEN
+    
+    if [ -z "$AUTH_TOKEN" ]; then
+        echo -e "${RED}ERROR: No token provided. Cannot proceed with testing.${NC}"
+        echo "Tests require authentication for write operations (create, update, delete)."
+        exit 1
     fi
     
     # Test the token
@@ -158,7 +150,6 @@ get_auth_token() {
     elif [ "$http_code" == "401" ]; then
         echo -e "${RED}ERROR: Token is expired or invalid (HTTP 401)${NC}"
         echo "Please obtain a fresh token from: https://devstore.rerum.io/"
-        echo "Or set RERUM_TEST_TOKEN environment variable with a valid token"
         exit 1
     else
         echo -e "${RED}ERROR: Token validation failed (HTTP $http_code)${NC}"
