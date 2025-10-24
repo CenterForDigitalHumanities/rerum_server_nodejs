@@ -53,6 +53,9 @@ declare -A ENDPOINT_DESCRIPTIONS
 # Array to store created object IDs for cleanup
 declare -a CREATED_IDS=()
 
+# Associative array to store full created objects (to avoid unnecessary GET requests)
+declare -A CREATED_OBJECTS
+
 # Report file - go up to repo root first
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -350,10 +353,34 @@ create_test_object() {
     
     if [ -n "$obj_id" ] && [ "$obj_id" != "null" ]; then
         CREATED_IDS+=("$obj_id")
+        # Store the full object for later use (to avoid unnecessary GET requests)
+        CREATED_OBJECTS["$obj_id"]="$response"
         sleep 1  # Allow DB and cache to process
     fi
     
     echo "$obj_id"
+}
+
+# Create test object and return the full object (not just ID)
+create_test_object_with_body() {
+    local data=$1
+    local description=${2:-"Creating test object"}
+    
+    local response=$(curl -s -X POST "${API_BASE}/api/create" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${AUTH_TOKEN}" \
+        -d "$data" 2>/dev/null)
+    
+    local obj_id=$(echo "$response" | jq -r '.["@id"]' 2>/dev/null)
+    
+    if [ -n "$obj_id" ] && [ "$obj_id" != "null" ]; then
+        CREATED_IDS+=("$obj_id")
+        CREATED_OBJECTS["$obj_id"]="$response"
+        sleep 1  # Allow DB and cache to process
+        echo "$response"
+    else
+        echo ""
+    fi
 }
 
 ################################################################################
@@ -1827,7 +1854,8 @@ test_update_endpoint_empty() {
     
     local NUM_ITERATIONS=50
     
-    local test_id=$(create_test_object '{"type":"UpdateTest","value":"original"}')
+    local test_obj=$(create_test_object_with_body '{"type":"UpdateTest","value":"original"}')
+    local test_id=$(echo "$test_obj" | jq -r '.["@id"]' 2>/dev/null)
     
     if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
         log_failure "Failed to create test object for update test"
@@ -1840,9 +1868,9 @@ test_update_endpoint_empty() {
     declare -a empty_times=()
     local empty_total=0
     local empty_success=0
+    local full_object="$test_obj"
     
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local full_object=$(curl -s "$test_id" 2>/dev/null)
         local update_body=$(echo "$full_object" | jq ". + {value: \"updated_$i\"}" 2>/dev/null)
         
         local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
@@ -1850,11 +1878,13 @@ test_update_endpoint_empty() {
             "Update object" true)
         local time=$(echo "$result" | cut -d'|' -f1)
         local code=$(echo "$result" | cut -d'|' -f2)
+        local response=$(echo "$result" | cut -d'|' -f3)
         
         if [ "$code" == "200" ]; then
             empty_times+=($time)
             empty_total=$((empty_total + time))
             empty_success=$((empty_success + 1))
+            full_object="$response"
         fi
         
         # Progress indicator
@@ -1887,7 +1917,8 @@ test_update_endpoint_full() {
     
     local NUM_ITERATIONS=50
     
-    local test_id=$(create_test_object '{"type":"WORST_CASE_WRITE_UNIQUE_99999","value":"original"}')
+    local test_obj=$(create_test_object_with_body '{"type":"WORST_CASE_WRITE_UNIQUE_99999","value":"original"}')
+    local test_id=$(echo "$test_obj" | jq -r '.["@id"]' 2>/dev/null)
     
     if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
         log_failure "Failed to create test object for update test"
@@ -1900,9 +1931,9 @@ test_update_endpoint_full() {
     declare -a full_times=()
     local full_total=0
     local full_success=0
+    local full_object="$test_obj"
     
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local full_object=$(curl -s "$test_id" 2>/dev/null)
         local update_body=$(echo "$full_object" | jq ". + {value: \"updated_full_$i\"}" 2>/dev/null)
         
         local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
@@ -1910,11 +1941,13 @@ test_update_endpoint_full() {
             "Update object" true)
         local time=$(echo "$result" | cut -d'|' -f1)
         local code=$(echo "$result" | cut -d'|' -f2)
+        local response=$(echo "$result" | cut -d'|' -f3)
         
         if [ "$code" == "200" ]; then
             full_times+=($time)
             full_total=$((full_total + time))
             full_success=$((full_success + 1))
+            full_object="$response"
         fi
         
         # Progress indicator
