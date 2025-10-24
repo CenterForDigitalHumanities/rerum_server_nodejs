@@ -4,6 +4,38 @@
 
 The RERUM API implements an LRU (Least Recently Used) cache with smart invalidation for all read endpoints. The cache intercepts requests before they reach the database and automatically invalidates when data changes.
 
+## Prerequisites
+
+### Required System Tools
+
+The cache test scripts require the following command-line tools:
+
+#### Essential Tools (must install)
+- **`jq`** - JSON parser for extracting fields from API responses
+- **`bc`** - Calculator for arithmetic operations in metrics
+- **`curl`** - HTTP client for API requests
+
+**Quick Install (Ubuntu/Debian):**
+```bash
+sudo apt update && sudo apt install -y jq bc curl
+```
+
+**Quick Install (macOS with Homebrew):**
+```bash
+brew install jq bc curl
+```
+
+#### Standard Unix Tools (usually pre-installed)
+- `date` - Timestamp operations
+- `sed` - Text manipulation
+- `awk` - Text processing
+- `grep` - Pattern matching
+- `cut` - Text field extraction
+- `sort` - Sorting operations
+- `head` / `tail` - Line operations
+
+These are typically pre-installed on Linux/macOS systems. If missing, install via your package manager.
+
 ## Cache Configuration
 
 ### Default Settings
