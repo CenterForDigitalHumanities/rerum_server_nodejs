@@ -238,11 +238,11 @@ fill_cache() {
                     elif [ $pattern -eq 1 ]; then
                         curl -s -X POST "${API_BASE}/api/search" \
                             -H "Content-Type: application/json" \
-                            -d "{\"query\":\"annotation\"}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"annotation\"}" > /dev/null 2>&1
                     else
                         curl -s -X POST "${API_BASE}/api/search/phrase" \
                             -H "Content-Type: application/json" \
-                            -d "{\"query\":\"test annotation\"}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"test annotation\"}" > /dev/null 2>&1
                     fi
                 else
                     # Add diversity to fill cache with different entries
@@ -253,11 +253,11 @@ fill_cache() {
                     elif [ $pattern -eq 1 ]; then
                         curl -s -X POST "${API_BASE}/api/search" \
                             -H "Content-Type: application/json" \
-                            -d "{\"query\":\"annotation\",\"skip\":$count}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"annotation\",\"skip\":$count}" > /dev/null 2>&1
                     else
                         curl -s -X POST "${API_BASE}/api/search/phrase" \
                             -H "Content-Type: application/json" \
-                            -d "{\"query\":\"test annotation\",\"skip\":$count}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"test annotation\",\"skip\":$count}" > /dev/null 2>&1
                     fi
                 fi
             ) &
@@ -401,7 +401,7 @@ test_search_endpoint() {
     
     # Test search functionality
     log_info "Testing search with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"annotation","limit":5}' "Search for 'annotation'")
+    local result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"annotation","limit":5}' "Search for 'annotation'")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
@@ -1383,7 +1383,7 @@ test_search_phrase_endpoint() {
     
     # Test search phrase functionality
     log_info "Testing search phrase with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"test phrase","limit":5}' "Phrase search")
+    local result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test phrase","limit":5}' "Phrase search")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
@@ -2279,11 +2279,11 @@ main() {
     log_success "Query with full cache"
     
     log_info "Testing /api/search with full cache..."
-    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"annotation"}' "Search with full cache")
+    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"annotation"}' "Search with full cache")
     log_success "Search with full cache"
     
     log_info "Testing /api/search/phrase with full cache..."
-    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"test annotation"}' "Search phrase with full cache")
+    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test annotation"}' "Search phrase with full cache")
     log_success "Search phrase with full cache"
     
     # For ID, history, since - use objects created in Phase 1 if available

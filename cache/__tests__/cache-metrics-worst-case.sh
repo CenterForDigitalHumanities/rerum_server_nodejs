@@ -382,7 +382,7 @@ test_search_endpoint() {
     
     # Test search functionality
     log_info "Testing search with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"annotation","limit":5}' "Search for 'annotation'")
+    local result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"annotation","limit":5}' "Search for 'annotation'")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
@@ -1364,7 +1364,7 @@ test_search_phrase_endpoint() {
     
     # Test search phrase functionality
     log_info "Testing search phrase with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"test phrase","limit":5}' "Phrase search")
+    local result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test phrase","limit":5}' "Phrase search")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
@@ -2283,11 +2283,11 @@ main() {
     log_success "Query with full cache (cache miss)"
     
     log_info "Testing /api/search with full cache (cache miss - worst case)..."
-    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"xyzNonExistentQuery999","limit":5}' "Search with full cache (miss)")
+    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"xyzNonExistentQuery999","limit":5}' "Search with full cache (miss)")
     log_success "Search with full cache (cache miss)"
     
     log_info "Testing /api/search/phrase with full cache (cache miss - worst case)..."
-    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"xyzNonExistent phrase999","limit":5}' "Search phrase with full cache (miss)")
+    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"xyzNonExistent phrase999","limit":5}' "Search phrase with full cache (miss)")
     log_success "Search phrase with full cache (cache miss)"
     
     # For ID, history, since - use objects created in Phase 1 (these will cause cache misses too)
