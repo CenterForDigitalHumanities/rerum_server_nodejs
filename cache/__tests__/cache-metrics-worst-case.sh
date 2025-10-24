@@ -121,6 +121,12 @@ get_auth_token() {
     echo "This test requires a valid Auth0 bearer token to test write operations."
     echo "Please obtain a fresh token from: https://devstore.rerum.io/"
     echo ""
+    echo "Remember to delete your created junk and deleted junk. Run the following commands"
+    echo "with mongosh for whatever MongoDB you are writing into:"
+    echo ""
+    echo "  db.alpha.deleteMany({\"__rerum.generatedBy\": \"YOUR_BEARER_AGENT\"});"
+    echo "  db.alpha.deleteMany({\"__deleted.object.__rerum.generatedBy\": \"YOUR_BEARER_AGENT\"});"
+    echo ""
     echo -n "Enter your bearer token (or press Enter to skip): "
     read -r AUTH_TOKEN
     
