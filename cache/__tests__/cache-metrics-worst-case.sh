@@ -516,6 +516,13 @@ perform_write_operation() {
     local time=$((end - start))
     local response_body=$(echo "$response" | head -n-1)
     
+    # Validate timing (protect against clock skew/adjustment)
+    if [ "$time" -lt 0 ]; then
+        # Clock went backward during operation - treat as failure
+        echo "-1|000|clock_skew"
+        return
+    fi
+    
     # Check for success codes
     local success=0
     if [ "$endpoint" = "create" ] && [ "$http_code" = "201" ]; then

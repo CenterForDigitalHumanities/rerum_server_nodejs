@@ -216,6 +216,14 @@ measure_endpoint() {
     local time=$((end - start))
     local http_code=$(echo "$response" | tail -n1)
     
+    # Validate timing (protect against clock skew/adjustment)
+    if [ "$time" -lt 0 ]; then
+        # Clock went backward during operation - treat as timeout
+        http_code="000"
+        time=0
+        echo "[WARN] Clock skew detected (negative timing) for $endpoint" >&2
+    fi
+    
     # Handle curl failure (connection timeout, etc)
     if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
         http_code="000"
@@ -533,6 +541,13 @@ perform_write_operation() {
     local http_code=$(echo "$response" | tail -n1)
     local time=$((end - start))
     local response_body=$(echo "$response" | head -n-1)
+    
+    # Validate timing (protect against clock skew/adjustment)
+    if [ "$time" -lt 0 ]; then
+        # Clock went backward during operation - treat as failure
+        echo "-1|000|clock_skew"
+        return
+    fi
     
     # Check for success codes
     local success=0
