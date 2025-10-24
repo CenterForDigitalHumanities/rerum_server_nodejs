@@ -576,7 +576,8 @@ run_write_performance_test() {
         local http_code=$(echo "$result" | cut -d'|' -f2)
         local response_body=$(echo "$result" | cut -d'|' -f3-)
         
-        if [ "$time" = "-1" ]; then
+        # Only include successful operations with valid positive timing
+        if [ "$time" = "-1" ] || [ -z "$time" ] || [ "$time" -lt 0 ]; then
             failed_count=$((failed_count + 1))
         else
             times+=($time)
