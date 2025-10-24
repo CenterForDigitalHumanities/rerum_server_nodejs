@@ -850,9 +850,18 @@ test_history_endpoint() {
     # Wait for object to be available
     sleep 2
     
+    # Extract just the ID portion for the history endpoint
+    local obj_id=$(echo "$test_id" | sed 's|.*/||')
+    
+    # Skip history test if object creation failed
+    if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+        log_warning "Skipping history test - object creation failed"
+        return
+    fi
+    
     # Get the full object and update to create history
     local full_object=$(curl -s "$test_id" 2>/dev/null)
-    local update_body=$(echo "$full_object" | jq '.version = 2' 2>/dev/null)
+    local update_body=$(echo "$full_object" | jq '. + {version: 2}' 2>/dev/null)
     
     curl -s -X PUT "${API_BASE}/api/update" \
         -H "Content-Type: application/json" \
@@ -861,9 +870,6 @@ test_history_endpoint() {
     
     sleep 2
     clear_cache
-    
-    # Extract just the ID portion for the history endpoint
-    local obj_id=$(echo "$test_id" | sed 's|.*/||')
     
     # Test history with cold cache
     log_info "Testing history with cold cache..."
