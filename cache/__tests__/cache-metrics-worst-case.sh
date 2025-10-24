@@ -1871,7 +1871,7 @@ test_update_endpoint_empty() {
     local full_object="$test_obj"
     
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local update_body=$(echo "$full_object" | jq ". + {value: \"updated_$i\"}" 2>/dev/null)
+        local update_body=$(echo "$full_object" | jq ".value = \"updated_$i\"" 2>/dev/null)
         
         local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
             "$update_body" \
@@ -1934,7 +1934,7 @@ test_update_endpoint_full() {
     local full_object="$test_obj"
     
     for i in $(seq 1 $NUM_ITERATIONS); do
-        local update_body=$(echo "$full_object" | jq ". + {value: \"updated_full_$i\"}" 2>/dev/null)
+        local update_body=$(echo "$full_object" | jq ".value = \"updated_full_$i\"" 2>/dev/null)
         
         local result=$(measure_endpoint "${API_BASE}/api/update" "PUT" \
             "$update_body" \
