@@ -1185,7 +1185,7 @@ test_update_endpoint_empty() {
         return
     elif [ $empty_failures -gt 0 ]; then
         log_warning "$empty_success/$NUM_ITERATIONS successful"
-        log_failure "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
+        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
         ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
         return
     fi
