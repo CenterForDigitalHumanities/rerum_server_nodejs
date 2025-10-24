@@ -21,7 +21,7 @@
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
 # Default token - can be overridden by RERUM_TEST_TOKEN environment variable or user input
-AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwczovL2RldnN0b3JlLnJlcnVtLmlvL3YxL2lkLzY4ZDZkZDZhNzE4ZWUyOTRmMTk0YmUwNCIsImh0dHA6Ly9yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL3JlcnVtLmlvL2FwcF9mbGFnIjpbInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJ0cGVuIl0sImlzcyI6Imh0dHBzOi8vY3ViYXAuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDY4ZDZkZDY0YmRhMmNkNzdhMTA2MWMxNyIsImF1ZCI6Imh0dHA6Ly9yZXJ1bS5pby9hcGkiLCJpYXQiOjE3NjEyNDE2MTIsImV4cCI6MTc2MzgzMzYxMiwic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsImF6cCI6IjYySnNhOU14SHVxaFJiTzIwZ1RIczlLcEtyN1VlN3NsIn0.IhZjdPPzziR5i9e3JEveus80LGgKxOvNRSb0rusOH5tmeB-8Ll6F58QhluwVDeTD9xZE-DHrZn5UYqbKUnnzjKnmYGH1gfRhhpxltNF69QiD7nG8YopTvDWSjFSvh4OwTzFWrBax-VlixhBFJ1dP3xB8QFW64K6aNeg5oUx0qQ3g1uFWPkg1z6Q1OWQsL0alTuxHN2eYxWcyTLmFfMh7OF8EgCgPffYpowa76En11WfMEz4JFdTH24Xx-6NEYU9BA72Z7BmMyHrg50njQqS8oT0jpjtsW9HaMMRAFM5rqsZYnBeZ1GNiR_HgMK0pqnCI3GJZ9GR7NCSAmk9rzbEd8g}"
+AUTH_TOKEN="${RERUM_TEST_TOKEN:-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik9FVTBORFk0T1RVNVJrRXlOREl5TTBFMU1FVXdNMFUyT0RGQk9UaEZSa1JDTXpnek1FSTRNdyJ9.eyJodHRwOi8vc3RvcmUucmVydW0uaW8vYWdlbnQiOiJodHRwczovL2RldnN0b3JlLnJlcnVtLmlvL3YxL2lkLzY4ZDZkZDZhNzE4ZWUyOTRmMTk0YmUwNCIsImh0dHA6Ly9yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby91c2VyX3JvbGVzIjp7InJvbGVzIjpbImR1bmJhcl91c2VyX3B1YmxpYyIsImdsb3NzaW5nX3VzZXJfcHVibGljIiwibHJkYV91c2VyX3B1YmxpYyIsInJlcnVtX3VzZXJfcHVibGljIiwidHBlbl91c2VyX3B1YmxpYyJdfSwiaHR0cDovL3JlcnVtLmlvL2FwcF9mbGFnIjpbInRwZW4iXSwiaHR0cDovL2R1bmJhci5yZXJ1bS5pby9hcHBfZmxhZyI6WyJ0cGVuIl0sImlzcyI6Imh0dHBzOi8vY3ViYXAuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDY4ZDZkZDY0YmRhMmNkNzdhMTA2MWMxNyIsImF1ZCI6Imh0dHA6Ly9yZXJ1bS5pby9hcGkiLCJpYXQiOjE3NjEzMTUyNjQsImV4cCI6MTc2MzkwNzI2NCwic2NvcGUiOiJvZmZsaW5lX2FjY2VzcyIsImF6cCI6IjYySnNhOU14SHVxaFJiTzIwZ1RIczlLcEtyN1VlN3NsIn0.PKIRovrdRtBfGLeoGU18ry-kXTTWv8NfkPkY3BfirjH-4g9vVln7jzjf0AeoikaXYbwSatdDXwcOiOHbok_xnshcbKQEGU23G_mnxvqjkdjFU1jin6Xmajj2R3ooo-bRtCZEuu0_j4DS6C43vHKSbl-bHY9-DDEKSG-H5MC0rfJrHnfzfunyA4tKcOH5d1AYg0yxsyEhNiKR5oVQGHetbn6Eu8jweb9gQpVuCnx-mZpmD_P8gHvuKjTRjvvTJ3Jpr9hs8xmjYO6de4fZYds0f79UT3Nbh138Mp62i4I75NKf7eQm7FED7z3wnqObzcmp9RNLoa9TVEgw8k_gBZ7P2Q}"
 
 # Test configuration
 CACHE_FILL_SIZE=1000
@@ -52,8 +52,10 @@ declare -A ENDPOINT_DESCRIPTIONS
 # Array to store created object IDs for cleanup
 declare -a CREATED_IDS=()
 
-# Report file
-REPORT_FILE="$(pwd)/cache/docs/CACHE_METRICS_REPORT.md"
+# Report file - go up to repo root first
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPORT_FILE="$REPO_ROOT/cache/docs/CACHE_METRICS_REPORT.md"
 
 ################################################################################
 # Helper Functions
@@ -225,18 +227,38 @@ fill_cache() {
             (
                 local pattern=$((count % 3))
                 
-                if [ $pattern -eq 0 ]; then
-                    curl -s -X POST "${API_BASE}/api/query" \
-                        -H "Content-Type: application/json" \
-                        -d "{\"type\":\"PerfTest\",\"limit\":10,\"skip\":$count}" > /dev/null 2>&1
-                elif [ $pattern -eq 1 ]; then
-                    curl -s -X POST "${API_BASE}/api/query" \
-                        -H "Content-Type: application/json" \
-                        -d "{\"type\":\"Annotation\",\"limit\":10,\"skip\":$count}" > /dev/null 2>&1
+                # First 3 requests create the cache entries we'll test for hits
+                # Remaining requests add diversity using skip parameter
+                if [ $count -lt 3 ]; then
+                    # These will be queried in Phase 3 for cache hits
+                    if [ $pattern -eq 0 ]; then
+                        curl -s -X POST "${API_BASE}/api/query" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"type\":\"CreatePerfTest\"}" > /dev/null 2>&1
+                    elif [ $pattern -eq 1 ]; then
+                        curl -s -X POST "${API_BASE}/api/search" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"query\":\"annotation\"}" > /dev/null 2>&1
+                    else
+                        curl -s -X POST "${API_BASE}/api/search/phrase" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"query\":\"test annotation\"}" > /dev/null 2>&1
+                    fi
                 else
-                    curl -s -X POST "${API_BASE}/api/query" \
-                        -H "Content-Type: application/json" \
-                        -d "{\"limit\":10,\"skip\":$count}" > /dev/null 2>&1
+                    # Add diversity to fill cache with different entries
+                    if [ $pattern -eq 0 ]; then
+                        curl -s -X POST "${API_BASE}/api/query" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"type\":\"CreatePerfTest\",\"skip\":$count}" > /dev/null 2>&1
+                    elif [ $pattern -eq 1 ]; then
+                        curl -s -X POST "${API_BASE}/api/search" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"query\":\"annotation\",\"skip\":$count}" > /dev/null 2>&1
+                    else
+                        curl -s -X POST "${API_BASE}/api/search/phrase" \
+                            -H "Content-Type: application/json" \
+                            -d "{\"query\":\"test annotation\",\"skip\":$count}" > /dev/null 2>&1
+                    fi
                 fi
             ) &
         done
@@ -265,7 +287,7 @@ fill_cache() {
         log_warning "Cache size (${final_size}) is less than target (${target_size})"
     fi
     
-    log_success "Cache filled to ${final_size} entries (~33% matching test type)"
+    log_success "Cache filled to ${final_size} entries (query, search, search/phrase patterns)"
 }
 
 # Warm up the system (JIT compilation, connection pools, OS caches)
@@ -2251,16 +2273,17 @@ main() {
     
     # Test read endpoints with the full cache WITHOUT clearing it
     # Just measure the performance, don't re-test functionality
+    # IMPORTANT: Queries must match cache fill patterns (default limit=100, skip=0) to get cache hits
     log_info "Testing /api/query with full cache..."
     local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"CreatePerfTest"}' "Query with full cache")
     log_success "Query with full cache"
     
     log_info "Testing /api/search with full cache..."
-    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"annotation","limit":5}' "Search with full cache")
+    result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"query":"annotation"}' "Search with full cache")
     log_success "Search with full cache"
     
     log_info "Testing /api/search/phrase with full cache..."
-    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"test annotation","limit":5}' "Search phrase with full cache")
+    result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"query":"test annotation"}' "Search phrase with full cache")
     log_success "Search phrase with full cache"
     
     # For ID, history, since - use objects created in Phase 1 if available
