@@ -1068,7 +1068,7 @@ test_create_endpoint_empty() {
         echo "{\"type\":\"CreatePerfTest\",\"timestamp\":$(date +%s%3N),\"random\":$RANDOM}"
     }
     
-    log_info "Testing create with empty cache (100 operations - 50 for each delete test)..."
+    log_info "Testing create with empty cache (100 operations)..."
     
     # Call function directly (not in subshell) so CREATED_IDS changes persist
     run_write_performance_test "create" "create" "POST" "generate_create_body" 100
@@ -1142,7 +1142,7 @@ test_update_endpoint_empty() {
         return
     fi
     
-    log_info "Testing update with empty cache ($NUM_ITERATIONS iterations on same object)..."
+    log_info "Testing update with empty cache ($NUM_ITERATIONS iterations)..."
     
     declare -a empty_times=()
     local empty_total=0
@@ -1216,7 +1216,7 @@ test_update_endpoint_full() {
         return
     fi
     
-    log_info "Testing update with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations on same object)..."
+    log_info "Testing update with full cache (${CACHE_FILL_SIZE} entries, $NUM_ITERATIONS iterations)..."
     echo "[INFO] Using unique type 'WORST_CASE_WRITE_UNIQUE_99999' to force full cache scan with no invalidations..."
     
     declare -a full_times=()

@@ -346,7 +346,6 @@ const searchAsWords = async function (req, res, next) {
  * Returns: Annotations with "medieval" and "manuscript" in proximity
  */
 const searchAsPhrase = async function (req, res, next) {
-    console.log("SEARCH TO MONGODB")
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
     const phraseOptions = req.body?.options ?? 

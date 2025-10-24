@@ -90,7 +90,6 @@ const patchUpdate = async function (req, res, next) {
             if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
-            console.log("PATCH UPDATE")
             try {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {

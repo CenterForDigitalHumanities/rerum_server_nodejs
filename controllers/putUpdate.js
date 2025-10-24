@@ -63,7 +63,6 @@ const putUpdate = async function (req, res, next) {
             delete objectReceived["@context"]
             
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-            console.log("UPDATE")
             try {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
@@ -122,7 +121,6 @@ async function _import(req, res, next) {
     delete objectReceived["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-    console.log("IMPORT")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
