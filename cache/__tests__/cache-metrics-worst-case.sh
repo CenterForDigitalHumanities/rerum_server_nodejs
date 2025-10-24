@@ -411,6 +411,15 @@ test_id_endpoint() {
     # Create test object to get an ID
     local test_id=$(create_test_object '{"type":"IdTest","value":"test"}' "Creating test object")
     
+    # Validate object creation
+    if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
+        log_failure "Failed to create test object for ID test"
+        ENDPOINT_STATUS["id"]="❌ Test Setup Failed"
+        ENDPOINT_COLD_TIMES["id"]="N/A"
+        ENDPOINT_WARM_TIMES["id"]="N/A"
+        return
+    fi
+    
     clear_cache
     
     # Test ID retrieval with cold cache
