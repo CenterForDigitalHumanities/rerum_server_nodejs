@@ -13,6 +13,11 @@ import cache from './index.js'
  * Caches results based on query parameters, limit, and skip
  */
 const cacheQuery = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     // Only cache POST requests with body
     if (req.method !== 'POST' || !req.body) {
         return next()
@@ -61,6 +66,11 @@ const cacheQuery = (req, res, next) => {
  * Caches results based on search text and options
  */
 const cacheSearch = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     if (req.method !== 'POST' || !req.body) {
         return next()
     }
@@ -105,6 +115,11 @@ const cacheSearch = (req, res, next) => {
  * Caches results based on search phrase and options
  */
 const cacheSearchPhrase = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     if (req.method !== 'POST' || !req.body) {
         return next()
     }
@@ -149,6 +164,11 @@ const cacheSearchPhrase = (req, res, next) => {
  * Caches individual object lookups by ID
  */
 const cacheId = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     if (req.method !== 'GET') {
         return next()
     }
@@ -189,6 +209,11 @@ const cacheId = (req, res, next) => {
  * Caches version history lookups by ID
  */
 const cacheHistory = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     if (req.method !== 'GET') {
         return next()
     }
@@ -228,6 +253,11 @@ const cacheHistory = (req, res, next) => {
  * Caches descendant version lookups by ID
  */
 const cacheSince = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     if (req.method !== 'GET') {
         return next()
     }
@@ -267,6 +297,11 @@ const cacheSince = (req, res, next) => {
  * Invalidates cache entries when objects are created, updated, or deleted
  */
 const invalidateCache = (req, res, next) => {
+    // Skip cache invalidation if caching is disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     // Store original response methods
     const originalJson = res.json.bind(res)
     const originalSend = res.send.bind(res)
@@ -457,6 +492,11 @@ const cacheClear = (req, res) => {
  * Cache key includes ManuscriptWitness URI and pagination parameters
  */
 const cacheGogFragments = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     // Only cache if request has valid body with ManuscriptWitness
     const manID = req.body?.["ManuscriptWitness"]
     if (!manID || !manID.startsWith("http")) {
@@ -499,6 +539,11 @@ const cacheGogFragments = (req, res, next) => {
  * Cache key includes ManuscriptWitness URI and pagination parameters
  */
 const cacheGogGlosses = (req, res, next) => {
+    // Skip caching if disabled
+    if (process.env.CACHING !== 'true') {
+        return next()
+    }
+
     // Only cache if request has valid body with ManuscriptWitness
     const manID = req.body?.["ManuscriptWitness"]
     if (!manID || !manID.startsWith("http")) {

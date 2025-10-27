@@ -39,6 +39,7 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 ## Cache Configuration
 
 ### Default Settings
+- **Enabled by default**: Set `CACHING=false` to disable
 - **Max Length**: 1000 entries
 - **Max Bytes**: 1GB (1,000,000,000 bytes)
 - **TTL (Time-To-Live)**: 5 minutes (300,000ms)
@@ -47,10 +48,22 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 
 ### Environment Variables
 ```bash
+CACHING=true                 # Enable/disable caching layer (true/false)
 CACHE_MAX_LENGTH=1000        # Maximum number of cached entries
 CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes
 CACHE_TTL=300000             # Time-to-live in milliseconds
 ```
+
+### Enabling/Disabling Cache
+
+**To disable caching completely**, set `CACHING=false` in your `.env` file:
+- All cache middleware will be bypassed
+- No cache lookups, storage, or invalidation
+- No `X-Cache` headers in responses
+- No overhead from cache operations
+- Useful for debugging or performance comparison
+
+**To enable caching** (default), set `CACHING=true` or leave it unset.
 
 ### Limit Enforcement Details
 

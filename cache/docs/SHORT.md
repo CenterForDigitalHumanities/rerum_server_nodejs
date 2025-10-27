@@ -92,11 +92,21 @@ Immediately clears all cached entries (useful for testing or troubleshooting).
 ## Configuration
 
 Cache behavior can be adjusted via environment variables:
+- `CACHING` - Enable/disable caching layer (default: `true`, set to `false` to disable)
 - `CACHE_MAX_LENGTH` - Maximum entries (default: 1000)
 - `CACHE_MAX_BYTES` - Maximum memory usage (default: 1GB)
 - `CACHE_TTL` - Time-to-live in milliseconds (default: 300000 = 5 minutes)
 
 **Note**: Limits are well-balanced for typical usage. With standard RERUM queries (100 items per page), 1000 cached entries use only ~26 MB (~2.7% of the 1GB byte limit). The byte limit serves as a safety net for edge cases.
+
+### Disabling Cache
+
+To disable caching completely, set `CACHING=false` in your `.env` file. This will:
+- Skip all cache lookups (no cache hits)
+- Skip cache storage (no cache writes)
+- Skip cache invalidation (no overhead on writes)
+- Remove `X-Cache` headers from responses
+- Useful for debugging or when caching is not desired
 
 ## Backwards Compatibility
 
