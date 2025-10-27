@@ -316,36 +316,197 @@ class LRUCache {
 
     /**
      * Check if an object contains all properties specified in a query
+     * Supports MongoDB query operators like $or, $and, $in, $exists, $size, etc.
+     * Note: __rerum is a protected property managed by RERUM and stripped from user requests,
+     * so we handle it conservatively in invalidation logic.
      * @param {Object} obj - The object to check
-     * @param {Object} queryProps - The properties to match
-     * @returns {boolean} - True if object contains all query properties with matching values
+     * @param {Object} queryProps - The properties to match (may include MongoDB operators)
+     * @returns {boolean} - True if object matches the query conditions
      */
     objectContainsProperties(obj, queryProps) {
         for (const [key, value] of Object.entries(queryProps)) {
             // Skip pagination and internal parameters
-            if (key === 'limit' || key === 'skip' || key === '__rerum') {
+            if (key === 'limit' || key === 'skip') {
                 continue
             }
             
-            // Check if object has this property
-            if (!(key in obj)) {
+            // Skip __rerum and _id since they're server-managed properties
+            // __rerum: RERUM metadata stripped from user requests
+            // _id: MongoDB internal identifier not in request bodies
+            // We can't reliably match on them during invalidation
+            if (key === '__rerum' || key === '_id') {
+                continue
+            }
+            
+            // Also skip nested __rerum and _id paths (e.g., "__rerum.history.next", "target._id")
+            // These are server/database-managed metadata not present in request bodies
+            if (key.startsWith('__rerum.') || key.includes('.__rerum.') || key.endsWith('.__rerum') ||
+                key.startsWith('_id.') || key.includes('._id.') || key.endsWith('._id')) {
+                continue
+            }
+            
+            // Handle MongoDB query operators
+            if (key.startsWith('$')) {
+                if (!this.evaluateOperator(obj, key, value)) {
+                    return false
+                }
+                continue
+            }
+            
+            // Handle nested operators on a field (e.g., {"body.title": {"$exists": true}})
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                const hasOperators = Object.keys(value).some(k => k.startsWith('$'))
+                if (hasOperators) {
+                    // Be conservative with operator queries on history fields (fallback safety)
+                    // Note: __rerum.* and _id.* are already skipped above
+                    if (key.includes('history')) {
+                        continue // Conservative - assume match for history-related queries
+                    }
+                    
+                    // For non-metadata fields, try to evaluate the operators
+                    const fieldValue = this.getNestedProperty(obj, key)
+                    if (!this.evaluateFieldOperators(fieldValue, value)) {
+                        return false
+                    }
+                    continue
+                }
+            }
+            
+            // Check if object has this property (handle both direct and nested paths)
+            const objValue = this.getNestedProperty(obj, key)
+            if (objValue === undefined && !(key in obj)) {
                 return false
             }
             
             // For simple values, check equality
             if (typeof value !== 'object' || value === null) {
-                if (obj[key] !== value) {
+                if (objValue !== value) {
                     return false
                 }
             } else {
-                // For nested objects, recursively check
-                if (!this.objectContainsProperties(obj[key], value)) {
+                // For nested objects (no operators), recursively check
+                if (typeof objValue !== 'object' || !this.objectContainsProperties(objValue, value)) {
                     return false
                 }
             }
         }
         
         return true
+    }
+
+    /**
+     * Evaluate field-level operators like {"$exists": true, "$size": 0}
+     * @param {*} fieldValue - The actual field value from the object
+     * @param {Object} operators - Object containing operators and their values
+     * @returns {boolean} - True if field satisfies all operators
+     */
+    evaluateFieldOperators(fieldValue, operators) {
+        for (const [op, opValue] of Object.entries(operators)) {
+            switch (op) {
+                case '$exists':
+                    const exists = fieldValue !== undefined
+                    if (exists !== opValue) return false
+                    break
+                case '$size':
+                    if (!Array.isArray(fieldValue) || fieldValue.length !== opValue) {
+                        return false
+                    }
+                    break
+                case '$ne':
+                    if (fieldValue === opValue) return false
+                    break
+                case '$gt':
+                    if (!(fieldValue > opValue)) return false
+                    break
+                case '$gte':
+                    if (!(fieldValue >= opValue)) return false
+                    break
+                case '$lt':
+                    if (!(fieldValue < opValue)) return false
+                    break
+                case '$lte':
+                    if (!(fieldValue <= opValue)) return false
+                    break
+                default:
+                    // Unknown operator - be conservative
+                    return true
+            }
+        }
+        return true
+    }
+
+    /**
+     * Get nested property value from an object using dot notation
+     * @param {Object} obj - The object
+     * @param {string} path - Property path (e.g., "target.@id" or "body.title.value")
+     * @returns {*} Property value or undefined
+     */
+    getNestedProperty(obj, path) {
+        const keys = path.split('.')
+        let current = obj
+        
+        for (const key of keys) {
+            if (current === null || current === undefined || typeof current !== 'object') {
+                return undefined
+            }
+            current = current[key]
+        }
+        
+        return current
+    }
+
+    /**
+     * Evaluate MongoDB query operators
+     * @param {Object} obj - The object or field value to evaluate against
+     * @param {string} operator - The operator key (e.g., "$or", "$and", "$exists")
+     * @param {*} value - The operator value
+     * @returns {boolean} - True if the operator condition is satisfied
+     */
+    evaluateOperator(obj, operator, value) {
+        switch (operator) {
+            case '$or':
+                // $or: [condition1, condition2, ...]
+                // Returns true if ANY condition matches
+                if (!Array.isArray(value)) return false
+                return value.some(condition => this.objectContainsProperties(obj, condition))
+            
+            case '$and':
+                // $and: [condition1, condition2, ...]
+                // Returns true if ALL conditions match
+                if (!Array.isArray(value)) return false
+                return value.every(condition => this.objectContainsProperties(obj, condition))
+            
+            case '$in':
+                // Field value must be in the array
+                // This is tricky - we need the actual field name context
+                // For now, treat as potential match (conservative invalidation)
+                return true
+            
+            case '$exists':
+                // {"field": {"$exists": true/false}}
+                // We need field context - handled in parent function
+                // This should not be called directly
+                return true
+            
+            case '$size':
+                // {"field": {"$size": N}}
+                // Array field must have exactly N elements
+                // Conservative invalidation - return true
+                return true
+            
+            case '$ne':
+            case '$gt':
+            case '$gte':
+            case '$lt':
+            case '$lte':
+                // Comparison operators - for invalidation, be conservative
+                // If query uses these operators, invalidate (return true)
+                return true
+            
+            default:
+                // Unknown operator - be conservative and invalidate
+                return true
+        }
     }
 
     /**
