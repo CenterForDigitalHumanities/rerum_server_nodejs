@@ -23,6 +23,11 @@ describe('Cache Middleware Tests', () => {
     let mockRes
     let mockNext
 
+    beforeAll(() => {
+        // Enable caching for tests
+        process.env.CACHING = 'true'
+    })
+
     beforeEach(() => {
         // Clear cache before each test
         cache.clear()
