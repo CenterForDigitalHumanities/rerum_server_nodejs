@@ -40,9 +40,9 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 
 ### Default Settings
 - **Enabled by default**: Set `CACHING=false` to disable
-- **Max Length**: 1000 entries
-- **Max Bytes**: 1GB (1,000,000,000 bytes)
-- **TTL (Time-To-Live)**: 5 minutes (300,000ms)
+- **Max Length**: 1000 entries (configurable)
+- **Max Bytes**: 1GB (1,000,000,000 bytes) (configurable)
+- **TTL (Time-To-Live)**: 5 minutes default, 24 hours in production (300,000ms or 86,400,000ms)
 - **Eviction Policy**: LRU (Least Recently Used)
 - **Storage**: In-memory (per server instance)
 
@@ -51,7 +51,7 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 CACHING=true                 # Enable/disable caching layer (true/false)
 CACHE_MAX_LENGTH=1000        # Maximum number of cached entries
 CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes
-CACHE_TTL=300000             # Time-to-live in milliseconds
+CACHE_TTL=300000             # Time-to-live in milliseconds (300000 = 5 min, 86400000 = 24 hr)
 ```
 
 ### Enabling/Disabling Cache
@@ -348,12 +348,48 @@ Clears all cache entries:
 
 When write operations occur, the cache middleware intercepts the response and invalidates relevant cache entries based on the object properties.
 
+**MongoDB Operator Support**: The smart invalidation system supports complex MongoDB query operators, including:
+- **`$or`** - Matches if ANY condition is satisfied (e.g., queries checking multiple target variations)
+- **`$and`** - Matches if ALL conditions are satisfied
+- **`$exists`** - Field existence checking
+- **`$size`** - Array size matching (e.g., `{"__rerum.history.next": {"$exists": true, "$size": 0}}` for leaf objects)
+- **Comparison operators** - `$ne`, `$gt`, `$gte`, `$lt`, `$lte`
+- **`$in`** - Value in array matching
+- **Nested properties** - Dot notation like `target.@id`, `body.title.value`
+
+**Protected Properties**: The system intelligently skips `__rerum` and `_id` fields during cache matching, as these are server-managed properties not present in user request bodies. This includes:
+- Top-level: `__rerum`, `_id`
+- Nested paths: `__rerum.history.next`, `target._id`, etc.
+- Any position: starts with, contains, or ends with these protected property names
+
+This conservative approach ensures cache invalidation is based only on user-controllable properties, preventing false negatives while maintaining correctness.
+
+**Example with MongoDB Operators**:
+```javascript
+// Complex query with $or operator (common in Annotation queries)
+{
+  "body": {
+    "$or": [
+      {"target": "https://example.org/canvas/1"},
+      {"target.@id": "https://example.org/canvas/1"}
+    ]
+  },
+  "__rerum.history.next": {"$exists": true, "$size": 0}  // Skipped (protected)
+}
+
+// When an Annotation is updated with target="https://example.org/canvas/1",
+// the cache system:
+// 1. Evaluates the $or operator against the updated object
+// 2. Skips the __rerum.history.next check (server-managed)
+// 3. Invalidates this cache entry if the $or condition matches
+```
+
 ### CREATE Invalidation
 
-**Triggers**: `POST /v1/api/create`
+**Triggers**: `POST /v1/api/create`, `POST /v1/api/bulkCreate`
 
 **Invalidates**:
-- All `query` caches where the new object matches the query filters
+- All `query` caches where the new object matches the query filters (with MongoDB operator support)
 - All `search` caches where the new object contains search terms
 - All `searchPhrase` caches where the new object contains the phrase
 
@@ -366,13 +402,13 @@ When write operations occur, the cache middleware intercepts the response and in
 
 ### UPDATE Invalidation
 
-**Triggers**: `PUT /v1/api/update`, `PATCH /v1/api/patch/*`
+**Triggers**: `PUT /v1/api/update`, `PUT /v1/api/bulkUpdate`, `PATCH /v1/api/patch`, `PATCH /v1/api/set`, `PATCH /v1/api/unset`, `PUT /v1/api/overwrite`
 
 **Invalidates**:
-- The `id` cache for the updated object
-- All `query` caches matching the updated object's properties
+- The `id` cache for the updated object (and previous version in chain)
+- All `query` caches matching the updated object's properties (with MongoDB operator support)
 - All `search` caches matching the updated object's content
-- The `history` cache for all versions in the chain
+- The `history` cache for all versions in the chain (current, previous, prime)
 - The `since` cache for all versions in the chain
 
 **Version Chain Logic**:
@@ -409,9 +445,55 @@ When write operations occur, the cache middleware intercepts the response and in
 
 ### PATCH Invalidation
 
-**Triggers**: `PATCH /v1/api/patch/set`, `PATCH /v1/api/patch/unset`, `PATCH /v1/api/patch/update`
+**Triggers**: 
+- `PATCH /v1/api/patch` - General property updates
+- `PATCH /v1/api/set` - Add new properties
+- `PATCH /v1/api/unset` - Remove properties
 
-**Behavior**: Same as UPDATE invalidation (creates new version)
+**Behavior**: Same as UPDATE invalidation (creates new version with MongoDB operator support)
+
+**Note**: `PATCH /v1/api/release` does NOT use cache invalidation as it only modifies `__rerum` properties which are skipped during cache matching.
+
+### OVERWRITE Invalidation
+
+**Triggers**: `PUT /v1/api/overwrite`
+
+**Behavior**: Similar to UPDATE but replaces entire object in place (same ID)
+
+**Invalidates**:
+- The `id` cache for the overwritten object
+- All `query` caches matching the new object properties
+- All `search` caches matching the new object content
+- The `history` cache for all versions in the chain
+- The `since` cache for all versions in the chain
+
+---
+
+## Write Endpoints with Smart Invalidation
+
+All write operations that modify user-controllable properties have the `invalidateCache` middleware applied:
+
+| Endpoint | Method | Middleware Applied | Invalidation Type |
+|----------|--------|-------------------|-------------------|
+| `/v1/api/create` | POST | ✅ `invalidateCache` | CREATE |
+| `/v1/api/bulkCreate` | POST | ✅ `invalidateCache` | CREATE (bulk) |
+| `/v1/api/update` | PUT | ✅ `invalidateCache` | UPDATE |
+| `/v1/api/bulkUpdate` | PUT | ✅ `invalidateCache` | UPDATE (bulk) |
+| `/v1/api/patch` | PATCH | ✅ `invalidateCache` | UPDATE |
+| `/v1/api/set` | PATCH | ✅ `invalidateCache` | UPDATE |
+| `/v1/api/unset` | PATCH | ✅ `invalidateCache` | UPDATE |
+| `/v1/api/overwrite` | PUT | ✅ `invalidateCache` | OVERWRITE |
+| `/v1/api/delete` | DELETE | ✅ `invalidateCache` | DELETE |
+
+**Not Requiring Invalidation**:
+- `/v1/api/release` (PATCH) - Only modifies `__rerum` properties (server-managed, skipped in cache matching)
+
+**Key Features**:
+- MongoDB operator support (`$or`, `$and`, `$exists`, `$size`, comparisons, `$in`)
+- Nested property matching (dot notation like `target.@id`)
+- Protected property handling (skips `__rerum` and `_id` fields)
+- Version chain invalidation for UPDATE/DELETE operations
+- Bulk operation support (processes multiple objects)
 
 ---
 

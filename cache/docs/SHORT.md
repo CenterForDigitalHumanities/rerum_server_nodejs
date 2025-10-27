@@ -32,7 +32,7 @@ The RERUM API now includes an intelligent caching layer that significantly impro
 When you request data:
 1. **First request**: Fetches from database, caches result, returns data (~300-800ms)
 2. **Subsequent requests**: Returns cached data immediately (~1-5ms)
-3. **After 5 minutes**: Cache expires, next request refreshes from database
+3. **After TTL expires**: Cache entry removed, next request refreshes from database (default: 5 minutes, configurable up to 24 hours)
 
 ### For Write Operations
 When you create, update, or delete objects:
@@ -95,7 +95,7 @@ Cache behavior can be adjusted via environment variables:
 - `CACHING` - Enable/disable caching layer (default: `true`, set to `false` to disable)
 - `CACHE_MAX_LENGTH` - Maximum entries (default: 1000)
 - `CACHE_MAX_BYTES` - Maximum memory usage (default: 1GB)
-- `CACHE_TTL` - Time-to-live in milliseconds (default: 300000 = 5 minutes)
+- `CACHE_TTL` - Time-to-live in milliseconds (default: 300000 = 5 minutes, production often uses 86400000 = 24 hours)
 
 **Note**: Limits are well-balanced for typical usage. With standard RERUM queries (100 items per page), 1000 cached entries use only ~26 MB (~2.7% of the 1GB byte limit). The byte limit serves as a safety net for edge cases.
 
