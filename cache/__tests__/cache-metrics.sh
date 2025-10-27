@@ -10,7 +10,7 @@
 #
 # Produces: /cache/docs/CACHE_METRICS_REPORT.md
 #
-# Author: GitHub Copilot
+# Author: thehabes
 # Date: October 22, 2025
 ################################################################################
 

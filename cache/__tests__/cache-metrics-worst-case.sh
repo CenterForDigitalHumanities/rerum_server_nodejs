@@ -11,7 +11,7 @@
 #
 # Produces: /cache/docs/CACHE_METRICS_WORST_CASE_REPORT.md
 #
-# Author: GitHub Copilot
+# Author: thehabes
 # Date: October 23, 2025
 ################################################################################
 
