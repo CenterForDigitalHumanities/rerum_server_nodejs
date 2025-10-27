@@ -37,14 +37,11 @@ const cacheQuery = (req, res, next) => {
     // Try to get from cache
     const cachedResult = cache.get(cacheKey)
     if (cachedResult) {
-        console.log(`Cache HIT: query`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
         res.status(200).json(cachedResult)
         return
     }
-
-    console.log(`Cache MISS: query`)
     res.set('X-Cache', 'MISS')
 
     // Store original json method
@@ -90,14 +87,11 @@ const cacheSearch = (req, res, next) => {
 
     const cachedResult = cache.get(cacheKey)
     if (cachedResult) {
-        console.log(`Cache HIT: search "${searchText}"`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
         res.status(200).json(cachedResult)
         return
     }
-
-    console.log(`Cache MISS: search "${searchText}"`)
     res.set('X-Cache', 'MISS')
 
     const originalJson = res.json.bind(res)
@@ -139,14 +133,11 @@ const cacheSearchPhrase = (req, res, next) => {
 
     const cachedResult = cache.get(cacheKey)
     if (cachedResult) {
-        console.log(`Cache HIT: search phrase "${searchText}"`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
         res.status(200).json(cachedResult)
         return
     }
-
-    console.log(`Cache MISS: search phrase "${searchText}"`)
     res.set('X-Cache', 'MISS')
 
     const originalJson = res.json.bind(res)
@@ -182,7 +173,6 @@ const cacheId = (req, res, next) => {
     const cachedResult = cache.get(cacheKey)
     
     if (cachedResult) {
-        console.log(`Cache HIT: id ${id}`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
         // Apply same headers as the original controller
@@ -190,8 +180,6 @@ const cacheId = (req, res, next) => {
         res.status(200).json(cachedResult)
         return
     }
-
-    console.log(`Cache MISS: id ${id}`)
     res.set('X-Cache', 'MISS')
 
     const originalJson = res.json.bind(res)
@@ -227,14 +215,11 @@ const cacheHistory = (req, res, next) => {
     const cachedResult = cache.get(cacheKey)
     
     if (cachedResult) {
-        console.log(`Cache HIT: history ${id}`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
         res.json(cachedResult)
         return
     }
-
-    console.log(`Cache MISS: history ${id}`)
     res.set('X-Cache', 'MISS')
 
     const originalJson = res.json.bind(res)
@@ -271,14 +256,11 @@ const cacheSince = (req, res, next) => {
     const cachedResult = cache.get(cacheKey)
     
     if (cachedResult) {
-        console.log(`Cache HIT: since ${id}`)
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
         res.json(cachedResult)
         return
     }
-
-    console.log(`Cache MISS: since ${id}`)
     res.set('X-Cache', 'MISS')
 
     const originalJson = res.json.bind(res)
@@ -472,21 +454,6 @@ const cacheStats = (req, res) => {
 }
 
 /**
- * Middleware to clear cache at /cache/clear endpoint
- * Should be protected in production
- */
-const cacheClear = (req, res) => {
-    const sizeBefore = cache.cache.size
-    cache.clear()
-    
-    res.status(200).json({
-        message: 'Cache cleared',
-        entriesCleared: sizeBefore,
-        currentSize: cache.cache.size
-    })
-}
-
-/**
  * Cache middleware for GOG fragments endpoint
  * Caches POST requests for WitnessFragment entities from ManuscriptWitness
  * Cache key includes ManuscriptWitness URI and pagination parameters
@@ -511,14 +478,11 @@ const cacheGogFragments = (req, res, next) => {
     
     const cachedResponse = cache.get(cacheKey)
     if (cachedResponse) {
-        console.log(`Cache HIT for GOG fragments: ${manID}`)
         res.set('X-Cache', 'HIT')
         res.set('Content-Type', 'application/json; charset=utf-8')
         res.json(cachedResponse)
         return
     }
-
-    console.log(`Cache MISS for GOG fragments: ${manID}`)
     res.set('X-Cache', 'MISS')
 
     // Intercept res.json to cache the response
@@ -558,14 +522,11 @@ const cacheGogGlosses = (req, res, next) => {
     
     const cachedResponse = cache.get(cacheKey)
     if (cachedResponse) {
-        console.log(`Cache HIT for GOG glosses: ${manID}`)
         res.set('X-Cache', 'HIT')
         res.set('Content-Type', 'application/json; charset=utf-8')
         res.json(cachedResponse)
         return
     }
-
-    console.log(`Cache MISS for GOG glosses: ${manID}`)
     res.set('X-Cache', 'MISS')
 
     // Intercept res.json to cache the response
@@ -590,6 +551,5 @@ export {
     cacheGogFragments,
     cacheGogGlosses,
     invalidateCache,
-    cacheStats,
-    cacheClear
+    cacheStats
 }
