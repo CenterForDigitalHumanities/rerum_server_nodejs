@@ -45,7 +45,7 @@ import sinceRouter from './since.js';
 // Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
 import historyRouter from './history.js';
 // Cache management endpoints
-import { cacheStats } from '../cache/middleware.js'
+import { cacheStats, cacheClear } from '../cache/middleware.js'
 
 router.use(staticRouter)
 router.use('/id',idRouter)
@@ -64,6 +64,7 @@ router.use('/api/unset', unsetRouter)
 router.use('/api/release', releaseRouter)
 // Cache management endpoints
 router.get('/api/cache/stats', cacheStats)
+router.post('/api/cache/clear', cacheClear)
 // Set default API response
 router.get('/api', (req, res) => {
     res.json({

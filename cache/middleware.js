@@ -454,6 +454,21 @@ const cacheStats = (req, res) => {
 }
 
 /**
+ * Middleware to clear cache at /cache/clear endpoint
+ * Should be protected in production
+ */
+const cacheClear = (req, res) => {
+    const sizeBefore = cache.cache.size
+    cache.clear()
+
+    res.status(200).json({
+        message: 'Cache cleared',
+        entriesCleared: sizeBefore,
+        currentSize: cache.cache.size
+    })
+}
+
+/**
  * Cache middleware for GOG fragments endpoint
  * Caches POST requests for WitnessFragment entities from ManuscriptWitness
  * Cache key includes ManuscriptWitness URI and pagination parameters
@@ -551,5 +566,6 @@ export {
     cacheGogFragments,
     cacheGogGlosses,
     invalidateCache,
-    cacheStats
+    cacheStats,
+    cacheClear
 }
