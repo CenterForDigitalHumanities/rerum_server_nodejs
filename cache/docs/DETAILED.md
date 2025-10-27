@@ -327,19 +327,6 @@ Returns cache performance metrics:
   ]
 }
 ```
-
-### Cache Clear (`POST /v1/api/cache/clear`)
-**Handler**: `cacheClear`
-
-Clears all cache entries:
-```json
-{
-  "message": "Cache cleared",
-  "entriesCleared": 234,
-  "currentSize": 0
-}
-```
-
 ---
 
 ## Smart Invalidation

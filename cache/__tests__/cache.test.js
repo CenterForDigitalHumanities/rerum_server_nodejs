@@ -14,8 +14,7 @@ import {
     cacheSince,
     cacheGogFragments,
     cacheGogGlosses,
-    cacheStats,
-    cacheClear
+    cacheStats
 } from '../middleware.js'
 import cache from '../index.js'
 
@@ -381,27 +380,6 @@ describe('Cache Middleware Tests', () => {
             expect(response).toHaveProperty('details')
             expect(response).toHaveProperty('hits')
             expect(response).toHaveProperty('misses')
-        })
-    })
-
-    describe('cacheClear endpoint', () => {
-        it('should clear all cache entries', () => {
-            // Populate cache with some entries
-            const key1 = cache.generateKey('id', 'test123')
-            const key2 = cache.generateKey('query', { type: 'Annotation' })
-            cache.set(key1, { data: 'test1' })
-            cache.set(key2, { data: 'test2' })
-            
-            expect(cache.cache.size).toBe(2)
-            
-            cacheClear(mockReq, mockRes)
-            
-            expect(mockRes.json).toHaveBeenCalled()
-            const response = mockRes.json.mock.calls[0][0]
-            expect(response.message).toBe('Cache cleared')
-            expect(response.entriesCleared).toBe(2)
-            expect(response.currentSize).toBe(0)
-            expect(cache.cache.size).toBe(0)
         })
     })
 

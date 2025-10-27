@@ -88,10 +88,6 @@ npm run runtest -- cache/__tests__/cache-limits.test.js
 - ✅ Return cache statistics at top level (hits, misses, hitRate, length, bytes, etc.)
 - ✅ Include details array when requested with `?details=true`
 
-#### cacheClear Endpoint (1 test)
-- ✅ Clear all cache entries
-- ✅ Return correct response (message, entriesCleared, currentSize)
-
 #### Cache Integration (2 tests)
 - ✅ Maintain separate caches for different endpoints
 - ✅ Only cache successful responses (skip 404s, errors)
