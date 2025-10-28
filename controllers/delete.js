@@ -2,7 +2,7 @@
 
 /**
  * Delete operations for RERUM v1
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
@@ -86,8 +86,9 @@ const deleteObj = async function(req, res, next) {
                 next(createExpressError(err))
                 return
             }
+            // Store the deleted object for cache invalidation middleware to use for smart invalidation
+            res.locals.deletedObject = safe_original
             //204 to say it is deleted and there is nothing in the body
-            console.log("Object deleted: " + preserveID)
             res.sendStatus(204)
             return
         }
