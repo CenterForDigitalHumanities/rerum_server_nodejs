@@ -21,14 +21,11 @@
  * 3. Accept per-instance caching as tradeoff for simplicity and in-memory speed
  * 
  * @author thehabes
- * 
- * @author thehabes
  */
 
 /**
  * Represents a node in the doubly-linked list used by LRU cache
-```
-```
+ */
 class CacheNode {
     constructor(key, value) {
         this.key = key
