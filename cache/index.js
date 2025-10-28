@@ -4,12 +4,31 @@
  * In-memory LRU cache implementation for RERUM API
  * Caches read operation results to reduce MongoDB Atlas load.
  * Uses smart invalidation during writes to invalidate affected cached reads.
+ * 
+ * IMPORTANT - PM2 Cluster Mode Behavior:
+ * When running in PM2 cluster mode (pm2 start -i max), each worker process maintains
+ * its own independent in-memory cache. There is no automatic synchronization between workers.
+ * 
+ * This means:
+ * - Each instance caches only the requests it handles (via load balancer)
+ * - Cache hit rates will be lower in cluster mode (~25% with 4 workers vs 100% single instance)
+ * - Cache invalidation on writes only affects the instance that handled the write request
+ * - Different instances may briefly serve different cached data after writes
+ * 
+ * For production cluster deployments needing higher cache consistency, consider:
+ * 1. Redis/Memcached for shared caching across all instances (best consistency)
+ * 2. Sticky sessions to route repeat requests to same instance (better hit rates)
+ * 3. Accept per-instance caching as tradeoff for simplicity and in-memory speed
+ * 
+ * @author thehabes
+ * 
  * @author thehabes
  */
 
 /**
  * Represents a node in the doubly-linked list used by LRU cache
- */
+```
+```
 class CacheNode {
     constructor(key, value) {
         this.key = key
@@ -589,133 +608,5 @@ const CACHE_MAX_LENGTH = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
 const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1GB
 const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 300000) // 5 minutes default
 const cache = new LRUCache(CACHE_MAX_LENGTH, CACHE_MAX_BYTES, CACHE_TTL)
-
-// ═══════════════════════════════════════════════════════════════════════
-// PM2 Cluster Mode Synchronization
-// ═══════════════════════════════════════════════════════════════════════
-// When running in PM2 cluster mode (pm2 start -i max), each instance has
-// its own in-memory cache. We use process messaging to keep caches in sync.
-
-const isClusterMode = () => process.send !== undefined
-
-if (isClusterMode()) {
-    // Listen for cache synchronization messages from other instances
-    process.on('message', (packet) => {
-        // PM2 wraps messages in {type: 'process:msg', data: ...}
-        if (packet?.type !== 'process:msg') return
-        
-        const msg = packet.data
-        if (!msg?.type?.startsWith('rerum:cache:')) return
-        
-        // Log message receipt for debugging (remove in production)
-        console.log(`[Cache Sync] Received ${msg.type} from another instance`)
-        
-        // Handle different cache sync operations
-        switch (msg.type) {
-            case 'rerum:cache:set':
-                // Another instance cached data - cache it here too
-                if (msg.key && msg.value !== undefined) {
-                    cache.cache.set(msg.key, new CacheNode(msg.key, msg.value))
-                }
-                break
-                
-            case 'rerum:cache:invalidate':
-                // Another instance invalidated entries - invalidate here too
-                if (msg.pattern) {
-                    cache.invalidate(msg.pattern)
-                }
-                break
-                
-            case 'rerum:cache:clear':
-                // Another instance cleared cache - clear here too
-                cache.clear()
-                break
-        }
-    })
-}
-
-// Broadcast helper - sends message to all other PM2 instances
-const broadcast = (messageData) => {
-    if (isClusterMode() && process.send) {
-        // PM2 cluster mode: send message that PM2 will broadcast to all instances
-        console.log(`[Cache Sync] Broadcasting ${messageData.type}`)
-        process.send({
-            type: 'process:msg',
-            data: messageData,
-            topic: 'rerum:cache'  // Add topic for PM2 routing
-        })
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// Cluster-aware cache operations
-// ═══════════════════════════════════════════════════════════════════════
-
-// Original methods (store for wrapped versions)
-const originalSet = cache.set.bind(cache)
-const originalInvalidate = cache.invalidate.bind(cache)
-const originalClear = cache.clear.bind(cache)
-
-// Wrap set() to broadcast to other instances
-const wrappedSet = function(key, value) {
-    const result = originalSet(key, value)
-    
-    // Broadcast to other instances in cluster
-    broadcast({
-        type: 'rerum:cache:set',
-        key: key,
-        value: value
-    })
-    
-    return result
-}
-
-// Wrap invalidate() to broadcast to other instances
-const wrappedInvalidate = function(pattern) {
-    const keysInvalidated = originalInvalidate(pattern)
-    
-    // Broadcast to other instances in cluster
-    if (keysInvalidated > 0) {
-        broadcast({
-            type: 'rerum:cache:invalidate',
-            pattern: pattern
-        })
-    }
-    
-    return keysInvalidated
-}
-
-// Wrap clear() to broadcast to other instances
-const wrappedClear = function() {
-    const entriesCleared = cache.cache.size
-    originalClear()
-    
-    // Broadcast to other instances in cluster
-    broadcast({
-        type: 'rerum:cache:clear'
-    })
-    
-    return entriesCleared
-}
-
-// Replace methods with wrapped versions
-cache.set = wrappedSet
-cache.invalidate = wrappedInvalidate
-cache.clear = wrappedClear
-
-// Add method to get aggregated stats across all instances
-cache.getAggregatedStats = async function() {
-    if (!isClusterMode()) {
-        // Not in cluster mode - return local stats
-        return this.getStats()
-    }
-    
-    // In cluster mode - this is complex and requires PM2 API
-    // For now, return local stats with note
-    const stats = this.getStats()
-    stats._note = 'Stats are per-instance in cluster mode'
-    stats._clustered = true
-    return stats
-}
 
 export default cache
