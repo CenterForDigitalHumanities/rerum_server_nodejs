@@ -237,17 +237,38 @@ measure_endpoint() {
 # Clear cache
 clear_cache() {
     log_info "Clearing cache..."
-    curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
+    
+    # Retry up to 3 times to handle concurrent cache population
+    local max_attempts=3
+    local attempt=1
+    local cache_length=""
+    
+    while [ $attempt -le $max_attempts ]; do
+        curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
+        
+        # Wait for cache clear to complete and stabilize
+        sleep 2
+        
+        # Sanity check: Verify cache is actually empty
+        local stats=$(get_cache_stats)
+        cache_length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "unknown")
+        
+        if [ "$cache_length" = "0" ]; then
+            log_info "Sanity check - Cache successfully cleared (length: 0)"
+            break
+        fi
+        
+        if [ $attempt -lt $max_attempts ]; then
+            log_warning "Cache length is ${cache_length} after clear attempt ${attempt}/${max_attempts}, retrying..."
+            attempt=$((attempt + 1))
+        else
+            log_warning "Cache clear completed with ${cache_length} entries remaining after ${max_attempts} attempts"
+            log_info "This may be due to concurrent requests on the development server"
+        fi
+    done
+    
+    # Additional wait to ensure cache state is stable before continuing
     sleep 1
-    
-    # Sanity check: Verify cache is actually empty
-    local stats=$(get_cache_stats)
-    local cache_length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "unknown")
-    log_info "Sanity check - Cache length after clear: ${cache_length}"
-    
-    if [ "$cache_length" != "0" ] && [ "$cache_length" != "unknown" ]; then
-        log_warning "Cache clear may have failed - length is ${cache_length} instead of 0"
-    fi
 }
 
 # Fill cache to specified size with diverse queries (mix of matching and non-matching)
@@ -270,6 +291,9 @@ fill_cache() {
         # Launch batch requests in parallel using background jobs
         for count in $(seq $completed $((batch_end - 1))); do
             (
+                # Create truly unique cache entries by making each query unique
+                # Use timestamp + count to ensure uniqueness even in parallel execution
+                local unique_id="CacheFill_${count}_$$_$(date +%s%3N)"
                 local pattern=$((count % 3))
                 
                 # First 3 requests create the cache entries we'll test for hits in Phase 4
@@ -295,15 +319,15 @@ fill_cache() {
                     if [ $pattern -eq 0 ]; then
                         curl -s -X POST "${API_BASE}/api/query" \
                             -H "Content-Type: application/json" \
-                            -d "{\"type\":\"CacheFill_$count\",\"limit\":100}" > /dev/null 2>&1
+                            -d "{\"type\":\"$unique_id\"}" > /dev/null 2>&1
                     elif [ $pattern -eq 1 ]; then
                         curl -s -X POST "${API_BASE}/api/search" \
                             -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"cache_entry_$count\",\"limit\":100}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"$unique_id\"}" > /dev/null 2>&1
                     else
                         curl -s -X POST "${API_BASE}/api/search/phrase" \
                             -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"fill cache $count\",\"limit\":100}" > /dev/null 2>&1
+                            -d "{\"searchText\":\"$unique_id\"}" > /dev/null 2>&1
                     fi
                 fi
             ) &
@@ -317,6 +341,9 @@ fill_cache() {
         echo -ne "\r  Progress: $completed/$target_size entries (${pct}%)  "
     done
     echo ""
+    
+    # Wait for all cache operations to complete and stabilize
+    sleep 2
     
     # Sanity check: Verify cache actually contains entries
     log_info "Sanity check - Verifying cache size after fill..."
@@ -338,6 +365,9 @@ fill_cache() {
     fi
     
     log_success "Cache filled to ${final_size} entries (query, search, search/phrase patterns)"
+    
+    # Additional wait to ensure cache state is stable before continuing
+    sleep 1
 }
 
 # Warm up the system (JIT compilation, connection pools, OS caches)

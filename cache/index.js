@@ -565,12 +565,17 @@ class LRUCache {
     }
     
     readableAge(mili) {
-        const seconds = Math.floor(mili / 1000)
-        const minutes = Math.floor(seconds / 60)
-        const hours = Math.floor(minutes / 60)
-        const days = Math.floor(hours / 24)
+        const totalSeconds = Math.floor(mili / 1000)
+        const totalMinutes = Math.floor(totalSeconds / 60)
+        const totalHours = Math.floor(totalMinutes / 60)
+        const days = Math.floor(totalHours / 24)
+        
+        const hours = totalHours % 24
+        const minutes = totalMinutes % 60
+        const seconds = totalSeconds % 60
+        
         let parts = []
-        if (days > 0) parts.push(`${Math.floor(days)} day${Math.floor(days) !== 1 ? 's' : ''}`)
+        if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`)
         if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`)
         if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`)
         parts.push(`${seconds} second${seconds !== 1 ? 's' : ''}`)
