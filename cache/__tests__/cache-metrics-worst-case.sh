@@ -285,8 +285,8 @@ fill_cache() {
         for count in $(seq $completed $((batch_end - 1))); do
             (
                 # Create truly unique cache entries by making each query unique
-                # Use timestamp + count to ensure uniqueness even in parallel execution
-                local unique_id="WorstCaseFill_${count}_$$_$(date +%s%3N)"
+                # Use timestamp + count + random + PID to ensure uniqueness even in parallel execution
+                local unique_id="WorstCaseFill_${count}_${RANDOM}_$$_$(date +%s%N)"
                 local pattern=$((count % 3))
                 
                 # Create truly unique cache entries by varying query parameters
@@ -317,7 +317,8 @@ fill_cache() {
     echo ""
     
     # Wait for all cache operations to complete and stabilize
-    sleep 2
+    log_info "Waiting for cache to stabilize..."
+    sleep 5
     
     # Sanity check: Verify cache actually contains entries
     log_info "Sanity check - Verifying cache size after fill..."
@@ -1723,6 +1724,11 @@ main() {
     echo ""
     log_section "PHASE 3: Fill Cache with 1000 Entries (Worst Case - Non-Matching)"
     echo "[INFO] Filling cache with entries that will NEVER match test queries (worst case)..."
+    
+    # Clear cache and wait for system to stabilize after write operations
+    clear_cache
+    sleep 5
+    
     fill_cache $CACHE_FILL_SIZE
     
     # ============================================================
