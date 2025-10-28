@@ -369,6 +369,9 @@ fill_cache() {
         wait
         
         # Count results from temp file
+        batch_success=0
+        batch_timeout=0
+        batch_fail=0
         if [ -f /tmp/cache_fill_results_$$.tmp ]; then
             batch_success=$(grep -c "^success$" /tmp/cache_fill_results_$$.tmp 2>/dev/null || echo "0")
             batch_timeout=$(grep -c "^timeout$" /tmp/cache_fill_results_$$.tmp 2>/dev/null || echo "0")
