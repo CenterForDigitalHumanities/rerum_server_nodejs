@@ -403,6 +403,57 @@ get_cache_stats() {
     curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
 }
 
+# Debug function to test if /cache/stats is causing cache entries
+debug_cache_stats_issue() {
+    log_section "DEBUG: Testing if /cache/stats causes cache entries"
+    
+    log_info "Clearing cache..."
+    curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
+    sleep 1
+    
+    log_info "Getting initial stats..."
+    local stats_before=$(curl -s "${API_BASE}/api/cache/stats" 2>/dev/null)
+    local sets_before=$(echo "$stats_before" | jq -r '.sets' 2>/dev/null || echo "0")
+    local misses_before=$(echo "$stats_before" | jq -r '.misses' 2>/dev/null || echo "0")
+    local length_before=$(echo "$stats_before" | jq -r '.length' 2>/dev/null || echo "0")
+    
+    log_info "Initial: sets=$sets_before, misses=$misses_before, length=$length_before"
+    
+    log_info "Calling /cache/stats 3 more times..."
+    for i in {1..3}; do
+        local stats=$(curl -s "${API_BASE}/api/cache/stats" 2>/dev/null)
+        local sets=$(echo "$stats" | jq -r '.sets' 2>/dev/null || echo "0")
+        local misses=$(echo "$stats" | jq -r '.misses' 2>/dev/null || echo "0")
+        local length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "0")
+        log_info "Call $i: sets=$sets, misses=$misses, length=$length"
+        sleep 0.5
+    done
+    
+    log_info "Getting final stats..."
+    local stats_after=$(curl -s "${API_BASE}/api/cache/stats" 2>/dev/null)
+    local sets_after=$(echo "$stats_after" | jq -r '.sets' 2>/dev/null || echo "0")
+    local misses_after=$(echo "$stats_after" | jq -r '.misses' 2>/dev/null || echo "0")
+    local length_after=$(echo "$stats_after" | jq -r '.length' 2>/dev/null || echo "0")
+    
+    log_info "Final: sets=$sets_after, misses=$misses_after, length=$length_after"
+    
+    local sets_delta=$((sets_after - sets_before))
+    local misses_delta=$((misses_after - misses_before))
+    local length_delta=$((length_after - length_before))
+    
+    log_info "Delta: sets=$sets_delta, misses=$misses_delta, length=$length_delta"
+    
+    if [ $sets_delta -gt 0 ] || [ $misses_delta -gt 0 ]; then
+        log_warning "⚠️  /cache/stats IS incrementing cache statistics!"
+        log_warning "This means cache.get() or cache.set() is being called somewhere"
+        log_warning "Check server logs for [CACHE DEBUG] messages to find the source"
+    else
+        log_success "✓ /cache/stats is NOT incrementing cache statistics"
+    fi
+    
+    echo ""
+}
+
 # Helper: Create a test object and track it for cleanup
 # Returns the object ID
 create_test_object() {
@@ -1771,6 +1822,9 @@ main() {
     check_server
     get_auth_token
     warmup_system
+    
+    # Run debug test to check if /cache/stats increments stats
+    debug_cache_stats_issue
     
     # Run optimized 5-phase test flow
     log_header "Running Functionality & Performance Tests"
