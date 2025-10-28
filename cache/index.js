@@ -607,6 +607,9 @@ if (isClusterMode()) {
         const msg = packet.data
         if (!msg?.type?.startsWith('rerum:cache:')) return
         
+        // Log message receipt for debugging (remove in production)
+        console.log(`[Cache Sync] Received ${msg.type} from another instance`)
+        
         // Handle different cache sync operations
         switch (msg.type) {
             case 'rerum:cache:set':
@@ -633,10 +636,13 @@ if (isClusterMode()) {
 
 // Broadcast helper - sends message to all other PM2 instances
 const broadcast = (messageData) => {
-    if (isClusterMode()) {
+    if (isClusterMode() && process.send) {
+        // PM2 cluster mode: send message that PM2 will broadcast to all instances
+        console.log(`[Cache Sync] Broadcasting ${messageData.type}`)
         process.send({
             type: 'process:msg',
-            data: messageData
+            data: messageData,
+            topic: 'rerum:cache'  // Add topic for PM2 routing
         })
     }
 }
