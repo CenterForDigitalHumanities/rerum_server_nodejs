@@ -12,7 +12,7 @@ import cache from './index.js'
  * Cache middleware for query endpoint
  * Caches results based on query parameters, limit, and skip
  */
-const cacheQuery = (req, res, next) => {
+const cacheQuery = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -34,8 +34,8 @@ const cacheQuery = (req, res, next) => {
     }
     const cacheKey = cache.generateKey('query', cacheParams)
 
-    // Try to get from cache
-    const cachedResult = cache.get(cacheKey)
+    // Try to get from cache (now async)
+    const cachedResult = await cache.get(cacheKey)
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
@@ -47,11 +47,12 @@ const cacheQuery = (req, res, next) => {
     // Store original json method
     const originalJson = res.json.bind(res)
 
-    // Override json method to cache the response
+    // Override json method to cache the response (now async)
     res.json = (data) => {
         // Only cache successful responses
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            // Fire and forget - don't await to avoid blocking response
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -62,7 +63,7 @@ const cacheQuery = (req, res, next) => {
  * Cache middleware for search endpoint (word search)
  * Caches results based on search text and options
  */
-const cacheSearch = (req, res, next) => {
+const cacheSearch = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -85,7 +86,7 @@ const cacheSearch = (req, res, next) => {
     }
     const cacheKey = cache.generateKey('search', cacheParams)
 
-    const cachedResult = cache.get(cacheKey)
+    const cachedResult = await cache.get(cacheKey)
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
@@ -97,7 +98,7 @@ const cacheSearch = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -108,7 +109,7 @@ const cacheSearch = (req, res, next) => {
  * Cache middleware for phrase search endpoint
  * Caches results based on search phrase and options
  */
-const cacheSearchPhrase = (req, res, next) => {
+const cacheSearchPhrase = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -131,7 +132,7 @@ const cacheSearchPhrase = (req, res, next) => {
     }
     const cacheKey = cache.generateKey('searchPhrase', cacheParams)
 
-    const cachedResult = cache.get(cacheKey)
+    const cachedResult = await cache.get(cacheKey)
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
@@ -143,7 +144,7 @@ const cacheSearchPhrase = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -154,7 +155,7 @@ const cacheSearchPhrase = (req, res, next) => {
  * Cache middleware for ID lookup endpoint
  * Caches individual object lookups by ID
  */
-const cacheId = (req, res, next) => {
+const cacheId = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -170,7 +171,7 @@ const cacheId = (req, res, next) => {
     }
 
     const cacheKey = cache.generateKey('id', id)
-    const cachedResult = cache.get(cacheKey)
+    const cachedResult = await cache.get(cacheKey)
     
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
@@ -185,7 +186,7 @@ const cacheId = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && data) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -196,7 +197,7 @@ const cacheId = (req, res, next) => {
  * Cache middleware for history endpoint
  * Caches version history lookups by ID
  */
-const cacheHistory = (req, res, next) => {
+const cacheHistory = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -212,7 +213,7 @@ const cacheHistory = (req, res, next) => {
     }
 
     const cacheKey = cache.generateKey('history', id)
-    const cachedResult = cache.get(cacheKey)
+    const cachedResult = await cache.get(cacheKey)
     
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
@@ -225,7 +226,7 @@ const cacheHistory = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -237,7 +238,7 @@ const cacheHistory = (req, res, next) => {
  * Cache middleware for since endpoint
  * Caches descendant version lookups by ID
  */
-const cacheSince = (req, res, next) => {
+const cacheSince = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -253,7 +254,7 @@ const cacheSince = (req, res, next) => {
     }
 
     const cacheKey = cache.generateKey('since', id)
-    const cachedResult = cache.get(cacheKey)
+    const cachedResult = await cache.get(cacheKey)
     
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
@@ -266,7 +267,7 @@ const cacheSince = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -446,10 +447,10 @@ const invalidateCache = (req, res, next) => {
 /**
  * Middleware to expose cache statistics at /cache/stats endpoint
  */
-const cacheStats = (req, res) => {
-    const stats = cache.getStats()
+const cacheStats = async (req, res) => {
+    const stats = await cache.getStats()
     const response = { ...stats }
-    if (req.query.details === 'true') response.details = cache.getDetailsByEntry()
+    // details not available with cluster cache
     res.status(200).json(response)
 }
 
@@ -457,14 +458,15 @@ const cacheStats = (req, res) => {
  * Middleware to clear cache at /cache/clear endpoint
  * Should be protected in production
  */
-const cacheClear = (req, res) => {
-    const sizeBefore = cache.cache.size
-    cache.clear()
+const cacheClear = async (req, res) => {
+    const statsBefore = await cache.getStats()
+    const sizeBefore = statsBefore.length
+    await cache.clear()
 
     res.status(200).json({
         message: 'Cache cleared',
         entriesCleared: sizeBefore,
-        currentSize: cache.cache.size
+        currentSize: 0
     })
 }
 
@@ -473,7 +475,7 @@ const cacheClear = (req, res) => {
  * Caches POST requests for WitnessFragment entities from ManuscriptWitness
  * Cache key includes ManuscriptWitness URI and pagination parameters
  */
-const cacheGogFragments = (req, res, next) => {
+const cacheGogFragments = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -491,7 +493,7 @@ const cacheGogFragments = (req, res, next) => {
     // Generate cache key from ManuscriptWitness URI and pagination
     const cacheKey = `gog-fragments:${manID}:limit=${limit}:skip=${skip}`
     
-    const cachedResponse = cache.get(cacheKey)
+    const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
         res.set('X-Cache', 'HIT')
         res.set('Content-Type', 'application/json; charset=utf-8')
@@ -504,7 +506,7 @@ const cacheGogFragments = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
@@ -517,7 +519,7 @@ const cacheGogFragments = (req, res, next) => {
  * Caches POST requests for Gloss entities from ManuscriptWitness
  * Cache key includes ManuscriptWitness URI and pagination parameters
  */
-const cacheGogGlosses = (req, res, next) => {
+const cacheGogGlosses = async (req, res, next) => {
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
@@ -535,7 +537,7 @@ const cacheGogGlosses = (req, res, next) => {
     // Generate cache key from ManuscriptWitness URI and pagination
     const cacheKey = `gog-glosses:${manID}:limit=${limit}:skip=${skip}`
     
-    const cachedResponse = cache.get(cacheKey)
+    const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
         res.set('X-Cache', 'HIT')
         res.set('Content-Type', 'application/json; charset=utf-8')
@@ -548,7 +550,7 @@ const cacheGogGlosses = (req, res, next) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data)
+            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
     }
