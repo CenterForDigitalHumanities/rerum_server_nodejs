@@ -239,6 +239,15 @@ clear_cache() {
     log_info "Clearing cache..."
     curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
     sleep 1
+    
+    # Sanity check: Verify cache is actually empty
+    local stats=$(get_cache_stats)
+    local cache_length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "unknown")
+    log_info "Sanity check - Cache length after clear: ${cache_length}"
+    
+    if [ "$cache_length" != "0" ] && [ "$cache_length" != "unknown" ]; then
+        log_warning "Cache clear may have failed - length is ${cache_length} instead of 0"
+    fi
 }
 
 # Fill cache to specified size with diverse queries (mix of matching and non-matching)
@@ -310,12 +319,12 @@ fill_cache() {
     echo ""
     
     # Sanity check: Verify cache actually contains entries
-    log_info "Verifying cache size..."
+    log_info "Sanity check - Verifying cache size after fill..."
     local final_stats=$(get_cache_stats)
     local final_size=$(echo "$final_stats" | jq -r '.length' 2>/dev/null || echo "0")
     local max_length=$(echo "$final_stats" | jq -r '.maxLength' 2>/dev/null || echo "0")
     
-    echo "[INFO] Cache stats - Actual size: ${final_size}, Max allowed: ${max_length}, Target: ${target_size}"
+    log_info "Sanity check - Cache stats - Actual size: ${final_size}, Max allowed: ${max_length}, Target: ${target_size}"
     
     if [ "$final_size" -lt "$target_size" ] && [ "$final_size" -eq "$max_length" ]; then
         log_failure "Cache is full at max capacity (${max_length}) but target was ${target_size}"
