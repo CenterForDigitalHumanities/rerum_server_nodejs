@@ -590,4 +590,121 @@ const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1
 const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 300000) // 5 minutes default
 const cache = new LRUCache(CACHE_MAX_LENGTH, CACHE_MAX_BYTES, CACHE_TTL)
 
+// ═══════════════════════════════════════════════════════════════════════
+// PM2 Cluster Mode Synchronization
+// ═══════════════════════════════════════════════════════════════════════
+// When running in PM2 cluster mode (pm2 start -i max), each instance has
+// its own in-memory cache. We use process messaging to keep caches in sync.
+
+const isClusterMode = () => process.send !== undefined
+
+if (isClusterMode()) {
+    // Listen for cache synchronization messages from other instances
+    process.on('message', (packet) => {
+        // PM2 wraps messages in {type: 'process:msg', data: ...}
+        if (packet?.type !== 'process:msg') return
+        
+        const msg = packet.data
+        if (!msg?.type?.startsWith('rerum:cache:')) return
+        
+        // Handle different cache sync operations
+        switch (msg.type) {
+            case 'rerum:cache:set':
+                // Another instance cached data - cache it here too
+                if (msg.key && msg.value !== undefined) {
+                    cache.cache.set(msg.key, new CacheNode(msg.key, msg.value))
+                }
+                break
+                
+            case 'rerum:cache:invalidate':
+                // Another instance invalidated entries - invalidate here too
+                if (msg.pattern) {
+                    cache.invalidate(msg.pattern)
+                }
+                break
+                
+            case 'rerum:cache:clear':
+                // Another instance cleared cache - clear here too
+                cache.clear()
+                break
+        }
+    })
+}
+
+// Broadcast helper - sends message to all other PM2 instances
+const broadcast = (messageData) => {
+    if (isClusterMode()) {
+        process.send({
+            type: 'process:msg',
+            data: messageData
+        })
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Cluster-aware cache operations
+// ═══════════════════════════════════════════════════════════════════════
+
+// Original methods (store for wrapped versions)
+const originalSet = cache.set.bind(cache)
+const originalInvalidate = cache.invalidate.bind(cache)
+const originalClear = cache.clear.bind(cache)
+
+// Wrap set() to broadcast to other instances
+cache.set = function(key, value) {
+    const result = originalSet(key, value)
+    
+    // Broadcast to other instances in cluster
+    broadcast({
+        type: 'rerum:cache:set',
+        key: key,
+        value: value
+    })
+    
+    return result
+}
+
+// Wrap invalidate() to broadcast to other instances
+cache.invalidate = function(pattern) {
+    const keysInvalidated = originalInvalidate(pattern)
+    
+    // Broadcast to other instances in cluster
+    if (keysInvalidated > 0) {
+        broadcast({
+            type: 'rerum:cache:invalidate',
+            pattern: pattern
+        })
+    }
+    
+    return keysInvalidated
+}
+
+// Wrap clear() to broadcast to other instances
+cache.clear = function() {
+    const entriesCleared = this.length()
+    originalClear()
+    
+    // Broadcast to other instances in cluster
+    broadcast({
+        type: 'rerum:cache:clear'
+    })
+    
+    return entriesCleared
+}
+
+// Add method to get aggregated stats across all instances
+cache.getAggregatedStats = async function() {
+    if (!isClusterMode()) {
+        // Not in cluster mode - return local stats
+        return this.getStats()
+    }
+    
+    // In cluster mode - this is complex and requires PM2 API
+    // For now, return local stats with note
+    const stats = this.getStats()
+    stats._note = 'Stats are per-instance in cluster mode'
+    stats._clustered = true
+    return stats
+}
+
 export default cache
