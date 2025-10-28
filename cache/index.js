@@ -130,15 +130,10 @@ class LRUCache {
      * @returns {*} Cached value or null if not found/expired
      */
     get(key) {
-        // Debug logging to track cache.get() calls
-        const caller = new Error().stack.split('\n')[2]?.trim()
-        console.log(`[CACHE DEBUG] get() called for key: ${key.substring(0, 50)}... | Caller: ${caller}`)
-        
         const node = this.cache.get(key)
         
         if (!node) {
             this.stats.misses++
-            console.log(`[CACHE DEBUG] MISS - key not found | Total misses: ${this.stats.misses}`)
             return null
         }
 
@@ -147,7 +142,6 @@ class LRUCache {
             console.log("Expired node will be removed.")
             this.delete(key)
             this.stats.misses++
-            console.log(`[CACHE DEBUG] MISS - key expired | Total misses: ${this.stats.misses}`)
             return null
         }
 
@@ -155,7 +149,6 @@ class LRUCache {
         this.moveToHead(node)
         node.hits++
         this.stats.hits++
-        console.log(`[CACHE DEBUG] HIT - key found | Total hits: ${this.stats.hits}`)
         
         return node.value
     }
@@ -181,12 +174,7 @@ class LRUCache {
      * @param {*} value - Value to cache
      */
     set(key, value) {
-        // Debug logging to track cache.set() calls
-        const caller = new Error().stack.split('\n')[2]?.trim()
-        console.log(`[CACHE DEBUG] set() called for key: ${key.substring(0, 50)}... | Caller: ${caller}`)
-        
         this.stats.sets++
-        console.log(`[CACHE DEBUG] Total sets: ${this.stats.sets}`)
 
         // Check if key already exists
         if (this.cache.has(key)) {
@@ -195,7 +183,6 @@ class LRUCache {
             node.value = value
             node.timestamp = Date.now()
             this.moveToHead(node)
-            console.log(`[CACHE DEBUG] Updated existing key`)
             return
         }
 
@@ -208,8 +195,6 @@ class LRUCache {
         if (this.head) this.head.prev = newNode
         this.head = newNode
         if (!this.tail) this.tail = newNode
-
-        console.log(`[CACHE DEBUG] Created new cache entry | Cache size: ${this.cache.size}`)
 
         // Check length limit
         if (this.cache.size > this.maxLength) this.removeTail()

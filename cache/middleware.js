@@ -13,17 +13,13 @@ import cache from './index.js'
  * Caches results based on query parameters, limit, and skip
  */
 const cacheQuery = (req, res, next) => {
-    console.log(`[CACHE DEBUG] cacheQuery middleware invoked | URL: ${req.originalUrl}`)
-    
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
-        console.log(`[CACHE DEBUG] cacheQuery skipped - caching disabled`)
         return next()
     }
 
     // Only cache POST requests with body
     if (req.method !== 'POST' || !req.body) {
-        console.log(`[CACHE DEBUG] cacheQuery skipped - method: ${req.method}, hasBody: ${!!req.body}`)
         return next()
     }
 
@@ -159,16 +155,12 @@ const cacheSearchPhrase = (req, res, next) => {
  * Caches individual object lookups by ID
  */
 const cacheId = (req, res, next) => {
-    console.log(`[CACHE DEBUG] cacheId middleware invoked | URL: ${req.originalUrl}`)
-    
     // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
-        console.log(`[CACHE DEBUG] cacheId skipped - caching disabled`)
         return next()
     }
 
     if (req.method !== 'GET') {
-        console.log(`[CACHE DEBUG] cacheId skipped - method: ${req.method}`)
         return next()
     }
 
@@ -455,9 +447,7 @@ const invalidateCache = (req, res, next) => {
  * Middleware to expose cache statistics at /cache/stats endpoint
  */
 const cacheStats = (req, res) => {
-    console.log(`[CACHE DEBUG] cacheStats() called | URL: ${req.originalUrl} | Path: ${req.path}`)
     const stats = cache.getStats()
-    console.log(`[CACHE DEBUG] Returning stats: sets=${stats.sets}, misses=${stats.misses}, hits=${stats.hits}, length=${stats.length}`)
     const response = { ...stats }
     if (req.query.details === 'true') response.details = cache.getDetailsByEntry()
     res.status(200).json(response)

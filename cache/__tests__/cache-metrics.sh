@@ -276,17 +276,23 @@ fill_cache() {
     local target_size=$1
     log_info "Filling cache to $target_size entries with diverse query patterns..."
     
-    # Strategy: Use parallel requests for much faster cache filling
-    # Create truly unique queries by varying the query content itself
-    # Process in batches of 100 parallel requests (good balance of speed vs server load)
-    local batch_size=100
+    # Strategy: Use parallel requests for faster cache filling
+    # Reduced batch size and added delays to prevent overwhelming the server
+    local batch_size=20  # Reduced from 100 to prevent connection exhaustion
     local completed=0
+    local successful_requests=0
+    local failed_requests=0
+    local timeout_requests=0
     
     while [ $completed -lt $target_size ]; do
         local batch_end=$((completed + batch_size))
         if [ $batch_end -gt $target_size ]; then
             batch_end=$target_size
         fi
+        
+        local batch_success=0
+        local batch_fail=0
+        local batch_timeout=0
         
         # Launch batch requests in parallel using background jobs
         for count in $(seq $completed $((batch_end - 1))); do
@@ -296,39 +302,65 @@ fill_cache() {
                 local unique_id="CacheFill_${count}_${RANDOM}_$$_$(date +%s%N)"
                 local pattern=$((count % 3))
                 
+                # Determine endpoint and data based on pattern
+                local endpoint=""
+                local data=""
+                
                 # First 3 requests create the cache entries we'll test for hits in Phase 4
                 # Remaining requests use unique query parameters to create distinct cache entries
                 if [ $count -lt 3 ]; then
                     # These will be queried in Phase 4 for cache hits
                     if [ $pattern -eq 0 ]; then
-                        curl -s -X POST "${API_BASE}/api/query" \
-                            -H "Content-Type: application/json" \
-                            -d "{\"type\":\"CreatePerfTest\"}" > /dev/null 2>&1
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"CreatePerfTest\"}"
                     elif [ $pattern -eq 1 ]; then
-                        curl -s -X POST "${API_BASE}/api/search" \
-                            -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"annotation\"}" > /dev/null 2>&1
+                        endpoint="${API_BASE}/api/search"
+                        data="{\"searchText\":\"annotation\"}"
                     else
-                        curl -s -X POST "${API_BASE}/api/search/phrase" \
-                            -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"test annotation\"}" > /dev/null 2>&1
+                        endpoint="${API_BASE}/api/search/phrase"
+                        data="{\"searchText\":\"test annotation\"}"
                     fi
                 else
                     # Create truly unique cache entries by varying query parameters
-                    # Use unique type/search values so each creates a distinct cache key
                     if [ $pattern -eq 0 ]; then
-                        curl -s -X POST "${API_BASE}/api/query" \
-                            -H "Content-Type: application/json" \
-                            -d "{\"type\":\"$unique_id\"}" > /dev/null 2>&1
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"$unique_id\"}"
                     elif [ $pattern -eq 1 ]; then
-                        curl -s -X POST "${API_BASE}/api/search" \
-                            -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"$unique_id\"}" > /dev/null 2>&1
+                        endpoint="${API_BASE}/api/search"
+                        data="{\"searchText\":\"$unique_id\"}"
                     else
-                        curl -s -X POST "${API_BASE}/api/search/phrase" \
-                            -H "Content-Type: application/json" \
-                            -d "{\"searchText\":\"$unique_id\"}" > /dev/null 2>&1
+                        endpoint="${API_BASE}/api/search/phrase"
+                        data="{\"searchText\":\"$unique_id\"}"
                     fi
+                fi
+                
+                # Make request with timeout and error checking
+                # --max-time 30: timeout after 30 seconds
+                # --connect-timeout 10: timeout connection after 10 seconds
+                # -w '%{http_code}': output HTTP status code
+                local http_code=$(curl -s -X POST "$endpoint" \
+                    -H "Content-Type: application/json" \
+                    -d "$data" \
+                    --max-time 30 \
+                    --connect-timeout 10 \
+                    -w '%{http_code}' \
+                    -o /dev/null 2>&1)
+                
+                local exit_code=$?
+                
+                # Check result and write to temp file for parent process to read
+                if [ $exit_code -eq 28 ]; then
+                    # Timeout
+                    echo "timeout" >> /tmp/cache_fill_results_$$.tmp
+                elif [ $exit_code -ne 0 ]; then
+                    # Other curl error
+                    echo "fail:$exit_code" >> /tmp/cache_fill_results_$$.tmp
+                elif [ "$http_code" = "200" ]; then
+                    # Success
+                    echo "success" >> /tmp/cache_fill_results_$$.tmp
+                else
+                    # HTTP error
+                    echo "fail:http_$http_code" >> /tmp/cache_fill_results_$$.tmp
                 fi
             ) &
         done
@@ -336,11 +368,39 @@ fill_cache() {
         # Wait for all background jobs to complete
         wait
         
+        # Count results from temp file
+        if [ -f /tmp/cache_fill_results_$$.tmp ]; then
+            batch_success=$(grep -c "^success$" /tmp/cache_fill_results_$$.tmp 2>/dev/null || echo "0")
+            batch_timeout=$(grep -c "^timeout$" /tmp/cache_fill_results_$$.tmp 2>/dev/null || echo "0")
+            batch_fail=$(grep -c "^fail:" /tmp/cache_fill_results_$$.tmp 2>/dev/null || echo "0")
+            rm /tmp/cache_fill_results_$$.tmp
+        fi
+        
+        successful_requests=$((successful_requests + batch_success))
+        timeout_requests=$((timeout_requests + batch_timeout))
+        failed_requests=$((failed_requests + batch_fail))
+        
         completed=$batch_end
         local pct=$((completed * 100 / target_size))
-        echo -ne "\r  Progress: $completed/$target_size entries (${pct}%)  "
+        echo -ne "\r  Progress: $completed/$target_size requests sent (${pct}%) | Success: $successful_requests | Timeout: $timeout_requests | Failed: $failed_requests  "
+        
+        # Add small delay between batches to prevent overwhelming the server
+        sleep 0.5
     done
     echo ""
+    
+    # Log final statistics
+    log_info "Request Statistics:"
+    log_info "  Total requests sent: $completed"
+    log_info "  Successful (200 OK): $successful_requests"
+    log_info "  Timeouts: $timeout_requests"
+    log_info "  Failed/Errors: $failed_requests"
+    
+    if [ $timeout_requests -gt 0 ] || [ $failed_requests -gt 0 ]; then
+        log_warning "⚠️  $(($timeout_requests + $failed_requests)) requests did not complete successfully"
+        log_warning "This suggests the server may be overwhelmed by parallel requests"
+        log_warning "Consider reducing batch size or adding more delay between batches"
+    fi
     
     # Wait for all cache operations to complete and stabilize
     log_info "Waiting for cache to stabilize..."
@@ -351,8 +411,24 @@ fill_cache() {
     local final_stats=$(get_cache_stats)
     local final_size=$(echo "$final_stats" | jq -r '.length' 2>/dev/null || echo "0")
     local max_length=$(echo "$final_stats" | jq -r '.maxLength' 2>/dev/null || echo "0")
+    local total_sets=$(echo "$final_stats" | jq -r '.sets' 2>/dev/null || echo "0")
+    local total_hits=$(echo "$final_stats" | jq -r '.hits' 2>/dev/null || echo "0")
+    local total_misses=$(echo "$final_stats" | jq -r '.misses' 2>/dev/null || echo "0")
+    local evictions=$(echo "$final_stats" | jq -r '.evictions' 2>/dev/null || echo "0")
     
-    log_info "Sanity check - Cache stats - Actual size: ${final_size}, Max allowed: ${max_length}, Target: ${target_size}"
+    log_info "Sanity check - Cache stats after fill:"
+    log_info "  Cache size: ${final_size} / ${max_length} (target: ${target_size})"
+    log_info "  Total cache.set() calls: ${total_sets}"
+    log_info "  Cache hits: ${total_hits}"
+    log_info "  Cache misses: ${total_misses}"
+    log_info "  Evictions: ${evictions}"
+    
+    # Calculate success rate
+    local expected_sets=$successful_requests
+    if [ "$total_sets" -lt "$expected_sets" ]; then
+        log_warning "⚠️  Cache.set() was called ${total_sets} times, but ${expected_sets} successful HTTP requests were made"
+        log_warning "This suggests $(($expected_sets - $total_sets)) responses were not cached (may not be arrays or status != 200)"
+    fi
     
     if [ "$final_size" -lt "$target_size" ] && [ "$final_size" -eq "$max_length" ]; then
         log_failure "Cache is full at max capacity (${max_length}) but target was ${target_size}"
@@ -360,7 +436,24 @@ fill_cache() {
         exit 1
     elif [ "$final_size" -lt "$target_size" ]; then
         log_failure "Cache size (${final_size}) is less than target (${target_size})"
-        log_info "This may indicate TTL expiration, cache eviction, or non-unique queries."
+        log_info "Diagnosis:"
+        log_info "  - Requests sent: ${completed}"
+        log_info "  - Successful HTTP 200: ${successful_requests}"
+        log_info "  - Cache.set() calls: ${total_sets}"
+        log_info "  - Cache entries created: ${final_size}"
+        log_info "  - Entries evicted: ${evictions}"
+        
+        if [ $timeout_requests -gt 0 ] || [ $failed_requests -gt 0 ]; then
+            log_info "  → PRIMARY CAUSE: $(($timeout_requests + $failed_requests)) requests failed/timed out"
+            log_info "     Reduce batch size or add more delay between batches"
+        elif [ "$total_sets" -lt "$successful_requests" ]; then
+            log_info "  → PRIMARY CAUSE: $(($successful_requests - $total_sets)) responses were not arrays or had non-200 status"
+        elif [ "$evictions" -gt 0 ]; then
+            log_info "  → PRIMARY CAUSE: ${evictions} entries evicted (cache limit reached or TTL expired)"
+        else
+            log_info "  → PRIMARY CAUSE: Concurrent requests with identical keys (duplicates not cached)"
+        fi
+        
         log_info "Current CACHE_TTL: $(echo "$final_stats" | jq -r '.ttl' 2>/dev/null || echo 'unknown')ms"
         exit 1
     fi
