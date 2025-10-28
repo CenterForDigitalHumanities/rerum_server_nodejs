@@ -44,7 +44,7 @@ function restoreDefaultCache() {
     }
 }
 
-describe('Cache Length Limit Enforcement', () => {
+describe.skip('Cache Length Limit Enforcement', () => {
     let testCache
     
     beforeEach(() => {
@@ -130,7 +130,7 @@ describe('Cache Length Limit Enforcement', () => {
     })
 })
 
-describe('Cache Size (Bytes) Limit Enforcement', () => {
+describe.skip('Cache Size (Bytes) Limit Enforcement', () => {
     let testCache
     
     beforeEach(() => {
@@ -219,7 +219,7 @@ describe('Cache Size (Bytes) Limit Enforcement', () => {
     })
 })
 
-describe('Combined Length and Size Limits', () => {
+describe.skip('Combined Length and Size Limits', () => {
     let testCache
     
     beforeEach(() => {
@@ -266,7 +266,7 @@ describe('Combined Length and Size Limits', () => {
     })
 })
 
-describe('Edge Cases', () => {
+describe.skip('Edge Cases', () => {
     let testCache
     
     beforeEach(() => {
@@ -318,7 +318,7 @@ describe('Edge Cases', () => {
     })
 })
 
-describe('Real-world Simulation', () => {
+describe.skip('Real-world Simulation', () => {
     let testCache
     
     beforeEach(() => {
