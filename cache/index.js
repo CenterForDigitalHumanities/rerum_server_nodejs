@@ -651,7 +651,7 @@ const originalInvalidate = cache.invalidate.bind(cache)
 const originalClear = cache.clear.bind(cache)
 
 // Wrap set() to broadcast to other instances
-cache.set = function(key, value) {
+const wrappedSet = function(key, value) {
     const result = originalSet(key, value)
     
     // Broadcast to other instances in cluster
@@ -665,7 +665,7 @@ cache.set = function(key, value) {
 }
 
 // Wrap invalidate() to broadcast to other instances
-cache.invalidate = function(pattern) {
+const wrappedInvalidate = function(pattern) {
     const keysInvalidated = originalInvalidate(pattern)
     
     // Broadcast to other instances in cluster
@@ -680,8 +680,8 @@ cache.invalidate = function(pattern) {
 }
 
 // Wrap clear() to broadcast to other instances
-cache.clear = function() {
-    const entriesCleared = this.length()
+const wrappedClear = function() {
+    const entriesCleared = cache.cache.size
     originalClear()
     
     // Broadcast to other instances in cluster
@@ -691,6 +691,11 @@ cache.clear = function() {
     
     return entriesCleared
 }
+
+// Replace methods with wrapped versions
+cache.set = wrappedSet
+cache.invalidate = wrappedInvalidate
+cache.clear = wrappedClear
 
 // Add method to get aggregated stats across all instances
 cache.getAggregatedStats = async function() {
