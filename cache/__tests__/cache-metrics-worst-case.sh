@@ -19,7 +19,7 @@
 # set -e
 
 # Configuration
-BASE_URL="${BASE_URL:-https://devstore.rerum.io}"
+BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
 # Auth token will be prompted from user
 AUTH_TOKEN=""
