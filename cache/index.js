@@ -286,6 +286,204 @@ class ClusterCache {
         parts.push(`${seconds} second${seconds !== 1 ? 's' : ''}`)
         return parts.join(", ")
     }
+
+    /**
+     * Smart invalidation based on object properties
+     * Only invalidates query/search caches that could potentially match this object
+     * @param {Object} obj - The created/updated object
+     * @param {Set} invalidatedKeys - Set to track which keys were invalidated (optional)
+     * @returns {Promise<number>} - Number of cache entries invalidated
+     */
+    async invalidateByObject(obj, invalidatedKeys = new Set()) {
+        if (!obj || typeof obj !== 'object') return 0
+        
+        let count = 0
+        
+        // Get all cache keys - use local tracking since cluster.keys() may not be available
+        const keysToCheck = Array.from(this.allKeys)
+        
+        for (const cacheKey of keysToCheck) {
+            // Only check query and search caches (not id, history, since, gog)
+            if (!cacheKey.startsWith('query:') && 
+                !cacheKey.startsWith('search:') && 
+                !cacheKey.startsWith('searchPhrase:')) {
+                continue
+            }
+            
+            // Extract the query parameters from the cache key
+            // Format: "query:{...json...}" or "search:{...json...}"
+            const colonIndex = cacheKey.indexOf(':')
+            if (colonIndex === -1) continue
+            
+            try {
+                const queryJson = cacheKey.substring(colonIndex + 1)
+                const queryParams = JSON.parse(queryJson)
+                
+                // Check if the created object matches this query
+                if (this.objectMatchesQuery(obj, queryParams)) {
+                    await this.delete(cacheKey)
+                    invalidatedKeys.add(cacheKey)
+                    count++
+                }
+            } catch (e) {
+                // If we can't parse the cache key, skip it
+                continue
+            }
+        }
+        
+        this.stats.invalidations += count
+        return count
+    }
+
+    /**
+     * Check if an object matches a query
+     * @param {Object} obj - The object to check
+     * @param {Object} query - The query parameters
+     * @returns {boolean} - True if object could match this query
+     */
+    objectMatchesQuery(obj, query) {
+        // For query endpoint: check if object matches the query body
+        if (query.body && typeof query.body === 'object') return this.objectContainsProperties(obj, query.body)
+        // For direct queries (like {"type":"CacheTest"}), check if object matches
+        return this.objectContainsProperties(obj, query)
+    }
+
+    /**
+     * Check if an object contains all properties specified in a query
+     * @param {Object} obj - The object to check
+     * @param {Object} queryProps - The properties to match
+     * @returns {boolean} - True if object matches the query conditions
+     */
+    objectContainsProperties(obj, queryProps) {
+        for (const [key, value] of Object.entries(queryProps)) {
+            // Skip pagination and internal parameters
+            if (key === 'limit' || key === 'skip') continue
+            
+            // Skip server-managed properties
+            if (key === '__rerum' || key === '_id') continue
+            if (key.startsWith('__rerum.') || key.includes('.__rerum.') || key.endsWith('.__rerum') ||
+                key.startsWith('_id.') || key.includes('._id.') || key.endsWith('._id')) {
+                continue
+            }
+            
+            // Handle MongoDB query operators
+            if (key.startsWith('$')) {
+                if (!this.evaluateOperator(obj, key, value)) {
+                    return false
+                }
+                continue
+            }
+            
+            // Handle nested operators on a field
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                const hasOperators = Object.keys(value).some(k => k.startsWith('$'))
+                if (hasOperators) {
+                    if (key.includes('history')) continue // Conservative
+                    const fieldValue = this.getNestedProperty(obj, key)
+                    if (!this.evaluateFieldOperators(fieldValue, value)) {
+                        return false
+                    }
+                    continue
+                }
+            }
+            
+            // Check if object has this property
+            const objValue = this.getNestedProperty(obj, key)
+            if (objValue === undefined && !(key in obj)) {
+                return false
+            }
+            
+            // For simple values, check equality
+            if (typeof value !== 'object' || value === null) {
+                if (objValue !== value) return false
+            } else {
+                // For nested objects, recursively check
+                if (typeof objValue !== 'object' || !this.objectContainsProperties(objValue, value)) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    /**
+     * Evaluate field-level operators
+     * @param {*} fieldValue - The actual field value
+     * @param {Object} operators - Object containing operators
+     * @returns {boolean} - True if field satisfies all operators
+     */
+    evaluateFieldOperators(fieldValue, operators) {
+        for (const [op, opValue] of Object.entries(operators)) {
+            switch (op) {
+                case '$exists':
+                    if ((fieldValue !== undefined) !== opValue) return false
+                    break
+                case '$size':
+                    if (!Array.isArray(fieldValue) || fieldValue.length !== opValue) return false
+                    break
+                case '$ne':
+                    if (fieldValue === opValue) return false
+                    break
+                case '$gt':
+                    if (!(fieldValue > opValue)) return false
+                    break
+                case '$gte':
+                    if (!(fieldValue >= opValue)) return false
+                    break
+                case '$lt':
+                    if (!(fieldValue < opValue)) return false
+                    break
+                case '$lte':
+                    if (!(fieldValue <= opValue)) return false
+                    break
+                default:
+                    return true // Unknown operator - be conservative
+            }
+        }
+        return true
+    }
+
+    /**
+     * Evaluate top-level MongoDB operators
+     * @param {Object} obj - The object
+     * @param {string} operator - The operator ($or, $and, etc.)
+     * @param {*} value - The operator value
+     * @returns {boolean} - True if object matches operator
+     */
+    evaluateOperator(obj, operator, value) {
+        switch (operator) {
+            case '$or':
+                if (!Array.isArray(value)) return false
+                return value.some(condition => this.objectContainsProperties(obj, condition))
+            case '$and':
+                if (!Array.isArray(value)) return false
+                return value.every(condition => this.objectContainsProperties(obj, condition))
+            case '$in':
+                return Array.isArray(value) && value.includes(obj)
+            default:
+                return true // Unknown operator - be conservative
+        }
+    }
+
+    /**
+     * Get nested property value using dot notation
+     * @param {Object} obj - The object
+     * @param {string} path - Property path
+     * @returns {*} Property value or undefined
+     */
+    getNestedProperty(obj, path) {
+        const keys = path.split('.')
+        let current = obj
+        
+        for (const key of keys) {
+            if (current === null || current === undefined || typeof current !== 'object') {
+                return undefined
+            }
+            current = current[key]
+        }
+        
+        return current
+    }
 }
 
 // Legacy LRUCache class removed - now using ClusterCache exclusively

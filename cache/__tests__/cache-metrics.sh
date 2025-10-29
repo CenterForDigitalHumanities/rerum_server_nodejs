@@ -18,7 +18,7 @@
 # set -e
 
 # Configuration
-BASE_URL="${BASE_URL:-https://devstore.rerum.io}"
+BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
 # Auth token will be prompted from user
 AUTH_TOKEN=""
@@ -378,6 +378,14 @@ fill_cache() {
             batch_fail=$(grep -c "^fail:" /tmp/cache_fill_results_$$.tmp 2>/dev/null || echo "0")
             rm /tmp/cache_fill_results_$$.tmp
         fi
+        
+        # Ensure variables are clean integers (strip any whitespace/newlines)
+        batch_success=$(echo "$batch_success" | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
+        batch_timeout=$(echo "$batch_timeout" | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
+        batch_fail=$(echo "$batch_fail" | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
+        batch_success=${batch_success:-0}
+        batch_timeout=${batch_timeout:-0}
+        batch_fail=${batch_fail:-0}
         
         successful_requests=$((successful_requests + batch_success))
         timeout_requests=$((timeout_requests + batch_timeout))

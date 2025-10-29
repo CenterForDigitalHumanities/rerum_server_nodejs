@@ -706,3 +706,286 @@ describe('Cache Statistics', () => {
         expect(stats.length).toBe(initialSize + 1)
     })
 })
+
+describe('Cache Invalidation Tests', () => {
+    beforeEach(async () => {
+        await cache.clear()
+    })
+
+    afterEach(async () => {
+        await cache.clear()
+    })
+
+    describe('invalidateByObject', () => {
+        it('should invalidate matching query caches when object is created', async () => {
+            // Cache a query for type=TestObject
+            const queryKey = cache.generateKey('query', { body: { type: 'TestObject' } })
+            await cache.set(queryKey, [{ id: '1', type: 'TestObject' }])
+            
+            // Verify cache exists
+            let cached = await cache.get(queryKey)
+            expect(cached).toBeTruthy()
+            
+            // Create new object that matches the query
+            const newObj = { id: '2', type: 'TestObject', name: 'Test' }
+            const invalidatedKeys = new Set()
+            const count = await cache.invalidateByObject(newObj, invalidatedKeys)
+            
+            // Verify cache was invalidated
+            expect(count).toBe(1)
+            expect(invalidatedKeys.has(queryKey)).toBe(true)
+            cached = await cache.get(queryKey)
+            expect(cached).toBeNull()
+        })
+
+        it('should not invalidate non-matching query caches', async () => {
+            // Cache a query for type=OtherObject
+            const queryKey = cache.generateKey('query', { body: { type: 'OtherObject' } })
+            await cache.set(queryKey, [{ id: '1', type: 'OtherObject' }])
+            
+            // Create object that doesn't match
+            const newObj = { id: '2', type: 'TestObject' }
+            const count = await cache.invalidateByObject(newObj)
+            
+            // Verify cache was NOT invalidated
+            expect(count).toBe(0)
+            const cached = await cache.get(queryKey)
+            expect(cached).toBeTruthy()
+        })
+
+        it('should invalidate search caches', async () => {
+            const searchKey = cache.generateKey('search', { body: { type: 'TestObject' } })
+            await cache.set(searchKey, [{ id: '1', type: 'TestObject' }])
+            
+            const newObj = { id: '2', type: 'TestObject' }
+            const count = await cache.invalidateByObject(newObj)
+            
+            expect(count).toBe(1)
+            const cached = await cache.get(searchKey)
+            expect(cached).toBeNull()
+        })
+
+        it('should invalidate searchPhrase caches', async () => {
+            const searchKey = cache.generateKey('searchPhrase', { body: { type: 'TestObject' } })
+            await cache.set(searchKey, [{ id: '1', type: 'TestObject' }])
+            
+            const newObj = { id: '2', type: 'TestObject' }
+            const count = await cache.invalidateByObject(newObj)
+            
+            expect(count).toBe(1)
+            const cached = await cache.get(searchKey)
+            expect(cached).toBeNull()
+        })
+
+        it('should not invalidate id, history, or since caches', async () => {
+            // These caches should not be invalidated by object matching
+            const idKey = cache.generateKey('id', '123')
+            const historyKey = cache.generateKey('history', '123')
+            const sinceKey = cache.generateKey('since', '2024-01-01')
+            
+            await cache.set(idKey, { id: '123', type: 'TestObject' })
+            await cache.set(historyKey, [{ id: '123' }])
+            await cache.set(sinceKey, [{ id: '123' }])
+            
+            const newObj = { id: '456', type: 'TestObject' }
+            const count = await cache.invalidateByObject(newObj)
+            
+            // None of these should be invalidated
+            expect(await cache.get(idKey)).toBeTruthy()
+            expect(await cache.get(historyKey)).toBeTruthy()
+            expect(await cache.get(sinceKey)).toBeTruthy()
+        })
+
+        it('should handle invalid input gracefully', async () => {
+            expect(await cache.invalidateByObject(null)).toBe(0)
+            expect(await cache.invalidateByObject(undefined)).toBe(0)
+            expect(await cache.invalidateByObject('not an object')).toBe(0)
+            expect(await cache.invalidateByObject(123)).toBe(0)
+        })
+
+        it('should track invalidation count in stats', async () => {
+            const queryKey = cache.generateKey('query', { body: { type: 'TestObject' } })
+            await cache.set(queryKey, [{ id: '1' }])
+            
+            const statsBefore = await cache.getStats()
+            const invalidationsBefore = statsBefore.invalidations
+            
+            await cache.invalidateByObject({ type: 'TestObject' })
+            
+            const statsAfter = await cache.getStats()
+            expect(statsAfter.invalidations).toBe(invalidationsBefore + 1)
+        })
+    })
+
+    describe('objectMatchesQuery', () => {
+        it('should match simple property queries', () => {
+            const obj = { type: 'TestObject', name: 'Test' }
+            expect(cache.objectMatchesQuery(obj, { type: 'TestObject' })).toBe(true)
+            expect(cache.objectMatchesQuery(obj, { type: 'OtherObject' })).toBe(false)
+        })
+
+        it('should match queries with body property', () => {
+            const obj = { type: 'TestObject' }
+            expect(cache.objectMatchesQuery(obj, { body: { type: 'TestObject' } })).toBe(true)
+            expect(cache.objectMatchesQuery(obj, { body: { type: 'OtherObject' } })).toBe(false)
+        })
+
+        it('should match nested property queries', () => {
+            const obj = { metadata: { author: 'John' } }
+            expect(cache.objectMatchesQuery(obj, { 'metadata.author': 'John' })).toBe(true)
+            expect(cache.objectMatchesQuery(obj, { 'metadata.author': 'Jane' })).toBe(false)
+        })
+    })
+
+    describe('objectContainsProperties', () => {
+        it('should skip pagination parameters', () => {
+            const obj = { type: 'TestObject' }
+            expect(cache.objectContainsProperties(obj, { type: 'TestObject', limit: 10, skip: 5 })).toBe(true)
+        })
+
+        it('should skip __rerum and _id properties', () => {
+            const obj = { type: 'TestObject' }
+            expect(cache.objectContainsProperties(obj, { type: 'TestObject', __rerum: {}, _id: '123' })).toBe(true)
+        })
+
+        it('should match simple properties', () => {
+            const obj = { type: 'TestObject', status: 'active' }
+            expect(cache.objectContainsProperties(obj, { type: 'TestObject', status: 'active' })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { type: 'TestObject', status: 'inactive' })).toBe(false)
+        })
+
+        it('should match nested objects', () => {
+            const obj = { metadata: { author: 'John', year: 2024 } }
+            expect(cache.objectContainsProperties(obj, { metadata: { author: 'John', year: 2024 } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { metadata: { author: 'Jane' } })).toBe(false)
+        })
+
+        it('should handle $exists operator', () => {
+            const obj = { type: 'TestObject', optional: 'value' }
+            expect(cache.objectContainsProperties(obj, { optional: { $exists: true } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { missing: { $exists: false } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { type: { $exists: false } })).toBe(false)
+        })
+
+        it('should handle $ne operator', () => {
+            const obj = { status: 'active' }
+            expect(cache.objectContainsProperties(obj, { status: { $ne: 'inactive' } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { status: { $ne: 'active' } })).toBe(false)
+        })
+
+        it('should handle comparison operators', () => {
+            const obj = { count: 42 }
+            expect(cache.objectContainsProperties(obj, { count: { $gt: 40 } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { count: { $gte: 42 } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { count: { $lt: 50 } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { count: { $lte: 42 } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { count: { $gt: 50 } })).toBe(false)
+        })
+
+        it('should handle $size operator for arrays', () => {
+            const obj = { tags: ['a', 'b', 'c'] }
+            expect(cache.objectContainsProperties(obj, { tags: { $size: 3 } })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { tags: { $size: 2 } })).toBe(false)
+        })
+
+        it('should handle $or operator', () => {
+            const obj = { type: 'TestObject' }
+            expect(cache.objectContainsProperties(obj, { 
+                $or: [{ type: 'TestObject' }, { type: 'OtherObject' }] 
+            })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { 
+                $or: [{ type: 'Wrong1' }, { type: 'Wrong2' }] 
+            })).toBe(false)
+        })
+
+        it('should handle $and operator', () => {
+            const obj = { type: 'TestObject', status: 'active' }
+            expect(cache.objectContainsProperties(obj, { 
+                $and: [{ type: 'TestObject' }, { status: 'active' }] 
+            })).toBe(true)
+            expect(cache.objectContainsProperties(obj, { 
+                $and: [{ type: 'TestObject' }, { status: 'inactive' }] 
+            })).toBe(false)
+        })
+    })
+
+    describe('getNestedProperty', () => {
+        it('should get top-level properties', () => {
+            const obj = { name: 'Test' }
+            expect(cache.getNestedProperty(obj, 'name')).toBe('Test')
+        })
+
+        it('should get nested properties with dot notation', () => {
+            const obj = { 
+                metadata: { 
+                    author: { 
+                        name: 'John' 
+                    } 
+                } 
+            }
+            expect(cache.getNestedProperty(obj, 'metadata.author.name')).toBe('John')
+        })
+
+        it('should return undefined for missing properties', () => {
+            const obj = { name: 'Test' }
+            expect(cache.getNestedProperty(obj, 'missing')).toBeUndefined()
+            expect(cache.getNestedProperty(obj, 'missing.nested')).toBeUndefined()
+        })
+
+        it('should handle null/undefined gracefully', () => {
+            const obj = { data: null }
+            expect(cache.getNestedProperty(obj, 'data.nested')).toBeUndefined()
+        })
+    })
+
+    describe('evaluateFieldOperators', () => {
+        it('should evaluate $exists correctly', () => {
+            expect(cache.evaluateFieldOperators('value', { $exists: true })).toBe(true)
+            expect(cache.evaluateFieldOperators(undefined, { $exists: false })).toBe(true)
+            expect(cache.evaluateFieldOperators('value', { $exists: false })).toBe(false)
+        })
+
+        it('should evaluate $size correctly', () => {
+            expect(cache.evaluateFieldOperators([1, 2, 3], { $size: 3 })).toBe(true)
+            expect(cache.evaluateFieldOperators([1, 2], { $size: 3 })).toBe(false)
+            expect(cache.evaluateFieldOperators('not array', { $size: 1 })).toBe(false)
+        })
+
+        it('should evaluate comparison operators correctly', () => {
+            expect(cache.evaluateFieldOperators(10, { $gt: 5 })).toBe(true)
+            expect(cache.evaluateFieldOperators(10, { $gte: 10 })).toBe(true)
+            expect(cache.evaluateFieldOperators(10, { $lt: 20 })).toBe(true)
+            expect(cache.evaluateFieldOperators(10, { $lte: 10 })).toBe(true)
+            expect(cache.evaluateFieldOperators(10, { $ne: 5 })).toBe(true)
+        })
+
+        it('should be conservative with unknown operators', () => {
+            expect(cache.evaluateFieldOperators('value', { $unknown: 'test' })).toBe(true)
+        })
+    })
+
+    describe('evaluateOperator', () => {
+        it('should evaluate $or correctly', () => {
+            const obj = { type: 'A' }
+            expect(cache.evaluateOperator(obj, '$or', [{ type: 'A' }, { type: 'B' }])).toBe(true)
+            expect(cache.evaluateOperator(obj, '$or', [{ type: 'B' }, { type: 'C' }])).toBe(false)
+        })
+
+        it('should evaluate $and correctly', () => {
+            const obj = { type: 'A', status: 'active' }
+            expect(cache.evaluateOperator(obj, '$and', [{ type: 'A' }, { status: 'active' }])).toBe(true)
+            expect(cache.evaluateOperator(obj, '$and', [{ type: 'A' }, { status: 'inactive' }])).toBe(false)
+        })
+
+        it('should be conservative with unknown operators', () => {
+            const obj = { type: 'A' }
+            expect(cache.evaluateOperator(obj, '$unknown', 'test')).toBe(true)
+        })
+
+        it('should handle invalid input gracefully', () => {
+            const obj = { type: 'A' }
+            expect(cache.evaluateOperator(obj, '$or', 'not an array')).toBe(false)
+            expect(cache.evaluateOperator(obj, '$and', 'not an array')).toBe(false)
+        })
+    })
+})
