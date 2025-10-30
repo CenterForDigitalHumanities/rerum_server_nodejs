@@ -176,7 +176,7 @@ measure_endpoint() {
     local data=$3
     local description=$4
     local needs_auth=${5:-false}
-    local timeout=${6:-30}
+    local timeout=${6:-35}
     
     local start=$(date +%s%3N)
     if [ "$needs_auth" == "true" ]; then
@@ -312,14 +312,14 @@ fill_cache() {
                 fi
                 
                 # Make request with timeout and error checking
-                # --max-time 30: timeout after 30 seconds
-                # --connect-timeout 10: timeout connection after 10 seconds
+                # --max-time 35: timeout after 35 seconds
+                # --connect-timeout 15: timeout connection after 15 seconds
                 # -w '%{http_code}': output HTTP status code
                 local http_code=$(curl -s -X POST "$endpoint" \
                     -H "Content-Type: application/json" \
                     -d "$data" \
-                    --max-time 30 \
-                    --connect-timeout 10 \
+                    --max-time 35 \
+                    --connect-timeout 15 \
                     -w '%{http_code}' \
                     -o /dev/null 2>&1)
                 

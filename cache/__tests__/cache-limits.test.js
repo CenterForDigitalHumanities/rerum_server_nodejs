@@ -171,15 +171,40 @@ describe('Cache maxLength Limit Configuration', () => {
         expect(cache.allKeys.size).toBeGreaterThanOrEqual(3)
     })
 
-    it('should allow PM2 Cluster Cache to enforce maxLength automatically', async () => {
-        // PM2 handles eviction based on configured limits
-        // This test verifies the limit is configured
-        expect(cache.maxLength).toBeGreaterThan(0)
-        expect(cache.maxLength).toBe(1000)
+    it('should enforce maxLength limit with LRU eviction', async () => {
+        // Save original limit
+        const originalMaxLength = cache.maxLength
         
-        const stats = await cache.getStats()
-        expect(stats).toHaveProperty('evictions')
-    })
+        // Set very low limit for testing
+        cache.maxLength = 5
+        const testId = Date.now()
+        
+        try {
+            // Add 5 entries (should all fit)
+            for (let i = 1; i <= 5; i++) {
+                await cache.set(cache.generateKey('id', `limit-${testId}-${i}`), { id: i })
+                await waitForCache(50)
+            }
+            
+            // Check we have 5 entries
+            const sizeAfter5 = await getCacheSize()
+            expect(sizeAfter5).toBeLessThanOrEqual(5)
+            
+            // Add 6th entry - should trigger eviction
+            await cache.set(cache.generateKey('id', `limit-${testId}-6`), { id: 6 })
+            await waitForCache(100)
+            
+            // Should still be at or under limit (eviction enforced)
+            const sizeAfter6 = await getCacheSize()
+            expect(sizeAfter6).toBeLessThanOrEqual(5)
+            
+            // Verify limit is being enforced (size didn't grow beyond maxLength)
+            expect(sizeAfter6).toBe(sizeAfter5) // Size stayed the same despite adding entry
+        } finally {
+            // Restore original limit
+            cache.maxLength = originalMaxLength
+        }
+    }, 10000)
 
     it('should use environment variable CACHE_MAX_LENGTH if set', () => {
         const expected = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
@@ -209,11 +234,53 @@ describe('Cache maxBytes Limit Configuration', () => {
         expect(stats.maxBytes).toBe(cache.maxBytes)
     })
 
-    it('should allow PM2 Cluster Cache to monitor byte limits', () => {
-        // PM2 monitors total size
-        expect(cache.maxBytes).toBeGreaterThan(0)
-        expect(cache.maxBytes).toBe(1000000000) // 1GB
-    })
+    it('should enforce maxBytes limit with LRU eviction', async () => {
+        // Save original limits
+        const originalMaxBytes = cache.maxBytes
+        const originalMaxLength = cache.maxLength
+        
+        // Set very low byte limit for testing
+        cache.maxBytes = 5000  // 5KB
+        cache.maxLength = 100  // High enough to not interfere
+        const testId = Date.now()
+        
+        try {
+            // Create a large object (approximately 2KB each)
+            const largeObject = { 
+                id: 1, 
+                data: 'x'.repeat(1000),
+                timestamp: Date.now()
+            }
+            
+            // Calculate approximate size
+            const approxSize = cache._calculateSize(largeObject)
+            const maxEntries = Math.floor(cache.maxBytes / approxSize)
+            
+            // Add more entries than should fit
+            const entriesToAdd = maxEntries + 3
+            for (let i = 1; i <= entriesToAdd; i++) {
+                await cache.set(
+                    cache.generateKey('id', `bytes-${testId}-${i}`), 
+                    { ...largeObject, id: i }
+                )
+                await waitForCache(50)
+            }
+            
+            // Wait a bit for evictions to process
+            await waitForCache(500)
+            
+            // Check that cache size is under limit (eviction enforced)
+            const finalSize = await getCacheSize()
+            expect(finalSize).toBeLessThanOrEqual(maxEntries)
+            
+            // Verify bytes didn't grow unbounded
+            expect(cache.totalBytes).toBeLessThanOrEqual(cache.maxBytes)
+        } finally {
+            // Restore original limits
+            cache.maxBytes = originalMaxBytes
+            cache.maxLength = originalMaxLength
+        }
+    }, 20000)
 
     it('should use environment variable CACHE_MAX_BYTES if set', () => {
         const expected = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000)

@@ -37,6 +37,9 @@ class ClusterCache {
         }
         
         this.allKeys = new Set()
+        this.keyAccessTimes = new Map() // Track access time for LRU eviction
+        this.keySizes = new Map() // Track size of each cached value in bytes
+        this.totalBytes = 0 // Track total cache size in bytes
         this.localCache = new Map()
         
         // Background stats sync every 5 seconds
@@ -78,10 +81,12 @@ class ClusterCache {
             const value = await this.clusterCache.get(key, undefined)
             if (value !== undefined) {
                 this.stats.hits++
+                this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
                 return value
             }
             if (this.localCache.has(key)) {
                 this.stats.hits++
+                this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
                 return this.localCache.get(key)
             }
             this.stats.misses++
@@ -89,11 +94,25 @@ class ClusterCache {
         } catch (err) {
             if (this.localCache.has(key)) {
                 this.stats.hits++
+                this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
                 return this.localCache.get(key)
             }
             this.stats.misses++
             return null
         }
+    }
+
+    /**
+     * Calculate approximate size of a value in bytes
+     * @param {*} value - Value to measure
+     * @returns {number} Approximate size in bytes
+     * @private
+     */
+    _calculateSize(value) {
+        if (value === null || value === undefined) return 0
+        const str = JSON.stringify(value)
+        // Each character is approximately 2 bytes in UTF-16
+        return str.length * 2
     }
 
     /**
@@ -103,14 +122,68 @@ class ClusterCache {
      */
     async set(key, value) {
         try {
+            const valueSize = this._calculateSize(value)
+            const isUpdate = this.allKeys.has(key)
+            
+            // If updating existing key, subtract old size first
+            if (isUpdate) {
+                const oldSize = this.keySizes.get(key) || 0
+                this.totalBytes -= oldSize
+            }
+            
+            // Get cluster-wide metrics for accurate limit enforcement
+            const clusterKeyCount = await this._getClusterKeyCount()
+            
+            // Check if we need to evict due to maxLength (cluster-wide)
+            if (clusterKeyCount >= this.maxLength && !isUpdate) {
+                await this._evictLRU()
+            }
+            
+            // Check if we need to evict due to maxBytes (cluster-wide)
+            let clusterTotalBytes = await this._getClusterTotalBytes()
+            let evictionCount = 0
+            const maxEvictions = 100 // Prevent infinite loops
+            
+            while (clusterTotalBytes + valueSize > this.maxBytes && 
+                   this.allKeys.size > 0 && 
+                   evictionCount < maxEvictions) {
+                await this._evictLRU()
+                evictionCount++
+                // Recalculate cluster total bytes after eviction
+                clusterTotalBytes = await this._getClusterTotalBytes()
+            }
+            
             await this.clusterCache.set(key, value, this.ttl)
             this.stats.sets++
             this.allKeys.add(key)
+            this.keyAccessTimes.set(key, Date.now()) // Track access time
+            this.keySizes.set(key, valueSize) // Track size
+            this.totalBytes += valueSize
             this.localCache.set(key, value)
         } catch (err) {
             console.error('Cache set error:', err)
+            // Fallback: still enforce eviction on local cache
+            const valueSize = this._calculateSize(value)
+            const isUpdate = this.allKeys.has(key)
+            
+            if (isUpdate) {
+                const oldSize = this.keySizes.get(key) || 0
+                this.totalBytes -= oldSize
+            }
+            
+            if (this.allKeys.size >= this.maxLength && !isUpdate) {
+                await this._evictLRU()
+            }
+            
+            while (this.totalBytes + valueSize > this.maxBytes && this.allKeys.size > 0) {
+                await this._evictLRU()
+            }
+            
             this.localCache.set(key, value)
             this.allKeys.add(key)
+            this.keyAccessTimes.set(key, Date.now())
+            this.keySizes.set(key, valueSize)
+            this.totalBytes += valueSize
             this.stats.sets++
         }
     }
@@ -123,11 +196,19 @@ class ClusterCache {
         try {
             await this.clusterCache.delete(key)
             this.allKeys.delete(key)
+            this.keyAccessTimes.delete(key) // Clean up access time tracking
+            const size = this.keySizes.get(key) || 0
+            this.keySizes.delete(key)
+            this.totalBytes -= size
             this.localCache.delete(key)
             return true
         } catch (err) {
             this.localCache.delete(key)
             this.allKeys.delete(key)
+            this.keyAccessTimes.delete(key) // Clean up access time tracking
+            const size = this.keySizes.get(key) || 0
+            this.keySizes.delete(key)
+            this.totalBytes -= size
             return false
         }
     }
@@ -141,6 +222,9 @@ class ClusterCache {
             
             await this.clusterCache.flush()
             this.allKeys.clear()
+            this.keyAccessTimes.clear() // Clear access time tracking
+            this.keySizes.clear() // Clear size tracking
+            this.totalBytes = 0
             this.localCache.clear()
             
             this.stats = {
@@ -160,6 +244,9 @@ class ClusterCache {
             console.error('Cache clear error:', err)
             this.localCache.clear()
             this.allKeys.clear()
+            this.keyAccessTimes.clear() // Clear access time tracking
+            this.keySizes.clear() // Clear size tracking
+            this.totalBytes = 0
             this.stats.evictions++
             
             if (!this.statsInterval._destroyed) {
@@ -168,6 +255,70 @@ class ClusterCache {
             this.statsInterval = setInterval(() => {
                 this._syncStats().catch(() => {})
             }, 5000)
+        }
+    }
+
+    /**
+     * Get cluster-wide unique key count
+     * @returns {Promise<number>} Total number of unique keys across all workers
+     * @private
+     */
+    async _getClusterKeyCount() {
+        try {
+            const keysMap = await this.clusterCache.keys()
+            const uniqueKeys = new Set()
+            
+            for (const instanceKeys of Object.values(keysMap)) {
+                if (Array.isArray(instanceKeys)) {
+                    instanceKeys.forEach(key => {
+                        if (!key.startsWith('_stats_worker_')) {
+                            uniqueKeys.add(key)
+                        }
+                    })
+                }
+            }
+            
+            return uniqueKeys.size
+        } catch (err) {
+            // Fallback to local count on error
+            return this.allKeys.size
+        }
+    }
+
+    /**
+     * Get cluster-wide total bytes
+     * Since PM2 cache uses storage:'all', all workers have same data.
+     * Use local totalBytes which should match across all workers.
+     * @returns {Promise<number>} Total bytes in cache
+     * @private
+     */
+    async _getClusterTotalBytes() {
+        return this.totalBytes
+    }
+
+    /**
+     * Evict least recently used (LRU) entry from cache
+     * Called when cache reaches maxLength limit
+     * @private
+     */
+    async _evictLRU() {
+        if (this.allKeys.size === 0) return
+        
+        // Find the key with the oldest access time
+        let oldestKey = null
+        let oldestTime = Infinity
+        
+        for (const key of this.allKeys) {
+            const accessTime = this.keyAccessTimes.get(key) || 0
+            if (accessTime < oldestTime) {
+                oldestTime = accessTime
+                oldestKey = key
+            }
+        }
+        
+        if (oldestKey) {
+            await this.delete(oldestKey)
+            this.stats.evictions++
         }
     }
 
@@ -241,6 +392,7 @@ class ClusterCache {
             return {
                 length: uniqueKeys.size,
                 maxLength: this.maxLength,
+                totalBytes: aggregatedStats.totalBytes,
                 maxBytes: this.maxBytes,
                 ttl: this.ttl,
                 hits: aggregatedStats.hits,
@@ -263,6 +415,7 @@ class ClusterCache {
                 ...this.stats,
                 length: this.allKeys.size,
                 maxLength: this.maxLength,
+                totalBytes: this.totalBytes,
                 maxBytes: this.maxBytes,
                 ttl: this.ttl,
                 hitRate: `${hitRate}%`,
@@ -284,6 +437,7 @@ class ClusterCache {
             const statsKey = `_stats_worker_${workerId}`
             await this.clusterCache.set(statsKey, {
                 ...this.stats,
+                totalBytes: this.totalBytes,
                 workerId,
                 timestamp: Date.now()
             }, 10000)
@@ -305,7 +459,8 @@ class ClusterCache {
                 misses: 0,
                 sets: 0,
                 evictions: 0,
-                invalidations: 0
+                invalidations: 0,
+                totalBytes: 0
             }
             const processedWorkers = new Set()
             
@@ -326,6 +481,7 @@ class ClusterCache {
                                     aggregated.sets += workerStats.sets || 0
                                     aggregated.evictions += workerStats.evictions || 0
                                     aggregated.invalidations += workerStats.invalidations || 0
+                                    aggregated.totalBytes += workerStats.totalBytes || 0
                                     processedWorkers.add(workerId)
                                 }
                             } catch (err) {
@@ -338,7 +494,7 @@ class ClusterCache {
             
             return aggregated
         } catch (err) {
-            return { ...this.stats }
+            return { ...this.stats, totalBytes: this.totalBytes }
         }
     }
 
