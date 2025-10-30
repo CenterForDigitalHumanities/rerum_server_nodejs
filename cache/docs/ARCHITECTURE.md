@@ -34,13 +34,14 @@
 │  └────────────┬─────────────────────┬────────────────────────┘   │
 │               │                     │                            │
 │     ┌─────────▼─────────┐          │                            │
-│     │   LRU Cache       │          │                            │
+│     │  PM2 Cluster Cache│          │                            │
 │     │   (In-Memory)     │          │                            │
 │     │                   │          │                            │
 │     │  Max: 1000 items  │          │                            │
-│     │  Max: 1GB bytes   │          │                            │
+│     │  Max: 1GB monitor │          │                            │
 │     │  TTL: 5 minutes   │          │                            │
-│     │  Eviction: LRU    │          │                            │
+│     │  Mode: 'all'      │          │                            │
+│     │  (full replicate) │          │                            │
 │     │                   │          │                            │
 │     │  Cache Keys:      │          │                            │
 │     │  • id:{id}        │          │                            │
@@ -234,48 +235,47 @@ Client Write Request (CREATE/UPDATE/DELETE)
        Client Response
 ```
 
-## LRU Cache Internal Structure
+## PM2 Cluster Cache Internal Structure
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│                     LRU Cache                              │
+│              PM2 Cluster Cache (per Worker)               │
+│                Storage Mode: 'all' (Full Replication)     │
 │                                                            │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │          Doubly Linked List (Access Order)       │    │
+│  │       JavaScript Map (Built-in Data Structure)   │    │
 │  │                                                   │    │
-│  │  HEAD (Most Recent)                               │    │
+│  │  Key-Value Pairs (Synchronized across workers)   │    │
 │  │    ↓                                              │    │
-│  │  ┌─────────────┐     ┌─────────────┐            │    │
-│  │  │   Node 1    │ ←→  │   Node 2    │            │    │
-│  │  │ key: "id:1" │     │ key: "qry:1"│            │    │
-│  │  │ value: {...}│     │ value: [...] │            │    │
-│  │  │ hits: 15    │     │ hits: 8     │            │    │
-│  │  │ age: 30s    │     │ age: 45s    │            │    │
-│  │  └──────┬──────┘     └──────┬──────┘            │    │
-│  │         ↓                   ↓                    │    │
-│  │  ┌─────────────┐     ┌─────────────┐            │    │
-│  │  │   Node 3    │ ←→  │   Node 4    │            │    │
-│  │  │ key: "sch:1"│     │ key: "his:1"│            │    │
-│  │  └─────────────┘     └─────────────┘            │    │
-│  │         ↓                                        │    │
-│  │       TAIL (Least Recent - Next to Evict)       │    │
+│  │  ┌─────────────────────────────────────────┐    │    │
+│  │  │ "id:507f1f77..."     → {value, metadata} │    │    │
+│  │  │ "query:{...}"        → {value, metadata} │    │    │
+│  │  │ "search:manuscript"  → {value, metadata} │    │    │
+│  │  │ "history:507f1f77..." → {value, metadata} │    │    │
+│  │  │ "since:507f1f77..."   → {value, metadata} │    │    │
+│  │  └─────────────────────────────────────────┘    │    │
+│  │                                                   │    │
+│  │  Metadata per Entry:                             │    │
+│  │  • value: Cached response data                   │    │
+│  │  • timestamp: Creation time                      │    │
+│  │  • ttl: Expiration time                          │    │
 │  └──────────────────────────────────────────────────┘    │
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │              Hash Map (Fast Lookup)              │    │
+│  │         Eviction Strategy (Automatic)             │    │
 │  │                                                   │    │
-│  │  "id:1"    → Node 1                              │    │
-│  │  "qry:1"   → Node 2                              │    │
-│  │  "sch:1"   → Node 3                              │    │
-│  │  "his:1"   → Node 4                              │    │
-│  │  ...                                             │    │
+│  │  • maxLength: 1000 entries (enforced)            │    │
+│  │  • When exceeded: Oldest entry removed           │    │
+│  │  • TTL: Expired entries auto-removed             │    │
+│  │  • Synchronized across all workers               │    │
 │  └──────────────────────────────────────────────────┘    │
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │                 Statistics                        │    │
+│  │                 Statistics (Per Worker)           │    │
+│  │        Aggregated every 5s across workers         │    │
 │  │                                                   │    │
-│  │  • hits: 1234        • size: 850/1000            │    │
-│  │  • misses: 567       • bytes: 22.1MB/1000MB     │    │
+│  │  • hits: 1234        • length: 850/1000          │    │
+│  │  • misses: 567       • bytes: 22.1MB (monitor)   │    │
 │  │  • evictions: 89     • hitRate: 68.51%           │    │
 │  │  • sets: 1801        • ttl: 300000ms             │    │
 │  │  • invalidations: 45                             │    │
@@ -290,19 +290,18 @@ Client Write Request (CREATE/UPDATE/DELETE)
 │                       Cache Key Structure                               │
 ├────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Type          │  Pattern                │  Example                    │
-│────────────────┼─────────────────────────┼────────────────────────────│
-│  ID            │  id:{object_id}         │  id:507f1f77bcf86cd799439  │
-│  Query         │  query:{sorted_json}    │  query:{"limit":"100",...} │
-│  Search        │  search:{json}          │  search:"manuscript"       │
-│  Phrase        │  searchPhrase:{json}    │  searchPhrase:"medieval"   │
-│  History       │  history:{id}           │  history:507f1f77bcf86cd   │
-│  Since         │  since:{id}             │  since:507f1f77bcf86cd799  │
-│  GOG Fragments │  gogFragments:{uri}:... │  gogFragments:https://...  │
-│  GOG Glosses   │  gogGlosses:{uri}:...   │  gogGlosses:https://...    │
+│  Type          │  Pattern                       │  Example                           │
+│────────────────┼────────────────────────────────┼───────────────────────────────────│
+│  ID            │  id:{object_id}                │  id:507f1f77bcf86cd799439         │
+│  Query         │  query:{sorted_json}           │  query:{"limit":"100",...}        │
+│  Search        │  search:{json}                 │  search:"manuscript"              │
+│  Phrase        │  searchPhrase:{json}           │  searchPhrase:"medieval"          │
+│  History       │  history:{id}                  │  history:507f1f77bcf86cd          │
+│  Since         │  since:{id}                    │  since:507f1f77bcf86cd799         │
+│  GOG Fragments │  gog-fragments:{id}:limit:skip │  gog-fragments:507f:limit=10:...  │
+│  GOG Glosses   │  gog-glosses:{id}:limit:skip   │  gog-glosses:507f:limit=10:...    │
 │                                                                         │
-│  Note: ID, history, and since keys use simple concatenation (no quotes)│
-│        Query and search keys use JSON.stringify with sorted properties │
+│  Note: All keys use consistent JSON.stringify() serialization          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -360,8 +359,9 @@ The cache enforces both entry count and memory size limits:
 │  operation. The byte limit provides protection against       │
 │  accidentally caching very large result sets.                │
 │                                                               │
-│  Eviction: When either limit is exceeded, LRU entries        │
-│           are removed until both limits are satisfied        │
+│  Eviction: When maxLength (1000) is exceeded, PM2 Cluster    │
+│           Cache automatically removes oldest entries across  │
+│           all workers until limit is satisfied               │
 └──────────────────────────────────────────────────────────────┘
 ```
 

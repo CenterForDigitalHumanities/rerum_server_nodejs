@@ -3,11 +3,8 @@
 ################################################################################
 # RERUM Cache WORST-CASE Scenario Performance Test
 # 
-# Tests the absolute worst-case scenario for cache performance:
-# - Read operations: Query for data NOT in cache (cache miss, full scan)
-# - Write operations: Invalidate data NOT matching cache (full scan, no invalidations)
-#
-# This measures maximum overhead when cache provides NO benefit.
+# Tests worst-case cache performance (cache misses, full scans, no invalidations)
+# Measures maximum overhead when cache provides NO benefit
 #
 # Produces: /cache/docs/CACHE_METRICS_WORST_CASE_REPORT.md
 #
@@ -15,48 +12,35 @@
 # Date: October 23, 2025
 ################################################################################
 
-# Exit on error (disabled for better error reporting)
-# set -e
-
-# Configuration
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
-# Auth token will be prompted from user
 AUTH_TOKEN=""
 
-# Test configuration
 CACHE_FILL_SIZE=1000
 WARMUP_ITERATIONS=20
 NUM_WRITE_TESTS=100
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Test counters
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 SKIPPED_TESTS=0
 
-# Performance tracking arrays
 declare -A ENDPOINT_COLD_TIMES
 declare -A ENDPOINT_WARM_TIMES
 declare -A ENDPOINT_STATUS
 declare -A ENDPOINT_DESCRIPTIONS
 
-# Array to store created object IDs for cleanup
 declare -a CREATED_IDS=()
-
-# Associative array to store full created objects (to avoid unnecessary GET requests)
 declare -A CREATED_OBJECTS
 
-# Report file - go up to repo root first
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPORT_FILE="$REPO_ROOT/cache/docs/CACHE_METRICS_WORST_CASE_REPORT.md"

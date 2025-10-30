@@ -2,7 +2,7 @@
 
 ## Overview
 
-The RERUM API implements an LRU (Least Recently Used) cache with smart invalidation for all read endpoints. The cache intercepts requests before they reach the database and automatically invalidates when data changes.
+The RERUM API implements a **PM2 Cluster Cache** with smart invalidation for all read endpoints. The cache uses `pm2-cluster-cache` to synchronize cached data across all worker instances in PM2 cluster mode, ensuring consistent cache hits regardless of which worker handles the request.
 
 ## Prerequisites
 
@@ -40,17 +40,18 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 
 ### Default Settings
 - **Enabled by default**: Set `CACHING=false` to disable
-- **Max Length**: 1000 entries (configurable)
-- **Max Bytes**: 1GB (1,000,000,000 bytes) (configurable)
+- **Max Length**: 1000 entries per worker (configurable)
+- **Max Bytes**: 1GB per worker (1,000,000,000 bytes) (configurable)
 - **TTL (Time-To-Live)**: 5 minutes default, 24 hours in production (300,000ms or 86,400,000ms)
-- **Eviction Policy**: LRU (Least Recently Used)
-- **Storage**: In-memory (per server instance)
+- **Storage Mode**: PM2 Cluster Cache with 'all' replication mode (full cache copy on each worker, synchronized automatically)
+- **Stats Sync**: Background interval every 5 seconds via setInterval (stats may be up to 5s stale across workers)
+- **Eviction**: Handled internally by pm2-cluster-cache based on maxLength limit (oldest entries removed when limit exceeded)
 
 ### Environment Variables
 ```bash
 CACHING=true                 # Enable/disable caching layer (true/false)
 CACHE_MAX_LENGTH=1000        # Maximum number of cached entries
-CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes
+CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes (per worker)
 CACHE_TTL=300000             # Time-to-live in milliseconds (300000 = 5 min, 86400000 = 24 hr)
 ```
 
@@ -74,37 +75,39 @@ The cache implements **dual limits** for defense-in-depth:
    - Ensures diverse cache coverage
    - Prevents cache thrashing from too many unique queries
    - Reached first under normal operation
+   - Eviction handled automatically by pm2-cluster-cache (removes oldest entries when limit exceeded)
 
 2. **Byte Limit (1GB)**
    - Secondary safety limit
    - Prevents memory exhaustion
    - Protects against accidentally large result sets
    - Guards against malicious queries
+   - Monitored but not enforced by pm2-cluster-cache (length limit is primary control)
 
 **Balance Analysis**: With typical RERUM queries (100 items per page at ~269 bytes per annotation):
 - 1000 entries = ~26 MB (2.7% of 1GB limit)
 - Length limit reached first in 99%+ of scenarios
-- Byte limit only activates for edge cases (e.g., entries > 1MB each)
+- Byte limit only relevant for monitoring and capacity planning
 
 **Eviction Behavior**:
-- When length limit exceeded: Remove least recently used entry
-- When byte limit exceeded: Remove LRU entries until under limit
-- Both limits checked on every cache write operation
+- PM2 Cluster Cache automatically evicts oldest entries when maxLength (1000) is exceeded
+- Eviction synchronized across all workers (all workers maintain consistent cache state)
+- No manual eviction logic required in RERUM code
 
-**Byte Size Calculation**:
+**Byte Size Calculation** (for monitoring only):
 ```javascript
-// Accurately calculates total cache memory usage
+// Used for stats reporting, not enforced by pm2-cluster-cache
 calculateByteSize() {
     let totalBytes = 0
-    for (const [key, node] of this.cache.entries()) {
+    for (const [key, value] of this.cache.entries()) {
         totalBytes += Buffer.byteLength(key, 'utf8')
-        totalBytes += Buffer.byteLength(JSON.stringify(node.value), 'utf8')
+        totalBytes += Buffer.byteLength(JSON.stringify(value), 'utf8')
     }
     return totalBytes
 }
 ```
 
-This ensures the byte limit is properly enforced (fixed in PR #225).
+This provides visibility into memory usage across workers.
 
 ## Cached Endpoints
 
@@ -273,6 +276,8 @@ Cache Key: gogGlosses:https://example.org/manuscript/123:50:0
 
 ### Cache Statistics (`GET /v1/api/cache/stats`)
 **Handler**: `cacheStats`
+
+**Stats Synchronization**: Stats are aggregated across all PM2 workers via background interval (every 5 seconds). When you request `/cache/stats`, you receive the most recently synchronized stats, which may be up to 5 seconds stale. This is acceptable for monitoring dashboards and provides fast response times (~2ms) without blocking.
 
 Returns cache performance metrics:
 ```json
@@ -505,7 +510,7 @@ generateKey('query', { type: 'Annotation', limit: '100', skip: '0' })
 // Note: Properties are alphabetically sorted for consistency
 ```
 
-**Critical Fix**: History and since keys do NOT use `JSON.stringify()`, avoiding quote characters in the key that would prevent pattern matching during invalidation.
+**Consistent Serialization**: All cache keys use `JSON.stringify()` for the data portion, ensuring consistent matching during invalidation pattern searches.
 
 ---
 
@@ -525,26 +530,27 @@ generateKey('query', { type: 'Annotation', limit: '100', skip: '0' })
 
 ### Cache Hit (Typical)
 ```
-Request → Cache Middleware → Cache Lookup → Return Cached Data
-Total Time: 1-5ms
+Request → Cache Middleware → PM2 Cluster Cache Lookup → Return Cached Data
+Total Time: 1-5ms (local worker cache, no network overhead)
 ```
 
 ### Cache Miss (First Request)
 ```
-Request → Cache Middleware → Controller → MongoDB → Cache Store → Response
+Request → Cache Middleware → Controller → MongoDB → PM2 Cluster Cache Store (synchronized to all workers) → Response
 Total Time: 300-800ms (depending on query complexity)
 ```
 
 ### Memory Usage
 - Average entry size: ~2-10KB (depending on object complexity)
-- Max memory (1000 entries): ~2-10MB
-- LRU eviction ensures memory stays bounded
+- Max memory per worker (1000 entries × ~10KB): ~10MB
+- PM2 Cluster Cache eviction ensures memory stays bounded
+- All workers maintain identical cache state (storage mode: 'all')
 
 ### TTL Behavior
-- Entry created: Timestamp recorded
-- Entry accessed: Timestamp NOT updated (read-through cache)
-- After 5 minutes: Entry expires and is evicted
-- Next request: Cache miss, fresh data fetched
+- Entry created: Stored with TTL metadata (5 min default, 24 hr in production)
+- Entry accessed: TTL countdown continues (read-through cache)
+- After TTL expires: pm2-cluster-cache automatically removes entry across all workers
+- Next request: Cache miss, fresh data fetched and cached
 
 ---
 
@@ -567,9 +573,10 @@ RERUM's versioning model creates challenges:
 - Prevents caching of error states
 
 ### 4. Concurrent Requests
-- Multiple simultaneous cache misses for same key
-- Each request queries database independently
-- First to complete populates cache for others
+- Multiple simultaneous cache misses for same key across different workers
+- Each worker queries database independently
+- PM2 Cluster Cache synchronizes result to all workers after first completion
+- Subsequent requests hit cache on their respective workers
 
 ### 5. Case Sensitivity
 - Cache keys are case-sensitive
@@ -607,14 +614,17 @@ Cache operations are logged with `[CACHE]` prefix:
 
 ## Implementation Notes
 
-### Thread Safety
-- JavaScript is single-threaded, no locking required
-- Map operations are atomic within event loop
+### PM2 Cluster Mode
+- Uses pm2-cluster-cache v2.1.7 with storage mode 'all' (full replication)
+- All workers maintain identical cache state
+- Cache writes synchronized automatically across workers
+- No shared memory or IPC overhead (each worker has independent Map)
 
 ### Memory Management
-- LRU eviction prevents unbounded growth
-- Configurable max size via environment variable
-- Automatic TTL expiration
+- PM2 Cluster Cache handles eviction automatically based on maxLength
+- Evictions synchronized across all workers
+- No manual memory management required
+- Byte size calculated for monitoring/stats only
 
 ### Extensibility
 - New endpoints can easily add cache middleware
@@ -626,7 +636,6 @@ Cache operations are logged with `[CACHE]` prefix:
 ## Future Enhancements
 
 Possible improvements (not currently implemented):
-- Redis/Memcached for multi-server caching
 - Warming cache on server startup
 - Adaptive TTL based on access patterns
 - Cache compression for large objects

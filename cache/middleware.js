@@ -2,7 +2,6 @@
 
 /**
  * Cache middleware for RERUM API routes
- * Provides caching for read operations and invalidation for write operations
  * @author thehabes
  */
 
@@ -10,15 +9,12 @@ import cache from './index.js'
 
 /**
  * Cache middleware for query endpoint
- * Caches results based on query parameters, limit, and skip
  */
 const cacheQuery = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
 
-    // Only cache POST requests with body
     if (req.method !== 'POST' || !req.body) {
         return next()
     }
@@ -26,7 +22,6 @@ const cacheQuery = async (req, res, next) => {
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
     
-    // Create cache key including pagination params
     const cacheParams = {
         body: req.body,
         limit,
@@ -34,7 +29,6 @@ const cacheQuery = async (req, res, next) => {
     }
     const cacheKey = cache.generateKey('query', cacheParams)
 
-    // Try to get from cache (now async)
     const cachedResult = await cache.get(cacheKey)
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
@@ -44,14 +38,10 @@ const cacheQuery = async (req, res, next) => {
     }
     res.set('X-Cache', 'MISS')
 
-    // Store original json method
     const originalJson = res.json.bind(res)
 
-    // Override json method to cache the response (now async)
     res.json = (data) => {
-        // Only cache successful responses
         if (res.statusCode === 200 && Array.isArray(data)) {
-            // Fire and forget - don't await to avoid blocking response
             cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
         }
         return originalJson(data)
@@ -61,10 +51,8 @@ const cacheQuery = async (req, res, next) => {
 
 /**
  * Cache middleware for search endpoint (word search)
- * Caches results based on search text and options
  */
 const cacheSearch = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
@@ -107,10 +95,8 @@ const cacheSearch = async (req, res, next) => {
 
 /**
  * Cache middleware for phrase search endpoint
- * Caches results based on search phrase and options
  */
 const cacheSearchPhrase = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
@@ -153,10 +139,8 @@ const cacheSearchPhrase = async (req, res, next) => {
 
 /**
  * Cache middleware for ID lookup endpoint
- * Caches individual object lookups by ID
  */
 const cacheId = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
@@ -176,7 +160,6 @@ const cacheId = async (req, res, next) => {
     if (cachedResult) {
         res.set("Content-Type", "application/json; charset=utf-8")
         res.set('X-Cache', 'HIT')
-        // Apply same headers as the original controller
         res.set("Cache-Control", "max-age=86400, must-revalidate")
         res.status(200).json(cachedResult)
         return
@@ -195,10 +178,8 @@ const cacheId = async (req, res, next) => {
 
 /**
  * Cache middleware for history endpoint
- * Caches version history lookups by ID
  */
 const cacheHistory = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
@@ -236,10 +217,8 @@ const cacheHistory = async (req, res, next) => {
 
 /**
  * Cache middleware for since endpoint
- * Caches descendant version lookups by ID
  */
 const cacheSince = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
@@ -277,165 +256,121 @@ const cacheSince = async (req, res, next) => {
 
 /**
  * Cache invalidation middleware for write operations
- * Invalidates cache entries when objects are created, updated, or deleted
+ * Invalidates affected cache entries when objects are created, updated, or deleted
  */
 const invalidateCache = (req, res, next) => {
-    // Skip cache invalidation if caching is disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
 
-    // Store original response methods
     const originalJson = res.json.bind(res)
     const originalSend = res.send.bind(res)
     const originalSendStatus = res.sendStatus.bind(res)
     
-    // Track if we've already performed invalidation to prevent duplicates
     let invalidationPerformed = false
 
-    // Common invalidation logic
     const performInvalidation = (data) => {
-        // Prevent duplicate invalidation
         if (invalidationPerformed) {
             return
         }
         invalidationPerformed = true
         
-        // Only invalidate on successful write operations
         if (res.statusCode >= 200 && res.statusCode < 300) {
-            // Use originalUrl to get the full path (req.path only shows the path within the mounted router)
             const path = req.originalUrl || req.path
             
-            // Determine what to invalidate based on the operation
             if (path.includes('/create') || path.includes('/bulkCreate')) {
-                // For creates, use smart invalidation based on the created object's properties
-                
-                // Extract the created object(s)
                 const createdObjects = path.includes('/bulkCreate') 
                     ? (Array.isArray(data) ? data : [data])
                     : [data?.new_obj_state ?? data]
                 
-                // Collect all property keys from created objects to invalidate matching queries
                 const invalidatedKeys = new Set()
                 
                 for (const obj of createdObjects) {
                     if (!obj) continue
-                    
-                    // Invalidate caches that query for any property in the created object
-                    // This ensures queries matching this object will be refreshed
                     cache.invalidateByObject(obj, invalidatedKeys)
                 }
             } 
             else if (path.includes('/update') || path.includes('/patch') || 
                      path.includes('/set') || path.includes('/unset') ||
                      path.includes('/overwrite') || path.includes('/bulkUpdate')) {
-                // For updates, use smart invalidation based on the updated object
                 
-                // Extract updated object (response may contain new_obj_state or the object directly)
                 const updatedObject = data?.new_obj_state ?? data
                 const objectId = updatedObject?._id ?? updatedObject?.["@id"]
                 
                 if (updatedObject && objectId) {
                     const invalidatedKeys = new Set()
                     
-                    // Invalidate the specific ID cache for the NEW object
                     const idKey = `id:${objectId.split('/').pop()}`
                     cache.delete(idKey)
                     invalidatedKeys.add(idKey)
                     
-                    // Extract version chain IDs
                     const objIdShort = objectId.split('/').pop()
                     const previousId = updatedObject?.__rerum?.history?.previous?.split('/').pop()
                     const primeId = updatedObject?.__rerum?.history?.prime?.split('/').pop()
                     
-                    // CRITICAL: Also invalidate the PREVIOUS object's ID cache
-                    // When UPDATE creates a new version, the old ID should show the old object
-                    // but we need to invalidate it so clients get fresh data
                     if (previousId && previousId !== 'root') {
                         const prevIdKey = `id:${previousId}`
                         cache.delete(prevIdKey)
                         invalidatedKeys.add(prevIdKey)
                     }
                     
-                    // Smart invalidation for queries that match this object
                     cache.invalidateByObject(updatedObject, invalidatedKeys)
                     
-                    // Invalidate history/since for this object AND its version chain
-                    // Build pattern that matches current, previous, and prime IDs
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
                     const historyCount = cache.invalidate(historyPattern)
                 } else {
-                    // Fallback to broad invalidation if we can't extract the object
                     cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
                 }
             }
             else if (path.includes('/delete')) {
-                // For deletes, use smart invalidation based on the deleted object
-                
-                // Get the deleted object from res.locals (set by delete controller before deletion)
                 const deletedObject = res.locals.deletedObject
                 const objectId = deletedObject?._id ?? deletedObject?.["@id"]
                 
                 if (deletedObject && objectId) {
                     const invalidatedKeys = new Set()
                     
-                    // Invalidate the specific ID cache
                     const idKey = `id:${objectId.split('/').pop()}`
                     cache.delete(idKey)
                     invalidatedKeys.add(idKey)
                     
-                    // Extract version chain IDs
                     const objIdShort = objectId.split('/').pop()
                     const previousId = deletedObject?.__rerum?.history?.previous?.split('/').pop()
                     const primeId = deletedObject?.__rerum?.history?.prime?.split('/').pop()
                     
-                    // CRITICAL: Also invalidate the PREVIOUS object's ID cache
-                    // When DELETE removes an object, the previous version may still be cached
                     if (previousId && previousId !== 'root') {
                         const prevIdKey = `id:${previousId}`
                         cache.delete(prevIdKey)
                         invalidatedKeys.add(prevIdKey)
                     }
                     
-                    // Smart invalidation for queries that matched this object
                     cache.invalidateByObject(deletedObject, invalidatedKeys)
                     
-                    // Invalidate history/since for this object AND its version chain
-                    // Build pattern that matches current, previous, and prime IDs
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
                     const historyCount = cache.invalidate(historyPattern)
                 } else {
-                    // Fallback to broad invalidation if we can't extract the object
                     cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
                 }
             }
             else if (path.includes('/release')) {
-                // Release creates a new version, invalidate all including history/since
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
         }
     }
 
-    // Override json method to invalidate cache after successful writes
     res.json = (data) => {
         performInvalidation(data)
         return originalJson(data)
     }
 
-    // Override send method (used by some endpoints)
     res.send = (data) => {
         performInvalidation(data)
         return originalSend(data)
     }
 
-    // Override sendStatus method (used by delete endpoint with 204 No Content)
     res.sendStatus = (statusCode) => {
         res.statusCode = statusCode
-        // For delete operations, we need to get the object ID from params
-        // Since there's no response data with 204, we can't do smart matching
-        // Fallback: invalidate all caches (will be caught by the delete handler above)
         const deleteData = { "@id": req.params._id }
         performInvalidation(deleteData)
         return originalSendStatus(statusCode)
@@ -445,18 +380,15 @@ const invalidateCache = (req, res, next) => {
 }
 
 /**
- * Middleware to expose cache statistics at /cache/stats endpoint
+ * Expose cache statistics at /cache/stats endpoint
  */
 const cacheStats = async (req, res) => {
     const stats = await cache.getStats()
-    const response = { ...stats }
-    // details not available with cluster cache
-    res.status(200).json(response)
+    res.status(200).json(stats)
 }
 
 /**
- * Middleware to clear cache at /cache/clear endpoint
- * Should be protected in production
+ * Clear cache at /cache/clear endpoint (should be protected in production)
  */
 const cacheClear = async (req, res) => {
     const statsBefore = await cache.getStats()
@@ -472,16 +404,12 @@ const cacheClear = async (req, res) => {
 
 /**
  * Cache middleware for GOG fragments endpoint
- * Caches POST requests for WitnessFragment entities from ManuscriptWitness
- * Cache key includes ManuscriptWitness URI and pagination parameters
  */
 const cacheGogFragments = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
 
-    // Only cache if request has valid body with ManuscriptWitness
     const manID = req.body?.["ManuscriptWitness"]
     if (!manID || !manID.startsWith("http")) {
         return next()
@@ -490,7 +418,6 @@ const cacheGogFragments = async (req, res, next) => {
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
     
-    // Generate cache key from ManuscriptWitness URI and pagination
     const cacheKey = `gog-fragments:${manID}:limit=${limit}:skip=${skip}`
     
     const cachedResponse = await cache.get(cacheKey)
@@ -502,7 +429,6 @@ const cacheGogFragments = async (req, res, next) => {
     }
     res.set('X-Cache', 'MISS')
 
-    // Intercept res.json to cache the response
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {
@@ -516,16 +442,12 @@ const cacheGogFragments = async (req, res, next) => {
 
 /**
  * Cache middleware for GOG glosses endpoint
- * Caches POST requests for Gloss entities from ManuscriptWitness
- * Cache key includes ManuscriptWitness URI and pagination parameters
  */
 const cacheGogGlosses = async (req, res, next) => {
-    // Skip caching if disabled
     if (process.env.CACHING !== 'true') {
         return next()
     }
 
-    // Only cache if request has valid body with ManuscriptWitness
     const manID = req.body?.["ManuscriptWitness"]
     if (!manID || !manID.startsWith("http")) {
         return next()
@@ -534,7 +456,6 @@ const cacheGogGlosses = async (req, res, next) => {
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
     
-    // Generate cache key from ManuscriptWitness URI and pagination
     const cacheKey = `gog-glosses:${manID}:limit=${limit}:skip=${skip}`
     
     const cachedResponse = await cache.get(cacheKey)
@@ -546,7 +467,6 @@ const cacheGogGlosses = async (req, res, next) => {
     }
     res.set('X-Cache', 'MISS')
 
-    // Intercept res.json to cache the response
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         if (res.statusCode === 200 && Array.isArray(data)) {

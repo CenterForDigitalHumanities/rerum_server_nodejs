@@ -3,59 +3,43 @@
 ################################################################################
 # RERUM Cache Comprehensive Metrics & Functionality Test
 # 
-# Combines:
-# - Integration testing (endpoint functionality with cache)
-# - Performance testing (read/write speed with/without cache)
-# - Limit enforcement testing (cache boundaries)
-#
+# Combines integration, performance, and limit enforcement testing
 # Produces: /cache/docs/CACHE_METRICS_REPORT.md
 #
 # Author: thehabes
 # Date: October 22, 2025
 ################################################################################
 
-# Exit on error (disabled for better error reporting)
-# set -e
-
 # Configuration
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 API_BASE="${BASE_URL}/v1"
-# Auth token will be prompted from user
 AUTH_TOKEN=""
 
-# Test configuration
 CACHE_FILL_SIZE=1000
 WARMUP_ITERATIONS=20
 NUM_WRITE_TESTS=100
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Test counters
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 SKIPPED_TESTS=0
 
-# Performance tracking arrays
 declare -A ENDPOINT_COLD_TIMES
 declare -A ENDPOINT_WARM_TIMES
 declare -A ENDPOINT_STATUS
 declare -A ENDPOINT_DESCRIPTIONS
 
-# Array to store created object IDs for cleanup
 declare -a CREATED_IDS=()
-
-# Associative array to store full created objects (to avoid unnecessary GET requests)
 declare -A CREATED_OBJECTS
 
-# Report file - go up to repo root first
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPORT_FILE="$REPO_ROOT/cache/docs/CACHE_METRICS_REPORT.md"
@@ -116,7 +100,6 @@ log_overhead() {
     fi
 }
 
-# Check server connectivity
 check_server() {
     log_info "Checking server connectivity at ${BASE_URL}..."
     if ! curl -s -f "${BASE_URL}" > /dev/null 2>&1; then
@@ -127,7 +110,6 @@ check_server() {
     log_success "Server is running at ${BASE_URL}"
 }
 
-# Get bearer token from user
 get_auth_token() {
     log_header "Authentication Setup"
     
@@ -150,7 +132,6 @@ get_auth_token() {
         exit 1
     fi
     
-    # Validate JWT format (3 parts separated by dots)
     log_info "Validating token..."
     if ! echo "$AUTH_TOKEN" | grep -qE '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'; then
         echo -e "${RED}ERROR: Token is not a valid JWT format${NC}"
@@ -158,9 +139,7 @@ get_auth_token() {
         exit 1
     fi
     
-    # Extract and decode payload (second part of JWT)
     local payload=$(echo "$AUTH_TOKEN" | cut -d. -f2)
-    # Add padding if needed for base64 decoding
     local padded_payload="${payload}$(printf '%*s' $((4 - ${#payload} % 4)) '' | tr ' ' '=')"
     local decoded_payload=$(echo "$padded_payload" | base64 -d 2>/dev/null)
     
@@ -169,7 +148,6 @@ get_auth_token() {
         exit 1
     fi
     
-    # Extract expiration time (exp field in seconds since epoch)
     local exp=$(echo "$decoded_payload" | grep -o '"exp":[0-9]*' | cut -d: -f2)
     
     if [ -z "$exp" ]; then
@@ -192,14 +170,13 @@ get_auth_token() {
     fi
 }
 
-# Measure endpoint performance
 measure_endpoint() {
     local endpoint=$1
     local method=$2
     local data=$3
     local description=$4
     local needs_auth=${5:-false}
-    local timeout=${6:-30}  # Allow custom timeout, default 30 seconds
+    local timeout=${6:-30}
     
     local start=$(date +%s%3N)
     if [ "$needs_auth" == "true" ]; then
@@ -246,8 +223,8 @@ clear_cache() {
     while [ $attempt -le $max_attempts ]; do
         curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
         
-        # Wait for cache clear to complete and stabilize
-        sleep 2
+        # Wait longer for cache clear to complete and stats sync to stabilize (5s interval)
+        sleep 6
         
         # Sanity check: Verify cache is actually empty
         local stats=$(get_cache_stats)
@@ -278,7 +255,7 @@ fill_cache() {
     
     # Strategy: Use parallel requests for faster cache filling
     # Reduced batch size and added delays to prevent overwhelming the server
-    local batch_size=20  # Reduced from 100 to prevent connection exhaustion
+    local batch_size=100  # Reduced from 100 to prevent connection exhaustion
     local completed=0
     local successful_requests=0
     local failed_requests=0
@@ -615,14 +592,15 @@ test_query_endpoint_cold() {
     ENDPOINT_DESCRIPTIONS["query"]="Query database with filters"
     
     log_info "Testing query with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"Annotation","limit":5}' "Query for Annotations")
+    # Use the same query that will be cached in Phase 3 and tested in Phase 4
+    local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"CreatePerfTest"}' "Query for CreatePerfTest")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
     ENDPOINT_COLD_TIMES["query"]=$cold_time
     
     if [ "$cold_code" == "200" ]; then
-        log_success "Query endpoint functional"
+        log_success "Query endpoint functional (${cold_time}ms)"
         ENDPOINT_STATUS["query"]="✅ Functional"
     else
         log_failure "Query endpoint failed (HTTP $cold_code)"
@@ -659,16 +637,16 @@ test_search_endpoint() {
     
     clear_cache
     
-    # Test search functionality
+    # Test search functionality with the same query that will be cached in Phase 3 and tested in Phase 4
     log_info "Testing search with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"annotation","limit":5}' "Search for 'annotation'")
+    local result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"annotation"}' "Search for 'annotation'")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
     ENDPOINT_COLD_TIMES["search"]=$cold_time
     
     if [ "$cold_code" == "200" ]; then
-        log_success "Search endpoint functional"
+        log_success "Search endpoint functional (${cold_time}ms)"
         ENDPOINT_STATUS["search"]="✅ Functional"
     elif [ "$cold_code" == "501" ]; then
         log_skip "Search endpoint not implemented or requires MongoDB Atlas Search indexes"
@@ -944,16 +922,16 @@ test_search_phrase_endpoint() {
     
     clear_cache
     
-    # Test search phrase functionality
+    # Test search phrase functionality with the same query that will be cached in Phase 3 and tested in Phase 4
     log_info "Testing search phrase with cold cache..."
-    local result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test phrase","limit":5}' "Phrase search")
+    local result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test annotation"}' "Phrase search")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
     
     ENDPOINT_COLD_TIMES["searchPhrase"]=$cold_time
     
     if [ "$cold_code" == "200" ]; then
-        log_success "Search phrase endpoint functional"
+        log_success "Search phrase endpoint functional (${cold_time}ms)"
         ENDPOINT_STATUS["searchPhrase"]="✅ Functional"
     elif [ "$cold_code" == "501" ]; then
         log_skip "Search phrase endpoint not implemented or requires MongoDB Atlas Search indexes"
@@ -1989,15 +1967,36 @@ main() {
     # IMPORTANT: Queries must match cache fill patterns (default limit=100, skip=0) to get cache hits
     log_info "Testing /api/query with full cache..."
     local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"CreatePerfTest"}' "Query with full cache")
-    log_success "Query with full cache"
+    local warm_time=$(echo "$result" | cut -d'|' -f1)
+    local warm_code=$(echo "$result" | cut -d'|' -f2)
+    ENDPOINT_WARM_TIMES["query"]=$warm_time
+    if [ "$warm_code" == "200" ]; then
+        log_success "Query with full cache (${warm_time}ms)"
+    else
+        log_warning "Query failed with code $warm_code"
+    fi
     
     log_info "Testing /api/search with full cache..."
     result=$(measure_endpoint "${API_BASE}/api/search" "POST" '{"searchText":"annotation"}' "Search with full cache")
-    log_success "Search with full cache"
+    warm_time=$(echo "$result" | cut -d'|' -f1)
+    warm_code=$(echo "$result" | cut -d'|' -f2)
+    ENDPOINT_WARM_TIMES["search"]=$warm_time
+    if [ "$warm_code" == "200" ]; then
+        log_success "Search with full cache (${warm_time}ms)"
+    else
+        log_warning "Search failed with code $warm_code"
+    fi
     
     log_info "Testing /api/search/phrase with full cache..."
     result=$(measure_endpoint "${API_BASE}/api/search/phrase" "POST" '{"searchText":"test annotation"}' "Search phrase with full cache")
-    log_success "Search phrase with full cache"
+    warm_time=$(echo "$result" | cut -d'|' -f1)
+    warm_code=$(echo "$result" | cut -d'|' -f2)
+    ENDPOINT_WARM_TIMES["searchPhrase"]=$warm_time
+    if [ "$warm_code" == "200" ]; then
+        log_success "Search phrase with full cache (${warm_time}ms)"
+    else
+        log_warning "Search phrase failed with code $warm_code"
+    fi
     
     # For ID, history, since - use objects created in Phase 1/2 if available
     # Use object index 100+ to avoid objects that will be deleted by DELETE tests (indices 0-99)

@@ -7,9 +7,9 @@ The RERUM API now includes an intelligent caching layer that significantly impro
 ## Key Benefits
 
 ### 🚀 **Faster Response Times**
-- **Cache hits respond in 1-5ms** (compared to 300-800ms for database queries)
-- Frequently accessed objects load instantly
-- Query results are reused across multiple requests
+- **Cache hits respond in 5-50ms** (compared to 300-800ms for database queries)
+- Frequently accessed objects load significantly faster
+- Query results are synchronized across all PM2 worker instances
 
 ### 💰 **Reduced Database Load**
 - Fewer database connections required
@@ -30,9 +30,9 @@ The RERUM API now includes an intelligent caching layer that significantly impro
 
 ### For Read Operations
 When you request data:
-1. **First request**: Fetches from database, caches result, returns data (~300-800ms)
-2. **Subsequent requests**: Returns cached data immediately (~1-5ms)
-3. **After TTL expires**: Cache entry removed, next request refreshes from database (default: 5 minutes, configurable up to 24 hours)
+1. **First request**: Fetches from database, caches result across all workers, returns data (~300-800ms)
+2. **Subsequent requests**: Returns cached data from cluster cache (~5-50ms)
+3. **After TTL expires**: Cache entry removed, next request refreshes from database (default: 24 hours)
 
 ### For Write Operations
 When you create, update, or delete objects:
@@ -63,13 +63,18 @@ When you create, update, or delete objects:
 
 **Expected Cache Hit Rate**: 60-80% for read-heavy workloads
 
-**Time Savings Per Cache Hit**: 300-800ms (depending on query complexity)
+**Time Savings Per Cache Hit**: 250-750ms (depending on query complexity)
 
 **Example Scenario**:
 - Application makes 1,000 `/query` requests per hour
 - 70% cache hit rate = 700 cached responses
-- Time saved: 700 × 400ms average = **280 seconds (4.7 minutes) per hour**
+- Time saved: 700 × 330ms average = **231 seconds (3.9 minutes) per hour**
 - Database queries reduced by 70%
+
+**PM2 Cluster Benefits**:
+- Cache synchronized across all worker instances
+- Consistent hit rates regardless of which worker handles request
+- Higher overall cache efficiency in production
 
 ## Monitoring & Management
 
@@ -77,27 +82,34 @@ When you create, update, or delete objects:
 ```
 GET /v1/api/cache/stats
 ```
-Returns:
-- Total hits and misses
-- Hit rate percentage
-- Current cache size
-- Detailed cache entries (optional)
+Returns aggregated stats from all PM2 workers:
+```json
+{
+  "hits": 145,
+  "misses": 55,
+  "sets": 55,
+  "length": 42,
+  "hitRate": "72.50%"
+}
+```
+
+**Note**: Stats synchronized via background interval (every 5 seconds). May be up to 5 seconds stale.
 
 ### Clear Cache
 ```
 POST /v1/api/cache/clear
 ```
-Immediately clears all cached entries (useful for testing or troubleshooting).
+Immediately clears all cached entries across all workers (useful for testing or troubleshooting).
 
 ## Configuration
 
 Cache behavior can be adjusted via environment variables:
 - `CACHING` - Enable/disable caching layer (default: `true`, set to `false` to disable)
-- `CACHE_MAX_LENGTH` - Maximum entries (default: 1000)
-- `CACHE_MAX_BYTES` - Maximum memory usage (default: 1GB)
-- `CACHE_TTL` - Time-to-live in milliseconds (default: 300000 = 5 minutes, production often uses 86400000 = 24 hours)
+- `CACHE_MAX_LENGTH` - Maximum entries per worker (default: 1000)
+- `CACHE_MAX_BYTES` - Maximum memory usage per worker (default: 1GB)
+- `CACHE_TTL` - Time-to-live in milliseconds (default: 300000 = 5 minutes, production uses 86400000 = 24 hours)
 
-**Note**: Limits are well-balanced for typical usage. With standard RERUM queries (100 items per page), 1000 cached entries use only ~26 MB (~2.7% of the 1GB byte limit). The byte limit serves as a safety net for edge cases.
+**Note**: With PM2 cluster mode using 'all' storage, each worker maintains a full copy of the cache for consistent performance. Limits apply per worker. With standard RERUM queries (100 items per page), 1000 cached entries use only ~26 MB per worker.
 
 ### Disabling Cache
 
@@ -119,7 +131,13 @@ To disable caching completely, set `CACHING=false` in your `.env` file. This wil
 
 The cache is completely transparent:
 - Check `X-Cache` response header to see if request was cached
-- Cache automatically manages memory using LRU (Least Recently Used) eviction
+- **PM2 Cluster Cache**: Uses `pm2-cluster-cache` with 'all' storage mode
+  - Cache entries replicated across all worker instances
+  - Consistent cache hits regardless of which worker handles request
+  - Automatic synchronization via PM2's inter-process communication
+- **Stats Synchronization**: Background interval syncs stats every 5 seconds
+  - Stats may be up to 5 seconds stale (acceptable for monitoring)
+  - Fast response time (<10ms) for `/cache/stats` endpoint
 - Version chains properly handled for RERUM's object versioning model
 - No manual cache management required
 
