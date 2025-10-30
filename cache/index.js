@@ -41,9 +41,11 @@ class ClusterCache {
         this.keySizes = new Map() // Track size of each cached value in bytes
         this.totalBytes = 0 // Track total cache size in bytes
         this.localCache = new Map()
+        this.clearGeneration = 0 // Track clear operations to coordinate across workers
         
         // Background stats sync every 5 seconds
         this.statsInterval = setInterval(() => {
+            this._checkClearSignal().catch(() => {})
             this._syncStats().catch(() => {})
         }, 5000)
     }
@@ -216,43 +218,89 @@ class ClusterCache {
     /**
      * Clear all cache entries and reset stats
      */
+    /**
+     * Clear all cache entries and reset stats across all workers
+     */
     async clear() {
         try {
             clearInterval(this.statsInterval)
             
+            // Increment clear generation to signal all workers
+            this.clearGeneration++
+            
+            // Broadcast clear signal to all workers via cluster cache
+            await this.clusterCache.set('_clear_signal', {
+                generation: this.clearGeneration,
+                timestamp: Date.now()
+            }, 60000) // 1 minute TTL
+            
+            // Flush all cache data
             await this.clusterCache.flush()
+            
+            // Reset local state
             this.allKeys.clear()
-            this.keyAccessTimes.clear() // Clear access time tracking
-            this.keySizes.clear() // Clear size tracking
+            this.keyAccessTimes.clear()
+            this.keySizes.clear()
             this.totalBytes = 0
             this.localCache.clear()
             
             this.stats = {
                 hits: 0,
                 misses: 0,
-                evictions: 1,
+                evictions: 0,
                 sets: 0,
                 invalidations: 0
             }
             
-            await new Promise(resolve => setTimeout(resolve, 100))
-            
+            // Restart stats sync interval
             this.statsInterval = setInterval(() => {
+                this._checkClearSignal().catch(() => {})
                 this._syncStats().catch(() => {})
             }, 5000)
+            
+            // Immediately sync our fresh stats
+            await this._syncStats()
+            
+            // Wait for all workers to see the clear signal and reset
+            // Workers check every 5 seconds, so wait 6 seconds to be safe
+            await new Promise(resolve => setTimeout(resolve, 6000))
+            
+            // Delete all old worker stats keys
+            const keysMap = await this.clusterCache.keys()
+            const deletePromises = []
+            for (const instanceKeys of Object.values(keysMap)) {
+                if (Array.isArray(instanceKeys)) {
+                    for (const key of instanceKeys) {
+                        if (key.startsWith('_stats_worker_')) {
+                            deletePromises.push(this.clusterCache.delete(key))
+                        }
+                    }
+                }
+            }
+            await Promise.all(deletePromises)
+            
+            // Final sync after cleanup
+            await this._syncStats()
         } catch (err) {
             console.error('Cache clear error:', err)
             this.localCache.clear()
             this.allKeys.clear()
-            this.keyAccessTimes.clear() // Clear access time tracking
-            this.keySizes.clear() // Clear size tracking
+            this.keyAccessTimes.clear()
+            this.keySizes.clear()
             this.totalBytes = 0
-            this.stats.evictions++
+            this.stats = {
+                hits: 0,
+                misses: 0,
+                evictions: 0,
+                sets: 0,
+                invalidations: 0
+            }
             
             if (!this.statsInterval._destroyed) {
                 clearInterval(this.statsInterval)
             }
             this.statsInterval = setInterval(() => {
+                this._checkClearSignal().catch(() => {})
                 this._syncStats().catch(() => {})
             }, 5000)
         }
@@ -424,6 +472,81 @@ class ClusterCache {
                 synchronized: true,
                 error: err.message
             }
+        }
+    }
+
+    /**
+     * Get detailed list of all cache entries
+     * @returns {Promise<Array>} Array of cache entry details
+     */
+    async getDetails() {
+        try {
+            const keysMap = await this.clusterCache.keys()
+            const allKeys = new Set()
+            
+            for (const instanceKeys of Object.values(keysMap)) {
+                if (Array.isArray(instanceKeys)) {
+                    instanceKeys.forEach(key => {
+                        if (!key.startsWith('_stats_worker_') && !key.startsWith('_clear_signal')) {
+                            allKeys.add(key)
+                        }
+                    })
+                }
+            }
+            
+            const details = []
+            let position = 0
+            for (const key of allKeys) {
+                const value = await this.clusterCache.get(key, undefined)
+                const size = this._calculateSize(value)
+                
+                details.push({
+                    position,
+                    key,
+                    bytes: size
+                })
+                position++
+            }
+            
+            return details
+        } catch (err) {
+            console.error('Cache getDetails error:', err)
+            return []
+        }
+    }
+
+    /**
+     * Check for clear signal from other workers
+     * @private
+     */
+    async _checkClearSignal() {
+        try {
+            const signal = await this.clusterCache.get('_clear_signal', undefined)
+            if (signal && signal.generation > this.clearGeneration) {
+                // Another worker initiated a clear - reset our local state
+                this.clearGeneration = signal.generation
+                
+                this.allKeys.clear()
+                this.keyAccessTimes.clear()
+                this.keySizes.clear()
+                this.totalBytes = 0
+                this.localCache.clear()
+                
+                this.stats = {
+                    hits: 0,
+                    misses: 0,
+                    evictions: 0,
+                    sets: 0,
+                    invalidations: 0
+                }
+                
+                // Delete our worker stats key immediately
+                const workerId = process.env.pm_id || process.pid
+                const statsKey = `_stats_worker_${workerId}`
+                await this.clusterCache.delete(statsKey)
+            }
+        } catch (err) {
+            // Silently fail
         }
     }
 

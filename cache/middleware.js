@@ -383,7 +383,17 @@ const invalidateCache = (req, res, next) => {
  * Expose cache statistics at /cache/stats endpoint
  */
 const cacheStats = async (req, res) => {
+    const includeDetails = req.query.details === 'true'
     const stats = await cache.getStats()
+    
+    if (includeDetails) {
+        try {
+            stats.details = await cache.getDetails()
+        } catch (err) {
+            stats.detailsError = err.message
+        }
+    }
+    
     res.status(200).json(stats)
 }
 
