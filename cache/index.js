@@ -80,24 +80,29 @@ class ClusterCache {
      */
     async get(key) {
         try {
-            const value = await this.clusterCache.get(key, undefined)
-            if (value !== undefined) {
+            const wrappedValue = await this.clusterCache.get(key, undefined)
+            if (wrappedValue !== undefined) {
                 this.stats.hits++
                 this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
-                return value
+                // Unwrap the value if it's wrapped with metadata
+                return wrappedValue.data !== undefined ? wrappedValue.data : wrappedValue
             }
-            if (this.localCache.has(key)) {
+            // Check local cache (single lookup instead of has + get)
+            const localValue = this.localCache.get(key)
+            if (localValue !== undefined) {
                 this.stats.hits++
                 this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
-                return this.localCache.get(key)
+                return localValue
             }
             this.stats.misses++
             return null
         } catch (err) {
-            if (this.localCache.has(key)) {
+            // Fallback to local cache on error (single lookup)
+            const localValue = this.localCache.get(key)
+            if (localValue !== undefined) {
                 this.stats.hits++
                 this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
-                return this.localCache.get(key)
+                return localValue
             }
             this.stats.misses++
             return null
@@ -106,14 +111,32 @@ class ClusterCache {
 
     /**
      * Calculate approximate size of a value in bytes
+     * Fast estimation - avoids JSON.stringify for simple types
      * @param {*} value - Value to measure
      * @returns {number} Approximate size in bytes
      * @private
      */
     _calculateSize(value) {
         if (value === null || value === undefined) return 0
+        
+        // Fast path for primitives
+        const type = typeof value
+        if (type === 'string') return value.length * 2
+        if (type === 'number') return 8
+        if (type === 'boolean') return 4
+        
+        // For arrays with simple values, estimate quickly
+        if (Array.isArray(value)) {
+            if (value.length === 0) return 8
+            // If small array, just estimate
+            if (value.length < 10) {
+                return value.reduce((sum, item) => sum + this._calculateSize(item), 16)
+            }
+        }
+        
+        // For objects/complex types, fall back to JSON stringify
+        // This is still expensive but only for complex objects
         const str = JSON.stringify(value)
-        // Each character is approximately 2 bytes in UTF-16
         return str.length * 2
     }
 
@@ -124,8 +147,11 @@ class ClusterCache {
      */
     async set(key, value) {
         try {
-            const valueSize = this._calculateSize(value)
+            const now = Date.now()
             const isUpdate = this.allKeys.has(key)
+            
+            // Calculate size only once (can be expensive for large objects)
+            const valueSize = this._calculateSize(value)
             
             // If updating existing key, subtract old size first
             if (isUpdate) {
@@ -133,59 +159,57 @@ class ClusterCache {
                 this.totalBytes -= oldSize
             }
             
-            // Get cluster-wide metrics for accurate limit enforcement
-            const clusterKeyCount = await this._getClusterKeyCount()
-            
-            // Check if we need to evict due to maxLength (cluster-wide)
-            if (clusterKeyCount >= this.maxLength && !isUpdate) {
-                await this._evictLRU()
+            // Wrap value with metadata to prevent PM2 cluster-cache deduplication
+            const wrappedValue = {
+                data: value,
+                key: key,
+                cachedAt: now,
+                size: valueSize
             }
             
-            // Check if we need to evict due to maxBytes (cluster-wide)
-            let clusterTotalBytes = await this._getClusterTotalBytes()
-            let evictionCount = 0
-            const maxEvictions = 100 // Prevent infinite loops
+            // Set in cluster cache immediately (most critical operation)
+            await this.clusterCache.set(key, wrappedValue, this.ttl)
             
-            while (clusterTotalBytes + valueSize > this.maxBytes && 
-                   this.allKeys.size > 0 && 
-                   evictionCount < maxEvictions) {
-                await this._evictLRU()
-                evictionCount++
-                // Recalculate cluster total bytes after eviction
-                clusterTotalBytes = await this._getClusterTotalBytes()
-            }
-            
-            await this.clusterCache.set(key, value, this.ttl)
+            // Update local state (reuse precalculated values)
             this.stats.sets++
             this.allKeys.add(key)
-            this.keyAccessTimes.set(key, Date.now()) // Track access time
-            this.keySizes.set(key, valueSize) // Track size
+            this.keyAccessTimes.set(key, now)
+            this.keySizes.set(key, valueSize)
             this.totalBytes += valueSize
             this.localCache.set(key, value)
+            
+            // Check limits and evict if needed (do this after set to avoid blocking)
+            // Use setImmediate to defer eviction checks without blocking
+            setImmediate(async () => {
+                try {
+                    const clusterKeyCount = await this._getClusterKeyCount()
+                    if (clusterKeyCount > this.maxLength) {
+                        await this._evictLRU()
+                    }
+                    
+                    let clusterTotalBytes = await this._getClusterTotalBytes()
+                    let evictionCount = 0
+                    const maxEvictions = 100
+                    
+                    while (clusterTotalBytes > this.maxBytes && 
+                           this.allKeys.size > 0 && 
+                           evictionCount < maxEvictions) {
+                        await this._evictLRU()
+                        evictionCount++
+                        clusterTotalBytes = await this._getClusterTotalBytes()
+                    }
+                } catch (err) {
+                    console.error('Background eviction error:', err)
+                }
+            })
         } catch (err) {
             console.error('Cache set error:', err)
-            // Fallback: still enforce eviction on local cache
+            // Fallback: still update local cache
             const valueSize = this._calculateSize(value)
-            const isUpdate = this.allKeys.has(key)
-            
-            if (isUpdate) {
-                const oldSize = this.keySizes.get(key) || 0
-                this.totalBytes -= oldSize
-            }
-            
-            if (this.allKeys.size >= this.maxLength && !isUpdate) {
-                await this._evictLRU()
-            }
-            
-            while (this.totalBytes + valueSize > this.maxBytes && this.allKeys.size > 0) {
-                await this._evictLRU()
-            }
-            
             this.localCache.set(key, value)
             this.allKeys.add(key)
             this.keyAccessTimes.set(key, Date.now())
             this.keySizes.set(key, valueSize)
-            this.totalBytes += valueSize
             this.stats.sets++
         }
     }
@@ -220,6 +244,9 @@ class ClusterCache {
      */
     /**
      * Clear all cache entries and reset stats across all workers
+     * 
+     * Note: This clears immediately but stats sync happens every 5 seconds.
+     * Wait 6+ seconds after calling clear() before checking /cache/stats for accurate results.
      */
     async clear() {
         try {
@@ -227,15 +254,35 @@ class ClusterCache {
             
             // Increment clear generation to signal all workers
             this.clearGeneration++
+            const clearGen = this.clearGeneration
             
-            // Broadcast clear signal to all workers via cluster cache
+            // Flush all cache data FIRST
+            await this.clusterCache.flush()
+            
+            // THEN set the clear signal AFTER flush so it doesn't get deleted
+            // This allows other workers to see the signal and clear their local state
             await this.clusterCache.set('_clear_signal', {
-                generation: this.clearGeneration,
+                generation: clearGen,
                 timestamp: Date.now()
             }, 60000) // 1 minute TTL
             
-            // Flush all cache data
-            await this.clusterCache.flush()
+            // Delete all old worker stats keys immediately
+            try {
+                const keysMap = await this.clusterCache.keys()
+                const deletePromises = []
+                for (const instanceKeys of Object.values(keysMap)) {
+                    if (Array.isArray(instanceKeys)) {
+                        for (const key of instanceKeys) {
+                            if (key.startsWith('_stats_worker_')) {
+                                deletePromises.push(this.clusterCache.delete(key))
+                            }
+                        }
+                    }
+                }
+                await Promise.all(deletePromises)
+            } catch (err) {
+                console.error('Error deleting worker stats:', err)
+            }
             
             // Reset local state
             this.allKeys.clear()
@@ -259,27 +306,6 @@ class ClusterCache {
             }, 5000)
             
             // Immediately sync our fresh stats
-            await this._syncStats()
-            
-            // Wait for all workers to see the clear signal and reset
-            // Workers check every 5 seconds, so wait 6 seconds to be safe
-            await new Promise(resolve => setTimeout(resolve, 6000))
-            
-            // Delete all old worker stats keys
-            const keysMap = await this.clusterCache.keys()
-            const deletePromises = []
-            for (const instanceKeys of Object.values(keysMap)) {
-                if (Array.isArray(instanceKeys)) {
-                    for (const key of instanceKeys) {
-                        if (key.startsWith('_stats_worker_')) {
-                            deletePromises.push(this.clusterCache.delete(key))
-                        }
-                    }
-                }
-            }
-            await Promise.all(deletePromises)
-            
-            // Final sync after cleanup
             await this._syncStats()
         } catch (err) {
             console.error('Cache clear error:', err)
@@ -319,7 +345,8 @@ class ClusterCache {
             for (const instanceKeys of Object.values(keysMap)) {
                 if (Array.isArray(instanceKeys)) {
                     instanceKeys.forEach(key => {
-                        if (!key.startsWith('_stats_worker_')) {
+                        // Exclude internal keys from count
+                        if (!key.startsWith('_stats_worker_') && key !== '_clear_signal') {
                             uniqueKeys.add(key)
                         }
                     })
@@ -425,7 +452,8 @@ class ClusterCache {
             for (const instanceKeys of Object.values(keysMap)) {
                 if (Array.isArray(instanceKeys)) {
                     instanceKeys.forEach(key => {
-                        if (!key.startsWith('_stats_worker_')) {
+                        // Exclude internal keys from cache length
+                        if (!key.startsWith('_stats_worker_') && key !== '_clear_signal') {
                             uniqueKeys.add(key)
                         }
                     })
@@ -497,12 +525,17 @@ class ClusterCache {
             const details = []
             let position = 0
             for (const key of allKeys) {
-                const value = await this.clusterCache.get(key, undefined)
-                const size = this._calculateSize(value)
+                const wrappedValue = await this.clusterCache.get(key, undefined)
+                // Handle both wrapped and unwrapped values
+                const actualValue = wrappedValue?.data !== undefined ? wrappedValue.data : wrappedValue
+                const size = wrappedValue?.size || this._calculateSize(actualValue)
+                const cachedAt = wrappedValue?.cachedAt || Date.now()
+                const age = Date.now() - cachedAt
                 
                 details.push({
                     position,
                     key,
+                    age: this._formatUptime(age),
                     bytes: size
                 })
                 position++

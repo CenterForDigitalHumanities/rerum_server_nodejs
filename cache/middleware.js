@@ -41,8 +41,12 @@ const cacheQuery = async (req, res, next) => {
     const originalJson = res.json.bind(res)
 
     res.json = (data) => {
+        const workerId = process.env.pm_id || process.pid
         if (res.statusCode === 200 && Array.isArray(data)) {
+            console.log(`[CACHE-MIDDLEWARE] Worker ${workerId}: Caching query result, key=${cacheKey.substring(0, 80)}...`)
             cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
+        } else {
+            console.log(`[CACHE-MIDDLEWARE] Worker ${workerId}: NOT caching - status=${res.statusCode}, isArray=${Array.isArray(data)}`)
         }
         return originalJson(data)
     }
