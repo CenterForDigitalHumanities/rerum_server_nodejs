@@ -8,48 +8,60 @@
 import cache from './index.js'
 
 /**
- * Cache middleware for query endpoint
+ * Send cached response with HIT headers
+ * @private
  */
-const cacheQuery = async (req, res, next) => {
-    if (process.env.CACHING !== 'true') {
-        return next()
+const sendCacheHit = (res, data, includeCacheControl = false) => {
+    res.set('Content-Type', 'application/json; charset=utf-8')
+    res.set('X-Cache', 'HIT')
+    if (includeCacheControl) {
+        res.set('Cache-Control', 'max-age=86400, must-revalidate')
     }
+    res.status(200).json(data)
+}
 
-    if (req.method !== 'POST' || !req.body) {
-        return next()
-    }
-
-    const limit = parseInt(req.query.limit ?? 100)
-    const skip = parseInt(req.query.skip ?? 0)
-    
-    const cacheParams = {
-        body: req.body,
-        limit,
-        skip
-    }
-    const cacheKey = cache.generateKey('query', cacheParams)
-
-    const cachedResult = await cache.get(cacheKey)
-    if (cachedResult) {
-        res.set("Content-Type", "application/json; charset=utf-8")
-        res.set('X-Cache', 'HIT')
-        res.status(200).json(cachedResult)
-        return
-    }
+/**
+ * Setup cache miss handler - wraps res.json to cache on response
+ * @private
+ */
+const setupCacheMiss = (res, cacheKey, validator) => {
     res.set('X-Cache', 'MISS')
-
     const originalJson = res.json.bind(res)
-
     res.json = (data) => {
-        const workerId = process.env.pm_id || process.pid
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            console.log(`[CACHE-MIDDLEWARE] Worker ${workerId}: Caching query result, key=${cacheKey.substring(0, 80)}...`)
+        if (validator(res.statusCode, data)) {
             cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        } else {
-            console.log(`[CACHE-MIDDLEWARE] Worker ${workerId}: NOT caching - status=${res.statusCode}, isArray=${Array.isArray(data)}`)
         }
         return originalJson(data)
     }
+}
+
+/**
+ * Extract short ID from full URL (last segment after /)
+ * @private
+ */
+const extractId = (url) => url?.split('/').pop() ?? null
+
+/**
+ * Cache middleware for query endpoint
+ */
+const cacheQuery = async (req, res, next) => {
+    if (process.env.CACHING !== 'true' || req.method !== 'POST' || !req.body) {
+        return next()
+    }
+
+    const cacheKey = cache.generateKey('query', {
+        body: req.body,
+        limit: parseInt(req.query.limit ?? 100),
+        skip: parseInt(req.query.skip ?? 0)
+    })
+
+    const cachedResult = await cache.get(cacheKey)
+    if (cachedResult) {
+        sendCacheHit(res, cachedResult)
+        return
+    }
+
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -57,43 +69,24 @@ const cacheQuery = async (req, res, next) => {
  * Cache middleware for search endpoint (word search)
  */
 const cacheSearch = async (req, res, next) => {
-    if (process.env.CACHING !== 'true') {
+    if (process.env.CACHING !== 'true' || req.method !== 'POST' || !req.body) {
         return next()
     }
 
-    if (req.method !== 'POST' || !req.body) {
-        return next()
-    }
-
-    const searchText = req.body?.searchText ?? req.body
-    const searchOptions = req.body?.options ?? {}
-    const limit = parseInt(req.query.limit ?? 100)
-    const skip = parseInt(req.query.skip ?? 0)
-
-    const cacheParams = {
-        searchText,
-        options: searchOptions,
-        limit,
-        skip
-    }
-    const cacheKey = cache.generateKey('search', cacheParams)
+    const cacheKey = cache.generateKey('search', {
+        searchText: req.body?.searchText ?? req.body,
+        options: req.body?.options ?? {},
+        limit: parseInt(req.query.limit ?? 100),
+        skip: parseInt(req.query.skip ?? 0)
+    })
 
     const cachedResult = await cache.get(cacheKey)
     if (cachedResult) {
-        res.set("Content-Type", "application/json; charset=utf-8")
-        res.set('X-Cache', 'HIT')
-        res.status(200).json(cachedResult)
+        sendCacheHit(res, cachedResult)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -101,43 +94,24 @@ const cacheSearch = async (req, res, next) => {
  * Cache middleware for phrase search endpoint
  */
 const cacheSearchPhrase = async (req, res, next) => {
-    if (process.env.CACHING !== 'true') {
+    if (process.env.CACHING !== 'true' || req.method !== 'POST' || !req.body) {
         return next()
     }
 
-    if (req.method !== 'POST' || !req.body) {
-        return next()
-    }
-
-    const searchText = req.body?.searchText ?? req.body
-    const phraseOptions = req.body?.options ?? { slop: 2 }
-    const limit = parseInt(req.query.limit ?? 100)
-    const skip = parseInt(req.query.skip ?? 0)
-
-    const cacheParams = {
-        searchText,
-        options: phraseOptions,
-        limit,
-        skip
-    }
-    const cacheKey = cache.generateKey('searchPhrase', cacheParams)
+    const cacheKey = cache.generateKey('searchPhrase', {
+        searchText: req.body?.searchText ?? req.body,
+        options: req.body?.options ?? { slop: 2 },
+        limit: parseInt(req.query.limit ?? 100),
+        skip: parseInt(req.query.skip ?? 0)
+    })
 
     const cachedResult = await cache.get(cacheKey)
     if (cachedResult) {
-        res.set("Content-Type", "application/json; charset=utf-8")
-        res.set('X-Cache', 'HIT')
-        res.status(200).json(cachedResult)
+        sendCacheHit(res, cachedResult)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -145,38 +119,22 @@ const cacheSearchPhrase = async (req, res, next) => {
  * Cache middleware for ID lookup endpoint
  */
 const cacheId = async (req, res, next) => {
-    if (process.env.CACHING !== 'true') {
+    if (process.env.CACHING !== 'true' || req.method !== 'GET') {
         return next()
     }
 
-    if (req.method !== 'GET') {
-        return next()
-    }
-
-    const id = req.params['_id']
-    if (!id) {
-        return next()
-    }
+    const id = req.params._id
+    if (!id) return next()
 
     const cacheKey = cache.generateKey('id', id)
     const cachedResult = await cache.get(cacheKey)
     
     if (cachedResult) {
-        res.set("Content-Type", "application/json; charset=utf-8")
-        res.set('X-Cache', 'HIT')
-        res.set("Cache-Control", "max-age=86400, must-revalidate")
-        res.status(200).json(cachedResult)
+        sendCacheHit(res, cachedResult, true)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && data) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && data)
     next()
 }
 
@@ -184,38 +142,22 @@ const cacheId = async (req, res, next) => {
  * Cache middleware for history endpoint
  */
 const cacheHistory = async (req, res, next) => {
-    if (process.env.CACHING !== 'true') {
+    if (process.env.CACHING !== 'true' || req.method !== 'GET') {
         return next()
     }
 
-    if (req.method !== 'GET') {
-        return next()
-    }
-
-    const id = req.params['_id']
-    if (!id) {
-        return next()
-    }
+    const id = req.params._id
+    if (!id) return next()
 
     const cacheKey = cache.generateKey('history', id)
     const cachedResult = await cache.get(cacheKey)
     
     if (cachedResult) {
-        res.set("Content-Type", "application/json; charset=utf-8")
-        res.set('X-Cache', 'HIT')
-        res.json(cachedResult)
+        sendCacheHit(res, cachedResult)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
-
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -223,38 +165,22 @@ const cacheHistory = async (req, res, next) => {
  * Cache middleware for since endpoint
  */
 const cacheSince = async (req, res, next) => {
-    if (process.env.CACHING !== 'true') {
+    if (process.env.CACHING !== 'true' || req.method !== 'GET') {
         return next()
     }
 
-    if (req.method !== 'GET') {
-        return next()
-    }
-
-    const id = req.params['_id']
-    if (!id) {
-        return next()
-    }
+    const id = req.params._id
+    if (!id) return next()
 
     const cacheKey = cache.generateKey('since', id)
     const cachedResult = await cache.get(cacheKey)
     
     if (cachedResult) {
-        res.set("Content-Type", "application/json; charset=utf-8")
-        res.set('X-Cache', 'HIT')
-        res.json(cachedResult)
+        sendCacheHit(res, cachedResult)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
-
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -274,92 +200,84 @@ const invalidateCache = (req, res, next) => {
     let invalidationPerformed = false
 
     const performInvalidation = (data) => {
-        if (invalidationPerformed) {
+        if (invalidationPerformed || res.statusCode < 200 || res.statusCode >= 300) {
             return
         }
         invalidationPerformed = true
         
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-            const path = req.originalUrl || req.path
+        const path = req.originalUrl || req.path
+        
+        if (path.includes('/create') || path.includes('/bulkCreate')) {
+            const createdObjects = path.includes('/bulkCreate') 
+                ? (Array.isArray(data) ? data : [data])
+                : [data?.new_obj_state ?? data]
             
-            if (path.includes('/create') || path.includes('/bulkCreate')) {
-                const createdObjects = path.includes('/bulkCreate') 
-                    ? (Array.isArray(data) ? data : [data])
-                    : [data?.new_obj_state ?? data]
-                
+            const invalidatedKeys = new Set()
+            for (const obj of createdObjects) {
+                if (obj) cache.invalidateByObject(obj, invalidatedKeys)
+            }
+        } 
+        else if (path.includes('/update') || path.includes('/patch') || 
+                 path.includes('/set') || path.includes('/unset') ||
+                 path.includes('/overwrite') || path.includes('/bulkUpdate')) {
+            
+            const updatedObject = data?.new_obj_state ?? data
+            const objectId = updatedObject?._id ?? updatedObject?.["@id"]
+            
+            if (updatedObject && objectId) {
                 const invalidatedKeys = new Set()
+                const objIdShort = extractId(objectId)
+                const previousId = extractId(updatedObject?.__rerum?.history?.previous)
+                const primeId = extractId(updatedObject?.__rerum?.history?.prime)
                 
-                for (const obj of createdObjects) {
-                    if (!obj) continue
-                    cache.invalidateByObject(obj, invalidatedKeys)
+                cache.delete(`id:${objIdShort}`)
+                invalidatedKeys.add(`id:${objIdShort}`)
+                
+                if (previousId && previousId !== 'root') {
+                    cache.delete(`id:${previousId}`)
+                    invalidatedKeys.add(`id:${previousId}`)
                 }
-            } 
-            else if (path.includes('/update') || path.includes('/patch') || 
-                     path.includes('/set') || path.includes('/unset') ||
-                     path.includes('/overwrite') || path.includes('/bulkUpdate')) {
                 
-                const updatedObject = data?.new_obj_state ?? data
-                const objectId = updatedObject?._id ?? updatedObject?.["@id"]
+                cache.invalidateByObject(updatedObject, invalidatedKeys)
                 
-                if (updatedObject && objectId) {
-                    const invalidatedKeys = new Set()
-                    
-                    const idKey = `id:${objectId.split('/').pop()}`
-                    cache.delete(idKey)
-                    invalidatedKeys.add(idKey)
-                    
-                    const objIdShort = objectId.split('/').pop()
-                    const previousId = updatedObject?.__rerum?.history?.previous?.split('/').pop()
-                    const primeId = updatedObject?.__rerum?.history?.prime?.split('/').pop()
-                    
-                    if (previousId && previousId !== 'root') {
-                        const prevIdKey = `id:${previousId}`
-                        cache.delete(prevIdKey)
-                        invalidatedKeys.add(prevIdKey)
-                    }
-                    
-                    cache.invalidateByObject(updatedObject, invalidatedKeys)
-                    
-                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
-                    const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
-                    const historyCount = cache.invalidate(historyPattern)
-                } else {
-                    cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+                const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                if (versionIds) {
+                    cache.invalidate(new RegExp(`^(history|since):(${versionIds})`))
                 }
-            }
-            else if (path.includes('/delete')) {
-                const deletedObject = res.locals.deletedObject
-                const objectId = deletedObject?._id ?? deletedObject?.["@id"]
-                
-                if (deletedObject && objectId) {
-                    const invalidatedKeys = new Set()
-                    
-                    const idKey = `id:${objectId.split('/').pop()}`
-                    cache.delete(idKey)
-                    invalidatedKeys.add(idKey)
-                    
-                    const objIdShort = objectId.split('/').pop()
-                    const previousId = deletedObject?.__rerum?.history?.previous?.split('/').pop()
-                    const primeId = deletedObject?.__rerum?.history?.prime?.split('/').pop()
-                    
-                    if (previousId && previousId !== 'root') {
-                        const prevIdKey = `id:${previousId}`
-                        cache.delete(prevIdKey)
-                        invalidatedKeys.add(prevIdKey)
-                    }
-                    
-                    cache.invalidateByObject(deletedObject, invalidatedKeys)
-                    
-                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
-                    const historyPattern = new RegExp(`^(history|since):(${versionIds})`)
-                    const historyCount = cache.invalidate(historyPattern)
-                } else {
-                    cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
-                }
-            }
-            else if (path.includes('/release')) {
+            } else {
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
+        }
+        else if (path.includes('/delete')) {
+            const deletedObject = res.locals.deletedObject
+            const objectId = deletedObject?._id ?? deletedObject?.["@id"]
+            
+            if (deletedObject && objectId) {
+                const invalidatedKeys = new Set()
+                const objIdShort = extractId(objectId)
+                const previousId = extractId(deletedObject?.__rerum?.history?.previous)
+                const primeId = extractId(deletedObject?.__rerum?.history?.prime)
+                
+                cache.delete(`id:${objIdShort}`)
+                invalidatedKeys.add(`id:${objIdShort}`)
+                
+                if (previousId && previousId !== 'root') {
+                    cache.delete(`id:${previousId}`)
+                    invalidatedKeys.add(`id:${previousId}`)
+                }
+                
+                cache.invalidateByObject(deletedObject, invalidatedKeys)
+                
+                const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                if (versionIds) {
+                    cache.invalidate(new RegExp(`^(history|since):(${versionIds})`))
+                }
+            } else {
+                cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+            }
+        }
+        else if (path.includes('/release')) {
+            cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
         }
     }
 
@@ -375,8 +293,7 @@ const invalidateCache = (req, res, next) => {
 
     res.sendStatus = (statusCode) => {
         res.statusCode = statusCode
-        const deleteData = { "@id": req.params._id }
-        performInvalidation(deleteData)
+        performInvalidation({ "@id": req.params._id })
         return originalSendStatus(statusCode)
     }
 
@@ -424,33 +341,22 @@ const cacheGogFragments = async (req, res, next) => {
         return next()
     }
 
-    const manID = req.body?.["ManuscriptWitness"]
-    if (!manID || !manID.startsWith("http")) {
+    const manID = req.body?.ManuscriptWitness
+    if (!manID?.startsWith('http')) {
         return next()
     }
 
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    
     const cacheKey = `gog-fragments:${manID}:limit=${limit}:skip=${skip}`
     
     const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
-        res.set('X-Cache', 'HIT')
-        res.set('Content-Type', 'application/json; charset=utf-8')
-        res.json(cachedResponse)
+        sendCacheHit(res, cachedResponse)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
-
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -462,33 +368,22 @@ const cacheGogGlosses = async (req, res, next) => {
         return next()
     }
 
-    const manID = req.body?.["ManuscriptWitness"]
-    if (!manID || !manID.startsWith("http")) {
+    const manID = req.body?.ManuscriptWitness
+    if (!manID?.startsWith('http')) {
         return next()
     }
 
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    
     const cacheKey = `gog-glosses:${manID}:limit=${limit}:skip=${skip}`
     
     const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
-        res.set('X-Cache', 'HIT')
-        res.set('Content-Type', 'application/json; charset=utf-8')
-        res.json(cachedResponse)
+        sendCacheHit(res, cachedResponse)
         return
     }
-    res.set('X-Cache', 'MISS')
 
-    const originalJson = res.json.bind(res)
-    res.json = (data) => {
-        if (res.statusCode === 200 && Array.isArray(data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
-        }
-        return originalJson(data)
-    }
-
+    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 

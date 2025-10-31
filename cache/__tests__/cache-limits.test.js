@@ -54,9 +54,9 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
         await cache.clusterCache.set(key, { data: 'expires soon' }, shortTTL)
         await waitForCache(50)
         
-        // Should exist immediately after set
+        // Should exist immediately after set (unwrapped by cache.get())
         let value = await cache.get(key)
-        expect(value).toEqual({ data: 'expires soon' })
+        expect(value).toEqual('expires soon')
         
         // Wait for TTL to expire (add buffer for reliability)
         await new Promise(resolve => setTimeout(resolve, shortTTL + 300))
@@ -89,8 +89,8 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
         await cache.clusterCache.set(key, { data: 'custom ttl' }, customTTL)
         await waitForCache(50)
         
-        // Should exist immediately
-        expect(await cache.get(key)).toEqual({ data: 'custom ttl' })
+        // Should exist immediately (unwrapped by cache.get())
+        expect(await cache.get(key)).toEqual('custom ttl')
         
         // Wait for custom TTL to expire
         await new Promise(resolve => setTimeout(resolve, customTTL + 200))

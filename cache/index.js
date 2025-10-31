@@ -691,6 +691,12 @@ class ClusterCache {
         let count = 0
         const keysToCheck = Array.from(this.allKeys)
         
+        // Early exit: check if any query/search keys exist
+        const hasQueryKeys = keysToCheck.some(k => 
+            k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
+        )
+        if (!hasQueryKeys) return 0
+        
         for (const cacheKey of keysToCheck) {
             if (!cacheKey.startsWith('query:') && 
                 !cacheKey.startsWith('search:') && 
@@ -726,8 +732,9 @@ class ClusterCache {
      * @returns {boolean} True if object could match this query
      */
     objectMatchesQuery(obj, query) {
-        if (query.body && typeof query.body === 'object') return this.objectContainsProperties(obj, query.body)
-        return this.objectContainsProperties(obj, query)
+        return query.body && typeof query.body === 'object'
+            ? this.objectContainsProperties(obj, query.body)
+            : this.objectContainsProperties(obj, query)
     }
 
     /**
@@ -845,10 +852,15 @@ class ClusterCache {
     /**
      * Get nested property value using dot notation
      * @param {Object} obj - The object
-     * @param {string} path - Property path
+     * @param {string} path - Property path (e.g., "user.profile.name")
      * @returns {*} Property value or undefined
      */
     getNestedProperty(obj, path) {
+        // Fast path for non-nested properties
+        if (!path.includes('.')) {
+            return obj?.[path]
+        }
+        
         const keys = path.split('.')
         let current = obj
         

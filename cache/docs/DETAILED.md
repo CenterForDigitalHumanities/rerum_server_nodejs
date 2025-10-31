@@ -45,7 +45,7 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 - **TTL (Time-To-Live)**: 5 minutes default, 24 hours in production (300,000ms or 86,400,000ms)
 - **Storage Mode**: PM2 Cluster Cache with 'all' replication mode (full cache copy on each worker, synchronized automatically)
 - **Stats Sync**: Background interval every 5 seconds via setInterval (stats may be up to 5s stale across workers)
-- **Eviction**: Handled internally by pm2-cluster-cache based on maxLength limit (oldest entries removed when limit exceeded)
+- **Eviction**: LRU (Least Recently Used) eviction implemented with deferred background execution via setImmediate() to avoid blocking cache.set() operations
 
 ### Environment Variables
 ```bash
@@ -75,14 +75,16 @@ The cache implements **dual limits** for defense-in-depth:
    - Ensures diverse cache coverage
    - Prevents cache thrashing from too many unique queries
    - Reached first under normal operation
-   - Eviction handled automatically by pm2-cluster-cache (removes oldest entries when limit exceeded)
+   - LRU eviction triggered when exceeded (evicts least recently accessed entry)
+   - Eviction deferred to background via setImmediate() to avoid blocking cache.set()
 
 2. **Byte Limit (1GB)**
    - Secondary safety limit
    - Prevents memory exhaustion
    - Protects against accidentally large result sets
    - Guards against malicious queries
-   - Monitored but not enforced by pm2-cluster-cache (length limit is primary control)
+   - LRU eviction triggered when exceeded
+   - Eviction runs in background to avoid blocking operations
 
 **Balance Analysis**: With typical RERUM queries (100 items per page at ~269 bytes per annotation):
 - 1000 entries = ~26 MB (2.7% of 1GB limit)
@@ -90,9 +92,11 @@ The cache implements **dual limits** for defense-in-depth:
 - Byte limit only relevant for monitoring and capacity planning
 
 **Eviction Behavior**:
-- PM2 Cluster Cache automatically evicts oldest entries when maxLength (1000) is exceeded
-- Eviction synchronized across all workers (all workers maintain consistent cache state)
-- No manual eviction logic required in RERUM code
+- **LRU (Least Recently Used)** eviction strategy implemented in cache/index.js
+- Eviction triggered when maxLength (1000) or maxBytes (1GB) exceeded
+- Eviction deferred to background using setImmediate() to avoid blocking cache.set()
+- Synchronized across all workers via PM2 cluster-cache
+- Tracks access times via keyAccessTimes Map for LRU determination
 
 **Byte Size Calculation** (for monitoring only):
 ```javascript
@@ -543,7 +547,7 @@ Total Time: 300-800ms (depending on query complexity)
 ### Memory Usage
 - Average entry size: ~2-10KB (depending on object complexity)
 - Max memory per worker (1000 entries × ~10KB): ~10MB
-- PM2 Cluster Cache eviction ensures memory stays bounded
+- LRU eviction ensures memory stays bounded (deferred to background via setImmediate())
 - All workers maintain identical cache state (storage mode: 'all')
 
 ### TTL Behavior
@@ -621,10 +625,10 @@ Cache operations are logged with `[CACHE]` prefix:
 - No shared memory or IPC overhead (each worker has independent Map)
 
 ### Memory Management
-- PM2 Cluster Cache handles eviction automatically based on maxLength
-- Evictions synchronized across all workers
-- No manual memory management required
-- Byte size calculated for monitoring/stats only
+- LRU eviction implemented in cache/index.js with deferred background execution (setImmediate())
+- Eviction triggered when maxLength or maxBytes exceeded
+- Evictions synchronized across all workers via PM2 cluster-cache
+- Byte size calculated using optimized _calculateSize() method (fast path for primitives)
 
 ### Extensibility
 - New endpoints can easily add cache middleware
