@@ -3,7 +3,7 @@
 /**
  * Overwrite controller for RERUM operations
  * Handles overwrite operations with optimistic locking
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -23,7 +23,6 @@ const overwrite = async function (req, res, next) {
     let agentRequestingOverwrite = getAgentClaim(req, next)
     const receivedID = objectReceived["@id"] ?? objectReceived.id
     if (receivedID) {
-        console.log("OVERWRITE")
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
