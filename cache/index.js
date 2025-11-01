@@ -178,6 +178,9 @@ class ClusterCache {
             this.totalBytes += valueSize
             this.localCache.set(key, value)
             
+            // DEBUG: Log cache entry addition
+            console.log(`[CACHE SET] Key: ${key}, Size: ${valueSize} bytes, Total keys: ${this.allKeys.size}, Total bytes: ${this.totalBytes}`)
+            
             // Check limits and evict if needed (do this after set to avoid blocking)
             // Use setImmediate to defer eviction checks without blocking
             setImmediate(async () => {
@@ -218,8 +221,11 @@ class ClusterCache {
      * Delete specific key from cache
      * @param {string} key - Cache key to delete
      */
-    async delete(key) {
+    async delete(key, countAsInvalidation = false) {
         try {
+            // Check if key exists before deleting
+            const existed = this.allKeys.has(key)
+            
             await this.clusterCache.delete(key)
             this.allKeys.delete(key)
             this.keyAccessTimes.delete(key) // Clean up access time tracking
@@ -227,6 +233,15 @@ class ClusterCache {
             this.keySizes.delete(key)
             this.totalBytes -= size
             this.localCache.delete(key)
+            
+            // Only count as invalidation if key actually existed and was removed
+            if (countAsInvalidation && existed) {
+                this.stats.invalidations++
+                console.log(`[CACHE DELETE] Deleted key: ${key}, counted as invalidation, new stats.invalidations: ${this.stats.invalidations}`)
+            } else if (countAsInvalidation && !existed) {
+                console.log(`[CACHE DELETE] Key not found: ${key}, not counted as invalidation`)
+            }
+            
             return true
         } catch (err) {
             this.localCache.delete(key)
@@ -417,21 +432,50 @@ class ClusterCache {
             
             const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern)
             
+            // DEBUG: Log pattern and cache size before invalidation
+            console.log(`[CACHE INVALIDATE] Pattern: ${pattern}, Total keys before: ${allKeys.size}`)
+            
             const deletePromises = []
+            const matchedKeys = []
             for (const key of allKeys) {
                 if (regex.test(key)) {
                     deletePromises.push(this.delete(key))
+                    matchedKeys.push(key)
                     count++
                 }
             }
             
+            // DEBUG: Log matched keys
+            if (matchedKeys.length > 0) {
+                console.log(`[CACHE INVALIDATE] Matched keys (${matchedKeys.length}):`, matchedKeys.slice(0, 10))
+            }
+            
             await Promise.all(deletePromises)
-            this.stats.invalidations++
+            this.stats.invalidations += count
+            
+            // DEBUG: Log invalidation result
+            console.log(`[CACHE INVALIDATE] Invalidated ${count} entries, new stats.invalidations: ${this.stats.invalidations}`)
         } catch (err) {
             console.error('Cache invalidate error:', err)
         }
         
         return count
+    }
+
+    /**
+     * Wait for the next sync cycle to complete across all workers.
+     * Syncs current worker immediately, then waits for background sync interval.
+     * 
+     * @returns {Promise<void>}
+     */
+    async waitForSync() {
+        // Sync our own stats immediately
+        await this._syncStats()
+        
+        // Wait for the next background sync cycle to complete across all workers
+        // Background sync runs every 5 seconds, so wait 6 seconds to ensure
+        // we span at least one full check cycle and all workers have synced
+        await new Promise(resolve => setTimeout(resolve, 6000))
     }
 
     /**
@@ -444,6 +488,9 @@ class ClusterCache {
      */
     async getStats() {
         try {
+            // Wait for all workers to sync
+            await this.waitForSync()
+            
             const aggregatedStats = await this._aggregateStats()
             
             const keysMap = await this.clusterCache.keys()
@@ -691,11 +738,18 @@ class ClusterCache {
         let count = 0
         const keysToCheck = Array.from(this.allKeys)
         
+        // DEBUG: Log object invalidation start
+        const objId = obj['@id'] || obj._id || 'unknown'
+        console.log(`[CACHE INVALIDATE BY OBJECT] Starting invalidation for object: ${objId}, checking ${keysToCheck.length} keys`)
+        
         // Early exit: check if any query/search keys exist
         const hasQueryKeys = keysToCheck.some(k => 
             k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
         )
-        if (!hasQueryKeys) return 0
+        if (!hasQueryKeys) {
+            console.log(`[CACHE INVALIDATE BY OBJECT] No query keys found, skipping`)
+            return 0
+        }
         
         for (const cacheKey of keysToCheck) {
             if (!cacheKey.startsWith('query:') && 
@@ -722,6 +776,10 @@ class ClusterCache {
         }
         
         this.stats.invalidations += count
+        
+        // DEBUG: Log invalidation result
+        console.log(`[CACHE INVALIDATE BY OBJECT] Invalidated ${count} query cache entries for object ${objId}, new stats.invalidations: ${this.stats.invalidations}`)
+        
         return count
     }
 
