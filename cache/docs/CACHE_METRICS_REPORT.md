@@ -1,6 +1,6 @@
 # RERUM Cache Metrics & Functionality Report
 
-**Generated**: Sun Nov  2 01:01:40 UTC 2025  
+**Generated**: Sat Nov  1 22:41:53 CDT 2025  
 **Test Duration**: Full integration and performance suite  
 **Server**: http://localhost:3001
 
@@ -8,17 +8,17 @@
 
 ## Executive Summary
 
-**Overall Test Results**: 47 passed, 0 failed, 0 skipped (47 total)
+**Overall Test Results**: 39 passed, 0 failed, 0 skipped (39 total)
 
 ### Cache Performance Summary
 
 | Metric | Value |
 |--------|-------|
 | Cache Hits | 6 |
-| Cache Misses | 963 |
+| Cache Misses | 969 |
 | Hit Rate | 0.62% |
-| Cache Size | 847 entries |
-| Invalidations | 16 |
+| Cache Size | 848 entries |
+| Invalidations | 111 |
 
 ---
 
@@ -33,7 +33,7 @@
 | `/history` | ✅ Functional | Get object version history |
 | `/since` | ✅ Functional | Get objects modified since timestamp |
 | `/create` | ✅ Functional | Create new objects |
-| `/update` | ✅ Functional | Update existing objects |
+| `/update` | ⚠️  Partial Failures (1/50) | Update existing objects |
 | `/patch` | ✅ Functional | Patch existing object properties |
 | `/set` | ✅ Functional | Add new properties to objects |
 | `/unset` | ✅ Functional | Remove properties from objects |
@@ -48,12 +48,12 @@
 
 | Endpoint | Cold Cache (DB) | Warm Cache (Memory) | Speedup | Benefit |
 |----------|-----------------|---------------------|---------|---------|
-| `/query` | 344ms | 11ms | -333ms | ✅ High |
-| `/search` | 99ms | 10ms | -89ms | ✅ High |
-| `/searchPhrase` | 98ms | 10ms | -88ms | ✅ High |
-| `/id` | 410 | N/A | N/A | N/A |
-| `/history` | 857 | N/A | N/A | N/A |
-| `/since` | 754 | N/A | N/A | N/A |
+| `/query` | 454ms | 27ms | -427ms | ✅ High |
+| `/search` | 342ms | 19ms | -323ms | ✅ High |
+| `/searchPhrase` | 312ms | 17ms | -295ms | ✅ High |
+| `/id` | 478 | N/A | N/A | N/A |
+| `/history` | 831 | N/A | N/A | N/A |
+| `/since` | 828 | N/A | N/A | N/A |
 
 **Interpretation**:
 - **Cold Cache**: First request hits database (cache miss)
@@ -69,13 +69,13 @@
 
 | Endpoint | Empty Cache | Full Cache (1000 entries) | Overhead | Impact |
 |----------|-------------|---------------------------|----------|--------|
-| `/create` | 20ms | 21ms | +1ms | ✅ Negligible |
-| `/update` | 418ms | 418ms | +0ms | ✅ Negligible |
-| `/patch` | 415ms | 420ms | +5ms | ✅ Negligible |
-| `/set` | 415ms | 448ms | +33ms | ⚠️  Moderate |
-| `/unset` | 416ms | 419ms | +3ms | ✅ Negligible |
-| `/delete` | 446ms | 416ms | -30ms | ✅ None |
-| `/overwrite` | 418ms | 418ms | +0ms | ✅ Negligible |
+| `/create` | 55ms | 54ms | -1ms | ✅ None |
+| `/update` | 514ms | N/A | N/A | ✅ Write-only |
+| `/patch` | 533ms | 512ms | -21ms | ✅ None |
+| `/set` | 514ms | 556ms | +42ms | ⚠️  Moderate |
+| `/unset` | 515ms | 515ms | +0ms | ✅ Negligible |
+| `/delete` | 536ms | 514ms | -22ms | ✅ None |
+| `/overwrite` | 511ms | 514ms | +3ms | ✅ Negligible |
 
 **Interpretation**:
 - **Empty Cache**: Write with no cache to invalidate
@@ -92,14 +92,14 @@
 ### Overall Performance Impact
 
 **Cache Benefits (Reads)**:
-- Average speedup per cached read: ~333ms
+- Average speedup per cached read: ~427ms
 - Typical hit rate in production: 60-80%
-- Net benefit on 1000 reads: ~233100ms saved (assuming 70% hit rate)
+- Net benefit on 1000 reads: ~298900ms saved (assuming 70% hit rate)
 
 **Cache Costs (Writes)**:
-- Average overhead per write: ~1ms
+- Average overhead per write: ~0ms
 - Overhead percentage: ~0%
-- Net cost on 1000 writes: ~1000ms
+- Net cost on 1000 writes: ~0ms
 - Tested endpoints: create, update, patch, set, unset, delete, overwrite
 
 **Break-Even Analysis**:
@@ -111,17 +111,17 @@ For a workload with:
 
 ```
 Without Cache:
-  800 reads × 344ms = 275200ms
-  200 writes × 20ms = 4000ms
-  Total: 279200ms
+  800 reads × 454ms = 363200ms
+  200 writes × 55ms = 11000ms
+  Total: 374200ms
 
 With Cache:
-  560 cached reads × 11ms = 6160ms
-  240 uncached reads × 344ms = 82560ms
-  200 writes × 21ms = 4200ms
-  Total: 92920ms
+  560 cached reads × 27ms = 15120ms
+  240 uncached reads × 454ms = 108960ms
+  200 writes × 54ms = 10800ms
+  Total: 134880ms
 
-Net Improvement: 186280ms faster (~67% improvement)
+Net Improvement: 239320ms faster (~64% improvement)
 ```
 
 ---
@@ -131,9 +131,9 @@ Net Improvement: 186280ms faster (~67% improvement)
 ### ✅ Deploy Cache Layer
 
 The cache layer provides:
-1. **Significant read performance improvements** (333ms average speedup)
-2. **Minimal write overhead** (1ms average, ~0% of write time)
-3. **All endpoints functioning correctly** (47 passed tests)
+1. **Significant read performance improvements** (427ms average speedup)
+2. **Minimal write overhead** (0ms average, ~0% of write time)
+3. **All endpoints functioning correctly** (39 passed tests)
 
 ### 📊 Monitoring Recommendations
 
@@ -148,7 +148,7 @@ In production, monitor:
 Current cache configuration:
 - Max entries: 1000
 - Max size: 1000000000 bytes
-- TTL: 600 seconds
+- TTL: 300 seconds
 
 Consider tuning based on:
 - Workload patterns (read/write ratio)
@@ -176,6 +176,6 @@ Consider tuning based on:
 
 ---
 
-**Report Generated**: Sun Nov  2 01:01:40 UTC 2025  
+**Report Generated**: Sat Nov  1 22:41:53 CDT 2025  
 **Format Version**: 1.0  
 **Test Suite**: cache-metrics.sh

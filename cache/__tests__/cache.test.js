@@ -73,14 +73,6 @@ describe('Cache Middleware Tests', () => {
         await cache.clear()
     })
 
-    beforeEach(async () => {
-        await cache.clear()
-    })
-
-    afterEach(async () => {
-        await cache.clear()
-    })
-
     describe('cacheQuery middleware', () => {
         it('should pass through on non-POST requests', async () => {
             mockReq.method = 'GET'

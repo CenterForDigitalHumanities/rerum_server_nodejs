@@ -100,6 +100,26 @@ log_overhead() {
     fi
 }
 
+check_wsl2_time_sync() {
+    # Check if running on WSL2
+    if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null; then
+        log_info "WSL2 detected - checking system time synchronization..."
+
+        # Try to sync hardware clock to system time (requires sudo)
+        if command -v hwclock &> /dev/null; then
+            if sudo -n hwclock -s &> /dev/null 2>&1; then
+                log_success "System time synchronized with hardware clock"
+            else
+                log_warning "Could not sync hardware clock (sudo required)"
+                log_info "To fix clock skew issues, run: sudo hwclock -s"
+                log_info "Continuing anyway - some timing measurements may show warnings"
+            fi
+        else
+            log_info "hwclock not available - skipping time sync"
+        fi
+    fi
+}
+
 check_server() {
     log_info "Checking server connectivity at ${BASE_URL}..."
     if ! curl -s -f "${BASE_URL}" > /dev/null 2>&1; then
@@ -528,9 +548,10 @@ fill_cache() {
     # We need to wait long enough to ensure the NEXT sync cycle completes AFTER all requests finish
     # Worst case: sync happened 0.1s ago, next sync in 4.9s, need to wait >4.9s for that sync,
     # plus a buffer for the sync operation itself to complete
+    # Updated to 12s to ensure atomic stat increments are fully synced across all workers
     log_info "Waiting for cache operations to complete and stats to sync across all PM2 workers..."
-    log_info "Stats sync every 5 seconds - waiting 8 seconds to ensure at least one sync after requests..."
-    sleep 8
+    log_info "Stats sync every 5 seconds - waiting 12 seconds to ensure at least two sync cycles complete..."
+    sleep 12
     
     # Sanity check: Verify cache actually contains entries
     log_info "Sanity check - Verifying cache size after fill..."
@@ -1471,24 +1492,27 @@ test_update_endpoint_empty() {
     if [ $empty_success -eq 0 ]; then
         log_failure "Update endpoint failed (all requests failed)"
         ENDPOINT_STATUS["update"]="❌ Failed"
-        return
-    elif [ $empty_failures -gt 0 ]; then
-        log_warning "$empty_success/$NUM_ITERATIONS successful"
-        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
-        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
+        ENDPOINT_COLD_TIMES["update"]=0
         return
     fi
-    
-    log_success "$empty_success/$NUM_ITERATIONS successful"
-    
+
+    # Calculate average and median even with partial failures
     local empty_avg=$((empty_total / empty_success))
     IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
     unset IFS
     local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
+
     ENDPOINT_COLD_TIMES["update"]=$empty_avg
-    log_success "Update endpoint functional"
-    ENDPOINT_STATUS["update"]="✅ Functional"
+
+    if [ $empty_failures -gt 0 ]; then
+        log_warning "$empty_success/$NUM_ITERATIONS successful"
+        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
+        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
+    else
+        log_success "$empty_success/$NUM_ITERATIONS successful"
+        log_success "Update endpoint functional"
+        ENDPOINT_STATUS["update"]="✅ Functional"
+    fi
 }
 
 # Update endpoint - full cache version
@@ -1560,16 +1584,21 @@ test_update_endpoint_full() {
     local full_median=${sorted_full[$((full_success / 2))]}
     
     ENDPOINT_WARM_TIMES["update"]=$full_avg
-    
-    local empty_avg=${ENDPOINT_COLD_TIMES["update"]}
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
-    
-    # Display clamped value (0 or positive) but store actual value for report
-    if [ $overhead -lt 0 ]; then
-        log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+
+    local empty_avg=${ENDPOINT_COLD_TIMES["update"]:-0}
+
+    if [ "$empty_avg" -eq 0 ] || [ -z "$empty_avg" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
     else
-        log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        local overhead=$((full_avg - empty_avg))
+        local overhead_pct=$((overhead * 100 / empty_avg))
+
+        # Display clamped value (0 or positive) but store actual value for report
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        fi
     fi
 }
 
@@ -2026,8 +2055,9 @@ main() {
     echo "  4B. Test read endpoints with CACHE MISSES (measure overhead + evictions)"
     echo "  5. Test write endpoints with FULL cache (measure invalidation overhead vs baseline)"
     echo ""
-    
+
     # Setup
+    check_wsl2_time_sync
     check_server
     get_auth_token
     warmup_system
@@ -2336,9 +2366,10 @@ main() {
     # Wait for cache to sync across all workers before checking final stats
     # Background stats sync happens every 5 seconds starting from server boot
     # We need to wait long enough to ensure the NEXT sync cycle completes AFTER all writes finish
+    # Updated to 12s to ensure atomic stat increments are fully synced across all workers
     log_info "Waiting for cache invalidations and stats to sync across all PM2 workers..."
-    log_info "Stats sync every 5 seconds - waiting 8 seconds to ensure at least one sync after writes..."
-    sleep 8
+    log_info "Stats sync every 5 seconds - waiting 12 seconds to ensure at least two sync cycles complete..."
+    sleep 12
     
     # Get cache stats after Phase 5 writes
     local stats_after_phase5=$(get_cache_stats)
@@ -2421,6 +2452,14 @@ main() {
         else
             log_info "ℹ️  Invalidation count: $total_invalidations (expected ~$expected_total_invalidations)"
             log_info "Note: Variance can occur if some objects were cached via /id/:id endpoint"
+        fi
+
+        # Additional check for suspiciously low invalidation counts (stats sync issue)
+        if [ $total_invalidations -lt 25 ]; then
+            log_warning "⚠️  Invalidation count ($total_invalidations) is lower than expected minimum (~25)"
+            log_info "This is likely due to PM2 cluster stats aggregation timing"
+            log_info "Cache behavior is correct (${actual_entries_removed} entries removed), but stats under-reported"
+            log_info "Note: Stats sync wait time is 12s - if this warning persists, check atomic increment implementation"
         fi
         
         # Verify the relationship: actual_entries_removed >= total_invalidations

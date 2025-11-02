@@ -7,10 +7,6 @@
 
 import cache from './index.js'
 
-/**
- * Send cached response with HIT headers
- * @private
- */
 const sendCacheHit = (res, data, includeCacheControl = false) => {
     res.set('Content-Type', 'application/json; charset=utf-8')
     res.set('X-Cache', 'HIT')
@@ -20,10 +16,6 @@ const sendCacheHit = (res, data, includeCacheControl = false) => {
     res.status(200).json(data)
 }
 
-/**
- * Setup cache miss handler - wraps res.json to cache on response
- * @private
- */
 const setupCacheMiss = (res, cacheKey, validator) => {
     res.set('X-Cache', 'MISS')
     const originalJson = res.json.bind(res)
@@ -37,10 +29,6 @@ const setupCacheMiss = (res, cacheKey, validator) => {
     }
 }
 
-/**
- * Extract short ID from full URL (last segment after /)
- * @private
- */
 const extractId = (url) => url?.split('/').pop() ?? null
 
 /**
@@ -206,16 +194,9 @@ const invalidateCache = (req, res, next) => {
             return
         }
         invalidationPerformed = true
-        
+
         const path = req.originalUrl || req.path
-        
-        // Get cache stats before invalidation for tracking
-        const statsBefore = {
-            length: cache.allKeys.size,
-            invalidations: cache.stats.invalidations,
-            evictions: cache.stats.evictions
-        }
-        
+
         if (path.includes('/create') || path.includes('/bulkCreate')) {
             const createdObjects = path.includes('/bulkCreate') 
                 ? (Array.isArray(data) ? data : [data])
@@ -306,8 +287,6 @@ const invalidateCache = (req, res, next) => {
 
     res.sendStatus = (statusCode) => {
         res.statusCode = statusCode
-        // Use res.locals.deletedObject if available (from delete controller),
-        // otherwise fall back to minimal object with just the ID
         const objectForInvalidation = res.locals.deletedObject ?? { "@id": req.params._id, _id: req.params._id }
         performInvalidation(objectForInvalidation)
         return originalSendStatus(statusCode)
