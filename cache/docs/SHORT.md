@@ -93,7 +93,7 @@ Returns aggregated stats from all PM2 workers:
 }
 ```
 
-**Note**: Stats synchronized via background interval (every 5 seconds). May be up to 5 seconds stale.
+**Stats Accuracy**: Critical counters (sets, evictions, invalidations) use atomic updates for accuracy. Hit/miss counters are synced every 5 seconds for performance.
 
 ### Clear Cache
 ```
@@ -135,9 +135,7 @@ The cache is completely transparent:
   - Cache entries replicated across all worker instances
   - Consistent cache hits regardless of which worker handles request
   - Automatic synchronization via PM2's inter-process communication
-- **Stats Synchronization**: Background interval syncs stats every 5 seconds
-  - Stats may be up to 5 seconds stale (acceptable for monitoring)
-  - Fast response time (<10ms) for `/cache/stats` endpoint
+- **Stats Tracking**: Atomic counters for sets/evictions/invalidations (race-condition free), local counters for hits/misses (synced every 5 seconds)
 - Version chains properly handled for RERUM's object versioning model
 - No manual cache management required
 

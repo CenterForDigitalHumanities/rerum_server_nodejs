@@ -44,7 +44,7 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 - **Max Bytes**: 1GB per worker (1,000,000,000 bytes) (configurable)
 - **TTL (Time-To-Live)**: 5 minutes default, 24 hours in production (300,000ms or 86,400,000ms)
 - **Storage Mode**: PM2 Cluster Cache with 'all' replication mode (full cache copy on each worker, synchronized automatically)
-- **Stats Sync**: Background interval every 5 seconds via setInterval (stats may be up to 5s stale across workers)
+- **Stats Tracking**: Atomic counters for sets/evictions/invalidations (race-condition free), local counters for hits/misses (synced every 5 seconds)
 - **Eviction**: LRU (Least Recently Used) eviction implemented with deferred background execution via setImmediate() to avoid blocking cache.set() operations
 
 ### Environment Variables
@@ -281,7 +281,10 @@ Cache Key: gogGlosses:https://example.org/manuscript/123:50:0
 ### Cache Statistics (`GET /v1/api/cache/stats`)
 **Handler**: `cacheStats`
 
-**Stats Synchronization**: Stats are aggregated across all PM2 workers via background interval (every 5 seconds). When you request `/cache/stats`, you receive the most recently synchronized stats, which may be up to 5 seconds stale. This is acceptable for monitoring dashboards and provides fast response times (~2ms) without blocking.
+**Stats Tracking**: 
+- **Atomic counters** (sets, evictions, invalidations): Updated immediately in cluster cache to prevent race conditions
+- **Local counters** (hits, misses): Tracked locally per worker, synced to cluster cache every 5 seconds for performance
+- **Aggregation**: Stats endpoint aggregates from all workers, accurate within 5 seconds for hits/misses
 
 Returns cache performance metrics:
 ```json
