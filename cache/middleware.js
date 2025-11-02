@@ -28,8 +28,10 @@ const setupCacheMiss = (res, cacheKey, validator) => {
     res.set('X-Cache', 'MISS')
     const originalJson = res.json.bind(res)
     res.json = (data) => {
-        if (validator(res.statusCode, data)) {
-            cache.set(cacheKey, data).catch(err => console.error('Cache set error:', err))
+        const validatorResult = validator(res.statusCode, data)
+        
+        if (validatorResult) {
+            cache.set(cacheKey, data).catch(() => {})
         }
         return originalJson(data)
     }
@@ -207,23 +209,24 @@ const invalidateCache = (req, res, next) => {
         
         const path = req.originalUrl || req.path
         
+        // Get cache stats before invalidation for tracking
+        const statsBefore = {
+            length: cache.allKeys.size,
+            invalidations: cache.stats.invalidations,
+            evictions: cache.stats.evictions
+        }
+        
         if (path.includes('/create') || path.includes('/bulkCreate')) {
             const createdObjects = path.includes('/bulkCreate') 
                 ? (Array.isArray(data) ? data : [data])
                 : [data?.new_obj_state ?? data]
             
-            console.log(`[CREATE INVALIDATION] Path: ${path}`)
-            console.log(`[CREATE INVALIDATION] Object count: ${createdObjects.length}`)
-            
             const invalidatedKeys = new Set()
             for (const obj of createdObjects) {
                 if (obj) {
-                    const objId = extractId(obj?._id ?? obj?.["@id"])
-                    console.log(`[CREATE INVALIDATION] Invalidating queries for object: ${objId}`)
                     cache.invalidateByObject(obj, invalidatedKeys)
                 }
             }
-            console.log(`[CREATE INVALIDATION] Total keys invalidated: ${invalidatedKeys.size}`)
         } 
         else if (path.includes('/update') || path.includes('/patch') || 
                  path.includes('/set') || path.includes('/unset') ||
@@ -232,40 +235,28 @@ const invalidateCache = (req, res, next) => {
             const updatedObject = data?.new_obj_state ?? data
             const objectId = updatedObject?._id ?? updatedObject?.["@id"]
             
-            console.log(`[UPDATE INVALIDATION] Path: ${path}`)
-            console.log(`[UPDATE INVALIDATION] objectId: ${objectId}`)
-            if (updatedObject?.__rerum?.history) {
-                console.log(`[UPDATE INVALIDATION] history:`, JSON.stringify(updatedObject.__rerum.history))
-            }
-            
             if (updatedObject && objectId) {
                 const invalidatedKeys = new Set()
                 const objIdShort = extractId(objectId)
                 const previousId = extractId(updatedObject?.__rerum?.history?.previous)
                 const primeId = extractId(updatedObject?.__rerum?.history?.prime)
                 
-                console.log(`[UPDATE INVALIDATION] Deleting id:${objIdShort}`)
                 cache.delete(`id:${objIdShort}`, true)  // Count as invalidation
                 invalidatedKeys.add(`id:${objIdShort}`)
                 
                 if (previousId && previousId !== 'root') {
-                    console.log(`[UPDATE INVALIDATION] Deleting id:${previousId} (previous)`)
                     cache.delete(`id:${previousId}`, true)  // Count as invalidation
                     invalidatedKeys.add(`id:${previousId}`)
                 }
                 
-                console.log(`[UPDATE INVALIDATION] Calling invalidateByObject for ${objIdShort}`)
                 cache.invalidateByObject(updatedObject, invalidatedKeys)
                 
                 const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                 if (versionIds) {
                     const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    console.log(`[UPDATE INVALIDATION] Invalidating history/since with regex: ${regex}`)
                     cache.invalidate(regex)
                 }
-                console.log(`[UPDATE INVALIDATION] Total keys invalidated: ${invalidatedKeys.size}`)
             } else {
-                console.log(`[UPDATE INVALIDATION] Falling back to wildcard invalidation`)
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
         }
@@ -273,41 +264,28 @@ const invalidateCache = (req, res, next) => {
             const deletedObject = res.locals.deletedObject
             const objectId = deletedObject?._id ?? deletedObject?.["@id"]
             
-            // DEBUG: Log delete invalidation details
-            console.log(`[DELETE INVALIDATION] Path: ${path}`)
-            console.log(`[DELETE INVALIDATION] deletedObject exists: ${!!deletedObject}`)
-            console.log(`[DELETE INVALIDATION] objectId: ${objectId}`)
-            if (deletedObject?.__rerum?.history) {
-                console.log(`[DELETE INVALIDATION] history:`, JSON.stringify(deletedObject.__rerum.history))
-            }
-            
             if (deletedObject && objectId) {
                 const invalidatedKeys = new Set()
                 const objIdShort = extractId(objectId)
                 const previousId = extractId(deletedObject?.__rerum?.history?.previous)
                 const primeId = extractId(deletedObject?.__rerum?.history?.prime)
                 
-                console.log(`[DELETE INVALIDATION] Deleting id:${objIdShort}`)
                 cache.delete(`id:${objIdShort}`, true)  // Count as invalidation
                 invalidatedKeys.add(`id:${objIdShort}`)
                 
                 if (previousId && previousId !== 'root') {
-                    console.log(`[DELETE INVALIDATION] Deleting id:${previousId} (previous)`)
                     cache.delete(`id:${previousId}`, true)  // Count as invalidation
                     invalidatedKeys.add(`id:${previousId}`)
                 }
                 
-                console.log(`[DELETE INVALIDATION] Calling invalidateByObject for ${objIdShort}`)
                 cache.invalidateByObject(deletedObject, invalidatedKeys)
                 
                 const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                 if (versionIds) {
                     const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    console.log(`[DELETE INVALIDATION] Invalidating history/since with regex: ${regex}`)
                     cache.invalidate(regex)
                 }
             } else {
-                console.log(`[DELETE INVALIDATION] Falling back to wildcard invalidation`)
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
         }

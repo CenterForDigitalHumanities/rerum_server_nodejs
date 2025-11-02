@@ -368,8 +368,8 @@ describe('Cache Limit Breaking Change Detection', () => {
         expect(stats).toHaveProperty('maxLength')
         expect(stats).toHaveProperty('maxBytes')
         expect(stats).toHaveProperty('ttl')
-        expect(stats).toHaveProperty('evictions')
         expect(stats).toHaveProperty('length')
+        expect(stats).toHaveProperty('totalBytes')
     })
 
     it('should detect if PM2 cluster cache becomes unavailable', () => {
