@@ -814,39 +814,46 @@ perform_write_operation() {
     local endpoint=$1
     local method=$2
     local body=$3
-    
+
     local start=$(date +%s%3N)
-    
+
     local response=$(curl -s -w "\n%{http_code}" -X "$method" "${API_BASE}/api/${endpoint}" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${AUTH_TOKEN}" \
         -d "${body}" 2>/dev/null)
-    
+
     local end=$(date +%s%3N)
     local http_code=$(echo "$response" | tail -n1)
     local time=$((end - start))
     local response_body=$(echo "$response" | head -n-1)
-    
-    # Validate timing (protect against clock skew/adjustment)
-    if [ "$time" -lt 0 ]; then
-        # Clock went backward during operation - treat as failure
-        echo "-1|000|clock_skew"
-        return
-    fi
-    
-    # Check for success codes
+
+    # Check for success codes first
     local success=0
     if [ "$endpoint" = "create" ] && [ "$http_code" = "201" ]; then
         success=1
     elif [ "$http_code" = "200" ]; then
         success=1
     fi
-    
+
+    # If HTTP request succeeded but timing is invalid (clock skew), use 0 as placeholder time
+    # This allows the operation to count as successful even though we can't measure it
+    if [ "$time" -lt 0 ]; then
+        if [ $success -eq 1 ]; then
+            # Clock skew but HTTP succeeded - mark as successful with 0ms timing
+            echo "0|$http_code|clock_skew"
+            return
+        else
+            # Actual failure (bad HTTP code)
+            echo "-1|$http_code|"
+            return
+        fi
+    fi
+
     if [ $success -eq 0 ]; then
         echo "-1|$http_code|"
         return
     fi
-    
+
     echo "$time|$http_code|$response_body"
 }
 
@@ -863,26 +870,40 @@ run_write_performance_test() {
     declare -a times=()
     local total_time=0
     local failed_count=0
-    
+    local clock_skew_count=0
+
     # For create endpoint, collect IDs directly into global array
     local collect_ids=0
     [ "$endpoint_name" = "create" ] && collect_ids=1
-    
+
     for i in $(seq 1 $num_tests); do
         local body=$($get_body_func)
         local result=$(perform_write_operation "$endpoint_path" "$method" "$body")
-        
+
         local time=$(echo "$result" | cut -d'|' -f1)
         local http_code=$(echo "$result" | cut -d'|' -f2)
         local response_body=$(echo "$result" | cut -d'|' -f3-)
-        
-        # Only include successful operations with valid positive timing
-        if [ "$time" = "-1" ] || [ -z "$time" ] || [ "$time" -lt 0 ]; then
+
+        # Check if operation actually failed (marked as -1)
+        if [ "$time" = "-1" ]; then
             failed_count=$((failed_count + 1))
+        elif [ "$response_body" = "clock_skew" ]; then
+            # Clock skew with successful HTTP code - count as success but note it
+            clock_skew_count=$((clock_skew_count + 1))
+            # Don't add to times array (0ms is not meaningful) or total_time
+
+            # Store created ID directly to global array for cleanup
+            if [ $collect_ids -eq 1 ] && [ -n "$response_body" ]; then
+                local obj_id=$(echo "$response_body" | grep -o '"@id":"[^"]*"' | head -1 | cut -d'"' -f4)
+                if [ -n "$obj_id" ]; then
+                    CREATED_IDS+=("$obj_id")
+                fi
+            fi
         else
+            # Normal successful operation with valid timing
             times+=($time)
             total_time=$((total_time + time))
-            
+
             # Store created ID directly to global array for cleanup
             if [ $collect_ids -eq 1 ] && [ -n "$response_body" ]; then
                 local obj_id=$(echo "$response_body" | grep -o '"@id":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -891,40 +912,57 @@ run_write_performance_test() {
                 fi
             fi
         fi
-        
+
         # Progress indicator
         if [ $((i % 10)) -eq 0 ]; then
             echo -ne "\r  Progress: $i/$num_tests operations completed  " >&2
         fi
     done
     echo "" >&2
-    
+
     local successful=$((num_tests - failed_count))
-    
+    local measurable=$((${#times[@]}))
+
     if [ $successful -eq 0 ]; then
         log_warning "All $endpoint_name operations failed!" >&2
         echo "0|0|0|0"
         return 1
     fi
-    
-    # Calculate statistics
-    local avg_time=$((total_time / successful))
-    
-    # Calculate median
-    IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
-    unset IFS
-    local median_idx=$((successful / 2))
-    local median_time=${sorted[$median_idx]}
-    
-    # Calculate min/max
-    local min_time=${sorted[0]}
-    local max_time=${sorted[$((successful - 1))]}
-    
+
+    # Calculate statistics only from operations with valid timing
+    local avg_time=0
+    local median_time=0
+    local min_time=0
+    local max_time=0
+
+    if [ $measurable -gt 0 ]; then
+        avg_time=$((total_time / measurable))
+
+        # Calculate median
+        IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
+        unset IFS
+        local median_idx=$((measurable / 2))
+        median_time=${sorted[$median_idx]}
+
+        # Calculate min/max
+        min_time=${sorted[0]}
+        max_time=${sorted[$((measurable - 1))]}
+    fi
+
     log_success "$successful/$num_tests successful" >&2
-    echo "  Average: ${avg_time}ms, Median: ${median_time}ms, Min: ${min_time}ms, Max: ${max_time}ms" >&2
-    
+
+    if [ $measurable -gt 0 ]; then
+        echo "  Average: ${avg_time}ms, Median: ${median_time}ms, Min: ${min_time}ms, Max: ${max_time}ms" >&2
+    else
+        echo "  (timing data unavailable - all operations affected by clock skew)" >&2
+    fi
+
     if [ $failed_count -gt 0 ]; then
         log_warning "  Failed operations: $failed_count" >&2
+    fi
+
+    if [ $clock_skew_count -gt 0 ]; then
+        log_warning "  Clock skew detections (timing unmeasurable but HTTP succeeded): $clock_skew_count" >&2
     fi
     
     # Write stats to temp file (so they persist when function is called directly, not in subshell)
