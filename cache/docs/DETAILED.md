@@ -42,9 +42,9 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 - **Enabled by default**: Set `CACHING=false` to disable
 - **Max Length**: 1000 entries per worker (configurable)
 - **Max Bytes**: 1GB per worker (1,000,000,000 bytes) (configurable)
-- **TTL (Time-To-Live)**: 5 minutes default, 24 hours in production (300,000ms or 86,400,000ms)
+- **TTL (Time-To-Live)**: 24 hours default (86,400,000ms)
 - **Storage Mode**: PM2 Cluster Cache with 'all' replication mode (full cache copy on each worker, synchronized automatically)
-- **Stats Tracking**: Atomic counters for sets/evictions/invalidations (race-condition free), local counters for hits/misses (synced every 5 seconds)
+- **Stats Tracking**: Atomic counters for sets/evictions (race-condition free), local counters for hits/misses (synced every 5 seconds)
 - **Eviction**: LRU (Least Recently Used) eviction implemented with deferred background execution via setImmediate() to avoid blocking cache.set() operations
 
 ### Environment Variables
@@ -52,7 +52,7 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 CACHING=true                 # Enable/disable caching layer (true/false)
 CACHE_MAX_LENGTH=1000        # Maximum number of cached entries
 CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes (per worker)
-CACHE_TTL=300000             # Time-to-live in milliseconds (300000 = 5 min, 86400000 = 24 hr)
+CACHE_TTL=86400000           # Time-to-live in milliseconds (default: 86400000 = 24 hours)
 ```
 
 ### Enabling/Disabling Cache
@@ -282,7 +282,7 @@ Cache Key: gogGlosses:https://example.org/manuscript/123:50:0
 **Handler**: `cacheStats`
 
 **Stats Tracking**: 
-- **Atomic counters** (sets, evictions, invalidations): Updated immediately in cluster cache to prevent race conditions
+- **Atomic counters** (sets, evictions): Updated immediately in cluster cache to prevent race conditions
 - **Local counters** (hits, misses): Tracked locally per worker, synced to cluster cache every 5 seconds for performance
 - **Aggregation**: Stats endpoint aggregates from all workers, accurate within 5 seconds for hits/misses
 
@@ -294,13 +294,12 @@ Returns cache performance metrics:
   "hitRate": "73.02%",
   "evictions": 12,
   "sets": 1801,
-  "invalidations": 89,
   "length": 234,
   "bytes": 2457600,
   "lifespan": "5 minutes 32 seconds",
   "maxLength": 1000,
   "maxBytes": 1000000000,
-  "ttl": 300000
+  "ttl": 86400000
 }
 ```
 
@@ -312,13 +311,12 @@ Returns cache performance metrics:
   "hitRate": "73.02%",
   "evictions": 12,
   "sets": 1801,
-  "invalidations": 89,
   "length": 234,
   "bytes": 2457600,
   "lifespan": "5 minutes 32 seconds",
   "maxLength": 1000,
   "maxBytes": 1000000000,
-  "ttl": 300000,
+  "ttl": 86400000,
   "details": [
     {
       "position": 0,

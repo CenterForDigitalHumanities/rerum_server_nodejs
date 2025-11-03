@@ -16,7 +16,7 @@ import pm2ClusterCache from 'pm2-cluster-cache'
  * Cluster-synchronized cache with PM2 replication
  */
 class ClusterCache {
-    constructor(maxLength = 1000, maxBytes = 1000000000, ttl = 300000) {
+    constructor(maxLength = 1000, maxBytes = 1000000000, ttl = 86400000) {
         this.maxLength = maxLength
         this.maxBytes = maxBytes
         this.life = Date.now()
@@ -32,8 +32,7 @@ class ClusterCache {
             hits: 0,
             misses: 0,
             evictions: 0,
-            sets: 0,
-            invalidations: 0
+            sets: 0
         }
         
         this.allKeys = new Set()
@@ -48,50 +47,6 @@ class ClusterCache {
             this._checkClearSignal().catch(() => {})
             this._syncStats().catch(() => {})
         }, 5000)
-    }
-
-    /**
-     * Atomically increment a stat counter in the cluster cache
-     * This avoids race conditions when multiple workers increment simultaneously
-     * @param {string} statName - Name of the stat to increment (hits, misses, sets, evictions, invalidations)
-     * @param {number} count - Amount to increment by (default: 1)
-     * @private
-     */
-    async _incrementStatAtomic(statName, count = 1) {
-        try {
-            const workerId = process.env.pm_id || process.pid
-            const statsKey = `_stats_worker_${workerId}`
-
-            // Get current worker stats from cluster cache
-            let workerStats = await this.clusterCache.get(statsKey, undefined)
-
-            if (!workerStats || typeof workerStats !== 'object') {
-                // Initialize if doesn't exist
-                workerStats = {
-                    hits: 0,
-                    misses: 0,
-                    sets: 0,
-                    evictions: 0,
-                    invalidations: 0,
-                    totalBytes: 0,
-                    workerId,
-                    timestamp: Date.now()
-                }
-            }
-
-            // Increment the specific stat by count
-            workerStats[statName] = (workerStats[statName] || 0) + count
-            workerStats.timestamp = Date.now()
-
-            // Write back atomically
-            await this.clusterCache.set(statsKey, workerStats, 10000)
-
-            // Also update local stats for consistency
-            this.stats[statName] += count
-        } catch (err) {
-            // Fallback to local increment only if atomic update fails
-            this.stats[statName] += count
-        }
     }
 
     /**
@@ -193,10 +148,7 @@ class ClusterCache {
         try {
             const now = Date.now()
             const isUpdate = this.allKeys.has(key)
-
-            // CRITICAL: Quiet log on every set for stat verification
-            console.log(`[CACHE SET] ${this.stats.sets + 1}`)
-
+            
             // Calculate size only once (can be expensive for large objects)
             const valueSize = this._calculateSize(value)
             
@@ -217,10 +169,8 @@ class ClusterCache {
             // Set in cluster cache immediately (most critical operation)
             await this.clusterCache.set(key, wrappedValue, this.ttl)
             
-            // Atomically increment sets counter to avoid race conditions
-            await this._incrementStatAtomic('sets')
-            
             // Update local state (reuse precalculated values)
+            this.stats.sets++
             this.allKeys.add(key)
             this.keyAccessTimes.set(key, now)
             this.keySizes.set(key, valueSize)
@@ -252,15 +202,14 @@ class ClusterCache {
                 }
             })
         } catch (err) {
+            console.error('Cache set error:', err)
             // Fallback: still update local cache
             const valueSize = this._calculateSize(value)
             this.localCache.set(key, value)
             this.allKeys.add(key)
             this.keyAccessTimes.set(key, Date.now())
             this.keySizes.set(key, valueSize)
-            
-            // Atomically increment stats even in error case
-            await this._incrementStatAtomic('sets')
+            this.stats.sets++
         }
     }
 
@@ -270,8 +219,7 @@ class ClusterCache {
      */
     async delete(key, countAsInvalidation = false) {
         try {
-            // Check if key exists before deleting
-            const existed = this.allKeys.has(key)
+            const keyExists = this.allKeys.has(key)
             
             await this.clusterCache.delete(key)
             this.allKeys.delete(key)
@@ -280,11 +228,6 @@ class ClusterCache {
             this.keySizes.delete(key)
             this.totalBytes -= size
             this.localCache.delete(key)
-            
-            // Only count as invalidation if key actually existed and was removed
-            if (countAsInvalidation && existed) {
-                await this._incrementStatAtomic('invalidations')
-            }
             
             return true
         } catch (err) {
@@ -300,9 +243,6 @@ class ClusterCache {
 
     /**
      * Clear all cache entries and reset stats across all workers
-     *
-     * Note: This clears immediately but stats sync happens every 5 seconds.
-     * Wait 6+ seconds after calling clear() before checking /cache/stats for accurate results.
      */
     async clear() {
         try {
@@ -341,20 +281,43 @@ class ClusterCache {
             }
             
             // Reset local state
-            this._resetLocalState()
-
+            this.allKeys.clear()
+            this.keyAccessTimes.clear()
+            this.keySizes.clear()
+            this.totalBytes = 0
+            this.localCache.clear()
+            
+            this.stats = {
+                hits: 0,
+                misses: 0,
+                evictions: 0,
+                sets: 0,
+                invalidations: 0
+            }
+            
             // Restart stats sync interval
             this.statsInterval = setInterval(() => {
                 this._checkClearSignal().catch(() => {})
                 this._syncStats().catch(() => {})
             }, 5000)
-
+            
             // Immediately sync our fresh stats
             await this._syncStats()
         } catch (err) {
             console.error('Cache clear error:', err)
-            this._resetLocalState()
-
+            this.localCache.clear()
+            this.allKeys.clear()
+            this.keyAccessTimes.clear()
+            this.keySizes.clear()
+            this.totalBytes = 0
+            this.stats = {
+                hits: 0,
+                misses: 0,
+                evictions: 0,
+                sets: 0,
+                invalidations: 0
+            }
+            
             if (!this.statsInterval._destroyed) {
                 clearInterval(this.statsInterval)
             }
@@ -362,26 +325,6 @@ class ClusterCache {
                 this._checkClearSignal().catch(() => {})
                 this._syncStats().catch(() => {})
             }, 5000)
-        }
-    }
-
-    /**
-     * Reset all local state (used by clear and _checkClearSignal)
-     * @private
-     */
-    _resetLocalState() {
-        this.allKeys.clear()
-        this.keyAccessTimes.clear()
-        this.keySizes.clear()
-        this.totalBytes = 0
-        this.localCache.clear()
-
-        this.stats = {
-            hits: 0,
-            misses: 0,
-            evictions: 0,
-            sets: 0,
-            invalidations: 0
         }
     }
 
@@ -431,11 +374,11 @@ class ClusterCache {
      */
     async _evictLRU() {
         if (this.allKeys.size === 0) return
-
+        
         // Find the key with the oldest access time
         let oldestKey = null
         let oldestTime = Infinity
-
+        
         for (const key of this.allKeys) {
             const accessTime = this.keyAccessTimes.get(key) || 0
             if (accessTime < oldestTime) {
@@ -443,22 +386,20 @@ class ClusterCache {
                 oldestKey = key
             }
         }
-
+        
         if (oldestKey) {
             await this.delete(oldestKey)
-            await this._incrementStatAtomic('evictions')
-
-            // CRITICAL: Log every eviction to verify LRU correctness
-            console.log(`[CACHE EVICT] LRU evicted: ${oldestKey.substring(0, 30)}..., Total evictions: ${this.stats.evictions}, Cache size: ${this.allKeys.size}`)
+            this.stats.evictions++
         }
     }
 
     /**
      * Invalidate cache entries matching a pattern
      * @param {string|RegExp} pattern - Pattern to match keys against
+     * @param {Set} invalidatedKeys - Set of already invalidated keys to skip
      * @returns {Promise<number>} Number of keys invalidated
      */
-    async invalidate(pattern) {
+    async invalidate(pattern, invalidatedKeys = new Set()) {
         let count = 0
         
         try {
@@ -472,26 +413,23 @@ class ClusterCache {
             }
             
             const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern)
-
+            
             const deletePromises = []
+            const matchedKeys = []
             for (const key of allKeys) {
+                if (invalidatedKeys.has(key)) {
+                    continue
+                }
+                
                 if (regex.test(key)) {
-                    deletePromises.push(this.delete(key))
+                    deletePromises.push(this.delete(key, true))
+                    matchedKeys.push(key)
+                    invalidatedKeys.add(key)
                     count++
                 }
             }
-
+            
             await Promise.all(deletePromises)
-
-            // Atomically increment invalidations count for cluster sync
-            if (count > 0) {
-                await this._incrementStatAtomic('invalidations', count)
-            }
-
-            // CRITICAL: Log invalidation result for debugging cache correctness
-            if (count > 0) {
-                console.log(`[CACHE INVALIDATE] Pattern: ${pattern}, Invalidated: ${count} entries, Total invalidations: ${this.stats.invalidations}`)
-            }
         } catch (err) {
             console.error('Cache invalidate error:', err)
         }
@@ -500,35 +438,18 @@ class ClusterCache {
     }
 
     /**
-     * Wait for stats to sync across all PM2 workers
-     *
-     * In production (PM2 cluster), stats from OTHER workers may be up to 5s stale
-     * due to the background sync interval. This is acceptable for monitoring.
-     *
-     * @param {number} waitMs - How long to wait for other workers to sync (0 = don't wait)
-     * @returns {Promise<void>}
+     * Wait for the next sync cycle to complete across all workers.
+     * Syncs current worker immediately, then waits for background sync interval.
      */
-    async waitForSync(waitMs = 0) {
-        // Sync our own stats immediately - this ensures OUR stats are fresh
+    async waitForSync() {
+        // Sync our own stats immediately
         await this._syncStats()
-
-        // Optionally wait for other workers' background sync to complete
-        // Default to 0 (don't wait) since stats being 0-5s stale is acceptable
-        // Tests can pass 0, production can pass 6000 if absolutely fresh stats needed
-        if (waitMs > 0) {
-            await new Promise(resolve => setTimeout(resolve, waitMs))
-            // Sync again after waiting to ensure all workers have reported their final stats
-            await this._syncStats()
-        }
+        
+        await new Promise(resolve => setTimeout(resolve, 6000))
     }
 
     /**
      * Get cache statistics aggregated across all PM2 workers
-     * 
-     * Stats synced every 5s by background interval (may be up to 5s stale).
-     * Response time <10ms vs 200+ms for real-time sync via PM2 messaging.
-     * 
-     * @returns {Promise<Object>} Statistics object
      */
     async getStats() {
         try {
@@ -566,7 +487,6 @@ class ClusterCache {
                 misses: aggregatedStats.misses,
                 sets: aggregatedStats.sets,
                 evictions: aggregatedStats.evictions,
-                invalidations: aggregatedStats.invalidations,
                 hitRate: `${hitRate}%`,
                 uptime: this._formatUptime(uptime),
                 mode: 'cluster-interval-sync',
@@ -649,8 +569,21 @@ class ClusterCache {
             if (signal && signal.generation > this.clearGeneration) {
                 // Another worker initiated a clear - reset our local state
                 this.clearGeneration = signal.generation
-                this._resetLocalState()
-
+                
+                this.allKeys.clear()
+                this.keyAccessTimes.clear()
+                this.keySizes.clear()
+                this.totalBytes = 0
+                this.localCache.clear()
+                
+                this.stats = {
+                    hits: 0,
+                    misses: 0,
+                    evictions: 0,
+                    sets: 0,
+                    invalidations: 0
+                }
+                
                 // Delete our worker stats key immediately
                 const workerId = process.env.pm_id || process.pid
                 const statsKey = `_stats_worker_${workerId}`
@@ -669,40 +602,14 @@ class ClusterCache {
         try {
             const workerId = process.env.pm_id || process.pid
             const statsKey = `_stats_worker_${workerId}`
-
-            // Get current atomic stats from cluster cache
-            let currentStats = await this.clusterCache.get(statsKey, undefined)
-
-            if (!currentStats || typeof currentStats !== 'object') {
-                // Initialize if doesn't exist (shouldn't happen with atomic increments, but safety)
-                currentStats = {
-                    hits: 0,
-                    misses: 0,
-                    sets: 0,
-                    evictions: 0,
-                    invalidations: 0,
-                    totalBytes: 0,
-                    workerId,
-                    timestamp: Date.now()
-                }
-            }
-
-            // Update hits/misses from local stats (these are incremented locally for performance)
-            // Sets/evictions/invalidations are already atomic in cluster cache
-            currentStats.hits = this.stats.hits
-            currentStats.misses = this.stats.misses
-            currentStats.totalBytes = this.totalBytes
-            currentStats.timestamp = Date.now()
-
-            await this.clusterCache.set(statsKey, currentStats, 10000)
-
-            // CRITICAL: Log stats sync to verify /v1/api/cache/stats endpoint accuracy
-            // Sampled every 200 sets to reduce noise while still providing verification
-            if (this.stats.sets % 200 === 0) {
-                console.log(`[CACHE SYNC] Worker ${workerId}: hits=${currentStats.hits}, misses=${currentStats.misses}, invalidations=${currentStats.invalidations}, evictions=${currentStats.evictions}`)
-            }
+            await this.clusterCache.set(statsKey, {
+                ...this.stats,
+                totalBytes: this.totalBytes,
+                workerId,
+                timestamp: Date.now()
+            }, 10000)
         } catch (err) {
-            // Silently fail - stats sync is best-effort
+            // Silently fail
         }
     }
 
@@ -719,7 +626,6 @@ class ClusterCache {
                 misses: 0,
                 sets: 0,
                 evictions: 0,
-                invalidations: 0,
                 totalBytes: 0
             }
             const processedWorkers = new Set()
@@ -740,7 +646,6 @@ class ClusterCache {
                                     aggregated.misses += workerStats.misses || 0
                                     aggregated.sets += workerStats.sets || 0
                                     aggregated.evictions += workerStats.evictions || 0
-                                    aggregated.invalidations += workerStats.invalidations || 0
                                     aggregated.totalBytes += workerStats.totalBytes || 0
                                     processedWorkers.add(workerId)
                                 }
@@ -795,11 +700,7 @@ class ClusterCache {
         let count = 0
         const keysToCheck = Array.from(this.allKeys)
         
-        // Get object ID for logging
-        const objId = obj['@id'] || obj._id || 'unknown'
-
-        // Early exit: check if any query/search keys exist
-        const hasQueryKeys = keysToCheck.some(k =>
+        const hasQueryKeys = keysToCheck.some(k => 
             k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
         )
         if (!hasQueryKeys) {
@@ -813,6 +714,11 @@ class ClusterCache {
                 continue
             }
             
+            // Skip if already invalidated
+            if (invalidatedKeys.has(cacheKey)) {
+                continue
+            }
+            
             const colonIndex = cacheKey.indexOf(':')
             if (colonIndex === -1) continue
             
@@ -821,7 +727,7 @@ class ClusterCache {
                 const queryParams = JSON.parse(queryJson)
                 
                 if (this.objectMatchesQuery(obj, queryParams)) {
-                    await this.delete(cacheKey)
+                    await this.delete(cacheKey, true)  // Pass true to count this deletion
                     invalidatedKeys.add(cacheKey)
                     count++
                 }
@@ -829,17 +735,7 @@ class ClusterCache {
                 continue
             }
         }
-
-        // Atomically increment invalidations count for cluster sync
-        if (count > 0) {
-            await this._incrementStatAtomic('invalidations', count)
-        }
-
-        // CRITICAL: Log invalidation result for debugging cache correctness
-        if (count > 0) {
-            console.log(`[CACHE INVALIDATE BY OBJECT] Object: ${objId}, Invalidated: ${count} query entries, Total invalidations: ${this.stats.invalidations}`)
-        }
-
+        
         return count
     }
 
@@ -866,7 +762,6 @@ class ClusterCache {
         for (const [key, value] of Object.entries(queryProps)) {
             if (key === 'limit' || key === 'skip') continue
             
-            // Skip server-managed properties (__rerum, _id)
             if (key === '__rerum' || key === '_id') continue
             if (key.startsWith('__rerum.') || key.includes('.__rerum.') || key.endsWith('.__rerum') ||
                 key.startsWith('_id.') || key.includes('._id.') || key.endsWith('._id')) {
@@ -974,7 +869,6 @@ class ClusterCache {
      * @returns {*} Property value or undefined
      */
     getNestedProperty(obj, path) {
-        // Fast path for non-nested properties
         if (!path.includes('.')) {
             return obj?.[path]
         }
@@ -993,11 +887,9 @@ class ClusterCache {
     }
 }
 
-// Create singleton cache instance
-// Configuration can be adjusted via environment variables
 const CACHE_MAX_LENGTH = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
-const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000) // 1GB
-const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 300000) // 5 minutes default
+const CACHE_MAX_BYTES = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000)
+const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? 86400000)
 const cache = new ClusterCache(CACHE_MAX_LENGTH, CACHE_MAX_BYTES, CACHE_TTL)
 
 export default cache

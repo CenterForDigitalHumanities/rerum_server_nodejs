@@ -3,23 +3,6 @@
 /**
  * Cache middleware for RERUM API routes
  * @author thehabes
- * 
- * 💡 OPTIMIZATION OPPORTUNITIES (Optional enhancements)
-
-  After reviewing the code, here are suggested improvements ranked by value:
-
-  HIGH VALUE:
-
-  1. DRY Principle - Cache Key Generation (middleware.js)
-    - Current: Repeated logic in 8 cache middleware functions
-    - Opportunity: Extract common pattern (req, cacheKey) => cache.get(cacheKey) ? sendHit : setupMiss
-    - Benefit: ~150 lines of code reduction, easier maintenance
-    - Estimated effort: 30 minutes
-  2. Consolidate Cache Check Logic (middleware.js)
-    - Current: 6 cacheX middleware functions all check process.env.CACHING !== 'true'
-    - Opportunity: Create higher-order wrapper function
-    - Benefit: Single source of truth for cache enable check, cleaner code
-    - Estimated effort: 20 minutes
  */
 
 import cache from './index.js'
@@ -239,11 +222,13 @@ const invalidateCache = (req, res, next) => {
                 const previousId = extractId(updatedObject?.__rerum?.history?.previous)
                 const primeId = extractId(updatedObject?.__rerum?.history?.prime)
                 
-                cache.delete(`id:${objIdShort}`, true)  // Count as invalidation
-                invalidatedKeys.add(`id:${objIdShort}`)
+                if (!invalidatedKeys.has(`id:${objIdShort}`)) {
+                    cache.delete(`id:${objIdShort}`, true)
+                    invalidatedKeys.add(`id:${objIdShort}`)
+                }
                 
-                if (previousId && previousId !== 'root') {
-                    cache.delete(`id:${previousId}`, true)  // Count as invalidation
+                if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
+                    cache.delete(`id:${previousId}`, true)
                     invalidatedKeys.add(`id:${previousId}`)
                 }
                 
@@ -252,7 +237,7 @@ const invalidateCache = (req, res, next) => {
                 const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                 if (versionIds) {
                     const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    cache.invalidate(regex)
+                    cache.invalidate(regex, invalidatedKeys)
                 }
             } else {
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
@@ -268,11 +253,13 @@ const invalidateCache = (req, res, next) => {
                 const previousId = extractId(deletedObject?.__rerum?.history?.previous)
                 const primeId = extractId(deletedObject?.__rerum?.history?.prime)
                 
-                cache.delete(`id:${objIdShort}`, true)  // Count as invalidation
-                invalidatedKeys.add(`id:${objIdShort}`)
+                if (!invalidatedKeys.has(`id:${objIdShort}`)) {
+                    cache.delete(`id:${objIdShort}`, true)
+                    invalidatedKeys.add(`id:${objIdShort}`)
+                }
                 
-                if (previousId && previousId !== 'root') {
-                    cache.delete(`id:${previousId}`, true)  // Count as invalidation
+                if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
+                    cache.delete(`id:${previousId}`, true)
                     invalidatedKeys.add(`id:${previousId}`)
                 }
                 
@@ -281,7 +268,7 @@ const invalidateCache = (req, res, next) => {
                 const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                 if (versionIds) {
                     const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    cache.invalidate(regex)
+                    cache.invalidate(regex, invalidatedKeys)
                 }
             } else {
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
@@ -331,7 +318,7 @@ const cacheStats = async (req, res) => {
 }
 
 /**
- * Clear cache at /cache/clear endpoint (should be protected in production)
+ * Clear cache at /cache/clear endpoint
  */
 const cacheClear = async (req, res) => {
     // Clear cache and wait for all workers to sync

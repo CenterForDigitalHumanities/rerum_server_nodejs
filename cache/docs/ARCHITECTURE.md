@@ -277,8 +277,7 @@ Client Write Request (CREATE/UPDATE/DELETE)
 │  │  • hits: 1234        • length: 850/1000          │    │
 │  │  • misses: 567       • bytes: 22.1MB (monitor)   │    │
 │  │  • evictions: 89     • hitRate: 68.51%           │    │
-│  │  • sets: 1801        • ttl: 300000ms             │    │
-│  │  • invalidations: 45                             │    │
+│  │  • sets: 1801        • ttl: 86400000ms           │    │
 │  └──────────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────────┘
 ```

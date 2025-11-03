@@ -392,66 +392,41 @@ fill_cache() {
                         fi
                     fi
                 else
-                    # For remaining requests: Use GET endpoints up to available IDs, then fallback to POST
-                    if [ $pattern -eq 0 ]; then
-                        # Always use POST query (unlimited)
+                    # For remaining requests: Create queries that will be invalidated by Phase 5 writes
+                    # Strategy: Cycle through the 6 write operation types to ensure good distribution
+                    # Each type gets ~166 cache entries (1000-6 / 6 types)
+                    local write_type=$((count % 6))
+                    
+                    if [ $write_type -eq 0 ]; then
+                        # CreatePerfTest queries - will be invalidated by create operations
                         endpoint="${API_BASE}/api/query"
-                        data="{\"type\":\"$unique_id\"}"
+                        data="{\"type\":\"CreatePerfTest\",\"limit\":$((count / 6))}"
                         query_requests=$((query_requests + 1))
-                    elif [ $pattern -eq 1 ]; then
-                        # Always use POST search (unlimited)
-                        endpoint="${API_BASE}/api/search"
-                        data="{\"searchText\":\"$unique_id\"}"
-                        search_requests=$((search_requests + 1))
-                    elif [ $pattern -eq 2 ]; then
-                        # Always use POST search phrase (unlimited)
-                        endpoint="${API_BASE}/api/search/phrase"
-                        data="{\"searchText\":\"$unique_id\"}"
-                        search_phrase_requests=$((search_phrase_requests + 1))
-                    elif [ $pattern -eq 3 ]; then
-                        # Use /id endpoint if we haven't exhausted IDs (use indices 50-99)
-                        if [ $id_requests_so_far -lt $max_id_requests ] && [ ${#CREATED_IDS[@]} -gt $((id_offset + id_requests_so_far)) ]; then
-                            local id_index=$((id_offset + id_requests_so_far))
-                            endpoint="${CREATED_IDS[$id_index]}"
-                            method="GET"
-                            data=""
-                            id_requests=$((id_requests + 1))
-                        else
-                            # Fallback to unique POST query
-                            endpoint="${API_BASE}/api/query"
-                            data="{\"type\":\"$unique_id\"}"
-                            query_requests=$((query_requests + 1))
-                        fi
-                    elif [ $pattern -eq 4 ]; then
-                        # Use /history endpoint if we haven't exhausted IDs (use indices 50-99)
-                        if [ $history_requests_so_far -lt $max_history_requests ] && [ ${#CREATED_IDS[@]} -gt $((id_offset + history_requests_so_far)) ]; then
-                            local id_index=$((id_offset + history_requests_so_far))
-                            local obj_id=$(echo "${CREATED_IDS[$id_index]}" | sed 's|.*/||')
-                            endpoint="${API_BASE}/history/${obj_id}"
-                            method="GET"
-                            data=""
-                            history_requests=$((history_requests + 1))
-                        else
-                            # Fallback to unique POST search
-                            endpoint="${API_BASE}/api/search"
-                            data="{\"searchText\":\"$unique_id\"}"
-                            search_requests=$((search_requests + 1))
-                        fi
+                    elif [ $write_type -eq 1 ]; then
+                        # UpdateTest queries - will be invalidated by update operations
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"UpdateTest\",\"limit\":$((count / 6))}"
+                        query_requests=$((query_requests + 1))
+                    elif [ $write_type -eq 2 ]; then
+                        # PatchTest queries - will be invalidated by patch operations
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"PatchTest\",\"limit\":$((count / 6))}"
+                        query_requests=$((query_requests + 1))
+                    elif [ $write_type -eq 3 ]; then
+                        # SetTest queries - will be invalidated by set operations
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"SetTest\",\"limit\":$((count / 6))}"
+                        query_requests=$((query_requests + 1))
+                    elif [ $write_type -eq 4 ]; then
+                        # UnsetTest queries - will be invalidated by unset operations
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"UnsetTest\",\"limit\":$((count / 6))}"
+                        query_requests=$((query_requests + 1))
                     else
-                        # Use /since endpoint if we haven't exhausted IDs (use indices 50-99)
-                        if [ $since_requests_so_far -lt $max_since_requests ] && [ ${#CREATED_IDS[@]} -gt $((id_offset + since_requests_so_far)) ]; then
-                            local id_index=$((id_offset + since_requests_so_far))
-                            local since_id=$(echo "${CREATED_IDS[$id_index]}" | sed 's|.*/||')
-                            endpoint="${API_BASE}/since/${since_id}"
-                            method="GET"
-                            data=""
-                            since_requests=$((since_requests + 1))
-                        else
-                            # Fallback to unique POST search phrase
-                            endpoint="${API_BASE}/api/search/phrase"
-                            data="{\"searchText\":\"$unique_id\"}"
-                            search_phrase_requests=$((search_phrase_requests + 1))
-                        fi
+                        # OverwriteTest queries - will be invalidated by overwrite operations
+                        endpoint="${API_BASE}/api/query"
+                        data="{\"type\":\"OverwriteTest\",\"limit\":$((count / 6))}"
+                        query_requests=$((query_requests + 1))
                     fi
                 fi
                 
@@ -530,7 +505,6 @@ fill_cache() {
     done
     echo ""
     
-    # Log final statistics
     log_info "Request Statistics:"
     log_info "  Total requests sent: $completed"
     log_info "  Successful (200 OK): $successful_requests"
@@ -549,21 +523,12 @@ fill_cache() {
     
     if [ $timeout_requests -gt 0 ] || [ $failed_requests -gt 0 ]; then
         log_warning "⚠️  $(($timeout_requests + $failed_requests)) requests did not complete successfully"
-        log_warning "This suggests the server may be overwhelmed by parallel requests"
-        log_warning "Consider reducing batch size or adding more delay between batches"
     fi
     
-    # Wait for all cache operations to complete and stats to sync across all workers
-    # Background stats sync happens every 5 seconds starting from server boot
-    # We need to wait long enough to ensure the NEXT sync cycle completes AFTER all requests finish
-    # Worst case: sync happened 0.1s ago, next sync in 4.9s, need to wait >4.9s for that sync,
-    # plus a buffer for the sync operation itself to complete
-    # Updated to 12s to ensure atomic stat increments are fully synced across all workers
     log_info "Waiting for cache operations to complete and stats to sync across all PM2 workers..."
     log_info "Stats sync every 5 seconds - waiting 12 seconds to ensure at least two sync cycles complete..."
     sleep 12
     
-    # Sanity check: Verify cache actually contains entries
     log_info "Sanity check - Verifying cache size after fill..."
     local final_stats=$(get_cache_stats)
     local final_size=$(echo "$final_stats" | jq -r '.length' 2>/dev/null || echo "0")
@@ -580,13 +545,10 @@ fill_cache() {
     log_info "  Cache misses: ${total_misses}"
     log_info "  Evictions: ${evictions}"
     
-    # Info: Not all successful HTTP responses are cached (by design)
-    # Some responses don't meet cache criteria (e.g., non-array responses, null data, etc.)
     local expected_sets=$successful_requests
     if [ "$total_sets" -lt "$expected_sets" ]; then
         local uncached_count=$(($expected_sets - $total_sets))
         log_info "Note: ${uncached_count} of ${expected_sets} successful responses were not cached"
-        log_info "This is expected - not all 200 OK responses meet caching criteria (arrays, non-null data, etc.)"
     fi
     
     if [ "$final_size" -lt "$target_size" ] && [ "$final_size" -eq "$max_length" ]; then
@@ -595,31 +557,12 @@ fill_cache() {
         exit 1
     elif [ "$final_size" -lt "$target_size" ]; then
         log_failure "Cache size (${final_size}) is less than target (${target_size})"
-        log_info "Diagnosis:"
-        log_info "  - Requests sent: ${completed}"
-        log_info "  - Successful HTTP 200: ${successful_requests}"
-        log_info "  - Cache.set() calls: ${total_sets}"
-        log_info "  - Cache entries created: ${final_size}"
-        log_info "  - Entries evicted: ${evictions}"
-        
-        if [ $timeout_requests -gt 0 ] || [ $failed_requests -gt 0 ]; then
-            log_info "  → PRIMARY CAUSE: $(($timeout_requests + $failed_requests)) requests failed/timed out"
-            log_info "     Reduce batch size or add more delay between batches"
-        elif [ "$total_sets" -lt "$successful_requests" ]; then
-            log_info "  → PRIMARY CAUSE: $(($successful_requests - $total_sets)) responses were not arrays or had non-200 status"
-        elif [ "$evictions" -gt 0 ]; then
-            log_info "  → PRIMARY CAUSE: ${evictions} entries evicted (cache limit reached or TTL expired)"
-        else
-            log_info "  → PRIMARY CAUSE: Concurrent requests with identical keys (duplicates not cached)"
-        fi
-        
-        log_info "Current CACHE_TTL: $(echo "$final_stats" | jq -r '.ttl' 2>/dev/null || echo 'unknown')ms"
+        log_info "Requests sent: ${completed}, Successful: ${successful_requests}, Cache.set() calls: ${total_sets}"
         exit 1
     fi
     
-    log_success "Cache filled to ${final_size} entries (query, search, search/phrase patterns)"
+    log_success "Cache filled to ${final_size} entries"
     
-    # Additional wait to ensure cache state is stable before continuing
     sleep 1
 }
 
@@ -630,7 +573,6 @@ warmup_system() {
     
     local count=0
     for i in $(seq 1 $WARMUP_ITERATIONS); do
-        # Perform a create operation
         curl -s -X POST "${API_BASE}/api/create" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${AUTH_TOKEN}" \
@@ -643,17 +585,13 @@ warmup_system() {
     done
     echo ""
     
-    log_success "System warmed up (MongoDB connections, JIT, caches initialized)"
+    log_success "System warmed up"
     
-    # Clear cache after warmup to start fresh
-    # The clear_cache function waits internally for all workers to sync (5.5s)
     clear_cache
 }
 
 # Get cache stats
 get_cache_stats() {
-    # Stats are now synced on-demand by the /cache/stats endpoint
-    # No need to wait - the endpoint waits for sync before responding
     curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
 }
 
@@ -663,7 +601,6 @@ create_test_object() {
     local data=$1
     local description=${2:-"Creating test object"}
     
-    # Removed log to reduce noise - function still works
     local response=$(curl -s -X POST "${API_BASE}/api/create" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${AUTH_TOKEN}" \
@@ -673,9 +610,8 @@ create_test_object() {
     
     if [ -n "$obj_id" ] && [ "$obj_id" != "null" ]; then
         CREATED_IDS+=("$obj_id")
-        # Store the full object for later use (to avoid unnecessary GET requests)
         CREATED_OBJECTS["$obj_id"]="$response"
-        sleep 1  # Allow DB and cache to process
+        sleep 1
     fi
     
     echo "$obj_id"
@@ -1863,7 +1799,7 @@ test_unset_endpoint_empty() {
 test_unset_endpoint_full() {
     log_section "Testing /api/unset Endpoint (Full Cache)"
     local NUM_ITERATIONS=50
-    local props='{"type":"UnsetTest2"'; for i in $(seq 1 $NUM_ITERATIONS); do props+=",\"prop$i\":\"val$i\""; done; props+='}'
+    local props='{"type":"UnsetTest"'; for i in $(seq 1 $NUM_ITERATIONS); do props+=",\"prop$i\":\"val$i\""; done; props+='}'
     local test_id=$(create_test_object "$props")
     [ -z "$test_id" ] && return
     local total=0 success=0
@@ -2021,21 +1957,6 @@ test_delete_endpoint_full() {
     local start_idx=$NUM_ITERATIONS
     [ $num_created -lt $((NUM_ITERATIONS * 2)) ] && { log_warning "Not enough objects (have: $num_created, need: $((NUM_ITERATIONS * 2)))"; return; }
     
-    # DEBUG: Log which objects will be deleted
-    log_info "=== DELETE TEST DEBUG ==="
-    log_info "Total created objects: $num_created"
-    log_info "Will delete objects at indices $start_idx to $((start_idx + NUM_ITERATIONS - 1))"
-    log_info "First 5 IDs to delete:"
-    for i in $(seq $start_idx $((start_idx + 4))); do
-        log_info "  [$i] ${CREATED_IDS[$i]}"
-    done
-    
-    # Get initial cache stats
-    local stats_before=$(get_cache_stats)
-    local cache_size_before=$(echo "$stats_before" | grep -o '"length":[0-9]*' | sed 's/"length"://')
-    local invalidations_before=$(echo "$stats_before" | grep -o '"invalidations":[0-9]*' | sed 's/"invalidations"://')
-    log_info "Cache before deletes: size=$cache_size_before, invalidations=$invalidations_before"
-    
     log_info "Deleting next $NUM_ITERATIONS objects from create test..."
     local total=0 success=0
     local iteration=0
@@ -2043,7 +1964,6 @@ test_delete_endpoint_full() {
         iteration=$((iteration + 1))
         local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
         
-        # Skip if obj_id is invalid
         if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
             continue
         fi
@@ -2052,17 +1972,6 @@ test_delete_endpoint_full() {
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "204" ] && { total=$((total + time)); success=$((success + 1)); }
         
-        # DEBUG: Show cache stats every 10 deletes
-        if [ $((iteration % 10)) -eq 0 ]; then
-            local stats_now=$(get_cache_stats)
-            local cache_size_now=$(echo "$stats_now" | grep -o '"length":[0-9]*' | sed 's/"length"://')
-            local invalidations_now=$(echo "$stats_now" | grep -o '"invalidations":[0-9]*' | sed 's/"invalidations"://')
-            local removed=$((cache_size_before - cache_size_now))
-            local new_invalidations=$((invalidations_now - invalidations_before))
-            log_info "[DELETE $iteration] Cache: $cache_size_now entries (-$removed), invalidations: $invalidations_now (+$new_invalidations)"
-        fi
-        
-        # Progress indicator
         if [ $((iteration % 10)) -eq 0 ] || [ $iteration -eq $NUM_ITERATIONS ]; then
             local pct=$((iteration * 100 / NUM_ITERATIONS))
             echo -ne "\r  Progress: $iteration/$NUM_ITERATIONS iterations ($pct%)  " >&2
@@ -2333,40 +2242,8 @@ main() {
     log_info "=== PHASE 5 STARTING STATE ==="
     log_info "Starting cache size: $starting_cache_size entries"
     log_info "Invalidations before Phase 5: $invalidations_before_phase5"
-    
-    # Add cache entries that will be invalidated by write operations
-    # This ensures write operations actually remove cached queries
-    log_info "Caching queries that match write test objects..."
-    curl -s -X POST "${API_BASE}/api/query" \
-        -H "Content-Type: application/json" \
-        -d '{"type":"UpdateTest"}' \
-        -o /dev/null 2>&1
-    curl -s -X POST "${API_BASE}/api/query" \
-        -H "Content-Type: application/json" \
-        -d '{"type":"PatchTest"}' \
-        -o /dev/null 2>&1
-    curl -s -X POST "${API_BASE}/api/query" \
-        -H "Content-Type: application/json" \
-        -d '{"type":"SetTest"}' \
-        -o /dev/null 2>&1
-    curl -s -X POST "${API_BASE}/api/query" \
-        -H "Content-Type: application/json" \
-        -d '{"type":"UnsetTest"}' \
-        -o /dev/null 2>&1
-    curl -s -X POST "${API_BASE}/api/query" \
-        -H "Content-Type: application/json" \
-        -d '{"type":"OverwriteTest"}' \
-        -o /dev/null 2>&1
-    sleep 0.5  # Let cache settle
-    
-    # Get cache stats after adding test queries
-    local stats_after_queries=$(get_cache_stats)
-    local cache_size_after_queries=$(echo "$stats_after_queries" | grep -o '"length":[0-9]*' | sed 's/"length"://')
-    local invalidations_after_queries=$(echo "$stats_after_queries" | grep -o '"invalidations":[0-9]*' | sed 's/"invalidations"://')
-    local evictions_after_queries=$(echo "$stats_after_queries" | grep -o '"evictions":[0-9]*' | sed 's/"evictions"://')
-    
-    log_info "Added 5 query cache entries for write test objects"
-    log_info "Cache after adding queries: ${cache_size_after_queries} entries (was ${starting_cache_size})"
+    log_info "Phase 3 filled cache with queries matching Phase 5 write operation types"
+    log_info "Each write operation should invalidate multiple cache entries"
     
     echo "[INFO] Running write endpoint tests..."
     
@@ -2381,7 +2258,7 @@ main() {
         local evictions=$(echo "$stats" | grep -o '"evictions":[0-9]*' | sed 's/"evictions"://')
         local sets=$(echo "$stats" | grep -o '"sets":[0-9]*' | sed 's/"sets"://')
         
-        echo "[CACHE TRACK] After $operation: size=$size, invalidations=$invalidations (Δ+$((invalidations - invalidations_after_queries))), evictions=$evictions, sets=$sets" >&2
+        echo "[CACHE TRACK] After $operation: size=$size, invalidations=$invalidations (Δ+$((invalidations - invalidations_before_phase5))), evictions=$evictions, sets=$sets" >&2
     }
     
     # DEBUG: Log cache state before each write test
@@ -2407,32 +2284,12 @@ main() {
     test_overwrite_endpoint_full
     track_cache_change "overwrite_full"
     
-    # Special tracking for delete operations (they remove more entries)
-    local stats_before_delete=$(get_cache_stats)
-    local cache_size_before_delete=$(echo "$stats_before_delete" | grep -o '"length":[0-9]*' | sed 's/"length"://')
-    local invalidations_before_delete=$(echo "$stats_before_delete" | grep -o '"invalidations":[0-9]*' | sed 's/"invalidations"://')
+    test_delete_endpoint_full
     
-    echo "[CACHE TRACK] Before delete_full: size=$cache_size_before_delete, invalidations=$invalidations_before_delete" >&2
-    
-    test_delete_endpoint_full  # Uses objects from create_full test
-    
-    local stats_after_delete=$(get_cache_stats)
-    local cache_size_after_delete=$(echo "$stats_after_delete" | grep -o '"length":[0-9]*' | sed 's/"length"://')
-    local invalidations_after_delete=$(echo "$stats_after_delete" | grep -o '"invalidations":[0-9]*' | sed 's/"invalidations"://')
-    local entries_removed=$((cache_size_before_delete - cache_size_after_delete))
-    local invalidations_added=$((invalidations_after_delete - invalidations_before_delete))
-    
-    echo "[CACHE TRACK] After delete_full: size=$cache_size_after_delete (-$entries_removed entries), invalidations=$invalidations_after_delete (+$invalidations_added)" >&2
-    
-    # Wait for cache to sync across all workers before checking final stats
-    # Background stats sync happens every 5 seconds starting from server boot
-    # We need to wait long enough to ensure the NEXT sync cycle completes AFTER all writes finish
-    # Updated to 12s to ensure atomic stat increments are fully synced across all workers
     log_info "Waiting for cache invalidations and stats to sync across all PM2 workers..."
     log_info "Stats sync every 5 seconds - waiting 12 seconds to ensure at least two sync cycles complete..."
     sleep 12
     
-    # Get cache stats after Phase 5 writes
     local stats_after_phase5=$(get_cache_stats)
     local final_cache_size=$(echo "$stats_after_phase5" | grep -o '"length":[0-9]*' | sed 's/"length"://')
     local invalidations_after_phase5=$(echo "$stats_after_phase5" | grep -o '"invalidations":[0-9]*' | sed 's/"invalidations"://')
@@ -2443,17 +2300,11 @@ main() {
     local total_invalidations=$((invalidations_after_phase5 - invalidations_before_phase5))
     local actual_entries_removed=$((starting_cache_size - final_cache_size))
     
-    # Expected behavior:
-    # All invalidated cache entries should be removed from the cache.
-    # Therefore: final_cache_size = starting_cache_size - total_invalidations
-    # Or equivalently: total_invalidations = actual_entries_removed
-    
     echo ""
     log_info "=== PHASE 5 FINAL RESULTS ==="
     log_info "Starting cache size: $starting_cache_size entries (after adding 5 test queries)"
     log_info "Final cache size: $final_cache_size entries"
     log_info "Actual entries removed: $actual_entries_removed entries"
-    log_info "Total invalidations counted: $total_invalidations invalidations"
     log_info ""
     log_info "=== PHASE 5 CACHE ACCOUNTING ==="
     log_info "Initial state: ${starting_cache_size} entries"

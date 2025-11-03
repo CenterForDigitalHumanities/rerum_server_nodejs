@@ -93,8 +93,6 @@ Returns aggregated stats from all PM2 workers:
 }
 ```
 
-**Stats Accuracy**: Critical counters (sets, evictions, invalidations) use atomic updates for accuracy. Hit/miss counters are synced every 5 seconds for performance.
-
 ### Clear Cache
 ```
 POST /v1/api/cache/clear
@@ -107,7 +105,7 @@ Cache behavior can be adjusted via environment variables:
 - `CACHING` - Enable/disable caching layer (default: `true`, set to `false` to disable)
 - `CACHE_MAX_LENGTH` - Maximum entries per worker (default: 1000)
 - `CACHE_MAX_BYTES` - Maximum memory usage per worker (default: 1GB)
-- `CACHE_TTL` - Time-to-live in milliseconds (default: 300000 = 5 minutes, production uses 86400000 = 24 hours)
+- `CACHE_TTL` - Time-to-live in milliseconds (default: 86400000 = 24 hours)
 
 **Note**: With PM2 cluster mode using 'all' storage, each worker maintains a full copy of the cache for consistent performance. Limits apply per worker. With standard RERUM queries (100 items per page), 1000 cached entries use only ~26 MB per worker.
 

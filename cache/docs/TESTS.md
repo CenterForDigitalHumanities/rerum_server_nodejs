@@ -169,12 +169,12 @@ These tests verify smart cache invalidation across PM2 cluster workers:
 ### ❌ TTL Expiration in Production
 
 **Not tested**:
-- Long TTL expiration (default 300000ms = 5 minutes)
+- Long TTL expiration (default 86400000ms = 24 hours)
 - PM2 automatic eviction over time
 - Memory cleanup after TTL expires
 
 **Why mocks can't test this**:
-- Would require 5+ minute test runs
+- Would require 24+ hour test runs
 - PM2 handles TTL internally
 - cache-limits.test.js tests short TTLs (1 second) to verify mechanism works
 
@@ -220,7 +220,7 @@ Tests PM2 Cluster Cache limit configuration and enforcement for:
 - ✅ Works with short TTL (1 second test)
 
 #### 2. Default TTL
-- ✅ Respects default TTL from constructor (300000ms = 5 minutes)
+- ✅ Respects default TTL from constructor (86400000ms = 24 hours)
 - ✅ Entries exist within TTL period
 - ✅ TTL value reported in stats
 
@@ -287,7 +287,7 @@ Tests PM2 Cluster Cache limit configuration and enforcement for:
 #### 1. All Limits Configured
 - ✅ maxLength = 1000
 - ✅ maxBytes = 1000000000
-- ✅ TTL = 300000
+- ✅ TTL = 86400000
 
 #### 2. All Limits in Stats
 - ✅ All three limits reported by `getStats()`
@@ -339,7 +339,7 @@ Tests PM2 Cluster Cache limit configuration and enforcement for:
 #### 4. Default Values Unchanged
 - ✅ maxLength defaults to 1000 (if env var not set)
 - ✅ maxBytes defaults to 1000000000 (if env var not set)
-- ✅ TTL defaults to 300000 (if env var not set)
+- ✅ TTL defaults to 86400000 (if env var not set)
 
 ---
 
@@ -662,7 +662,7 @@ These tests run automatically in GitHub Actions:
 ### cache-limits.test.js
 - **Time**: ~9 seconds
 - **Reason**: TTL expiration tests (1-2 second waits)
-- **Optimization**: Uses short TTLs (500-1000ms) instead of default 5 minutes
+- **Optimization**: Uses short TTLs (500-1000ms) instead of default 24 hours
 
 ### Total Test Suite
 - **Time**: ~27 seconds
@@ -685,7 +685,7 @@ These tests run automatically in GitHub Actions:
 ### What's NOT Tested ❌
 - ❌ Real MongoDB integration (CREATE/UPDATE with actual database)
 - ❌ Version chain invalidation with real RERUM `__rerum` metadata
-- ❌ Long TTL expiration (5 minutes - would slow tests)
+- ❌ Long TTL expiration (24 hours - would slow tests)
 - ❌ Multi-worker PM2 cluster under load
 - ❌ Large-scale stress testing (10,000+ entries, 1GB data)
 - ❌ Response interceptor timing with real Express stack
