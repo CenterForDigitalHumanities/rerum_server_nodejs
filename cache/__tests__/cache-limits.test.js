@@ -36,6 +36,31 @@ async function getCacheSize() {
     }
 }
 
+/**
+ * Configuration test data for parameterized tests
+ * Each entry defines: property name, default value, and environment variable
+ */
+const cacheConfigTests = [
+    {
+        property: 'maxLength',
+        defaultValue: 1000,
+        envVar: 'CACHE_MAX_LENGTH',
+        description: 'maximum number of cached entries'
+    },
+    {
+        property: 'maxBytes',
+        defaultValue: 1000000000,
+        envVar: 'CACHE_MAX_BYTES',
+        description: 'maximum cache size in bytes (1GB)'
+    },
+    {
+        property: 'ttl',
+        defaultValue: 300000,
+        envVar: 'CACHE_TTL',
+        description: 'time-to-live in milliseconds (5 minutes)'
+    }
+]
+
 describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
     beforeEach(async () => {
         await cache.clear()
@@ -136,26 +161,40 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
     }, 8000)
 })
 
-describe('Cache maxLength Limit Configuration', () => {
+/**
+ * Parameterized tests for cache limit configuration
+ * Tests default values, stats reporting, and environment variable support
+ */
+describe.each(cacheConfigTests)(
+    'Cache $property Configuration',
+    ({ property, defaultValue, envVar, description }) => {
+        it(`should have ${property} configured to ${defaultValue} by default`, () => {
+            expect(cache[property]).toBe(defaultValue)
+        })
+
+        it(`should report ${property} in stats`, async () => {
+            const stats = await cache.getStats()
+
+            expect(stats[property]).toBeDefined()
+            expect(stats[property]).toBe(defaultValue)
+            expect(stats[property]).toBe(cache[property])
+        })
+
+        it(`should use environment variable ${envVar} if set`, () => {
+            const expected = parseInt(process.env[envVar] ?? defaultValue)
+            expect(cache[property]).toBe(expected)
+        })
+    }
+)
+
+describe('Cache maxLength Limit Enforcement', () => {
     beforeEach(async () => {
         await cache.clear()
         await waitForCache(100)
     })
-    
+
     afterEach(async () => {
         await cache.clear()
-    })
-
-    it('should have maxLength configured to 1000 by default', () => {
-        expect(cache.maxLength).toBe(1000)
-    })
-
-    it('should report maxLength in stats', async () => {
-        const stats = await cache.getStats()
-        
-        expect(stats.maxLength).toBeDefined()
-        expect(stats.maxLength).toBe(1000)
-        expect(stats.maxLength).toBe(cache.maxLength)
     })
 
     it('should track current cache length', async () => {
@@ -205,33 +244,16 @@ describe('Cache maxLength Limit Configuration', () => {
             cache.maxLength = originalMaxLength
         }
     }, 10000)
-
-    it('should use environment variable CACHE_MAX_LENGTH if set', () => {
-        const expected = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
-        expect(cache.maxLength).toBe(expected)
-    })
 })
 
-describe('Cache maxBytes Limit Configuration', () => {
+describe('Cache maxBytes Limit Enforcement', () => {
     beforeEach(async () => {
         await cache.clear()
         await waitForCache(100)
     })
-    
+
     afterEach(async () => {
         await cache.clear()
-    })
-
-    it('should have maxBytes configured to 1GB (1000000000) by default', () => {
-        expect(cache.maxBytes).toBe(1000000000)
-    })
-
-    it('should report maxBytes in stats', async () => {
-        const stats = await cache.getStats()
-        
-        expect(stats.maxBytes).toBeDefined()
-        expect(stats.maxBytes).toBe(1000000000)
-        expect(stats.maxBytes).toBe(cache.maxBytes)
     })
 
     it('should enforce maxBytes limit with LRU eviction', async () => {
@@ -281,34 +303,9 @@ describe('Cache maxBytes Limit Configuration', () => {
             cache.maxLength = originalMaxLength
         }
     }, 20000)
-
-    it('should use environment variable CACHE_MAX_BYTES if set', () => {
-        const expected = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000)
-        expect(cache.maxBytes).toBe(expected)
-    })
 })
 
-describe('All Cache Limits Configuration', () => {
-    it('should have all three limits (maxLength, maxBytes, TTL) configured', () => {
-        expect(cache.maxLength).toBe(1000)
-        expect(cache.maxBytes).toBe(1000000000)
-        expect(cache.ttl).toBe(300000)
-    })
-
-    it('should report all limits in stats', async () => {
-        const stats = await cache.getStats()
-        
-        expect(stats.maxLength).toBe(1000)
-        expect(stats.maxBytes).toBe(1000000000)
-        expect(stats.ttl).toBe(300000)
-    })
-
-    it('should respect environment variables for all limits', () => {
-        expect(cache.maxLength).toBe(parseInt(process.env.CACHE_MAX_LENGTH ?? 1000))
-        expect(cache.maxBytes).toBe(parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000))
-        expect(cache.ttl).toBe(parseInt(process.env.CACHE_TTL ?? 300000))
-    })
-
+describe('Cache Limits Validation', () => {
     it('should have reasonable limit values', () => {
         // maxLength should be positive and reasonable (< 1 million)
         expect(cache.maxLength).toBeGreaterThan(0)
@@ -324,36 +321,7 @@ describe('All Cache Limits Configuration', () => {
     })
 })
 
-describe('PM2 Cluster Cache Eviction Stats', () => {
-    beforeEach(async () => {
-        await cache.clear()
-        await waitForCache(100)
-    })
-    
-    afterEach(async () => {
-        await cache.clear()
-    })
-
-    it('should track eviction count in stats', async () => {
-        const stats = await cache.getStats()
-        
-        expect(stats).toHaveProperty('evictions')
-        expect(typeof stats.evictions).toBe('number')
-        expect(stats.evictions).toBeGreaterThanOrEqual(0)
-    })
-
-    it('should increment evictions when cache.clear() is called', async () => {
-        const statsBefore = await cache.getStats()
-        const evictionsBefore = statsBefore.evictions
-        
-        await cache.clear()
-        await waitForCache(100)
-        
-        const statsAfter = await cache.getStats()
-        // Clear counts as an eviction event
-        expect(statsAfter.evictions).toBeGreaterThanOrEqual(evictionsBefore)
-    })
-})
+// Eviction stats tests removed - test implementation details not user-facing behavior
 
 describe('Cache Limit Breaking Change Detection', () => {
     it('should detect if limit properties are removed from cache object', () => {

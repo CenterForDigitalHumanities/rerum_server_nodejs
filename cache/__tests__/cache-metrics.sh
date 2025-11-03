@@ -197,7 +197,7 @@ measure_endpoint() {
     local description=$4
     local needs_auth=${5:-false}
     local timeout=${6:-35}
-    
+
     local start=$(date +%s%3N)
     if [ "$needs_auth" == "true" ]; then
         local response=$(curl -s --max-time $timeout -w "\n%{http_code}" -X "$method" "${endpoint}" \
@@ -212,23 +212,33 @@ measure_endpoint() {
     local end=$(date +%s%3N)
     local time=$((end - start))
     local http_code=$(echo "$response" | tail -n1)
-    
+    local response_body=$(echo "$response" | head -n-1)
+
     # Validate timing (protect against clock skew/adjustment)
     if [ "$time" -lt 0 ]; then
-        # Clock went backward during operation - treat as timeout
-        http_code="000"
-        time=0
-        echo "[WARN] Clock skew detected (negative timing) for $endpoint" >&2
+        # Clock went backward during operation
+        # Check if HTTP request actually succeeded before treating as error
+        if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
+            # No HTTP code at all - actual timeout/failure
+            http_code="000"
+            time=0
+            echo "[WARN] Clock skew detected (negative timing) for $endpoint" >&2
+            echo "[WARN] Endpoint $endpoint timed out or connection failed" >&2
+        else
+            # HTTP succeeded but timing is invalid - use 0ms as placeholder
+            echo "[WARN] Clock skew detected (negative timing) for $endpoint" >&2
+            time=0
+        fi
     fi
-    
-    # Handle curl failure (connection timeout, etc)
-    if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
+
+    # Handle curl failure (connection timeout, etc) - only if we have no HTTP code
+    if [ -z "$http_code" ]; then
         http_code="000"
         # Log to stderr to avoid polluting the return value
         echo "[WARN] Endpoint $endpoint timed out or connection failed" >&2
     fi
-    
-    echo "$time|$http_code|$(echo "$response" | head -n-1)"
+
+    echo "$time|$http_code|$response_body"
 }
 
 # Clear cache
@@ -700,19 +710,25 @@ create_test_object_with_body() {
 # Query endpoint - cold cache test
 test_query_endpoint_cold() {
     log_section "Testing /api/query Endpoint (Cold Cache)"
-    
+
     ENDPOINT_DESCRIPTIONS["query"]="Query database with filters"
-    
+
     log_info "Testing query with cold cache..."
     # Use the same query that will be cached in Phase 3 and tested in Phase 4
     local result=$(measure_endpoint "${API_BASE}/api/query" "POST" '{"type":"CreatePerfTest"}' "Query for CreatePerfTest")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
-    
+
     ENDPOINT_COLD_TIMES["query"]=$cold_time
-    
+
+    # HTTP 200 = success (even if timing was 0ms due to clock skew)
+    # HTTP 000 = actual failure (no HTTP response at all)
     if [ "$cold_code" == "200" ]; then
-        log_success "Query endpoint functional (${cold_time}ms)"
+        if [ "$cold_time" == "0" ]; then
+            log_success "Query endpoint functional (timing unavailable due to clock skew)"
+        else
+            log_success "Query endpoint functional (${cold_time}ms)"
+        fi
         ENDPOINT_STATUS["query"]="✅ Functional"
     else
         log_failure "Query endpoint failed (HTTP $cold_code)"
@@ -773,12 +789,12 @@ test_search_endpoint() {
 
 test_id_endpoint() {
     log_section "Testing /id/:id Endpoint"
-    
+
     ENDPOINT_DESCRIPTIONS["id"]="Retrieve object by ID"
-    
+
     # Create test object to get an ID
     local test_id=$(create_test_object '{"type":"IdTest","value":"test"}' "Creating test object")
-    
+
     # Validate object creation
     if [ -z "$test_id" ] || [ "$test_id" == "null" ]; then
         log_failure "Failed to create test object for ID test"
@@ -787,25 +803,32 @@ test_id_endpoint() {
         ENDPOINT_WARM_TIMES["id"]="N/A"
         return
     fi
-    
+
     clear_cache
-    
+
     # Test ID retrieval with cold cache
     log_info "Testing ID retrieval with cold cache..."
     local result=$(measure_endpoint "$test_id" "GET" "" "Get object by ID")
     local cold_time=$(echo "$result" | cut -d'|' -f1)
     local cold_code=$(echo "$result" | cut -d'|' -f2)
-    
+
     ENDPOINT_COLD_TIMES["id"]=$cold_time
-    
+
+    # HTTP 200 = success (even if timing was 0ms due to clock skew)
+    # HTTP 000 = actual failure (no HTTP response at all)
     if [ "$cold_code" != "200" ]; then
         log_failure "ID endpoint failed (HTTP $cold_code)"
         ENDPOINT_STATUS["id"]="❌ Failed"
         ENDPOINT_WARM_TIMES["id"]="N/A"
         return
     fi
-    
-    log_success "ID endpoint functional"
+
+    # Success - endpoint is functional
+    if [ "$cold_time" == "0" ]; then
+        log_success "ID endpoint functional (timing unavailable due to clock skew)"
+    else
+        log_success "ID endpoint functional"
+    fi
     ENDPOINT_STATUS["id"]="✅ Functional"
 }
 

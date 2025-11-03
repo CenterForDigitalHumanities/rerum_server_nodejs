@@ -3,6 +3,23 @@
 /**
  * Cache middleware for RERUM API routes
  * @author thehabes
+ * 
+ * 💡 OPTIMIZATION OPPORTUNITIES (Optional enhancements)
+
+  After reviewing the code, here are suggested improvements ranked by value:
+
+  HIGH VALUE:
+
+  1. DRY Principle - Cache Key Generation (middleware.js)
+    - Current: Repeated logic in 8 cache middleware functions
+    - Opportunity: Extract common pattern (req, cacheKey) => cache.get(cacheKey) ? sendHit : setupMiss
+    - Benefit: ~150 lines of code reduction, easier maintenance
+    - Estimated effort: 30 minutes
+  2. Consolidate Cache Check Logic (middleware.js)
+    - Current: 6 cacheX middleware functions all check process.env.CACHING !== 'true'
+    - Opportunity: Create higher-order wrapper function
+    - Benefit: Single source of truth for cache enable check, cleaner code
+    - Estimated effort: 20 minutes
  */
 
 import cache from './index.js'
@@ -342,7 +359,7 @@ const cacheGogFragments = async (req, res, next) => {
 
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    const cacheKey = `gog-fragments:${manID}:limit=${limit}:skip=${skip}`
+    const cacheKey = cache.generateKey('gog-fragments', { manID, limit, skip })
     
     const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
@@ -369,7 +386,7 @@ const cacheGogGlosses = async (req, res, next) => {
 
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    const cacheKey = `gog-glosses:${manID}:limit=${limit}:skip=${skip}`
+    const cacheKey = cache.generateKey('gog-glosses', { manID, limit, skip })
     
     const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
