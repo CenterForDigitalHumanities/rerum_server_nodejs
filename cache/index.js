@@ -21,7 +21,10 @@ class ClusterCache {
         this.maxBytes = maxBytes
         this.life = Date.now()
         this.ttl = ttl
-        
+
+        // Detect if running under PM2
+        this.isPM2 = typeof process.env.pm_id !== 'undefined'
+
         this.clusterCache = pm2ClusterCache.init({
             storage: 'all',
             defaultTtl: ttl,
@@ -41,12 +44,14 @@ class ClusterCache {
         this.totalBytes = 0 // Track total cache size in bytes
         this.localCache = new Map()
         this.clearGeneration = 0 // Track clear operations to coordinate across workers
-        
-        // Background stats sync every 5 seconds
-        this.statsInterval = setInterval(() => {
-            this._checkClearSignal().catch(() => {})
-            this._syncStats().catch(() => {})
-        }, 5000)
+
+        // Background stats sync every 5 seconds (only if PM2)
+        if (this.isPM2) {
+            this.statsInterval = setInterval(() => {
+                this._checkClearSignal().catch(() => {})
+                this._syncStats().catch(() => {})
+            }, 5000)
+        }
     }
 
     /**
@@ -246,47 +251,52 @@ class ClusterCache {
      */
     async clear() {
         try {
-            clearInterval(this.statsInterval)
-            
-            // Increment clear generation to signal all workers
-            this.clearGeneration++
-            const clearGen = this.clearGeneration
-            
-            // Flush all cache data FIRST
-            await this.clusterCache.flush()
-            
-            // THEN set the clear signal AFTER flush so it doesn't get deleted
-            // This allows other workers to see the signal and clear their local state
-            await this.clusterCache.set('_clear_signal', {
-                generation: clearGen,
-                timestamp: Date.now()
-            }, 60000) // 1 minute TTL
-            
-            // Delete all old worker stats keys immediately
-            try {
-                const keysMap = await this.clusterCache.keys()
-                const deletePromises = []
-                for (const instanceKeys of Object.values(keysMap)) {
-                    if (Array.isArray(instanceKeys)) {
-                        for (const key of instanceKeys) {
-                            if (key.startsWith('_stats_worker_')) {
-                                deletePromises.push(this.clusterCache.delete(key))
+            if (this.statsInterval) {
+                clearInterval(this.statsInterval)
+            }
+
+            // Only do PM2 cluster operations if running under PM2
+            if (this.isPM2) {
+                // Increment clear generation to signal all workers
+                this.clearGeneration++
+                const clearGen = this.clearGeneration
+
+                // Flush all cache data FIRST
+                await this.clusterCache.flush()
+
+                // THEN set the clear signal AFTER flush so it doesn't get deleted
+                // This allows other workers to see the signal and clear their local state
+                await this.clusterCache.set('_clear_signal', {
+                    generation: clearGen,
+                    timestamp: Date.now()
+                }, 60000) // 1 minute TTL
+
+                // Delete all old worker stats keys immediately
+                try {
+                    const keysMap = await this.clusterCache.keys()
+                    const deletePromises = []
+                    for (const instanceKeys of Object.values(keysMap)) {
+                        if (Array.isArray(instanceKeys)) {
+                            for (const key of instanceKeys) {
+                                if (key.startsWith('_stats_worker_')) {
+                                    deletePromises.push(this.clusterCache.delete(key))
+                                }
                             }
                         }
                     }
+                    await Promise.all(deletePromises)
+                } catch (err) {
+                    console.error('Error deleting worker stats:', err)
                 }
-                await Promise.all(deletePromises)
-            } catch (err) {
-                console.error('Error deleting worker stats:', err)
             }
-            
+
             // Reset local state
             this.allKeys.clear()
             this.keyAccessTimes.clear()
             this.keySizes.clear()
             this.totalBytes = 0
             this.localCache.clear()
-            
+
             this.stats = {
                 hits: 0,
                 misses: 0,
@@ -294,15 +304,17 @@ class ClusterCache {
                 sets: 0,
                 invalidations: 0
             }
-            
-            // Restart stats sync interval
-            this.statsInterval = setInterval(() => {
-                this._checkClearSignal().catch(() => {})
-                this._syncStats().catch(() => {})
-            }, 5000)
-            
-            // Immediately sync our fresh stats
-            await this._syncStats()
+
+            // Restart stats sync interval (only if PM2)
+            if (this.isPM2) {
+                this.statsInterval = setInterval(() => {
+                    this._checkClearSignal().catch(() => {})
+                    this._syncStats().catch(() => {})
+                }, 5000)
+
+                // Immediately sync our fresh stats
+                await this._syncStats()
+            }
         } catch (err) {
             console.error('Cache clear error:', err)
             this.localCache.clear()

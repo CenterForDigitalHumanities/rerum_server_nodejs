@@ -102,10 +102,10 @@ describe('Cache Middleware Tests', () => {
     beforeEach(async () => {
         // Clear cache before each test to ensure clean state
         await cache.clear()
-        
+
         // Set caching environment variable
         process.env.CACHING = 'true'
-        
+
         // Reset mock request
         mockReq = {
             method: 'POST',
@@ -113,7 +113,7 @@ describe('Cache Middleware Tests', () => {
             query: {},
             params: {}
         }
-        
+
         // Reset mock response
         mockRes = {
             statusCode: 200,
@@ -135,14 +135,14 @@ describe('Cache Middleware Tests', () => {
                 return this
             })
         }
-        
+
         // Reset mock next
         mockNext = jest.fn()
-    })
+    }, 10000)
 
     afterEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     describe('cacheQuery middleware', () => {
         it('should pass through on non-POST requests', async () => {
@@ -483,9 +483,9 @@ describe('GOG Endpoint Cache Middleware', () => {
     let mockRes
     let mockNext
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Clear cache before each test
-        cache.clear()
+        await cache.clear()
 
         // Reset mock request
         mockReq = {
@@ -519,11 +519,11 @@ describe('GOG Endpoint Cache Middleware', () => {
 
         // Reset mock next
         mockNext = jest.fn()
-    })
+    }, 10000)
 
-    afterEach(() => {
-        cache.clear()
-    })
+    afterEach(async () => {
+        await cache.clear()
+    }, 10000)
 
     describe('cacheGogFragments middleware', () => {
         it('should pass through when ManuscriptWitness is missing', async () => {
@@ -579,11 +579,11 @@ describe('Cache Statistics', () => {
         await cache.clear()
         // Wait for clear to complete
         await waitForCache(50)
-    })
+    }, 10000)
 
     afterEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     it('should have all required statistics properties', async () => {
         // Verify cache has all required stat properties
@@ -684,11 +684,11 @@ describe('Cache Statistics', () => {
 describe('Cache Invalidation Tests', () => {
     beforeEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     afterEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     describe('invalidateByObject', () => {
         it('should invalidate matching query caches when object is created', async () => {

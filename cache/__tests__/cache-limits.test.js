@@ -65,11 +65,11 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
     beforeEach(async () => {
         await cache.clear()
         await waitForCache(100)
-    })
-    
+    }, 10000)
+
     afterEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     it('should respect default TTL from constructor', async () => {
         const key = cache.generateKey('id', `default-ttl-${Date.now()}`)
@@ -127,11 +127,11 @@ describe('Cache maxLength Limit Enforcement', () => {
     beforeEach(async () => {
         await cache.clear()
         await waitForCache(100)
-    })
+    }, 10000)
 
     afterEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     it('should track current cache length', async () => {
         const testId = Date.now()
@@ -186,11 +186,11 @@ describe('Cache maxBytes Limit Enforcement', () => {
     beforeEach(async () => {
         await cache.clear()
         await waitForCache(100)
-    })
+    }, 10000)
 
     afterEach(async () => {
         await cache.clear()
-    })
+    }, 10000)
 
     it('should enforce maxBytes limit with LRU eviction', async () => {
         // Save original limits
