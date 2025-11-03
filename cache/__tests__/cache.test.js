@@ -230,10 +230,51 @@ describe('Cache Middleware Tests', () => {
                 searchText: 'manuscript',
                 options: { fuzzy: true }
             }
-            
+
             await cacheSearch(mockReq, mockRes, mockNext)
-            
+
             expect(mockRes.headers['X-Cache']).toBe('MISS')
+        })
+
+        it('should respect pagination parameters in cache key', async () => {
+            mockReq.method = 'POST'
+            mockReq.body = 'manuscript'
+
+            // First request with limit=10
+            mockReq.query = { limit: '10', skip: '0' }
+            await cacheSearch(mockReq, mockRes, mockNext)
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+
+            // Second request with limit=20 (different cache key)
+            mockRes.headers = {}
+            mockNext = jest.fn()
+            mockReq.query = { limit: '20', skip: '0' }
+            await cacheSearch(mockReq, mockRes, mockNext)
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+        })
+
+        it('should create different cache keys for different search text', async () => {
+            mockReq.method = 'POST'
+            mockReq.query = { limit: '100', skip: '0' }
+
+            // First request for 'manuscript'
+            mockReq.body = 'manuscript'
+            await cacheSearch(mockReq, mockRes, mockNext)
+            mockRes.json([{ id: '1', text: 'manuscript' }])
+
+            // Reset mocks for second request
+            mockRes.headers = {}
+            const jsonSpy = jest.fn()
+            mockRes.json = jsonSpy
+            mockNext = jest.fn()
+
+            // Second request for 'annotation' (different body, should be MISS)
+            mockReq.body = 'annotation'
+            await cacheSearch(mockReq, mockRes, mockNext)
+
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+            expect(mockNext).toHaveBeenCalled()
+            expect(jsonSpy).not.toHaveBeenCalled()
         })
     })
 
@@ -249,6 +290,47 @@ describe('Cache Middleware Tests', () => {
                 }),
                 [{ id: '456' }]
             )
+        })
+
+        it('should respect pagination parameters in cache key', async () => {
+            mockReq.method = 'POST'
+            mockReq.body = 'medieval manuscript'
+
+            // First request with limit=10
+            mockReq.query = { limit: '10', skip: '0' }
+            await cacheSearchPhrase(mockReq, mockRes, mockNext)
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+
+            // Second request with limit=20 (different cache key)
+            mockRes.headers = {}
+            mockNext = jest.fn()
+            mockReq.query = { limit: '20', skip: '0' }
+            await cacheSearchPhrase(mockReq, mockRes, mockNext)
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+        })
+
+        it('should create different cache keys for different search phrases', async () => {
+            mockReq.method = 'POST'
+            mockReq.query = { limit: '100', skip: '0' }
+
+            // First request for 'medieval manuscript'
+            mockReq.body = 'medieval manuscript'
+            await cacheSearchPhrase(mockReq, mockRes, mockNext)
+            mockRes.json([{ id: '1', text: 'medieval manuscript' }])
+
+            // Reset mocks for second request
+            mockRes.headers = {}
+            const jsonSpy = jest.fn()
+            mockRes.json = jsonSpy
+            mockNext = jest.fn()
+
+            // Second request for 'ancient text' (different body, should be MISS)
+            mockReq.body = 'ancient text'
+            await cacheSearchPhrase(mockReq, mockRes, mockNext)
+
+            expect(mockRes.headers['X-Cache']).toBe('MISS')
+            expect(mockNext).toHaveBeenCalled()
+            expect(jsonSpy).not.toHaveBeenCalled()
         })
     })
 
@@ -336,35 +418,6 @@ describe('Cache Middleware Tests', () => {
         })
     })
 
-    describe('cacheStats endpoint', () => {
-        it('should return cache statistics', async () => {
-            // Note: cacheStats calls getStats() which may timeout in test environment
-            // Test the cache object directly instead
-            expect(cache).toHaveProperty('stats')
-            expect(cache.stats).toHaveProperty('hits')
-            expect(cache.stats).toHaveProperty('misses')
-            
-            // Verify the stats object structure
-            expect(typeof cache.stats.hits).toBe('number')
-            expect(typeof cache.stats.misses).toBe('number')
-            expect(typeof cache.stats.sets).toBe('number')
-            expect(typeof cache.stats.evictions).toBe('number')
-        })
-
-        it('should track cache properties', async () => {
-            // Verify cache has required tracking properties
-            expect(cache).toHaveProperty('maxLength')
-            expect(cache).toHaveProperty('maxBytes')
-            expect(cache).toHaveProperty('ttl')
-            expect(cache).toHaveProperty('allKeys')
-            
-            // Verify types
-            expect(typeof cache.maxLength).toBe('number')
-            expect(typeof cache.maxBytes).toBe('number')
-            expect(typeof cache.ttl).toBe('number')
-            expect(cache.allKeys instanceof Set).toBe(true)
-        })
-    })
 
     describe('Cache integration', () => {
         it('should maintain separate caches for different endpoints', async () => {
@@ -522,52 +575,81 @@ describe('GOG Endpoint Cache Middleware', () => {
 })
 
 describe('Cache Statistics', () => {
-    beforeEach(() => {
-        cache.clear()
-        // Reset statistics by clearing and checking stats
-        cache.getStats()
+    beforeEach(async () => {
+        await cache.clear()
+        // Wait for clear to complete
+        await waitForCache(50)
     })
 
-    afterEach(() => {
-        cache.clear()
+    afterEach(async () => {
+        await cache.clear()
+    })
+
+    it('should have all required statistics properties', async () => {
+        // Verify cache has all required stat properties
+        expect(cache).toHaveProperty('stats')
+        expect(cache.stats).toHaveProperty('hits')
+        expect(cache.stats).toHaveProperty('misses')
+        expect(cache.stats).toHaveProperty('sets')
+        expect(cache.stats).toHaveProperty('evictions')
+
+        // Verify stats are numbers
+        expect(typeof cache.stats.hits).toBe('number')
+        expect(typeof cache.stats.misses).toBe('number')
+        expect(typeof cache.stats.sets).toBe('number')
+        expect(typeof cache.stats.evictions).toBe('number')
+    })
+
+    it('should have all required cache limit properties', async () => {
+        // Verify cache has required tracking properties
+        expect(cache).toHaveProperty('maxLength')
+        expect(cache).toHaveProperty('maxBytes')
+        expect(cache).toHaveProperty('ttl')
+        expect(cache).toHaveProperty('allKeys')
+
+        // Verify types
+        expect(typeof cache.maxLength).toBe('number')
+        expect(typeof cache.maxBytes).toBe('number')
+        expect(typeof cache.ttl).toBe('number')
+        expect(cache.allKeys instanceof Set).toBe(true)
     })
 
     it('should track hits and misses correctly', async () => {
+        // After beforeEach, stats should be reset to 0
+        expect(cache.stats.hits).toBe(0)
+        expect(cache.stats.misses).toBe(0)
+        expect(cache.stats.sets).toBe(0)
+        expect(cache.stats.evictions).toBe(0)
+
         // Use unique keys to avoid interference from other tests
         const testId = `isolated-${Date.now()}-${Math.random()}`
         const key = cache.generateKey('id', testId)
-        
-        // Record initial stats
-        const initialHits = cache.stats.hits
-        const initialMisses = cache.stats.misses
-        
-        // First access - miss
+
+        // First access - miss (should increment misses)
         let result = await cache.get(key)
         expect(result).toBeNull()
-        
-        // Verify miss was counted (might not increment immediately due to worker isolation)
-        // Just verify stats exist and are numbers
-        expect(typeof cache.stats.misses).toBe('number')
-        
-        // Set value
+        expect(cache.stats.misses).toBe(1)
+
+        // Set value (should increment sets)
         await cache.set(key, { data: 'test' })
-        
-        // Wait for set to complete
         await waitForCache(50)
-        
-        // Second access - hit
+        expect(cache.stats.sets).toBe(1)
+
+        // Get cached value (should increment hits)
         result = await cache.get(key)
         expect(result).toEqual({ data: 'test' })
-        
-        // Third access - hit
+        expect(cache.stats.hits).toBe(1)
+
+        // Second get (should increment hits again)
         result = await cache.get(key)
         expect(result).toEqual({ data: 'test' })
-        
-        // Verify stats structure is correct (values tracked per-worker)
-        expect(cache.stats).toHaveProperty('hits')
-        expect(cache.stats).toHaveProperty('misses')
-        expect(typeof cache.stats.hits).toBe('number')
-        expect(typeof cache.stats.misses).toBe('number')
+        expect(cache.stats.hits).toBe(2)
+
+        // Final verification of all stats
+        expect(cache.stats.misses).toBe(1)  // 1 miss
+        expect(cache.stats.hits).toBe(2)    // 2 hits
+        expect(cache.stats.sets).toBe(1)    // 1 set
+        expect(cache.stats.evictions).toBe(0) // No evictions in this test
     })
 
     it('should track cache size', async () => {
@@ -575,23 +657,23 @@ describe('Cache Statistics', () => {
         const testId = `size-test-${Date.now()}-${Math.random()}`
         const key1 = cache.generateKey('id', `${testId}-1`)
         const key2 = cache.generateKey('id', `${testId}-2`)
-        
+
         await cache.set(key1, { data: '1' })
         await waitForCache(150)
-        
+
         // Verify via get() instead of allKeys to confirm it's actually cached
         let result1 = await cache.get(key1)
         expect(result1).toEqual({ data: '1' })
-        
+
         await cache.set(key2, { data: '2' })
         await waitForCache(150)
-        
+
         let result2 = await cache.get(key2)
         expect(result2).toEqual({ data: '2' })
-        
+
         await cache.delete(key1)
         await waitForCache(150)
-        
+
         result1 = await cache.get(key1)
         result2 = await cache.get(key2)
         expect(result1).toBeNull()

@@ -70,26 +70,6 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
     afterEach(async () => {
         await cache.clear()
     })
-    
-    it('should expire entries after TTL expires', async () => {
-        const shortTTL = 1000 // 1 second
-        const key = cache.generateKey('id', `ttl-test-${Date.now()}`)
-        
-        // Set value with short TTL
-        await cache.clusterCache.set(key, { data: 'expires soon' }, shortTTL)
-        await waitForCache(50)
-        
-        // Should exist immediately after set (unwrapped by cache.get())
-        let value = await cache.get(key)
-        expect(value).toEqual('expires soon')
-        
-        // Wait for TTL to expire (add buffer for reliability)
-        await new Promise(resolve => setTimeout(resolve, shortTTL + 300))
-        
-        // Should be expired and return null
-        value = await cache.get(key)
-        expect(value).toBeNull()
-    }, 10000)
 
     it('should respect default TTL from constructor', async () => {
         const key = cache.generateKey('id', `default-ttl-${Date.now()}`)
@@ -105,23 +85,6 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
         const expectedTTL = parseInt(process.env.CACHE_TTL ?? 86400000)
         expect(cache.ttl).toBe(expectedTTL)
     })
-
-    it('should allow custom TTL per entry', async () => {
-        const customTTL = 500 // 0.5 seconds
-        const key = cache.generateKey('id', `custom-ttl-${Date.now()}`)
-        
-        await cache.clusterCache.set(key, { data: 'custom ttl' }, customTTL)
-        await waitForCache(50)
-        
-        // Should exist immediately (unwrapped by cache.get())
-        expect(await cache.get(key)).toEqual('custom ttl')
-        
-        // Wait for custom TTL to expire
-        await new Promise(resolve => setTimeout(resolve, customTTL + 200))
-        
-        // Should be expired
-        expect(await cache.get(key)).toBeNull()
-    }, 5000)
 
     it('should enforce TTL across different cache key types', async () => {
         const shortTTL = 800
@@ -159,40 +122,6 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
         expect(await cache.get(cache.generateKey('id', `ttl-${testId}`))).toBeNull()
     }, 8000)
 })
-
-/**
- * Parameterized tests for cache limit configuration
- * Tests that configured values are respected and environment variable support
- */
-describe.each(cacheConfigTests)(
-    'Cache $property Configuration',
-    ({ property, defaultValue, envVar, description }) => {
-        it(`should have ${property} configured from environment or use default`, () => {
-            const expected = parseInt(process.env[envVar] ?? defaultValue)
-            expect(cache[property]).toBe(expected)
-        })
-
-        it(`should report ${property} in stats`, async () => {
-            // Test property is accessible directly on cache object
-            expect(cache[property]).toBeDefined()
-            
-            const expected = parseInt(process.env[envVar] ?? defaultValue)
-            expect(cache[property]).toBe(expected)
-            
-            // Verify stats method exists and returns expected structure
-            // Note: getStats() might timeout in test environment due to cluster synchronization
-            // Testing direct property access provides sufficient coverage
-            const directValue = cache[property]
-            expect(directValue).toBe(expected)
-            expect(typeof directValue).toBe('number')
-        })
-
-        it(`should use environment variable ${envVar} if set`, () => {
-            const expected = parseInt(process.env[envVar] ?? defaultValue)
-            expect(cache[property]).toBe(expected)
-        })
-    }
-)
 
 describe('Cache maxLength Limit Enforcement', () => {
     beforeEach(async () => {
@@ -314,17 +243,17 @@ describe('Cache maxBytes Limit Enforcement', () => {
 
 describe('Cache Limits Validation', () => {
     it('should have reasonable limit values', () => {
-        // maxLength should be positive and reasonable (< 100 million)
+        // maxLength should be positive and reasonable (< 10 thousand)
         expect(cache.maxLength).toBeGreaterThan(0)
-        expect(cache.maxLength).toBeLessThan(100000000)
+        expect(cache.maxLength).toBeLessThan(10000)
         
-        // maxBytes should be positive and reasonable (< 100GB)
+        // maxBytes should be positive and reasonable (< 10GB)
         expect(cache.maxBytes).toBeGreaterThan(0)
-        expect(cache.maxBytes).toBeLessThan(100000000000)
-        
-        // TTL should be positive and reasonable (≤ 30 days)
+        expect(cache.maxBytes).toBeLessThan(10000000000)
+
+        // TTL should be positive and reasonable (≤ 24 hours)
         expect(cache.ttl).toBeGreaterThan(0)
-        expect(cache.ttl).toBeLessThanOrEqual(2592000000) // 30 days in ms
+        expect(cache.ttl).toBeLessThanOrEqual(86400000) // 24 hours in ms
     })
 })
 
@@ -364,11 +293,11 @@ describe('Cache Limit Breaking Change Detection', () => {
         const expectedMaxLength = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
         const expectedMaxBytes = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000)
         const expectedTTL = parseInt(process.env.CACHE_TTL ?? 86400000)
-        
+
         expect(cache.maxLength).toBe(expectedMaxLength)
         expect(cache.maxBytes).toBe(expectedMaxBytes)
         expect(cache.ttl).toBe(expectedTTL)
-        
+
         // Verify defaults are sensible
         expect(cache.maxLength).toBeGreaterThan(0)
         expect(cache.maxBytes).toBeGreaterThan(0)
