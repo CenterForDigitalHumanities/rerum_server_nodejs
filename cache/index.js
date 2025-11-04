@@ -153,16 +153,16 @@ class ClusterCache {
         try {
             const now = Date.now()
             const isUpdate = this.allKeys.has(key)
-            
+            const keyType = key.split(':')[0]
             // Calculate size only once (can be expensive for large objects)
             const valueSize = this._calculateSize(value)
-            
+
             // If updating existing key, subtract old size first
             if (isUpdate) {
                 const oldSize = this.keySizes.get(key) || 0
                 this.totalBytes -= oldSize
             }
-            
+
             // Wrap value with metadata to prevent PM2 cluster-cache deduplication
             const wrappedValue = {
                 data: value,
@@ -170,10 +170,10 @@ class ClusterCache {
                 cachedAt: now,
                 size: valueSize
             }
-            
+
             // Set in cluster cache immediately (most critical operation)
             await this.clusterCache.set(key, wrappedValue, this.ttl)
-            
+
             // Update local state (reuse precalculated values)
             this.stats.sets++
             this.allKeys.add(key)
@@ -181,7 +181,7 @@ class ClusterCache {
             this.keySizes.set(key, valueSize)
             this.totalBytes += valueSize
             this.localCache.set(key, value)
-            
+
             // Check limits and evict if needed (do this after set to avoid blocking)
             // Use setImmediate to defer eviction checks without blocking
             setImmediate(async () => {
@@ -224,6 +224,9 @@ class ClusterCache {
      * @param {boolean} countAsInvalidation - Deprecated parameter (kept for backwards compatibility)
      */
     async delete(key, countAsInvalidation = false) {
+        const startTime = Date.now()
+        const workerId = process.env.pm_id || process.pid
+
         try {
             await this.clusterCache.delete(key)
             this.allKeys.delete(key)
@@ -233,6 +236,9 @@ class ClusterCache {
             this.totalBytes -= size
             this.localCache.delete(key)
 
+            const duration = Date.now() - startTime
+            console.log(`\x1b[32m[CACHE DELETE DONE]\x1b[0m Worker ${workerId}: Deleted in ${duration}ms`)
+
             return true
         } catch (err) {
             this.localCache.delete(key)
@@ -241,6 +247,10 @@ class ClusterCache {
             const size = this.keySizes.get(key) || 0
             this.keySizes.delete(key)
             this.totalBytes -= size
+
+            const duration = Date.now() - startTime
+            console.log(`\x1b[31m[CACHE DELETE ERROR]\x1b[0m Worker ${workerId}: Failed in ${duration}ms - ${err.message}`)
+
             return false
         }
     }
@@ -455,7 +465,7 @@ class ClusterCache {
     async waitForSync() {
         // Sync our own stats immediately
         await this._syncStats()
-        
+        // Give the rest of the workers time to sync, it usually takes around 5 seconds to be certain.
         await new Promise(resolve => setTimeout(resolve, 6000))
     }
 
@@ -500,8 +510,7 @@ class ClusterCache {
                 evictions: aggregatedStats.evictions,
                 hitRate: `${hitRate}%`,
                 uptime: this._formatUptime(uptime),
-                mode: 'cluster-interval-sync',
-                synchronized: true
+                mode: 'cluster-interval-sync'
             }
         } catch (err) {
             console.error('Cache getStats error:', err)
@@ -519,7 +528,6 @@ class ClusterCache {
                 hitRate: `${hitRate}%`,
                 uptime: this._formatUptime(uptime),
                 mode: 'cluster-interval-sync',
-                synchronized: true,
                 error: err.message
             }
         }
@@ -706,47 +714,109 @@ class ClusterCache {
      * @returns {Promise<number>} Number of cache entries invalidated
      */
     async invalidateByObject(obj, invalidatedKeys = new Set()) {
-        if (!obj || typeof obj !== 'object') return 0
-        
+        const startTime = Date.now()
+        const workerId = process.env.pm_id || process.pid
+
+        if (!obj || typeof obj !== 'object') {
+            console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m \x1b[31mNo object provided or invalid object type\x1b[0m`)
+            return 0
+        }
+
+        console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Worker ${workerId}: Starting with object: \x1b[33m${obj['@id'] || obj.id || obj._id}\x1b[0m`)
+
         let count = 0
-        const keysToCheck = Array.from(this.allKeys)
-        
-        const hasQueryKeys = keysToCheck.some(k => 
+
+        // Get all query/search keys from ALL workers in the cluster by scanning cluster cache directly
+        let keysToCheck = []
+        if (this.isPM2) {
+            try {
+                // Scan all keys directly from cluster cache (all workers)
+                const clusterGetStart = Date.now()
+                const keysMap = await this.clusterCache.keys()
+                const uniqueKeys = new Set()
+
+                // Aggregate keys from all PM2 instances
+                for (const instanceKeys of Object.values(keysMap)) {
+                    if (Array.isArray(instanceKeys)) {
+                        instanceKeys.forEach(key => {
+                            if (key.startsWith('query:') || key.startsWith('search:') || key.startsWith('searchPhrase:')) {
+                                uniqueKeys.add(key)
+                            }
+                        })
+                    }
+                }
+
+                keysToCheck = Array.from(uniqueKeys)
+                const clusterGetDuration = Date.now() - clusterGetStart
+                console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Retrieved ${keysToCheck.length} query/search keys from cluster scan in ${clusterGetDuration}ms`)
+            } catch (err) {
+                console.log(`\x1b[35m\x1b[33m[CACHE invalidateByObject]\x1b[0m Error scanning cluster keys: ${err.message}, falling back to local\x1b[0m`)
+                keysToCheck = Array.from(this.allKeys).filter(k =>
+                    k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
+                )
+            }
+        } else {
+            keysToCheck = Array.from(this.allKeys).filter(k =>
+                k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
+            )
+        }
+
+        console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Total cache keys to check: \x1b[36m${keysToCheck.length}\x1b[0m`)
+        if (keysToCheck.length > 0) {
+            const keyTypes = {}
+            keysToCheck.forEach(k => {
+                const type = k.split(':')[0]
+                keyTypes[type] = (keyTypes[type] || 0) + 1
+            })
+            console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Key types: \x1b[90m${JSON.stringify(keyTypes)}\x1b[0m`)
+        }
+
+        const hasQueryKeys = keysToCheck.some(k =>
             k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
         )
         if (!hasQueryKeys) {
+            console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m \x1b[33mNo query/search keys in cache - nothing to invalidate\x1b[0m`)
             return 0
         }
-        
+
+        const queryKeys = keysToCheck.filter(k =>
+            k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
+        )
+        console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Query/search keys to evaluate: \x1b[36m${queryKeys.length}\x1b[0m`)
+
         for (const cacheKey of keysToCheck) {
-            if (!cacheKey.startsWith('query:') && 
-                !cacheKey.startsWith('search:') && 
+            if (!cacheKey.startsWith('query:') &&
+                !cacheKey.startsWith('search:') &&
                 !cacheKey.startsWith('searchPhrase:')) {
                 continue
             }
-            
+
             // Skip if already invalidated
             if (invalidatedKeys.has(cacheKey)) {
                 continue
             }
-            
+
             const colonIndex = cacheKey.indexOf(':')
             if (colonIndex === -1) continue
-            
+
             try {
                 const queryJson = cacheKey.substring(colonIndex + 1)
                 const queryParams = JSON.parse(queryJson)
-                
+
                 if (this.objectMatchesQuery(obj, queryParams)) {
                     await this.delete(cacheKey, true)  // Pass true to count this deletion
                     invalidatedKeys.add(cacheKey)
                     count++
                 }
             } catch (e) {
+                // Silently skip cache keys that can't be parsed or matched
                 continue
             }
         }
-        
+
+        const duration = Date.now() - startTime
+        console.log(`\x1b[35m\x1b[1m[CACHE invalidateByObject DONE]\x1b[0m Worker ${workerId}: Invalidated ${count} keys in ${duration}ms`)
+
         return count
     }
 
@@ -757,8 +827,8 @@ class ClusterCache {
      * @returns {boolean} True if object could match this query
      */
     objectMatchesQuery(obj, query) {
-        return query.body && typeof query.body === 'object'
-            ? this.objectContainsProperties(obj, query.body)
+        return query.__cached && typeof query.__cached === 'object'
+            ? this.objectContainsProperties(obj, query.__cached)
             : this.objectContainsProperties(obj, query)
     }
 
@@ -844,6 +914,9 @@ class ClusterCache {
                 case '$lte':
                     if (!(fieldValue <= opValue)) return false
                     break
+                case '$in':
+                    if (!Array.isArray(opValue)) return false
+                    return opValue.includes(fieldValue)
                 default:
                     return true // Unknown operator - be conservative
             }
@@ -866,8 +939,6 @@ class ClusterCache {
             case '$and':
                 if (!Array.isArray(value)) return false
                 return value.every(condition => this.objectContainsProperties(obj, condition))
-            case '$in':
-                return Array.isArray(value) && value.includes(obj)
             default:
                 return true // Unknown operator - be conservative
         }

@@ -356,7 +356,7 @@ When write operations occur, the cache middleware intercepts the response and in
 
 **Protected Properties**: The system intelligently skips `__rerum` and `_id` fields during cache matching, as these are server-managed properties not present in user request bodies. This includes:
 - Top-level: `__rerum`, `_id`
-- Nested paths: `__rerum.history.next`, `target._id`, etc.
+- Nested paths: `__rerum.history.next`, `target.id`, etc.
 - Any position: starts with, contains, or ends with these protected property names
 
 This conservative approach ensures cache invalidation is based only on user-controllable properties, preventing false negatives while maintaining correctness.

@@ -91,6 +91,7 @@ const overwrite = async function (req, res, next) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
                 // Include current version in response headers for future optimistic locking
+                res.locals.previousObject = originalObject // Store for cache invalidation
                 res.set('Current-Overwritten-Version', rerumProp["__rerum"].isOverwritten)
                 res.set(utils.configureWebAnnoHeadersFor(newObject))
                 newObject = idNegotiation(newObject)

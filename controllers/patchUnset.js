@@ -95,6 +95,7 @@ const patchUnset = async function (req, res, next) {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
+                    res.locals.previousObject = originalObject // Store for cache invalidation
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))

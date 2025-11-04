@@ -189,7 +189,7 @@ measure_endpoint() {
     local data=$3
     local description=$4
     local needs_auth=${5:-false}
-    local timeout=${6:-30}  # Allow custom timeout, default 30 seconds
+    local timeout=${6:-10}  # Allow custom timeout, default 30 seconds
     
     local start=$(date +%s%3N)
     if [ "$needs_auth" == "true" ]; then
@@ -227,10 +227,7 @@ clear_cache() {
     
     while [ $attempt -le $max_attempts ]; do
         curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
-        
-        # Wait for cache clear to complete and stabilize
-        sleep 2
-        
+
         # Sanity check: Verify cache is actually empty
         local stats=$(get_cache_stats)
         cache_length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "unknown")
@@ -247,10 +244,9 @@ clear_cache() {
             log_warning "Cache clear completed with ${cache_length} entries remaining after ${max_attempts} attempts"
             log_info "This may be due to concurrent requests on the development server"
         fi
+        # Wait for cache clear to complete and stabilize
+        sleep 3
     done
-    
-    # Additional wait to ensure cache state is stable before continuing
-    sleep 1
 }
 
 # Fill cache to specified size with diverse queries (mix of matching and non-matching)
@@ -305,10 +301,6 @@ fill_cache() {
     done
     echo ""
     
-    # Wait for all cache operations to complete and stabilize
-    log_info "Waiting for cache to stabilize..."
-    sleep 5
-    
     # Sanity check: Verify cache actually contains entries
     log_info "Sanity check - Verifying cache size after fill..."
     local final_stats=$(get_cache_stats)
@@ -358,12 +350,13 @@ warmup_system() {
     
     # Clear cache after warmup to start fresh
     clear_cache
-    sleep 2
 }
 
 # Get cache stats
 get_cache_stats() {
-    curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
+    log_info "Waiting for cache stats to sync across all PM2 workers (8 seconds.  HOLD!)..."
+    sleep 8
+    curl -s "${API_BASE}/api/cache/stats?details=true" 2>/dev/null
 }
 
 # Helper: Create a test object and track it for cleanup
@@ -684,7 +677,6 @@ test_history_endpoint() {
         -H "Authorization: Bearer ${AUTH_TOKEN}" \
         -d "$update_body" > /dev/null 2>&1
     
-    sleep 2
     clear_cache
     
     # Test history with cold cache
@@ -726,8 +718,7 @@ test_since_endpoint() {
     CREATED_IDS+=("${API_BASE}/id/${test_id}")
     
     clear_cache
-    sleep 1
-    
+
     # Test with cold cache
     log_info "Testing since with cold cache..."
     local result=$(measure_endpoint "${API_BASE}/since/$test_id" "GET" "" "Get since info")
@@ -1733,7 +1724,6 @@ main() {
     
     # Clear cache and wait for system to stabilize after write operations
     clear_cache
-    sleep 5
     
     fill_cache $CACHE_FILL_SIZE
     

@@ -41,7 +41,7 @@ const cacheQuery = async (req, res, next) => {
     }
 
     const cacheKey = cache.generateKey('query', {
-        body: req.body,
+        __cached: req.body,
         limit: parseInt(req.query.limit ?? 100),
         skip: parseInt(req.query.skip ?? 0)
     })
@@ -187,10 +187,10 @@ const invalidateCache = (req, res, next) => {
     const originalJson = res.json.bind(res)
     const originalSend = res.send.bind(res)
     const originalSendStatus = res.sendStatus.bind(res)
-    
+
     let invalidationPerformed = false
 
-    const performInvalidation = (data) => {
+    const performInvalidation = async (data) => {
         if (invalidationPerformed || res.statusCode < 200 || res.statusCode >= 300) {
             return
         }
@@ -199,10 +199,10 @@ const invalidateCache = (req, res, next) => {
         const path = req.originalUrl || req.path
 
         if (path.includes('/create') || path.includes('/bulkCreate')) {
-            const createdObjects = path.includes('/bulkCreate') 
+            const createdObjects = path.includes('/bulkCreate')
                 ? (Array.isArray(data) ? data : [data])
-                : [data?.new_obj_state ?? data]
-            
+                : [data]
+
             const invalidatedKeys = new Set()
             for (const obj of createdObjects) {
                 if (obj) {
@@ -210,31 +210,37 @@ const invalidateCache = (req, res, next) => {
                 }
             }
         } 
-        else if (path.includes('/update') || path.includes('/patch') || 
+        else if (path.includes('/update') || path.includes('/patch') ||
                  path.includes('/set') || path.includes('/unset') ||
                  path.includes('/overwrite') || path.includes('/bulkUpdate')) {
-            
-            const updatedObject = data?.new_obj_state ?? data
-            const objectId = updatedObject?._id ?? updatedObject?.["@id"]
-            
+            const previousObject = res.locals.previousObject  // OLD version (what's currently in cache)
+            const updatedObject = data  // NEW version
+            const objectId = updatedObject?.["@id"] ?? updatedObject?.id ?? updatedObject?._id
+
             if (updatedObject && objectId) {
                 const invalidatedKeys = new Set()
                 const objIdShort = extractId(objectId)
                 const previousId = extractId(updatedObject?.__rerum?.history?.previous)
                 const primeId = extractId(updatedObject?.__rerum?.history?.prime)
-                
+
                 if (!invalidatedKeys.has(`id:${objIdShort}`)) {
                     cache.delete(`id:${objIdShort}`, true)
                     invalidatedKeys.add(`id:${objIdShort}`)
                 }
-                
+
                 if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
                     cache.delete(`id:${previousId}`, true)
                     invalidatedKeys.add(`id:${previousId}`)
                 }
-                
-                cache.invalidateByObject(updatedObject, invalidatedKeys)
-                
+
+                // Invalidate based on PREVIOUS object (what's in cache) to match existing cached queries
+                if (previousObject) {
+                    await cache.invalidateByObject(previousObject, invalidatedKeys)
+                }
+
+                // Also invalidate based on NEW object in case it matches different queries
+                await cache.invalidateByObject(updatedObject, invalidatedKeys)
+
                 const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                 if (versionIds) {
                     const regex = new RegExp(`^(history|since):(${versionIds})`)
@@ -246,26 +252,26 @@ const invalidateCache = (req, res, next) => {
         }
         else if (path.includes('/delete')) {
             const deletedObject = res.locals.deletedObject
-            const objectId = deletedObject?._id ?? deletedObject?.["@id"]
-            
+            const objectId =  deletedObject?.["@id"] ?? deletedObject?.id ?? deletedObject?._id
+
             if (deletedObject && objectId) {
                 const invalidatedKeys = new Set()
                 const objIdShort = extractId(objectId)
                 const previousId = extractId(deletedObject?.__rerum?.history?.previous)
                 const primeId = extractId(deletedObject?.__rerum?.history?.prime)
-                
+
                 if (!invalidatedKeys.has(`id:${objIdShort}`)) {
                     cache.delete(`id:${objIdShort}`, true)
                     invalidatedKeys.add(`id:${objIdShort}`)
                 }
-                
+
                 if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
                     cache.delete(`id:${previousId}`, true)
                     invalidatedKeys.add(`id:${previousId}`)
                 }
-                
+
                 cache.invalidateByObject(deletedObject, invalidatedKeys)
-                
+
                 const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                 if (versionIds) {
                     const regex = new RegExp(`^(history|since):(${versionIds})`)
@@ -280,20 +286,24 @@ const invalidateCache = (req, res, next) => {
         }
     }
 
-    res.json = (data) => {
-        performInvalidation(data)
+    res.json = async (data) => {
+        // Add worker ID header for debugging cache sync
+        res.set('X-Worker-ID', process.env.pm_id || process.pid)
+        await performInvalidation(data)
         return originalJson(data)
     }
 
-    res.send = (data) => {
-        performInvalidation(data)
+    res.send = async (data) => {
+        // Add worker ID header for debugging cache sync
+        res.set('X-Worker-ID', process.env.pm_id || process.pid)
+        await performInvalidation(data)
         return originalSend(data)
     }
 
-    res.sendStatus = (statusCode) => {
+    res.sendStatus = async (statusCode) => {
         res.statusCode = statusCode
-        const objectForInvalidation = res.locals.deletedObject ?? { "@id": req.params._id, _id: req.params._id }
-        performInvalidation(objectForInvalidation)
+        const objectForInvalidation = res.locals.deletedObject ?? { "@id": req.params._id, id: req.params._id, _id: req.params._id }
+        await performInvalidation(objectForInvalidation)
         return originalSendStatus(statusCode)
     }
 
@@ -324,7 +334,6 @@ const cacheStats = async (req, res) => {
 const cacheClear = async (req, res) => {
     // Clear cache and wait for all workers to sync
     await cache.clear()
-    await cache.waitForSync()
 
     res.status(200).json({
         message: 'Cache cleared',

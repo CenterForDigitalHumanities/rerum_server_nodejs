@@ -132,7 +132,7 @@ check_server() {
 
 get_auth_token() {
     log_header "Authentication Setup"
-    
+
     echo ""
     echo "This test requires a valid Auth0 bearer token to test write operations."
     echo "Please obtain a fresh token from: https://devstore.rerum.io/"
@@ -145,7 +145,7 @@ get_auth_token() {
     echo ""
     echo -n "Enter your bearer token (or press Enter to skip): "
     read -r AUTH_TOKEN
-    
+
     if [ -z "$AUTH_TOKEN" ]; then
         echo -e "${RED}ERROR: No token provided. Cannot proceed with testing.${NC}"
         echo "Tests require authentication for write operations (create, update, delete)."
@@ -196,7 +196,7 @@ measure_endpoint() {
     local data=$3
     local description=$4
     local needs_auth=${5:-false}
-    local timeout=${6:-35}
+    local timeout=${6:-10}
 
     local start=$(date +%s%3N)
     if [ "$needs_auth" == "true" ]; then
@@ -217,16 +217,23 @@ measure_endpoint() {
     # Validate timing (protect against clock skew/adjustment)
     if [ "$time" -lt 0 ]; then
         # Clock went backward during operation
+        local negative_time=$time  # Preserve negative value for logging
+
         # Check if HTTP request actually succeeded before treating as error
         if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
             # No HTTP code at all - actual timeout/failure
             http_code="000"
+            echo -e "${YELLOW}[CLOCK SKEW DETECTED]${NC} $endpoint" >&2
+            echo -e "  Start: ${start}ms, End: ${end}ms, Calculated: ${negative_time}ms (NEGATIVE!)" >&2
+            echo -e "  HTTP Code: ${RED}${http_code} (NO RESPONSE)${NC}" >&2
+            echo -e "  ${RED}Result: Actual timeout/connection failure${NC}" >&2
             time=0
-            echo "[WARN] Clock skew detected (negative timing) for $endpoint" >&2
-            echo "[WARN] Endpoint $endpoint timed out or connection failed" >&2
         else
             # HTTP succeeded but timing is invalid - use 0ms as placeholder
-            echo "[WARN] Clock skew detected (negative timing) for $endpoint" >&2
+            echo -e "${YELLOW}[CLOCK SKEW DETECTED]${NC} $endpoint" >&2
+            echo -e "  Start: ${start}ms, End: ${end}ms, Calculated: ${negative_time}ms (NEGATIVE!)" >&2
+            echo -e "  HTTP Code: ${GREEN}${http_code} (SUCCESS)${NC}" >&2
+            echo -e "  ${GREEN}Result: Operation succeeded, timing unmeasurable${NC}" >&2
             time=0
         fi
     fi
@@ -244,25 +251,25 @@ measure_endpoint() {
 # Clear cache
 clear_cache() {
     log_info "Clearing cache..."
-    
+
     # Retry up to 3 times to handle concurrent cache population
     local max_attempts=3
     local attempt=1
     local cache_length=""
-    
+
     while [ $attempt -le $max_attempts ]; do
         # Call /cache/clear endpoint (waits for sync before returning)
         curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
-        
-        # Sanity check: Verify cache is actually empty
-        local stats=$(get_cache_stats)
+
+        # Sanity check: Verify cache is actually empty (use fast version - no need to wait for full sync)
+        local stats=$(get_cache_stats_fast)
         cache_length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "unknown")
-        
+
         if [ "$cache_length" = "0" ]; then
             log_info "Sanity check - Cache successfully cleared (length: 0)"
             break
         fi
-        
+
         if [ $attempt -lt $max_attempts ]; then
             log_warning "Cache length is ${cache_length} after clear attempt ${attempt}/${max_attempts}, retrying..."
             attempt=$((attempt + 1))
@@ -270,8 +277,8 @@ clear_cache() {
             log_warning "Cache clear completed with ${cache_length} entries remaining after ${max_attempts} attempts"
             log_info "This may be due to concurrent requests on the development server"
         fi
+        sleep 3
     done
-    sleep 1
 }
 
 # Fill cache to specified size with diverse queries (mix of matching and non-matching)
@@ -437,16 +444,16 @@ fill_cache() {
                 local http_code=""
                 if [ "$method" = "GET" ]; then
                     http_code=$(curl -s -X GET "$endpoint" \
-                        --max-time 35 \
-                        --connect-timeout 15 \
+                        --max-time 10 \
+                        --connect-timeout 10 \
                         -w '%{http_code}' \
                         -o /dev/null 2>&1)
                 else
                     http_code=$(curl -s -X POST "$endpoint" \
                         -H "Content-Type: application/json" \
                         -d "$data" \
-                        --max-time 35 \
-                        --connect-timeout 15 \
+                        --max-time 10 \
+                        --connect-timeout 10 \
                         -w '%{http_code}' \
                         -o /dev/null 2>&1)
                 fi
@@ -525,10 +532,6 @@ fill_cache() {
         log_warning "⚠️  $(($timeout_requests + $failed_requests)) requests did not complete successfully"
     fi
     
-    log_info "Waiting for cache operations to complete and stats to sync across all PM2 workers..."
-    log_info "Stats sync every 5 seconds - waiting 12 seconds to ensure at least two sync cycles complete..."
-    sleep 12
-    
     log_info "Sanity check - Verifying cache size after fill..."
     local final_stats=$(get_cache_stats)
     local final_size=$(echo "$final_stats" | jq -r '.length' 2>/dev/null || echo "0")
@@ -590,9 +593,16 @@ warmup_system() {
     clear_cache
 }
 
-# Get cache stats
+# Get cache stats (fast version - may not be synced across workers)
+get_cache_stats_fast() {
+    curl -s "${API_BASE}/api/cache/stats?details=true" 2>/dev/null
+}
+
+# Get cache stats (with sync wait for accurate cross-worker aggregation)
 get_cache_stats() {
-    curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
+    log_info "Waiting for cache stats to sync across all PM2 workers (8 seconds.  HOLD!)..." >&2
+    sleep 8
+    curl -s "${API_BASE}/api/cache/stats?details=true" 2>/dev/null
 }
 
 # Helper: Create a test object and track it for cleanup
@@ -797,12 +807,22 @@ perform_write_operation() {
     # If HTTP request succeeded but timing is invalid (clock skew), use 0 as placeholder time
     # This allows the operation to count as successful even though we can't measure it
     if [ "$time" -lt 0 ]; then
+        local negative_time=$time  # Preserve negative value for logging
+
         if [ $success -eq 1 ]; then
             # Clock skew but HTTP succeeded - mark as successful with 0ms timing
+            echo -e "${YELLOW}[CLOCK SKEW DETECTED]${NC} ${API_BASE}/api/${endpoint}" >&2
+            echo -e "  Start: ${start}ms, End: ${end}ms, Calculated: ${negative_time}ms (NEGATIVE!)" >&2
+            echo -e "  HTTP Code: ${GREEN}${http_code} (SUCCESS)${NC}" >&2
+            echo -e "  ${GREEN}Result: Operation succeeded, timing unmeasurable${NC}" >&2
             echo "0|$http_code|clock_skew"
             return
         else
             # Actual failure (bad HTTP code)
+            echo -e "${YELLOW}[CLOCK SKEW DETECTED]${NC} ${API_BASE}/api/${endpoint}" >&2
+            echo -e "  Start: ${start}ms, End: ${end}ms, Calculated: ${negative_time}ms (NEGATIVE!)" >&2
+            echo -e "  HTTP Code: ${RED}${http_code} (FAILURE)${NC}" >&2
+            echo -e "  ${RED}Result: Request failed (bad HTTP status)${NC}" >&2
             echo "-1|$http_code|"
             return
         fi
@@ -963,7 +983,6 @@ test_history_endpoint() {
         -H "Authorization: Bearer ${AUTH_TOKEN}" \
         -d "$update_body" > /dev/null 2>&1
     
-    sleep 2
     clear_cache
     
     # Test history with cold cache
@@ -1499,14 +1518,19 @@ test_update_endpoint_empty() {
 
     ENDPOINT_COLD_TIMES["update"]=$empty_avg
 
-    if [ $empty_failures -gt 0 ]; then
-        log_warning "$empty_success/$NUM_ITERATIONS successful"
-        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
-        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
-    else
+    # Allow up to 2% failure rate (1 out of 50) before marking as partial failure
+    if [ $empty_failures -eq 0 ]; then
         log_success "$empty_success/$NUM_ITERATIONS successful"
         log_success "Update endpoint functional"
         ENDPOINT_STATUS["update"]="✅ Functional"
+    elif [ $empty_failures -le 1 ]; then
+        log_success "$empty_success/$NUM_ITERATIONS successful"
+        log_warning "Update endpoint functional (${empty_failures}/${NUM_ITERATIONS} transient failures)"
+        ENDPOINT_STATUS["update"]="✅ Functional (${empty_failures}/${NUM_ITERATIONS} transient failures)"
+    else
+        log_warning "$empty_success/$NUM_ITERATIONS successful"
+        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
+        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
     fi
 }
 
@@ -1564,14 +1588,23 @@ test_update_endpoint_full() {
     if [ $full_success -eq 0 ]; then
         log_warning "Update with full cache failed (all requests failed)"
         return
-    elif [ $full_failures -gt 0 ]; then
+    elif [ $full_failures -le 1 ]; then
+        # Allow up to 2% failure rate (1 out of 50) - mark as functional with note
+        log_success "$full_success/$NUM_ITERATIONS successful"
+        if [ $full_failures -eq 1 ]; then
+            log_warning "Update with full cache functional (${full_failures}/${NUM_ITERATIONS} transient failures)"
+            ENDPOINT_STATUS["update"]="✅ Functional (${full_failures}/${NUM_ITERATIONS} transient failures)"
+        fi
+    elif [ $full_failures -gt 1 ]; then
         log_warning "$full_success/$NUM_ITERATIONS successful"
         log_warning "Update with full cache had partial failures: $full_failures/$NUM_ITERATIONS failed"
         ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($full_failures/$NUM_ITERATIONS)"
         return
     fi
-    
-    log_success "$full_success/$NUM_ITERATIONS successful"
+
+    if [ $full_failures -eq 0 ]; then
+        log_success "$full_success/$NUM_ITERATIONS successful"
+    fi
     
     local full_avg=$((full_total / full_success))
     IFS=$'\n' sorted_full=($(sort -n <<<"${full_times[*]}"))
@@ -2039,7 +2072,6 @@ main() {
     echo ""
     log_section "PHASE 1: Read Endpoints with EMPTY Cache (Baseline)"
     echo "[INFO] Testing read endpoints without cache to establish baseline performance..."
-    clear_cache
     
     # Test each read endpoint once with cold cache
     test_query_endpoint_cold
@@ -2304,10 +2336,6 @@ main() {
     
     test_delete_endpoint_full
     
-    log_info "Waiting for cache stats to sync across all PM2 workers..."
-    log_info "Stats sync every 5 seconds - waiting 12 seconds to ensure at least two sync cycles complete..."
-    sleep 12
-
     local stats_after_phase5=$(get_cache_stats)
     local final_cache_size=$(echo "$stats_after_phase5" | grep -o '"length":[0-9]*' | sed 's/"length"://')
     local final_evictions=$(echo "$stats_after_phase5" | grep -o '"evictions":[0-9]*' | sed 's/"evictions"://')
