@@ -221,11 +221,10 @@ class ClusterCache {
     /**
      * Delete specific key from cache
      * @param {string} key - Cache key to delete
+     * @param {boolean} countAsInvalidation - Deprecated parameter (kept for backwards compatibility)
      */
     async delete(key, countAsInvalidation = false) {
         try {
-            const keyExists = this.allKeys.has(key)
-            
             await this.clusterCache.delete(key)
             this.allKeys.delete(key)
             this.keyAccessTimes.delete(key) // Clean up access time tracking
@@ -233,7 +232,7 @@ class ClusterCache {
             this.keySizes.delete(key)
             this.totalBytes -= size
             this.localCache.delete(key)
-            
+
             return true
         } catch (err) {
             this.localCache.delete(key)
