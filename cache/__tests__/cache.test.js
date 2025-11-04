@@ -492,7 +492,10 @@ describe('GOG Endpoint Cache Middleware', () => {
             method: 'POST',
             body: {},
             query: {},
-            params: {}
+            params: {},
+            user: {
+                'http://store.rerum.io/agent': 'http://store.rerum.io/v1/id/test-agent-for-cache-tests'
+            }
         }
 
         // Reset mock response
@@ -551,7 +554,10 @@ describe('GOG Endpoint Cache Middleware', () => {
                     method: 'POST',
                     body: { ManuscriptWitness: 'https://example.org/manuscript/1' },
                     query: { limit: '50', skip: '0' },
-                    params: {}
+                    params: {},
+                    user: {
+                        'http://store.rerum.io/agent': 'http://store.rerum.io/v1/id/test-agent-for-cache-tests'
+                    }
                 }),
                 [{ '@id': 'fragment1', '@type': 'WitnessFragment' }]
             )
@@ -566,7 +572,10 @@ describe('GOG Endpoint Cache Middleware', () => {
                     method: 'POST',
                     body: { ManuscriptWitness: 'https://example.org/manuscript/1' },
                     query: { limit: '50', skip: '0' },
-                    params: {}
+                    params: {},
+                    user: {
+                        'http://store.rerum.io/agent': 'http://store.rerum.io/v1/id/test-agent-for-cache-tests'
+                    }
                 }),
                 [{ '@id': 'gloss1', '@type': 'Gloss' }]
             )

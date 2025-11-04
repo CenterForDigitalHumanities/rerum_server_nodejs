@@ -6,6 +6,7 @@
  */
 
 import cache from './index.js'
+import { getAgentClaim } from '../controllers/utils.js'
 
 const sendCacheHit = (res, data, includeCacheControl = false) => {
     res.set('Content-Type', 'application/json; charset=utf-8')
@@ -344,9 +345,14 @@ const cacheGogFragments = async (req, res, next) => {
         return next()
     }
 
+    // Extract agent from JWT to include in cache key for proper authorization
+    const agent = getAgentClaim(req, next)
+    if (!agent) return  // getAgentClaim already called next(err)
+    const agentID = agent.split("/").pop()
+
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    const cacheKey = cache.generateKey('gog-fragments', { manID, limit, skip })
+    const cacheKey = cache.generateKey('gog-fragments', { agentID, manID, limit, skip })
     
     const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
@@ -371,9 +377,14 @@ const cacheGogGlosses = async (req, res, next) => {
         return next()
     }
 
+    // Extract agent from JWT to include in cache key for proper authorization
+    const agent = getAgentClaim(req, next)
+    if (!agent) return  // getAgentClaim already called next(err)
+    const agentID = agent.split("/").pop()
+
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    const cacheKey = cache.generateKey('gog-glosses', { manID, limit, skip })
+    const cacheKey = cache.generateKey('gog-glosses', { agentID, manID, limit, skip })
     
     const cachedResponse = await cache.get(cacheKey)
     if (cachedResponse) {
