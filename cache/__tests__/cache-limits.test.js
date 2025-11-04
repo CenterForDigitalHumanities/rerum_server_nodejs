@@ -257,8 +257,6 @@ describe('Cache Limits Validation', () => {
     })
 })
 
-// Eviction stats tests removed - test implementation details not user-facing behavior
-
 describe('Cache Limit Breaking Change Detection', () => {
     it('should detect if limit properties are removed from cache object', () => {
         expect(cache).toHaveProperty('maxLength')

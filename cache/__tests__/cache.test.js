@@ -881,6 +881,4 @@ describe('Cache Invalidation Tests', () => {
         })
     })
 
-    // Helper function tests removed - these test implementation details
-    // The behavior is already covered by invalidation tests above
 })
