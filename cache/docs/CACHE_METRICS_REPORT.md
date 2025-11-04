@@ -175,6 +175,6 @@ Consider tuning based on:
 
 ---
 
-**Report Generated**: Mon Nov  3 18:00:41 CST 2025  
+**Report Generated**: Mon Nov  3 18:00:42 CST 2025  
 **Format Version**: 1.0  
 **Test Suite**: cache-metrics.sh
