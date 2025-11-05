@@ -1586,12 +1586,21 @@ test_unset_endpoint_full() {
     echo "" >&2
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["unset"]=$((total / success))
-    local overhead=$((ENDPOINT_WARM_TIMES["unset"] - ENDPOINT_COLD_TIMES["unset"]))
-    local empty=${ENDPOINT_COLD_TIMES["unset"]}
+    local empty=${ENDPOINT_COLD_TIMES["unset"]:-0}
     local full=${ENDPOINT_WARM_TIMES["unset"]}
-    local overhead_pct=$((overhead * 100 / empty))
 
-    log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
+    if [ "$empty" -eq 0 ] || [ -z "$empty" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
+        local overhead=$((full - empty))
+        local overhead_pct=$((overhead * 100 / empty))
+
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
+        fi
+    fi
 }
 
 test_overwrite_endpoint_empty() {
@@ -1643,12 +1652,21 @@ test_overwrite_endpoint_full() {
     echo "" >&2
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["overwrite"]=$((total / success))
-    local overhead=$((ENDPOINT_WARM_TIMES["overwrite"] - ENDPOINT_COLD_TIMES["overwrite"]))
-    local empty=${ENDPOINT_COLD_TIMES["overwrite"]}
+    local empty=${ENDPOINT_COLD_TIMES["overwrite"]:-0}
     local full=${ENDPOINT_WARM_TIMES["overwrite"]}
-    local overhead_pct=$((overhead * 100 / empty))
 
-    log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
+    if [ "$empty" -eq 0 ] || [ -z "$empty" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
+        local overhead=$((full - empty))
+        local overhead_pct=$((overhead * 100 / empty))
+
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
+        fi
+    fi
 }
 
 test_delete_endpoint_empty() {
@@ -1720,12 +1738,21 @@ test_delete_endpoint_full() {
     echo "" >&2
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["delete"]=$((total / success))
-    local overhead=$((ENDPOINT_WARM_TIMES["delete"] - ENDPOINT_COLD_TIMES["delete"]))
-    local empty=${ENDPOINT_COLD_TIMES["delete"]}
+    local empty=${ENDPOINT_COLD_TIMES["delete"]:-0}
     local full=${ENDPOINT_WARM_TIMES["delete"]}
-    local overhead_pct=$((overhead * 100 / empty))
 
-    log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
+    if [ "$empty" -eq 0 ] || [ -z "$empty" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
+        local overhead=$((full - empty))
+        local overhead_pct=$((overhead * 100 / empty))
+
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance) (deleted: $success)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
+        fi
+    fi
 }
 
 ################################################################################
