@@ -22,8 +22,8 @@ class ClusterCache {
         this.life = Date.now()
         this.ttl = ttl
 
-        // Detect if running under PM2
-        this.isPM2 = typeof process.env.pm_id !== 'undefined'
+        // Detect if running under PM2 (exclude pm2-cluster-cache's -1 value for non-PM2 environments)
+        this.isPM2 = typeof process.env.pm_id !== 'undefined' && process.env.pm_id !== '-1'
 
         this.clusterCache = pm2ClusterCache.init({
             storage: 'all',

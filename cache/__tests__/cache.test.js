@@ -76,6 +76,9 @@ async function testCacheMissHit(
     // Populate cache
     mockRes.json(expectedCachedData)
 
+    // Wait for cache.set() to complete (needed for CI/CD environments with slower I/O)
+    await waitForCache(150)
+
     // Reset mocks for HIT test
     mockRes.headers = {}
     mockRes.json = jest.fn()
@@ -145,6 +148,11 @@ describe('Cache Middleware Tests', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 
@@ -529,6 +537,11 @@ describe('GOG Endpoint Cache Middleware', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 
@@ -595,6 +608,11 @@ describe('Cache Statistics', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 
@@ -700,6 +718,11 @@ describe('Cache Invalidation Tests', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 

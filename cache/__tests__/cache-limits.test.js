@@ -72,6 +72,11 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 
@@ -79,7 +84,7 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
         const key = cache.generateKey('id', `default-ttl-${Date.now()}`)
         
         await cache.set(key, { data: 'uses default ttl' })
-        await waitForCache(50)
+        await waitForCache(200)  // Increased for CI/CD environment
         
         // Should exist within TTL (uses configured default from cache/index.js)
         const value = await cache.get(key)
@@ -134,6 +139,11 @@ describe('Cache maxLength Limit Enforcement', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 
@@ -193,6 +203,11 @@ describe('Cache maxBytes Limit Enforcement', () => {
     }, 10000)
 
     afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
         await cache.clear()
     }, 10000)
 
