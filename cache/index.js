@@ -43,6 +43,7 @@ class ClusterCache {
         this.keySizes = new Map() // Track size of each cached value in bytes
         this.totalBytes = 0 // Track total cache size in bytes
         this.localCache = new Map()
+        this.keyExpirations = new Map() // Track TTL expiration times for local cache
         this.clearGeneration = 0 // Track clear operations to coordinate across workers
 
         // Background stats sync every 5 seconds (only if PM2)
@@ -84,6 +85,15 @@ class ClusterCache {
      */
     async get(key) {
         try {
+            // Check local cache expiration first (faster than cluster lookup)
+            const expirationTime = this.keyExpirations.get(key)
+            if (expirationTime !== undefined && Date.now() > expirationTime) {
+                // Expired - delete from all caches
+                await this.delete(key)
+                this.stats.misses++
+                return null
+            }
+
             const wrappedValue = await this.clusterCache.get(key, undefined)
             if (wrappedValue !== undefined) {
                 this.stats.hits++
@@ -101,6 +111,21 @@ class ClusterCache {
             this.stats.misses++
             return null
         } catch (err) {
+            // Check expiration even in error path
+            const expirationTime = this.keyExpirations.get(key)
+            if (expirationTime !== undefined && Date.now() > expirationTime) {
+                // Expired - delete from all caches
+                this.localCache.delete(key)
+                this.allKeys.delete(key)
+                this.keyAccessTimes.delete(key)
+                this.keyExpirations.delete(key)
+                const size = this.keySizes.get(key) || 0
+                this.keySizes.delete(key)
+                this.totalBytes -= size
+                this.stats.misses++
+                return null
+            }
+
             // Fallback to local cache on error (single lookup)
             const localValue = this.localCache.get(key)
             if (localValue !== undefined) {
@@ -148,12 +173,16 @@ class ClusterCache {
      * Set value in cache
      * @param {string} key - Cache key
      * @param {*} value - Value to cache
+     * @param {number} ttl - Optional time-to-live in milliseconds (defaults to constructor ttl)
      */
-    async set(key, value) {
+    async set(key, value, ttl) {
         try {
             const now = Date.now()
             const isUpdate = this.allKeys.has(key)
             const keyType = key.split(':')[0]
+            // Use provided TTL or fall back to default
+            const effectiveTTL = ttl !== undefined ? ttl : this.ttl
+
             // Calculate size only once (can be expensive for large objects)
             const valueSize = this._calculateSize(value)
 
@@ -172,7 +201,7 @@ class ClusterCache {
             }
 
             // Set in cluster cache immediately (most critical operation)
-            await this.clusterCache.set(key, wrappedValue, this.ttl)
+            await this.clusterCache.set(key, wrappedValue, effectiveTTL)
 
             // Update local state (reuse precalculated values)
             this.stats.sets++
@@ -181,6 +210,11 @@ class ClusterCache {
             this.keySizes.set(key, valueSize)
             this.totalBytes += valueSize
             this.localCache.set(key, value)
+
+            // Track expiration time for local cache TTL enforcement
+            if (effectiveTTL > 0) {
+                this.keyExpirations.set(key, now + effectiveTTL)
+            }
 
             // Check limits and evict if needed (do this after set to avoid blocking)
             // Use setImmediate to defer eviction checks without blocking
@@ -231,6 +265,7 @@ class ClusterCache {
             await this.clusterCache.delete(key)
             this.allKeys.delete(key)
             this.keyAccessTimes.delete(key) // Clean up access time tracking
+            this.keyExpirations.delete(key) // Clean up expiration tracking
             const size = this.keySizes.get(key) || 0
             this.keySizes.delete(key)
             this.totalBytes -= size
@@ -244,6 +279,7 @@ class ClusterCache {
             this.localCache.delete(key)
             this.allKeys.delete(key)
             this.keyAccessTimes.delete(key) // Clean up access time tracking
+            this.keyExpirations.delete(key) // Clean up expiration tracking
             const size = this.keySizes.get(key) || 0
             this.keySizes.delete(key)
             this.totalBytes -= size
@@ -303,6 +339,7 @@ class ClusterCache {
             this.allKeys.clear()
             this.keyAccessTimes.clear()
             this.keySizes.clear()
+            this.keyExpirations.clear()
             this.totalBytes = 0
             this.localCache.clear()
 
@@ -827,6 +864,12 @@ class ClusterCache {
      * @returns {boolean} True if object could match this query
      */
     objectMatchesQuery(obj, query) {
+        // Handle search/searchPhrase caches
+        if (query.searchText !== undefined) {
+            return this.objectMatchesSearchText(obj, query.searchText)
+        }
+
+        // Handle query caches
         return query.__cached && typeof query.__cached === 'object'
             ? this.objectContainsProperties(obj, query.__cached)
             : this.objectContainsProperties(obj, query)
@@ -954,18 +997,110 @@ class ClusterCache {
         if (!path.includes('.')) {
             return obj?.[path]
         }
-        
+
         const keys = path.split('.')
         let current = obj
-        
-        for (const key of keys) {
-            if (current === null || current === undefined || typeof current !== 'object') {
+
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+
+            if (current === null || current === undefined) {
                 return undefined
             }
+
+            // If current is an array, check if any element has the remaining path
+            if (Array.isArray(current)) {
+                const remainingPath = keys.slice(i).join('.')
+                // Return the first matching value from array elements
+                for (const item of current) {
+                    const value = this.getNestedProperty(item, remainingPath)
+                    if (value !== undefined) {
+                        return value
+                    }
+                }
+                return undefined
+            }
+
+            if (typeof current !== 'object') {
+                return undefined
+            }
+
             current = current[key]
         }
-        
+
         return current
+    }
+
+    /**
+     * Check if an Annotation object contains the search text
+     * Used for invalidating search/searchPhrase caches
+     * Normalizes diacritics to match MongoDB Atlas Search behavior
+     * @param {Object} obj - The object to check
+     * @param {string} searchText - The search text from the cache key
+     * @returns {boolean} True if object matches search text
+     */
+    objectMatchesSearchText(obj, searchText) {
+        // Only Annotations are searchable
+        if (obj.type !== 'Annotation' && obj['@type'] !== 'Annotation') {
+            return false
+        }
+
+        if (!searchText || typeof searchText !== 'string') {
+            return false
+        }
+
+        // Normalize text: strip diacritics and lowercase to match MongoDB Atlas Search
+        const normalizeText = (text) => {
+            return text.normalize('NFD')           // Decompose combined characters
+                       .replace(/[\u0300-\u036f]/g, '')  // Remove combining diacritical marks
+                       .toLowerCase()
+        }
+
+        const searchWords = normalizeText(searchText).split(/\s+/)
+        const annotationText = normalizeText(this.extractAnnotationText(obj))
+
+        // Conservative: invalidate if ANY search word appears in annotation text
+        return searchWords.some(word => annotationText.includes(word))
+    }
+
+    /**
+     * Recursively extract all searchable text from an Annotation
+     * Extracts from IIIF 3.0 and 2.1 Annotation body fields
+     * @param {Object} obj - The object to extract text from
+     * @param {Set} visited - Set of visited objects to prevent circular references
+     * @returns {string} Concatenated text from all searchable fields
+     */
+    extractAnnotationText(obj, visited = new Set()) {
+        // Prevent circular references
+        if (!obj || typeof obj !== 'object' || visited.has(obj)) {
+            return ''
+        }
+        visited.add(obj)
+
+        let text = ''
+
+        // IIIF 3.0 Annotation fields
+        if (obj.body?.value) text += ' ' + obj.body.value
+        if (obj.bodyValue) text += ' ' + obj.bodyValue
+
+        // IIIF 2.1 Annotation fields
+        if (obj.resource?.chars) text += ' ' + obj.resource.chars
+        if (obj.resource?.['cnt:chars']) text += ' ' + obj.resource['cnt:chars']
+
+        // Recursively check nested arrays (items, annotations)
+        if (Array.isArray(obj.items)) {
+            obj.items.forEach(item => {
+                text += ' ' + this.extractAnnotationText(item, visited)
+            })
+        }
+
+        if (Array.isArray(obj.annotations)) {
+            obj.annotations.forEach(anno => {
+                text += ' ' + this.extractAnnotationText(anno, visited)
+            })
+        }
+
+        return text
     }
 }
 

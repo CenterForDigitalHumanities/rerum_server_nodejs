@@ -4,6 +4,10 @@
  * @author thehabes
  */
 
+// Ensure cache runs in local mode (not PM2 cluster) for tests
+// This must be set before importing cache to avoid IPC timeouts
+delete process.env.pm_id
+
 import { jest } from '@jest/globals'
 import {
     cacheQuery,
@@ -446,7 +450,7 @@ describe('Cache Middleware Tests', () => {
             await waitForCache(200)
             
             // Verify each cache key independently instead of relying on stats
-            const queryKey = cache.generateKey('query', { body: { type: 'Annotation' }, limit: 100, skip: 0 })
+            const queryKey = cache.generateKey('query', { __cached: { type: 'Annotation' }, limit: 100, skip: 0 })
             const searchKey = cache.generateKey('search', { searchText: 'test search', options: {}, limit: 100, skip: 0 })
             const idKey = cache.generateKey('id', 'id123')
             
@@ -702,7 +706,7 @@ describe('Cache Invalidation Tests', () => {
     describe('invalidateByObject', () => {
         it('should invalidate matching query caches when object is created', async () => {
             // Cache a query for type=TestObject
-            const queryKey = cache.generateKey('query', { body: { type: 'TestObject' } })
+            const queryKey = cache.generateKey('query', { __cached: { type: 'TestObject' }, limit: 100, skip: 0 })
             await cache.set(queryKey, [{ id: '1', type: 'TestObject' }])
             
             // Verify cache exists
@@ -723,7 +727,7 @@ describe('Cache Invalidation Tests', () => {
 
         it('should not invalidate non-matching query caches', async () => {
             // Cache a query for type=OtherObject
-            const queryKey = cache.generateKey('query', { body: { type: 'OtherObject' } })
+            const queryKey = cache.generateKey('query', { __cached: { type: 'OtherObject' }, limit: 100, skip: 0 })
             await cache.set(queryKey, [{ id: '1', type: 'OtherObject' }])
             
             // Create object that doesn't match
@@ -737,24 +741,24 @@ describe('Cache Invalidation Tests', () => {
         })
 
         it('should invalidate search caches', async () => {
-            const searchKey = cache.generateKey('search', { body: { type: 'TestObject' } })
-            await cache.set(searchKey, [{ id: '1', type: 'TestObject' }])
-            
-            const newObj = { id: '2', type: 'TestObject' }
+            const searchKey = cache.generateKey('search', { searchText: "annotation", options: {}, limit: 100, skip: 0 })
+            await cache.set(searchKey, [{ id: '1' }])
+
+            const newObj = { type: 'Annotation', body: { value: 'This is an annotation example' } }
             const count = await cache.invalidateByObject(newObj)
-            
+
             expect(count).toBe(1)
             const cached = await cache.get(searchKey)
             expect(cached).toBeNull()
         })
 
         it('should invalidate searchPhrase caches', async () => {
-            const searchKey = cache.generateKey('searchPhrase', { body: { type: 'TestObject' } })
-            await cache.set(searchKey, [{ id: '1', type: 'TestObject' }])
-            
-            const newObj = { id: '2', type: 'TestObject' }
+            const searchKey = cache.generateKey('searchPhrase', { searchText: "annotation", options: { slop: 2 }, limit: 100, skip: 0 })
+            await cache.set(searchKey, [{ id: '1' }])
+
+            const newObj = { type: 'Annotation', body: { value: 'This is an annotation example' } }
             const count = await cache.invalidateByObject(newObj)
-            
+
             expect(count).toBe(1)
             const cached = await cache.get(searchKey)
             expect(cached).toBeNull()
@@ -798,8 +802,8 @@ describe('Cache Invalidation Tests', () => {
 
         it('should match queries with body property', () => {
             const obj = { type: 'TestObject' }
-            expect(cache.objectMatchesQuery(obj, { body: { type: 'TestObject' } })).toBe(true)
-            expect(cache.objectMatchesQuery(obj, { body: { type: 'OtherObject' } })).toBe(false)
+            expect(cache.objectMatchesQuery(obj, { __cached: { type: 'TestObject' }, limit: 100, skip: 0 })).toBe(true)
+            expect(cache.objectMatchesQuery(obj, { __cached: { type: 'OtherObject' }, limit: 100, skip: 0 })).toBe(false)
         })
 
         it('should match nested property queries', () => {
@@ -878,6 +882,342 @@ describe('Cache Invalidation Tests', () => {
             expect(cache.objectContainsProperties(obj, { 
                 $and: [{ type: 'TestObject' }, { status: 'inactive' }] 
             })).toBe(false)
+        })
+    })
+
+    describe('Nested Property Query Invalidation', () => {
+        /**
+         * These tests verify that cache invalidation properly handles nested properties
+         * in query conditions. This is critical for catching bugs like the Glosses issue
+         * where queries with nested properties (e.g., body.ManuscriptWitness) failed to
+         * invalidate when matching objects were created/updated.
+         */
+
+        beforeEach(async () => {
+            await cache.clear()
+        })
+
+        it('should invalidate cache entries with 2-level nested property matches', async () => {
+            // Simulate caching a query result with nested property condition
+            const queryKey = cache.generateKey('query', {
+                __cached: { 'body.target': 'http://example.org/target1' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(queryKey, [{ id: 'result1' }])
+            await waitForCache(100)
+
+            // Verify cache entry exists
+            expect(await cache.get(queryKey)).not.toBeNull()
+
+            // Create an object that matches the nested property
+            const matchingObject = {
+                id: 'obj1',
+                body: {
+                    target: 'http://example.org/target1'
+                }
+            }
+
+            // Invalidate using the matching object
+            await cache.invalidateByObject(matchingObject)
+
+            // Verify the cached query was invalidated
+            expect(await cache.get(queryKey)).toBeNull()
+        }, 8000)
+
+        it('should invalidate cache entries with 3+ level nested property matches', async () => {
+            // Simulate caching a query with deeply nested property condition
+            const queryKey = cache.generateKey('query', {
+                __cached: { 'body.target.source': 'http://example.org/source1' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(queryKey, [{ id: 'result1' }])
+            await waitForCache(100)
+
+            // Verify cache entry exists
+            expect(await cache.get(queryKey)).not.toBeNull()
+
+            // Create an object with deeply nested matching property
+            const matchingObject = {
+                id: 'obj1',
+                body: {
+                    target: {
+                        source: 'http://example.org/source1'
+                    }
+                }
+            }
+
+            await cache.invalidateByObject(matchingObject)
+
+            // Verify invalidation
+            expect(await cache.get(queryKey)).toBeNull()
+        }, 8000)
+
+        it('should properly match objects against queries wrapped in __cached', async () => {
+            // Test that the __cached wrapper is properly handled during invalidation
+            const queryWithCached = cache.generateKey('query', {
+                __cached: { type: 'Annotation', 'body.value': 'test content' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(queryWithCached, [{ id: 'result1' }])
+
+            const matchingObject = {
+                type: 'Annotation',
+                body: { value: 'test content' }
+            }
+
+            await cache.invalidateByObject(matchingObject)
+
+            // Should invalidate the __cached-wrapped query
+            expect(await cache.get(queryWithCached)).toBeNull()
+        })
+
+        it('should invalidate GOG fragment queries when matching fragment is created (ManuscriptWitness pattern)', async () => {
+            // This test specifically addresses the Glosses bug scenario
+            const manuscriptUri = 'http://example.org/manuscript/1'
+
+            // Cache a GOG fragments query
+            const fragmentQuery = cache.generateKey('gog-fragments', {
+                agentID: 'testAgent',
+                manID: manuscriptUri,
+                limit: 50,
+                skip: 0
+            })
+            await cache.set(fragmentQuery, [{ id: 'existingFragment' }])
+
+            // Also cache a regular query that searches for ManuscriptWitness
+            const regularQuery = cache.generateKey('query', {
+                __cached: { 'body.ManuscriptWitness': manuscriptUri },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(regularQuery, [{ id: 'existingFragment' }])
+            await waitForCache(100)
+
+            // Verify both cache entries exist
+            expect(await cache.get(fragmentQuery)).not.toBeNull()
+            expect(await cache.get(regularQuery)).not.toBeNull()
+
+            // Create a new WitnessFragment with matching ManuscriptWitness
+            const newFragment = {
+                '@type': 'WitnessFragment',
+                body: {
+                    ManuscriptWitness: manuscriptUri,
+                    content: 'Fragment content'
+                }
+            }
+
+            await cache.invalidateByObject(newFragment)
+
+            // Both cached queries should be invalidated
+            expect(await cache.get(regularQuery)).toBeNull()
+            // Note: gog-fragments keys are not invalidated by invalidateByObject
+            // They are only invalidated by explicit pattern matching in middleware
+        }, 8000)
+
+        it('should not invalidate unrelated nested property queries (selective invalidation)', async () => {
+            // Cache two queries with different nested property values
+            const query1 = cache.generateKey('query', {
+                __cached: { 'body.target': 'http://example.org/target1' },
+                limit: 100,
+                skip: 0
+            })
+            const query2 = cache.generateKey('query', {
+                __cached: { 'body.target': 'http://example.org/target2' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(query1, [{ id: 'result1' }])
+            await cache.set(query2, [{ id: 'result2' }])
+            await waitForCache(100)
+
+            // Verify both cache entries exist
+            expect(await cache.get(query1)).not.toBeNull()
+            expect(await cache.get(query2)).not.toBeNull()
+
+            // Create an object that matches only query1
+            const matchingObject = {
+                id: 'obj1',
+                body: { target: 'http://example.org/target1' }
+            }
+
+            await cache.invalidateByObject(matchingObject)
+
+            // Only query1 should be invalidated
+            expect(await cache.get(query1)).toBeNull()
+            expect(await cache.get(query2)).not.toBeNull()
+        }, 8000)
+
+        it('should handle nested properties with special characters (@id, $type)', async () => {
+            // Test nested properties containing @ and $ characters
+            const query1 = cache.generateKey('query', {
+                __cached: { 'target.@id': 'http://example.org/target1' },
+                limit: 100,
+                skip: 0
+            })
+            const query2 = cache.generateKey('query', {
+                __cached: { 'body.$type': 'TextualBody' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(query1, [{ id: 'result1' }])
+            await cache.set(query2, [{ id: 'result2' }])
+
+            const matchingObject1 = {
+                id: 'obj1',
+                target: { '@id': 'http://example.org/target1' }
+            }
+
+            await cache.invalidateByObject(matchingObject1)
+
+            // Should invalidate query1 but not query2
+            expect(await cache.get(query1)).toBeNull()
+            expect(await cache.get(query2)).not.toBeNull()
+
+            const matchingObject2 = {
+                id: 'obj2',
+                body: { '$type': 'TextualBody' }
+            }
+
+            await cache.invalidateByObject(matchingObject2)
+
+            // Now query2 should also be invalidated
+            expect(await cache.get(query2)).toBeNull()
+        })
+
+        it('should invalidate using both previousObject and updatedObject nested properties', async () => {
+            // Simulate UPDATE scenario where both old and new objects have nested properties
+            const query1 = cache.generateKey('query', {
+                __cached: { 'body.target': 'http://example.org/oldTarget' },
+                limit: 100,
+                skip: 0
+            })
+            const query2 = cache.generateKey('query', {
+                __cached: { 'body.target': 'http://example.org/newTarget' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(query1, [{ id: 'result1' }])
+            await cache.set(query2, [{ id: 'result2' }])
+            await waitForCache(100)
+
+            // Verify both cache entries exist
+            expect(await cache.get(query1)).not.toBeNull()
+            expect(await cache.get(query2)).not.toBeNull()
+
+            // In an UPDATE operation, middleware calls invalidateByObject with both versions
+            const previousObject = {
+                id: 'obj1',
+                body: { target: 'http://example.org/oldTarget' }
+            }
+            const updatedObject = {
+                id: 'obj1',
+                body: { target: 'http://example.org/newTarget' }
+            }
+
+            // Invalidate using previous object
+            await cache.invalidateByObject(previousObject)
+
+            // Invalidate using updated object
+            await cache.invalidateByObject(updatedObject)
+
+            // Both queries should be invalidated
+            expect(await cache.get(query1)).toBeNull()
+            expect(await cache.get(query2)).toBeNull()
+        }, 8000)
+
+        it('should handle complex nested queries with multiple conditions', async () => {
+            // Test invalidation with queries containing multiple nested property conditions
+            const complexQuery = cache.generateKey('query', {
+                __cached: {
+                    'body.target.source': 'http://example.org/source1',
+                    'body.target.type': 'Canvas',
+                    'metadata.author': 'testUser'
+                },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(complexQuery, [{ id: 'result1' }])
+
+            // Object that matches all conditions
+            const fullMatchObject = {
+                id: 'obj1',
+                body: {
+                    target: {
+                        source: 'http://example.org/source1',
+                        type: 'Canvas'
+                    }
+                },
+                metadata: {
+                    author: 'testUser'
+                }
+            }
+
+            await cache.invalidateByObject(fullMatchObject)
+
+            // Should invalidate because all conditions match
+            expect(await cache.get(complexQuery)).toBeNull()
+        })
+
+        it('should not invalidate complex queries when only some nested conditions match', async () => {
+            // Test that partial matches don't trigger invalidation
+            const complexQuery = cache.generateKey('query', {
+                __cached: {
+                    'body.target.source': 'http://example.org/source1',
+                    'body.target.type': 'Canvas',
+                    'metadata.author': 'testUser'
+                },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(complexQuery, [{ id: 'result1' }])
+
+            // Object that matches only some conditions
+            const partialMatchObject = {
+                id: 'obj2',
+                body: {
+                    target: {
+                        source: 'http://example.org/source1',
+                        type: 'Image'  // Different type
+                    }
+                },
+                metadata: {
+                    author: 'testUser'
+                }
+            }
+
+            await cache.invalidateByObject(partialMatchObject)
+
+            // Should NOT invalidate because not all conditions match
+            expect(await cache.get(complexQuery)).not.toBeNull()
+        })
+
+        it('should handle array values in nested properties', async () => {
+            // Test nested properties that contain arrays
+            const queryKey = cache.generateKey('query', {
+                __cached: { 'body.target.id': 'http://example.org/target1' },
+                limit: 100,
+                skip: 0
+            })
+            await cache.set(queryKey, [{ id: 'result1' }])
+
+            // Object with array containing the matching value
+            const objectWithArray = {
+                id: 'obj1',
+                body: {
+                    target: [
+                        { id: 'http://example.org/target1' },
+                        { id: 'http://example.org/target2' }
+                    ]
+                }
+            }
+
+            await cache.invalidateByObject(objectWithArray)
+
+            // Should invalidate if any array element matches
+            expect(await cache.get(queryKey)).toBeNull()
         })
     })
 

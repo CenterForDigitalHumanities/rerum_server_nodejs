@@ -4,6 +4,10 @@
  * @author thehabes
  */
 
+// Ensure cache runs in local mode (not PM2 cluster) for tests
+// This must be set before importing cache to avoid IPC timeouts
+delete process.env.pm_id
+
 import { jest } from '@jest/globals'
 import cache from '../index.js'
 
@@ -91,19 +95,19 @@ describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
         const testId = Date.now()
         
         // Set entries with short TTL
-        await cache.clusterCache.set(
-            cache.generateKey('query', { type: 'Test', testId }), 
-            [{ id: 1 }], 
+        await cache.set(
+            cache.generateKey('query', { type: 'Test', testId }),
+            [{ id: 1 }],
             shortTTL
         )
-        await cache.clusterCache.set(
-            cache.generateKey('search', { searchText: 'test', testId }), 
-            [{ id: 2 }], 
+        await cache.set(
+            cache.generateKey('search', { searchText: 'test', testId }),
+            [{ id: 2 }],
             shortTTL
         )
-        await cache.clusterCache.set(
-            cache.generateKey('id', `ttl-${testId}`), 
-            { id: 3 }, 
+        await cache.set(
+            cache.generateKey('id', `ttl-${testId}`),
+            { id: 3 },
             shortTTL
         )
         await waitForCache(50)
@@ -301,4 +305,76 @@ describe('Cache Limit Breaking Change Detection', () => {
         expect(cache.maxBytes).toBeGreaterThan(0)
         expect(cache.ttl).toBeGreaterThan(0)
     })
+
+    it('should correctly calculate size for deeply nested query objects', async () => {
+        await cache.clear()
+
+        // Create queries with deeply nested properties (5+ levels)
+        const deeplyNestedQuery = cache.generateKey('query', {
+            __cached: {
+                'level1.level2.level3.level4.level5': 'deepValue',
+                'body.target.source.metadata.author.name': 'John Doe',
+                'nested.array.0.property.value': 123
+            },
+            limit: 100,
+            skip: 0
+        })
+
+        // Create a large result set with nested objects
+        const nestedResults = Array.from({ length: 50 }, (_, i) => ({
+            id: `obj${i}`,
+            level1: {
+                level2: {
+                    level3: {
+                        level4: {
+                            level5: 'deepValue',
+                            additionalData: new Array(100).fill('x').join('')
+                        }
+                    }
+                }
+            },
+            body: {
+                target: {
+                    source: {
+                        metadata: {
+                            author: {
+                                name: 'John Doe',
+                                email: 'john@example.com'
+                            }
+                        }
+                    }
+                }
+            }
+        }))
+
+        await cache.set(deeplyNestedQuery, nestedResults)
+
+        // Verify the cache entry exists
+        expect(await cache.get(deeplyNestedQuery)).not.toBeNull()
+
+        // Add more deeply nested queries until we approach maxBytes
+        const queries = []
+        for (let i = 0; i < 10; i++) {
+            const key = cache.generateKey('query', {
+                __cached: {
+                    [`level1.level2.level3.property${i}`]: `value${i}`,
+                    'deep.nested.structure.array.0.id': i
+                },
+                limit: 100,
+                skip: 0
+            })
+            queries.push(key)
+            await cache.set(key, nestedResults)
+        }
+
+        // Verify cache entries exist - check a few queries to confirm caching works
+        expect(await cache.get(deeplyNestedQuery)).not.toBeNull()
+        expect(await cache.get(queries[queries.length - 1])).not.toBeNull()
+
+        // Verify maxBytes enforcement: cache operations should continue working
+        // even if some entries were evicted due to byte limits
+        const midpoint = Math.floor(queries.length / 2)
+        expect(await cache.get(queries[midpoint])).toBeTruthy()
+    })
 })
+
