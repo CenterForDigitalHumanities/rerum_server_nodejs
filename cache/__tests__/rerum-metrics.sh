@@ -23,6 +23,7 @@ AUTH_TOKEN=""
 NUM_CREATE_ITERATIONS=100
 NUM_WRITE_ITERATIONS=50
 NUM_DELETE_ITERATIONS=50
+WARMUP_ITERATIONS=20
 
 # Timeout Configuration
 DEFAULT_TIMEOUT=10
@@ -135,6 +136,29 @@ check_wsl2_time_sync() {
             log_info "hwclock not available - skipping time sync"
         fi
     fi
+}
+
+# Warm up the system (JIT compilation, connection pools, OS caches)
+warmup_system() {
+    log_info "Warming up system (JIT compilation, connection pools, OS caches)..."
+    log_info "Running $WARMUP_ITERATIONS warmup operations..."
+    
+    local count=0
+    for i in $(seq 1 $WARMUP_ITERATIONS); do
+        # Perform a create operation
+        curl -s -X POST "${API_BASE}/api/create" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${AUTH_TOKEN}" \
+            -d '{"type":"WarmupTest","value":"warmup"}' > /dev/null 2>&1
+        count=$((count + 1))
+        
+        if [ $((i % 5)) -eq 0 ]; then
+            echo -ne "\r  Warmup progress: $count/$WARMUP_ITERATIONS  "
+        fi
+    done
+    echo ""
+    
+    log_success "System warmed up (MongoDB connections, JIT, caches initialized)"
 }
 
 check_server() {
@@ -685,7 +709,6 @@ test_diverse_query_load() {
     log_section "Testing High-Volume Diverse Query Load (1000 queries)"
 
     log_info "Performing 1000 diverse read queries to measure baseline database performance..."
-    log_info "This matches the cache-metrics.sh fill_cache operation for comparison."
 
     local start_time=$(date +%s)
 
@@ -1498,6 +1521,7 @@ main() {
     check_wsl2_time_sync
     check_server
     get_auth_token
+    warmup_system
 
     # Phase 2: Read Endpoint Tests
     log_header "Phase 2: Read Endpoint Tests"

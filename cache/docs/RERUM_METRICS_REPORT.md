@@ -1,15 +1,15 @@
 # RERUM Baseline Performance Analysis (No Cache)
 
-**Generated**: Wed Nov  5 12:31:45 CST 2025
+**Generated**: Wed Nov  5 14:07:17 CST 2025
 **Server**: https://devstore.rerum.io
 **Branch**: main (no cache layer)
-**Test Duration**: 4 minutes 41 seconds
+**Test Duration**: 4 minutes 27 seconds
 
 ---
 
 ## Executive Summary
 
-**Overall Test Results**: 17 passed, 0 failed, 0 skipped (17 total)
+**Overall Test Results**: 18 passed, 0 failed, 0 skipped (18 total)
 
 This report establishes baseline performance metrics for the RERUM API without the cache layer. These metrics can be compared against CACHE_METRICS_REPORT.md to evaluate the impact of the caching implementation.
 
@@ -39,12 +39,12 @@ This report establishes baseline performance metrics for the RERUM API without t
 
 | Endpoint | Avg (ms) | Median (ms) | Min (ms) | Max (ms) |
 |----------|----------|-------------|----------|----------|
-| `/query` | 453 | 453 | 453 | 453 |
-| `/search` | 151 | 151 | 151 | 151 |
-| `/searchPhrase` | 136 | 136 | 136 | 136 |
-| `/id` | 530 | 530 | 530 | 530 |
-| `/history` | 852 | 852 | 852 | 852 |
-| `/since` | 864 | 864 | 864 | 864 |
+| `/query` | 455 | 455 | 455 | 455 |
+| `/search` | 402 | 402 | 402 | 402 |
+| `/searchPhrase` | 394 | 394 | 394 | 394 |
+| `/id` | 528 | 528 | 528 | 528 |
+| `/history` | 853 | 853 | 853 | 853 |
+| `/since` | 872 | 872 | 872 | 872 |
 
 **Interpretation**:
 - All read operations hit the database directly (no caching)
@@ -60,8 +60,8 @@ This test performs 1000 diverse read queries to measure baseline database perfor
 | Metric | Value |
 |--------|-------|
 | Total Queries | 1000 |
-| Total Time | 66 seconds (66000ms) |
-| Average per Query | 66ms |
+| Total Time | 24 seconds (24000ms) |
+| Average per Query | 24ms |
 | Successful Queries | 1000/1000 |
 | Failed Queries | 0/1000 |
 
@@ -80,13 +80,13 @@ This test performs 1000 diverse read queries to measure baseline database perfor
 
 | Endpoint | Avg (ms) | Median (ms) | Min (ms) | Max (ms) | Successful/Total |
 |----------|----------|-------------|----------|----------|------------------|
-| `/create` | 151 | 140 | 127 | 1195 | 100/100 |
-| `/update` | 587 | 566 | 547 | 1561 | 50/50 |
-| `/patch` | 568 | 567 | 547 | 618 | 50/50 |
-| `/set` | 597 | 570 | 542 | 1079 | 50/50 |
-| `/unset` | 572 | 566 | 543 | 710 | 50/50 |
-| `/delete` | 565 | 565 | 546 | 604 | 50/50 |
-| `/overwrite` | 567 | 568 | 550 | 594 | 50/50 |
+| `/create` | 153 | 143 | 125 | 1169 | 100/100 |
+| `/update` | 677 | 643 | 622 | 1666 | 50/50 |
+| `/patch` | 642 | 641 | 619 | 682 | 50/50 |
+| `/set` | 648 | 638 | 612 | 1174 | 50/50 |
+| `/unset` | 656 | 645 | 618 | 1144 | 50/50 |
+| `/delete` | 567 | 568 | 546 | 598 | 50/50 |
+| `/overwrite` | 604 | 604 | 582 | 648 | 50/50 |
 
 **Interpretation**:
 - All write operations execute without cache invalidation overhead
@@ -111,7 +111,7 @@ This test performs 1000 diverse read queries to measure baseline database perfor
 - Overwrite: 50/50
 
 **Test Execution**:
-- Total duration: 4 minutes 41 seconds
+- Total duration: 4 minutes 27 seconds
 - Test objects created: 100
 - Server: https://devstore.rerum.io
 
@@ -146,6 +146,6 @@ To compare with cache performance (CACHE_METRICS_REPORT.md):
 
 ---
 
-**Report Generated**: Wed Nov  5 12:31:45 CST 2025
+**Report Generated**: Wed Nov  5 14:07:17 CST 2025
 **Format Version**: 1.0
 **Test Suite**: rerum-metrics.sh
