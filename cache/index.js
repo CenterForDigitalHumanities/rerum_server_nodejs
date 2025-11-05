@@ -94,13 +94,17 @@ class ClusterCache {
                 return null
             }
 
-            const wrappedValue = await this.clusterCache.get(key, undefined)
-            if (wrappedValue !== undefined) {
-                this.stats.hits++
-                this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
-                // Unwrap the value if it's wrapped with metadata
-                return wrappedValue.data !== undefined ? wrappedValue.data : wrappedValue
+            // Only use cluster cache in PM2 mode to avoid IPC timeouts
+            if (this.isPM2) {
+                const wrappedValue = await this.clusterCache.get(key, undefined)
+                if (wrappedValue !== undefined) {
+                    this.stats.hits++
+                    this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
+                    // Unwrap the value if it's wrapped with metadata
+                    return wrappedValue.data !== undefined ? wrappedValue.data : wrappedValue
+                }
             }
+
             // Check local cache (single lookup instead of has + get)
             const localValue = this.localCache.get(key)
             if (localValue !== undefined) {
@@ -200,8 +204,10 @@ class ClusterCache {
                 size: valueSize
             }
 
-            // Set in cluster cache immediately (most critical operation)
-            await this.clusterCache.set(key, wrappedValue, effectiveTTL)
+            // Set in cluster cache only in PM2 mode to avoid IPC timeouts
+            if (this.isPM2) {
+                await this.clusterCache.set(key, wrappedValue, effectiveTTL)
+            }
 
             // Update local state (reuse precalculated values)
             this.stats.sets++
@@ -262,7 +268,11 @@ class ClusterCache {
         const workerId = process.env.pm_id || process.pid
 
         try {
-            await this.clusterCache.delete(key)
+            // Only delete from cluster cache in PM2 mode to avoid IPC timeouts
+            if (this.isPM2) {
+                await this.clusterCache.delete(key)
+            }
+
             this.allKeys.delete(key)
             this.keyAccessTimes.delete(key) // Clean up access time tracking
             this.keyExpirations.delete(key) // Clean up expiration tracking
@@ -392,10 +402,15 @@ class ClusterCache {
      * @private
      */
     async _getClusterKeyCount() {
+        // In non-PM2 mode, use local count directly to avoid IPC timeouts
+        if (!this.isPM2) {
+            return this.allKeys.size
+        }
+
         try {
             const keysMap = await this.clusterCache.keys()
             const uniqueKeys = new Set()
-            
+
             for (const instanceKeys of Object.values(keysMap)) {
                 if (Array.isArray(instanceKeys)) {
                     instanceKeys.forEach(key => {
@@ -406,7 +421,7 @@ class ClusterCache {
                     })
                 }
             }
-            
+
             return uniqueKeys.size
         } catch (err) {
             // Fallback to local count on error
@@ -459,26 +474,32 @@ class ClusterCache {
      */
     async invalidate(pattern, invalidatedKeys = new Set()) {
         let count = 0
-        
+
         try {
-            const keysMap = await this.clusterCache.keys()
-            const allKeys = new Set()
-            
-            for (const instanceKeys of Object.values(keysMap)) {
-                if (Array.isArray(instanceKeys)) {
-                    instanceKeys.forEach(key => allKeys.add(key))
+            let allKeys = new Set()
+
+            // In PM2 mode, get keys from cluster cache; otherwise use local keys
+            if (this.isPM2) {
+                const keysMap = await this.clusterCache.keys()
+                for (const instanceKeys of Object.values(keysMap)) {
+                    if (Array.isArray(instanceKeys)) {
+                        instanceKeys.forEach(key => allKeys.add(key))
+                    }
                 }
+            } else {
+                // In non-PM2 mode, use local keys to avoid IPC timeouts
+                allKeys = new Set(this.allKeys)
             }
-            
+
             const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern)
-            
+
             const deletePromises = []
             const matchedKeys = []
             for (const key of allKeys) {
                 if (invalidatedKeys.has(key)) {
                     continue
                 }
-                
+
                 if (regex.test(key)) {
                     deletePromises.push(this.delete(key, true))
                     matchedKeys.push(key)
@@ -486,12 +507,12 @@ class ClusterCache {
                     count++
                 }
             }
-            
+
             await Promise.all(deletePromises)
         } catch (err) {
             console.error('Cache invalidate error:', err)
         }
-        
+
         return count
     }
 
@@ -513,30 +534,36 @@ class ClusterCache {
         try {
             // Wait for all workers to sync
             await this.waitForSync()
-            
+
             const aggregatedStats = await this._aggregateStats()
-            
-            const keysMap = await this.clusterCache.keys()
-            const uniqueKeys = new Set()
-            
-            for (const instanceKeys of Object.values(keysMap)) {
-                if (Array.isArray(instanceKeys)) {
-                    instanceKeys.forEach(key => {
-                        // Exclude internal keys from cache length
-                        if (!key.startsWith('_stats_worker_') && key !== '_clear_signal') {
-                            uniqueKeys.add(key)
-                        }
-                    })
+
+            let cacheLength = this.allKeys.size
+
+            // In PM2 mode, get actual cluster key count; otherwise use local count
+            if (this.isPM2) {
+                const keysMap = await this.clusterCache.keys()
+                const uniqueKeys = new Set()
+
+                for (const instanceKeys of Object.values(keysMap)) {
+                    if (Array.isArray(instanceKeys)) {
+                        instanceKeys.forEach(key => {
+                            // Exclude internal keys from cache length
+                            if (!key.startsWith('_stats_worker_') && key !== '_clear_signal') {
+                                uniqueKeys.add(key)
+                            }
+                        })
+                    }
                 }
+                cacheLength = uniqueKeys.size
             }
-            
+
             const uptime = Date.now() - this.life
             const hitRate = aggregatedStats.hits + aggregatedStats.misses > 0
                 ? (aggregatedStats.hits / (aggregatedStats.hits + aggregatedStats.misses) * 100).toFixed(2)
                 : '0.00'
-            
+
             return {
-                length: uniqueKeys.size,
+                length: cacheLength,
                 maxLength: this.maxLength,
                 totalBytes: aggregatedStats.totalBytes,
                 maxBytes: this.maxBytes,
@@ -576,29 +603,43 @@ class ClusterCache {
      */
     async getDetails() {
         try {
-            const keysMap = await this.clusterCache.keys()
-            const allKeys = new Set()
-            
-            for (const instanceKeys of Object.values(keysMap)) {
-                if (Array.isArray(instanceKeys)) {
-                    instanceKeys.forEach(key => {
-                        if (!key.startsWith('_stats_worker_') && !key.startsWith('_clear_signal')) {
-                            allKeys.add(key)
-                        }
-                    })
+            let allKeys = new Set()
+
+            // In PM2 mode, get keys from cluster cache; otherwise use local keys
+            if (this.isPM2) {
+                const keysMap = await this.clusterCache.keys()
+                for (const instanceKeys of Object.values(keysMap)) {
+                    if (Array.isArray(instanceKeys)) {
+                        instanceKeys.forEach(key => {
+                            if (!key.startsWith('_stats_worker_') && !key.startsWith('_clear_signal')) {
+                                allKeys.add(key)
+                            }
+                        })
+                    }
                 }
+            } else {
+                // In non-PM2 mode, use local keys to avoid IPC timeouts
+                allKeys = new Set(this.allKeys)
             }
-            
+
             const details = []
             let position = 0
             for (const key of allKeys) {
-                const wrappedValue = await this.clusterCache.get(key, undefined)
+                let wrappedValue
+
+                // In PM2 mode, get from cluster cache; otherwise get from local cache
+                if (this.isPM2) {
+                    wrappedValue = await this.clusterCache.get(key, undefined)
+                } else {
+                    wrappedValue = this.localCache.get(key)
+                }
+
                 // Handle both wrapped and unwrapped values
                 const actualValue = wrappedValue?.data !== undefined ? wrappedValue.data : wrappedValue
                 const size = wrappedValue?.size || this._calculateSize(actualValue)
                 const cachedAt = wrappedValue?.cachedAt || Date.now()
                 const age = Date.now() - cachedAt
-                
+
                 details.push({
                     position,
                     key,
@@ -607,7 +648,7 @@ class ClusterCache {
                 })
                 position++
             }
-            
+
             return details
         } catch (err) {
             console.error('Cache getDetails error:', err)
@@ -620,18 +661,23 @@ class ClusterCache {
      * @private
      */
     async _checkClearSignal() {
+        // Only check for clear signal in PM2 cluster mode to avoid IPC timeouts
+        if (!this.isPM2) {
+            return
+        }
+
         try {
             const signal = await this.clusterCache.get('_clear_signal', undefined)
             if (signal && signal.generation > this.clearGeneration) {
                 // Another worker initiated a clear - reset our local state
                 this.clearGeneration = signal.generation
-                
+
                 this.allKeys.clear()
                 this.keyAccessTimes.clear()
                 this.keySizes.clear()
                 this.totalBytes = 0
                 this.localCache.clear()
-                
+
                 this.stats = {
                     hits: 0,
                     misses: 0,
@@ -639,7 +685,7 @@ class ClusterCache {
                     sets: 0,
                     invalidations: 0
                 }
-                
+
                 // Delete our worker stats key immediately
                 const workerId = process.env.pm_id || process.pid
                 const statsKey = `_stats_worker_${workerId}`
@@ -655,6 +701,11 @@ class ClusterCache {
      * @private
      */
     async _syncStats() {
+        // Only sync stats in PM2 cluster mode to avoid IPC timeouts
+        if (!this.isPM2) {
+            return
+        }
+
         try {
             const workerId = process.env.pm_id || process.pid
             const statsKey = `_stats_worker_${workerId}`
@@ -675,6 +726,11 @@ class ClusterCache {
      * @returns {Promise<Object>} Aggregated stats
      */
     async _aggregateStats() {
+        // In non-PM2 mode, return local stats directly to avoid IPC timeouts
+        if (!this.isPM2) {
+            return { ...this.stats, totalBytes: this.totalBytes }
+        }
+
         try {
             const keysMap = await this.clusterCache.keys()
             const aggregated = {
@@ -685,7 +741,7 @@ class ClusterCache {
                 totalBytes: 0
             }
             const processedWorkers = new Set()
-            
+
             for (const instanceKeys of Object.values(keysMap)) {
                 if (Array.isArray(instanceKeys)) {
                     for (const key of instanceKeys) {
@@ -694,7 +750,7 @@ class ClusterCache {
                             if (processedWorkers.has(workerId)) {
                                 continue
                             }
-                            
+
                             try {
                                 const workerStats = await this.clusterCache.get(key, undefined)
                                 if (workerStats && typeof workerStats === 'object') {
@@ -712,7 +768,7 @@ class ClusterCache {
                     }
                 }
             }
-            
+
             return aggregated
         } catch (err) {
             return { ...this.stats, totalBytes: this.totalBytes }
