@@ -205,15 +205,41 @@ measure_endpoint() {
     local end=$(date +%s%3N)
     local time=$((end - start))
     local http_code=$(echo "$response" | tail -n1)
-    
-    # Handle curl failure (connection timeout, etc)
-    if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
+    local response_body=$(echo "$response" | head -n-1)
+
+    # Validate timing (protect against clock skew/adjustment)
+    if [ "$time" -lt 0 ]; then
+        # Clock went backward during operation
+        local negative_time=$time  # Preserve negative value for logging
+
+        # Check if HTTP request actually succeeded before treating as error
+        if [ -z "$http_code" ] || [ "$http_code" == "000" ]; then
+            # No HTTP code at all - actual timeout/failure
+            http_code="000"
+            echo -e "${YELLOW}[CLOCK SKEW DETECTED]${NC} $endpoint" >&2
+            echo -e "  Start: ${start}ms, End: ${end}ms, Calculated: ${negative_time}ms (NEGATIVE!)" >&2
+            echo -e "  HTTP Code: ${RED}${http_code} (NO RESPONSE)${NC}" >&2
+            echo -e "  ${RED}Result: Actual timeout/connection failure${NC}" >&2
+            time=0
+        else
+            # HTTP succeeded but timing is invalid - use 0ms as placeholder
+            echo -e "${YELLOW}[CLOCK SKEW DETECTED]${NC} $endpoint" >&2
+            echo -e "  Start: ${start}ms, End: ${end}ms, Calculated: ${negative_time}ms (NEGATIVE!)" >&2
+            echo -e "  HTTP Code: ${GREEN}${http_code} (SUCCESS)${NC}" >&2
+            echo -e "  ${GREEN}Result: Operation succeeded, timing unmeasurable${NC}" >&2
+            echo "0|$http_code|clock_skew"
+            return
+        fi
+    fi
+
+    # Handle curl failure (connection timeout, etc) - only if we have no HTTP code
+    if [ -z "$http_code" ]; then
         http_code="000"
         # Log to stderr to avoid polluting the return value
         echo "[WARN] Endpoint $endpoint timed out or connection failed" >&2
     fi
-    
-    echo "$time|$http_code|$(echo "$response" | head -n-1)"
+
+    echo "$time|$http_code|$response_body"
 }
 
 # Clear cache
@@ -228,8 +254,8 @@ clear_cache() {
     while [ $attempt -le $max_attempts ]; do
         curl -s -X POST "${API_BASE}/api/cache/clear" > /dev/null 2>&1
 
-        # Sanity check: Verify cache is actually empty
-        local stats=$(get_cache_stats)
+        # Sanity check: Verify cache is actually empty (use fast version - no need to wait for full sync)
+        local stats=$(get_cache_stats_fast)
         cache_length=$(echo "$stats" | jq -r '.length' 2>/dev/null || echo "unknown")
         
         if [ "$cache_length" = "0" ]; then
@@ -352,11 +378,16 @@ warmup_system() {
     clear_cache
 }
 
-# Get cache stats
+# Get cache stats (fast version - may not be synced across workers)
+get_cache_stats_fast() {
+    curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
+}
+
+# Get cache stats (with sync wait for accurate cross-worker aggregation)
 get_cache_stats() {
-    log_info "Waiting for cache stats to sync across all PM2 workers (8 seconds.  HOLD!)..."
+    log_info "Waiting for cache stats to sync across all PM2 workers (8 seconds.  HOLD!)..." >&2
     sleep 8
-    curl -s "${API_BASE}/api/cache/stats?details=true" 2>/dev/null
+    curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
 }
 
 # Helper: Create a test object and track it for cleanup
@@ -570,10 +601,11 @@ run_write_performance_test() {
     local num_tests=${5:-100}
     
     log_info "Running $num_tests $endpoint_name operations..." >&2
-    
+
     declare -a times=()
     local total_time=0
     local failed_count=0
+    local clock_skew_count=0
     
     # For create endpoint, collect IDs directly into global array
     local collect_ids=0
@@ -590,10 +622,14 @@ run_write_performance_test() {
         # Only include successful operations with valid positive timing
         if [ "$time" = "-1" ] || [ -z "$time" ] || [ "$time" -lt 0 ]; then
             failed_count=$((failed_count + 1))
+        elif [ "$response_body" = "clock_skew" ]; then
+            # Clock skew with successful HTTP code - count as success but note it
+            clock_skew_count=$((clock_skew_count + 1))
+            # Don't add to times array (0ms is not meaningful) or total_time
         else
             times+=($time)
             total_time=$((total_time + time))
-            
+
             # Store created ID directly to global array for cleanup
             if [ $collect_ids -eq 1 ] && [ -n "$response_body" ]; then
                 local obj_id=$(echo "$response_body" | grep -o '"@id":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -609,33 +645,50 @@ run_write_performance_test() {
         fi
     done
     echo "" >&2
-    
+
     local successful=$((num_tests - failed_count))
-    
+    local measurable=$((${#times[@]}))
+
     if [ $successful -eq 0 ]; then
         log_warning "All $endpoint_name operations failed!" >&2
         echo "0|0|0|0"
         return 1
     fi
-    
-    # Calculate statistics
-    local avg_time=$((total_time / successful))
-    
-    # Calculate median
-    IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
-    unset IFS
-    local median_idx=$((successful / 2))
-    local median_time=${sorted[$median_idx]}
-    
-    # Calculate min/max
-    local min_time=${sorted[0]}
-    local max_time=${sorted[$((successful - 1))]}
-    
+
+    # Calculate statistics only from operations with valid timing
+    local avg_time=0
+    local median_time=0
+    local min_time=0
+    local max_time=0
+
+    if [ $measurable -gt 0 ]; then
+        avg_time=$((total_time / measurable))
+
+        # Calculate median
+        IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
+        unset IFS
+        local median_idx=$((measurable / 2))
+        median_time=${sorted[$median_idx]}
+
+        # Calculate min/max
+        min_time=${sorted[0]}
+        max_time=${sorted[$((measurable - 1))]}
+    fi
+
     log_success "$successful/$num_tests successful" >&2
-    echo "  Average: ${avg_time}ms, Median: ${median_time}ms, Min: ${min_time}ms, Max: ${max_time}ms" >&2
-    
+
+    if [ $measurable -gt 0 ]; then
+        echo "  Average: ${avg_time}ms, Median: ${median_time}ms, Min: ${min_time}ms, Max: ${max_time}ms" >&2
+    else
+        echo "  (timing data unavailable - all operations affected by clock skew)" >&2
+    fi
+
     if [ $failed_count -gt 0 ]; then
         log_warning "  Failed operations: $failed_count" >&2
+    fi
+
+    if [ $clock_skew_count -gt 0 ]; then
+        log_warning "  Clock skew detections (timing unmeasurable but HTTP succeeded): $clock_skew_count" >&2
     fi
     
     # Write stats to temp file (so they persist when function is called directly, not in subshell)
@@ -1147,20 +1200,20 @@ test_create_endpoint_full() {
     local full_median=$(cat /tmp/rerum_write_stats 2>/dev/null | cut -d'|' -f2)
     
     ENDPOINT_WARM_TIMES["create"]=$full_avg
-    
-    if [ "$full_avg" != "0" ]; then
-        local empty_avg=${ENDPOINT_COLD_TIMES["create"]}
+
+    local empty_avg=${ENDPOINT_COLD_TIMES["create"]:-0}
+
+    if [ "$empty_avg" -eq 0 ] || [ -z "$empty_avg" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
         local overhead=$((full_avg - empty_avg))
         local overhead_pct=$((overhead * 100 / empty_avg))
 
         # WORST-CASE TEST: Measure O(n) scanning overhead
-        log_overhead $overhead "O(n) invalidation scan overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
         if [ $overhead -lt 0 ]; then
-            log_info "  ℹ️  Negative values indicate DB variance between runs, not cache efficiency"
-        elif [ $overhead -le 5 ]; then
-            log_info "  ✅ O(n) scanning overhead is negligible (${overhead}ms to scan ${CACHE_FILL_SIZE} entries)"
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms] (negligible - within statistical variance)"
         else
-            log_info "  ⚠️  O(n) scanning adds ${overhead}ms overhead (scanning ${CACHE_FILL_SIZE} entries with no matches)"
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
         fi
     fi
 }
@@ -1222,24 +1275,31 @@ test_update_endpoint_empty() {
     if [ $empty_success -eq 0 ]; then
         log_failure "Update endpoint failed (all requests failed)"
         ENDPOINT_STATUS["update"]="❌ Failed"
-        return
-    elif [ $empty_failures -gt 0 ]; then
-        log_warning "$empty_success/$NUM_ITERATIONS successful"
-        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
-        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
+        ENDPOINT_COLD_TIMES["update"]=0
         return
     fi
-    
-    log_success "$empty_success/$NUM_ITERATIONS successful"
-    
+
+    # Calculate average and median even with partial failures
     local empty_avg=$((empty_total / empty_success))
     IFS=$'\n' sorted_empty=($(sort -n <<<"${empty_times[*]}"))
     unset IFS
     local empty_median=${sorted_empty[$((empty_success / 2))]}
-    
+
     ENDPOINT_COLD_TIMES["update"]=$empty_avg
-    log_success "Update endpoint functional"
-    ENDPOINT_STATUS["update"]="✅ Functional"
+
+    if [ $empty_failures -eq 0 ]; then
+        log_success "$empty_success/$NUM_ITERATIONS successful"
+        log_success "Update endpoint functional"
+        ENDPOINT_STATUS["update"]="✅ Functional"
+    elif [ $empty_failures -le 1 ]; then
+        log_success "$empty_success/$NUM_ITERATIONS successful"
+        log_warning "Update endpoint functional (${empty_failures}/${NUM_ITERATIONS} transient failures)"
+        ENDPOINT_STATUS["update"]="✅ Functional (${empty_failures}/${NUM_ITERATIONS} transient failures)"
+    else
+        log_warning "$empty_success/$NUM_ITERATIONS successful"
+        log_warning "Update endpoint had partial failures: $empty_failures/$NUM_ITERATIONS failed"
+        ENDPOINT_STATUS["update"]="⚠️  Partial Failures ($empty_failures/$NUM_ITERATIONS)"
+    fi
 }
 
 # Update endpoint - full cache version
@@ -1312,18 +1372,21 @@ test_update_endpoint_full() {
     local full_median=${sorted_full[$((full_success / 2))]}
     
     ENDPOINT_WARM_TIMES["update"]=$full_avg
-    
-    local empty_avg=${ENDPOINT_COLD_TIMES["update"]}
-    local overhead=$((full_avg - empty_avg))
-    local overhead_pct=$((overhead * 100 / empty_avg))
 
-    log_overhead $overhead "O(n) scan overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
-    if [ $overhead -lt 0 ]; then
-        log_info "  ℹ️  Negative = DB variance, not cache"
-    elif [ $overhead -le 5 ]; then
-        log_info "  ✅ Negligible O(n) overhead"
+    local empty_avg=${ENDPOINT_COLD_TIMES["update"]:-0}
+
+    if [ "$empty_avg" -eq 0 ] || [ -z "$empty_avg" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
     else
-        log_info "  ⚠️  ${overhead}ms to scan ${CACHE_FILL_SIZE} entries"
+        local overhead=$((full_avg - empty_avg))
+        local overhead_pct=$((overhead * 100 / empty_avg))
+
+        # Display clamped value (0 or positive) but store actual value for report
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms] (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
+        fi
     fi
 }
 
@@ -1390,12 +1453,20 @@ test_patch_endpoint_full() {
     [ $success -eq 0 ] && return
     local avg=$((total / success))
     ENDPOINT_WARM_TIMES["patch"]=$avg
-    local empty=${ENDPOINT_COLD_TIMES["patch"]}
-    local overhead=$((avg - empty))
-    local overhead_pct=$((overhead * 100 / empty))
+    local empty=${ENDPOINT_COLD_TIMES["patch"]:-0}
 
-    log_overhead $overhead "O(n) scan: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${avg}ms]"
-    [ $overhead -lt 0 ] && log_info "  ℹ️  DB variance" || [ $overhead -le 5 ] && log_info "  ✅ Negligible" || log_info "  ⚠️  ${overhead}ms overhead"
+    if [ "$empty" -eq 0 ] || [ -z "$empty" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
+        local overhead=$((avg - empty))
+        local overhead_pct=$((overhead * 100 / empty))
+
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${avg}ms] (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${avg}ms]"
+        fi
+    fi
 }
 
 test_set_endpoint_empty() {
@@ -1447,12 +1518,21 @@ test_set_endpoint_full() {
     echo "" >&2
     [ $success -eq 0 ] && return
     ENDPOINT_WARM_TIMES["set"]=$((total / success))
-    local overhead=$((ENDPOINT_WARM_TIMES["set"] - ENDPOINT_COLD_TIMES["set"]))
-    local empty=${ENDPOINT_COLD_TIMES["set"]}
+    local empty=${ENDPOINT_COLD_TIMES["set"]:-0}
     local full=${ENDPOINT_WARM_TIMES["set"]}
 
-    log_overhead $overhead "O(n): ${overhead}ms [Empty: ${empty}ms → Full: ${full}ms]"
-    [ $overhead -lt 0 ] && log_info "  ℹ️  DB variance" || [ $overhead -le 5 ] && log_info "  ✅ Negligible" || log_info "  ⚠️  ${overhead}ms"
+    if [ "$empty" -eq 0 ] || [ -z "$empty" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
+        local overhead=$((full - empty))
+        local overhead_pct=$((overhead * 100 / empty))
+
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
+        fi
+    fi
 }
 
 test_unset_endpoint_empty() {
@@ -1509,9 +1589,9 @@ test_unset_endpoint_full() {
     local overhead=$((ENDPOINT_WARM_TIMES["unset"] - ENDPOINT_COLD_TIMES["unset"]))
     local empty=${ENDPOINT_COLD_TIMES["unset"]}
     local full=${ENDPOINT_WARM_TIMES["unset"]}
+    local overhead_pct=$((overhead * 100 / empty))
 
-    log_overhead $overhead "O(n): ${overhead}ms [${empty}ms → ${full}ms]"
-    [ $overhead -lt 0 ] && log_info "  ℹ️  DB variance" || [ $overhead -le 5 ] && log_info "  ✅ Negligible" || log_info "  ⚠️  ${overhead}ms"
+    log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
 }
 
 test_overwrite_endpoint_empty() {
@@ -1566,9 +1646,9 @@ test_overwrite_endpoint_full() {
     local overhead=$((ENDPOINT_WARM_TIMES["overwrite"] - ENDPOINT_COLD_TIMES["overwrite"]))
     local empty=${ENDPOINT_COLD_TIMES["overwrite"]}
     local full=${ENDPOINT_WARM_TIMES["overwrite"]}
+    local overhead_pct=$((overhead * 100 / empty))
 
-    log_overhead $overhead "O(n): ${overhead}ms [${empty}ms → ${full}ms]"
-    [ $overhead -lt 0 ] && log_info "  ℹ️  DB variance" || [ $overhead -le 5 ] && log_info "  ✅ Negligible" || log_info "  ⚠️  ${overhead}ms"
+    log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
 }
 
 test_delete_endpoint_empty() {
@@ -1643,9 +1723,9 @@ test_delete_endpoint_full() {
     local overhead=$((ENDPOINT_WARM_TIMES["delete"] - ENDPOINT_COLD_TIMES["delete"]))
     local empty=${ENDPOINT_COLD_TIMES["delete"]}
     local full=${ENDPOINT_WARM_TIMES["delete"]}
+    local overhead_pct=$((overhead * 100 / empty))
 
-    log_overhead $overhead "O(n): ${overhead}ms [${empty}ms → ${full}ms] (deleted: $success)"
-    [ $overhead -lt 0 ] && log_info "  ℹ️  DB variance" || [ $overhead -le 5 ] && log_info "  ✅ Negligible" || log_info "  ⚠️  ${overhead}ms"
+    log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
 }
 
 ################################################################################

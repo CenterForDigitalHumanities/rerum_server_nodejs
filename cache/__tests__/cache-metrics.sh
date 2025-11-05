@@ -595,14 +595,14 @@ warmup_system() {
 
 # Get cache stats (fast version - may not be synced across workers)
 get_cache_stats_fast() {
-    curl -s "${API_BASE}/api/cache/stats?details=true" 2>/dev/null
+    curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
 }
 
 # Get cache stats (with sync wait for accurate cross-worker aggregation)
 get_cache_stats() {
     log_info "Waiting for cache stats to sync across all PM2 workers (8 seconds.  HOLD!)..." >&2
     sleep 8
-    curl -s "${API_BASE}/api/cache/stats?details=true" 2>/dev/null
+    curl -s "${API_BASE}/api/cache/stats" 2>/dev/null
 }
 
 # Helper: Create a test object and track it for cleanup
@@ -1442,9 +1442,9 @@ test_create_endpoint_full() {
         
         # Display clamped value (0 or positive) but store actual value for report
         if [ $overhead -lt 0 ]; then
-            log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms] (negligible - within statistical variance)"
         else
-            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%) per operation"
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
         fi
     fi
 }
@@ -1623,9 +1623,9 @@ test_update_endpoint_full() {
 
         # Display clamped value (0 or positive) but store actual value for report
         if [ $overhead -lt 0 ]; then
-            log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms] (negligible - within statistical variance)"
         else
-            log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty_avg}ms → Full: ${full_avg}ms]"
         fi
     fi
 }
@@ -1711,12 +1711,12 @@ test_patch_endpoint_full() {
     local empty=${ENDPOINT_COLD_TIMES["patch"]}
     local overhead=$((avg - empty))
     local overhead_pct=$((overhead * 100 / empty))
-    
+
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_overhead 0 "Cache invalidation overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${avg}ms] (negligible - within statistical variance)"
     else
-        log_overhead $overhead "Cache invalidation overhead: ${overhead}ms (${overhead_pct}%)"
+        log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${avg}ms]"
     fi
 }
 
@@ -1783,12 +1783,15 @@ test_set_endpoint_full() {
     
     ENDPOINT_WARM_TIMES["set"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["set"] - ENDPOINT_COLD_TIMES["set"]))
-    
+    local empty=${ENDPOINT_COLD_TIMES["set"]}
+    local full=${ENDPOINT_WARM_TIMES["set"]}
+    local overhead_pct=$((overhead * 100 / empty))
+
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
     else
-        log_overhead $overhead "Overhead: ${overhead}ms"
+        log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
     fi
 }
 
@@ -1857,12 +1860,15 @@ test_unset_endpoint_full() {
     
     ENDPOINT_WARM_TIMES["unset"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["unset"] - ENDPOINT_COLD_TIMES["unset"]))
-    
+    local empty=${ENDPOINT_COLD_TIMES["unset"]}
+    local full=${ENDPOINT_WARM_TIMES["unset"]}
+    local overhead_pct=$((overhead * 100 / empty))
+
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
     else
-        log_overhead $overhead "Overhead: ${overhead}ms"
+        log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
     fi
 }
 
@@ -1929,12 +1935,15 @@ test_overwrite_endpoint_full() {
     
     ENDPOINT_WARM_TIMES["overwrite"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["overwrite"] - ENDPOINT_COLD_TIMES["overwrite"]))
-    
+    local empty=${ENDPOINT_COLD_TIMES["overwrite"]}
+    local full=${ENDPOINT_WARM_TIMES["overwrite"]}
+    local overhead_pct=$((overhead * 100 / empty))
+
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance)"
+        log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
     else
-        log_overhead $overhead "Overhead: ${overhead}ms"
+        log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
     fi
 }
 
@@ -2029,12 +2038,15 @@ test_delete_endpoint_full() {
     
     ENDPOINT_WARM_TIMES["delete"]=$((total / success))
     local overhead=$((ENDPOINT_WARM_TIMES["delete"] - ENDPOINT_COLD_TIMES["delete"]))
-    
+    local empty=${ENDPOINT_COLD_TIMES["delete"]}
+    local full=${ENDPOINT_WARM_TIMES["delete"]}
+    local overhead_pct=$((overhead * 100 / empty))
+
     # Display clamped value (0 or positive) but store actual value for report
     if [ $overhead -lt 0 ]; then
-        log_overhead 0 "Overhead: 0ms (negligible - within statistical variance) (deleted: $success)"
+        log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance) (deleted: $success)"
     else
-        log_overhead $overhead "Overhead: ${overhead}ms (deleted: $success)"
+        log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms] (deleted: $success)"
     fi
 }
 

@@ -272,7 +272,6 @@ class ClusterCache {
             if (this.isPM2) {
                 await this.clusterCache.delete(key)
             }
-
             this.allKeys.delete(key)
             this.keyAccessTimes.delete(key) // Clean up access time tracking
             this.keyExpirations.delete(key) // Clean up expiration tracking
@@ -280,10 +279,7 @@ class ClusterCache {
             this.keySizes.delete(key)
             this.totalBytes -= size
             this.localCache.delete(key)
-
             const duration = Date.now() - startTime
-            console.log(`\x1b[32m[CACHE DELETE DONE]\x1b[0m Worker ${workerId}: Deleted in ${duration}ms`)
-
             return true
         } catch (err) {
             this.localCache.delete(key)
@@ -293,10 +289,7 @@ class ClusterCache {
             const size = this.keySizes.get(key) || 0
             this.keySizes.delete(key)
             this.totalBytes -= size
-
             const duration = Date.now() - startTime
-            console.log(`\x1b[31m[CACHE DELETE ERROR]\x1b[0m Worker ${workerId}: Failed in ${duration}ms - ${err.message}`)
-
             return false
         }
     }
@@ -811,11 +804,8 @@ class ClusterCache {
         const workerId = process.env.pm_id || process.pid
 
         if (!obj || typeof obj !== 'object') {
-            console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m \x1b[31mNo object provided or invalid object type\x1b[0m`)
             return 0
         }
-
-        console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Worker ${workerId}: Starting with object: \x1b[33m${obj['@id'] || obj.id || obj._id}\x1b[0m`)
 
         let count = 0
 
@@ -841,9 +831,7 @@ class ClusterCache {
 
                 keysToCheck = Array.from(uniqueKeys)
                 const clusterGetDuration = Date.now() - clusterGetStart
-                console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Retrieved ${keysToCheck.length} query/search keys from cluster scan in ${clusterGetDuration}ms`)
             } catch (err) {
-                console.log(`\x1b[35m\x1b[33m[CACHE invalidateByObject]\x1b[0m Error scanning cluster keys: ${err.message}, falling back to local\x1b[0m`)
                 keysToCheck = Array.from(this.allKeys).filter(k =>
                     k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
                 )
@@ -854,28 +842,24 @@ class ClusterCache {
             )
         }
 
-        console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Total cache keys to check: \x1b[36m${keysToCheck.length}\x1b[0m`)
         if (keysToCheck.length > 0) {
             const keyTypes = {}
             keysToCheck.forEach(k => {
                 const type = k.split(':')[0]
                 keyTypes[type] = (keyTypes[type] || 0) + 1
             })
-            console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Key types: \x1b[90m${JSON.stringify(keyTypes)}\x1b[0m`)
         }
 
         const hasQueryKeys = keysToCheck.some(k =>
             k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
         )
         if (!hasQueryKeys) {
-            console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m \x1b[33mNo query/search keys in cache - nothing to invalidate\x1b[0m`)
             return 0
         }
 
         const queryKeys = keysToCheck.filter(k =>
             k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
         )
-        console.log(`\x1b[35m[CACHE invalidateByObject]\x1b[0m Query/search keys to evaluate: \x1b[36m${queryKeys.length}\x1b[0m`)
 
         for (const cacheKey of keysToCheck) {
             if (!cacheKey.startsWith('query:') &&
@@ -908,7 +892,6 @@ class ClusterCache {
         }
 
         const duration = Date.now() - startTime
-        console.log(`\x1b[35m\x1b[1m[CACHE invalidateByObject DONE]\x1b[0m Worker ${workerId}: Invalidated ${count} keys in ${duration}ms`)
 
         return count
     }
