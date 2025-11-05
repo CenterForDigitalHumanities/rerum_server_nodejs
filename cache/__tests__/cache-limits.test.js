@@ -260,52 +260,8 @@ describe('Cache maxBytes Limit Enforcement', () => {
     }, 20000)
 })
 
-describe('Cache Limits Validation', () => {
-    it('should have reasonable limit values', () => {
-        // maxLength should be positive and reasonable (< 10 thousand)
-        expect(cache.maxLength).toBeGreaterThan(0)
-        expect(cache.maxLength).toBeLessThan(10000)
-        
-        // maxBytes should be positive and reasonable (< 10GB)
-        expect(cache.maxBytes).toBeGreaterThan(0)
-        expect(cache.maxBytes).toBeLessThan(10000000000)
-
-        // TTL should be positive and reasonable (≤ 24 hours)
-        expect(cache.ttl).toBeGreaterThan(0)
-        expect(cache.ttl).toBeLessThanOrEqual(86400000) // 24 hours in ms
-    })
-})
-
 describe('Cache Limit Breaking Change Detection', () => {
-    it('should detect if limit properties are removed from cache object', () => {
-        expect(cache).toHaveProperty('maxLength')
-        expect(cache).toHaveProperty('maxBytes')
-        expect(cache).toHaveProperty('ttl')
-    })
-
-    it('should detect if limit stats reporting is removed', async () => {
-        // Verify cache object has limit properties
-        expect(cache).toHaveProperty('maxLength')
-        expect(cache).toHaveProperty('maxBytes')
-        expect(cache).toHaveProperty('ttl')
-        
-        // Verify properties are accessible and have correct types
-        expect(typeof cache.maxLength).toBe('number')
-        expect(typeof cache.maxBytes).toBe('number')
-        expect(typeof cache.ttl).toBe('number')
-        
-        // Note: Testing getStats() might timeout in test environment due to PM2 cluster sync
-        // The above tests provide sufficient coverage for limit property accessibility
-    })
-
-    it('should detect if PM2 cluster cache becomes unavailable', () => {
-        expect(cache.clusterCache).toBeDefined()
-        expect(typeof cache.clusterCache.set).toBe('function')
-        expect(typeof cache.clusterCache.get).toBe('function')
-        expect(typeof cache.clusterCache.flush).toBe('function')
-    })
-
-    it('should respect environment variable configuration or use sensible defaults', () => {
+    it('should have valid limit configuration and respect environment variables', () => {
         // Verify cache respects env vars if set, or uses reasonable defaults
         const expectedMaxLength = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
         const expectedMaxBytes = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000)
@@ -315,10 +271,15 @@ describe('Cache Limit Breaking Change Detection', () => {
         expect(cache.maxBytes).toBe(expectedMaxBytes)
         expect(cache.ttl).toBe(expectedTTL)
 
-        // Verify defaults are sensible
+        // Verify limits are positive and reasonable
         expect(cache.maxLength).toBeGreaterThan(0)
+        expect(cache.maxLength).toBeLessThan(10000) // < 10 thousand
+
         expect(cache.maxBytes).toBeGreaterThan(0)
+        expect(cache.maxBytes).toBeLessThan(10000000000) // < 10GB
+
         expect(cache.ttl).toBeGreaterThan(0)
+        expect(cache.ttl).toBeLessThanOrEqual(86400000) // ≤ 24 hours
     })
 
     it('should correctly calculate size for deeply nested query objects', async () => {

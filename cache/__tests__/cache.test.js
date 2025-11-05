@@ -390,16 +390,6 @@ describe('Cache Middleware Tests', () => {
     })
 
     describe('cacheHistory middleware', () => {
-        it('should return cache MISS on first history request', async () => {
-            mockReq.method = 'GET'
-            mockReq.params = { _id: '688bc5a1f1f9c3e2430fa99f' }
-
-            await cacheHistory(mockReq, mockRes, mockNext)
-
-            expect(mockRes.headers['X-Cache']).toBe('MISS')
-            expect(mockNext).toHaveBeenCalled()
-        })
-
         it('should return cache HIT on second history request', async () => {
             // Use helper to test MISS/HIT pattern
             await testCacheMissHit(
@@ -616,33 +606,33 @@ describe('Cache Statistics', () => {
         await cache.clear()
     }, 10000)
 
-    it('should have all required statistics properties', async () => {
-        // Verify cache has all required stat properties
+    it('should have all required cache properties with correct types', async () => {
+        // Verify statistics properties exist and have correct types
         expect(cache).toHaveProperty('stats')
         expect(cache.stats).toHaveProperty('hits')
         expect(cache.stats).toHaveProperty('misses')
         expect(cache.stats).toHaveProperty('sets')
         expect(cache.stats).toHaveProperty('evictions')
-
-        // Verify stats are numbers
         expect(typeof cache.stats.hits).toBe('number')
         expect(typeof cache.stats.misses).toBe('number')
         expect(typeof cache.stats.sets).toBe('number')
         expect(typeof cache.stats.evictions).toBe('number')
-    })
 
-    it('should have all required cache limit properties', async () => {
-        // Verify cache has required tracking properties
+        // Verify limit properties exist and have correct types
         expect(cache).toHaveProperty('maxLength')
         expect(cache).toHaveProperty('maxBytes')
         expect(cache).toHaveProperty('ttl')
         expect(cache).toHaveProperty('allKeys')
-
-        // Verify types
         expect(typeof cache.maxLength).toBe('number')
         expect(typeof cache.maxBytes).toBe('number')
         expect(typeof cache.ttl).toBe('number')
         expect(cache.allKeys instanceof Set).toBe(true)
+
+        // Verify PM2 cluster cache is available
+        expect(cache.clusterCache).toBeDefined()
+        expect(typeof cache.clusterCache.set).toBe('function')
+        expect(typeof cache.clusterCache.get).toBe('function')
+        expect(typeof cache.clusterCache.flush).toBe('function')
     })
 
     it('should track hits and misses correctly', async () => {
