@@ -1,6 +1,6 @@
 # RERUM Cache WORST-CASE Overhead Analysis
 
-**Generated**: Tue Nov  4 21:49:52 CST 2025
+**Generated**: Wed Nov  5 13:00:30 CST 2025
 **Test Type**: Worst-case cache overhead measurement (O(n) scanning, 0 invalidations)
 **Server**: http://localhost:3001
 
@@ -58,12 +58,12 @@
 
 | Endpoint | Empty Cache (0 entries) | Full Cache (1000 entries) | Difference | Analysis |
 |----------|-------------------------|---------------------------|------------|----------|
-| `/query` | 364ms | 367ms | 3ms | ✅ No overhead (O(1) verified) |
-| `/search` | 58ms | 53ms | -5ms | ✅ No overhead (O(1) verified) |
-| `/searchPhrase` | 55ms | 52ms | -3ms | ✅ No overhead (O(1) verified) |
-| `/id` | 453ms | 442ms | -11ms | ✅ Faster (DB variance, not cache) |
-| `/history` | 781ms | 780ms | -1ms | ✅ No overhead (O(1) verified) |
-| `/since` | 764ms | 775ms | 11ms | ⚠️ Slower (likely DB variance) |
+| `/query` | 362ms | 361ms | -1ms | ✅ No overhead (O(1) verified) |
+| `/search` | 62ms | 54ms | -8ms | ✅ Faster (DB variance, not cache) |
+| `/searchPhrase` | 57ms | 51ms | -6ms | ✅ Faster (DB variance, not cache) |
+| `/id` | 442ms | 422ms | -20ms | ✅ Faster (DB variance, not cache) |
+| `/history` | 754ms | 768ms | 14ms | ⚠️ Slower (likely DB variance) |
+| `/since` | 763ms | 753ms | -10ms | ✅ Faster (DB variance, not cache) |
 
 **Key Insight**: Cache uses **O(1) hash-based lookups** for reads.
 
@@ -81,13 +81,13 @@
 
 | Endpoint | Empty Cache | Full Cache (1000 entries) | Overhead | Impact |
 |----------|-------------|---------------------------|----------|--------|
-| `/create` | 54ms | 51ms | -3ms | ✅ None |
-| `/update` | 494ms | 523ms | +29ms | ⚠️  Moderate |
-| `/patch` | 506ms | 525ms | +19ms | ⚠️  Moderate |
-| `/set` | 496ms | 549ms | +53ms | ⚠️  Moderate |
-| `/unset` | 502ms | 525ms | +23ms | ⚠️  Moderate |
-| `/delete` | 493ms | 469ms | -24ms | ✅ None |
-| `/overwrite` | 501ms | 523ms | +22ms | ⚠️  Moderate |
+| `/create` | 57ms | 51ms | -6ms | ✅ None |
+| `/update` | 491ms | 525ms | +34ms | ⚠️  Moderate |
+| `/patch` | 502ms | 535ms | +33ms | ⚠️  Moderate |
+| `/set` | 497ms | 526ms | +29ms | ⚠️  Moderate |
+| `/unset` | 510ms | 528ms | +18ms | ⚠️  Moderate |
+| `/delete` | 504ms | 515ms | +11ms | ⚠️  Moderate |
+| `/overwrite` | 495ms | 525ms | +30ms | ⚠️  Moderate |
 
 **Key Insight**: Cache uses **O(n) linear scanning** for write invalidation.
 
@@ -116,22 +116,22 @@
 - **Conclusion**: Reads are always fast, even with cache misses
 
 **Write Operations (O(n)):**
-- Average O(n) scanning overhead: ~17ms per write
-- Overhead percentage: ~3% of write time
-- Total cost for 1000 writes: ~17000ms
+- Average O(n) scanning overhead: ~21ms per write
+- Overhead percentage: ~4% of write time
+- Total cost for 1000 writes: ~21000ms
 - Tested endpoints: create, update, patch, set, unset, delete, overwrite
 - **This is WORST CASE**: Real scenarios will have cache invalidations (better than pure scanning)
 
 **This worst-case test shows:**
 - O(1) read lookups mean cache size never slows down reads
-- O(n) write scanning overhead is 17ms on average
-- Even in worst case (no invalidations), overhead is typically 3% of write time
+- O(n) write scanning overhead is 21ms on average
+- Even in worst case (no invalidations), overhead is typically 4% of write time
 
 **Real-World Scenarios:**
 - Production caches will have LOWER overhead than this worst case
 - Cache invalidations occur when writes match cached queries (productive work)
 - This test forces pure scanning with zero productive invalidations (maximum waste)
-- If 17ms overhead is acceptable here, production will be better
+- If 21ms overhead is acceptable here, production will be better
 
 ---
 
@@ -141,7 +141,7 @@
 
 **What This Test Shows:**
 1. **Read overhead**: NONE - O(1) hash lookups are instant regardless of cache size
-2. **Write overhead**: 17ms average O(n) scanning cost for 1000 entries
+2. **Write overhead**: 21ms average O(n) scanning cost for 1000 entries
 3. **Worst-case verified**: Pure scanning with zero matches
 
 **If write overhead ≤ 5ms:** Cache overhead is negligible - deploy with confidence
@@ -150,9 +150,9 @@
 
 ### ✅ Is Cache Overhead Acceptable?
 
-Based on 17ms average overhead:
+Based on 21ms average overhead:
 - **Reads**: ✅ Zero overhead (O(1) regardless of size)
-- **Writes**: ✅ Acceptable
+- **Writes**: ⚠️  Review recommended
 
 ### 📊 Monitoring Recommendations
 
@@ -194,6 +194,6 @@ Tuning considerations:
 
 ---
 
-**Report Generated**: Tue Nov  4 21:49:52 CST 2025  
+**Report Generated**: Wed Nov  5 13:00:30 CST 2025  
 **Format Version**: 1.0  
 **Test Suite**: cache-metrics.sh
