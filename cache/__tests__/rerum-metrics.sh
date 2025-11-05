@@ -117,6 +117,26 @@ log_warning() {
     echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
+check_wsl2_time_sync() {
+    # Check if running on WSL2
+    if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null; then
+        log_info "WSL2 detected - checking system time synchronization..."
+
+        # Try to sync hardware clock to system time (requires sudo)
+        if command -v hwclock &> /dev/null; then
+            if sudo -n hwclock -s &> /dev/null 2>&1; then
+                log_success "System time synchronized with hardware clock"
+            else
+                log_warning "Could not sync hardware clock (sudo required)"
+                log_info "To fix clock skew issues, run: sudo hwclock -s"
+                log_info "Continuing anyway - some timing measurements may show warnings"
+            fi
+        else
+            log_info "hwclock not available - skipping time sync"
+        fi
+    fi
+}
+
 check_server() {
     log_info "Checking server connectivity at ${BASE_URL}..."
     if ! curl -s -f "${BASE_URL}" > /dev/null 2>&1; then
@@ -1475,6 +1495,7 @@ main() {
 
     # Phase 1: Pre-flight & Authentication
     log_header "Phase 1: Pre-flight & Authentication"
+    check_wsl2_time_sync
     check_server
     get_auth_token
 
