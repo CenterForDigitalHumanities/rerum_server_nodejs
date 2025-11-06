@@ -148,34 +148,23 @@ class ClusterCache {
     }
 
     /**
-     * Calculate approximate size of a value in bytes
-     * Fast estimation - avoids JSON.stringify for simple types
+     * Calculate accurate size of a value in bytes
+     * Uses Buffer.byteLength for precise UTF-8 byte measurement
      * @param {*} value - Value to measure
-     * @returns {number} Approximate size in bytes
+     * @returns {number} Size in bytes
      * @private
      */
     _calculateSize(value) {
         if (value === null || value === undefined) return 0
-        
-        // Fast path for primitives
-        const type = typeof value
-        if (type === 'string') return value.length * 2
-        if (type === 'number') return 8
-        if (type === 'boolean') return 4
-        
-        // For arrays with simple values, estimate quickly
-        if (Array.isArray(value)) {
-            if (value.length === 0) return 8
-            // If small array, just estimate
-            if (value.length < 10) {
-                return value.reduce((sum, item) => sum + this._calculateSize(item), 16)
-            }
+
+        try {
+            // Use Buffer.byteLength for accurate UTF-8 byte measurement
+            // Buffer is a Node.js global - no imports needed
+            return Buffer.byteLength(JSON.stringify(value), 'utf8')
+        } catch (err) {
+            // Handle circular references or non-serializable values
+            return 0
         }
-        
-        // For objects/complex types, fall back to JSON stringify
-        // This is still expensive but only for complex objects
-        const str = JSON.stringify(value)
-        return str.length * 2
     }
 
     /**

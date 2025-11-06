@@ -330,10 +330,9 @@ fill_cache() {
                 local method="POST"
                 
                 # Calculate how many GET requests we can make for each endpoint type
-                # Phase 2 deletes indices 0-49, leaving indices 50-99 available
-                # Use indices 50-99 (50 IDs) for GET endpoints
+                # Phase 2 releases indices 0-49 (immutable but still exist), deletes indices 50-99
+                # Use indices 0-49 (50 IDs) for GET endpoints
                 local num_ids=50
-                local id_offset=50  # Start at index 50 to skip deleted objects
                 local max_id_requests=$num_ids        # Can use each ID once for /id
                 local max_history_requests=$num_ids   # Can use each ID once for /history
                 local max_since_requests=$num_ids     # Can use each ID once for /since
@@ -363,7 +362,8 @@ fill_cache() {
                         data="{\"searchText\":\"test annotation\"}"
                         search_phrase_requests=$((search_phrase_requests + 1))
                     elif [ $pattern -eq 3 ]; then
-                        # Use a known object ID from CREATED_IDS array (indices 50-99, not deleted)
+                        # Use a known object ID from CREATED_IDS array (indices 0-49, released but still exist)
+                        local id_offset=$((count % 50))  # Cycle through 0-49 for diversity
                         if [ ${#CREATED_IDS[@]} -gt $id_offset ]; then
                             endpoint="${CREATED_IDS[$id_offset]}"
                             method="GET"
@@ -376,9 +376,10 @@ fill_cache() {
                             query_requests=$((query_requests + 1))
                         fi
                     elif [ $pattern -eq 4 ]; then
-                        # Use a known object ID for history (indices 50-99, not deleted)
-                        if [ ${#CREATED_IDS[@]} -gt $id_offset ]; then
-                            local obj_id=$(echo "${CREATED_IDS[$id_offset]}" | sed 's|.*/||')
+                        # Use a known object ID for history (indices 0-49, released but still exist)
+                        local released_offset=$((count % 50))  # Cycle through 0-49
+                        if [ ${#CREATED_IDS[@]} -gt $released_offset ]; then
+                            local obj_id=$(echo "${CREATED_IDS[$released_offset]}" | sed 's|.*/||')
                             endpoint="${API_BASE}/history/${obj_id}"
                             method="GET"
                             data=""
@@ -390,9 +391,10 @@ fill_cache() {
                             search_requests=$((search_requests + 1))
                         fi
                     else
-                        # Use a known object ID for since (indices 50-99, not deleted)
-                        if [ ${#CREATED_IDS[@]} -gt $id_offset ]; then
-                            local since_id=$(echo "${CREATED_IDS[$id_offset]}" | sed 's|.*/||')
+                        # Use a known object ID for since (indices 0-49, released but still exist)
+                        local released_offset=$((count % 50))  # Cycle through 0-49
+                        if [ ${#CREATED_IDS[@]} -gt $released_offset ]; then
+                            local since_id=$(echo "${CREATED_IDS[$released_offset]}" | sed 's|.*/||')
                             endpoint="${API_BASE}/since/${since_id}"
                             method="GET"
                             data=""
@@ -2014,11 +2016,17 @@ test_delete_endpoint_empty() {
     ENDPOINT_DESCRIPTIONS["delete"]="Delete objects"
     local NUM_ITERATIONS=50
     local num_created=${#CREATED_IDS[@]}
-    [ $num_created -lt $NUM_ITERATIONS ] && { log_warning "Not enough objects (have: $num_created, need: $NUM_ITERATIONS)"; return; }
-    log_info "Deleting first $NUM_ITERATIONS objects from create test..."
+    if [ $num_created -lt $((50 + NUM_ITERATIONS)) ]; then
+        log_warning "Not enough objects (have: $num_created, need: $((50 + NUM_ITERATIONS)))"
+        ENDPOINT_STATUS["delete"]="⚠️ Skipped"
+        return
+    fi
+    log_info "Deleting objects 51-100 from create_empty test (objects 1-50 were released)..."
     declare -a times=()
     local total=0 success=0
-    for i in $(seq 0 $((NUM_ITERATIONS - 1))); do
+    # Use second 50 objects from CREATED_IDS for delete_empty (objects 50-99 from create_empty)
+    # First 50 objects (0-49) were released and cannot be deleted
+    for i in $(seq 50 $((50 + NUM_ITERATIONS - 1))); do
         local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
 
         # Skip if obj_id is invalid
@@ -2029,12 +2037,12 @@ test_delete_endpoint_empty() {
         local result=$(measure_endpoint "${API_BASE}/api/delete/${obj_id}" "DELETE" "" "Delete" true 60)
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "204" ] && { times+=($time); total=$((total + time)); success=$((success + 1)); }
-        
+
         # Progress indicator
-        local display_i=$((i + 1))
-        if [ $((display_i % 10)) -eq 0 ] || [ $display_i -eq $NUM_ITERATIONS ]; then
-            local pct=$((display_i * 100 / NUM_ITERATIONS))
-            echo -ne "\r  Progress: $display_i/$NUM_ITERATIONS iterations ($pct%)  " >&2
+        local iteration_num=$((i - 49))
+        if [ $((iteration_num % 10)) -eq 0 ] || [ $iteration_num -eq $NUM_ITERATIONS ]; then
+            local pct=$((iteration_num * 100 / NUM_ITERATIONS))
+            echo -ne "\r  Progress: $iteration_num/$NUM_ITERATIONS iterations ($pct%)  " >&2
         fi
     done
     echo "" >&2
@@ -2064,13 +2072,19 @@ test_delete_endpoint_full() {
     log_section "Testing /api/delete Endpoint (Full Cache)"
     local NUM_ITERATIONS=50
     local num_created=${#CREATED_IDS[@]}
-    local start_idx=$NUM_ITERATIONS
-    [ $num_created -lt $((NUM_ITERATIONS * 2)) ] && { log_warning "Not enough objects (have: $num_created, need: $((NUM_ITERATIONS * 2)))"; return; }
-    
-    log_info "Deleting next $NUM_ITERATIONS objects from create test..."
+    local start_idx=150  # Use objects 150-199 from create_full test
+    if [ $num_created -lt $((start_idx + NUM_ITERATIONS)) ]; then
+        log_warning "Not enough objects (have: $num_created, need: $((start_idx + NUM_ITERATIONS)))"
+        ENDPOINT_STATUS["delete"]="⚠️ Skipped"
+        return
+    fi
+
+    log_info "Deleting objects 151-200 from create_full test (objects 101-150 were released)..."
     declare -a times=()
     local total=0 success=0
     local iteration=0
+    # Use objects 150-199 from CREATED_IDS for delete_full (from create_full test)
+    # Objects 100-149 were released and cannot be deleted
     for i in $(seq $start_idx $((start_idx + NUM_ITERATIONS - 1))); do
         iteration=$((iteration + 1))
         local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
@@ -2132,21 +2146,28 @@ test_release_endpoint_empty() {
     log_section "Testing /api/release Endpoint (Empty Cache)"
     ENDPOINT_DESCRIPTIONS["release"]="Release objects (lock as immutable)"
     local NUM_ITERATIONS=50
-    local test_id=$(create_test_object '{"type":"ReleaseTest","value":"original"}')
-    [ -z "$test_id" ] && return
+    local num_created=${#CREATED_IDS[@]}
 
-    # Extract just the ID portion from the full URI
-    local obj_id=$(echo "$test_id" | sed 's|.*/||')
+    if [ $num_created -lt $NUM_ITERATIONS ]; then
+        log_warning "Not enough objects (have: $num_created, need: $NUM_ITERATIONS)"
+        ENDPOINT_STATUS["release"]="⚠️ Skipped"
+        return
+    fi
+
+    log_info "Testing release endpoint ($NUM_ITERATIONS iterations)..."
+    log_info "Using first $NUM_ITERATIONS objects from create_empty test..."
 
     declare -a times=()
     local total=0 success=0
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Create a new object for each iteration since release is permanent
-        local new_test_id=$(create_test_object "{\"type\":\"ReleaseTest\",\"value\":\"iteration$i\"}")
-        [ -z "$new_test_id" ] && continue
-        local new_obj_id=$(echo "$new_test_id" | sed 's|.*/||')
+    # Use first 50 objects from CREATED_IDS for release_empty (objects 0-49 from create_empty)
+    for i in $(seq 0 $((NUM_ITERATIONS - 1))); do
+        local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
 
-        local result=$(measure_endpoint "${API_BASE}/api/release/${new_obj_id}" "PATCH" "" "Release" true)
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+            continue
+        fi
+
+        local result=$(measure_endpoint "${API_BASE}/api/release/${obj_id}" "PATCH" "" "Release" true)
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "200" ] && { times+=($time); total=$((total + time)); success=$((success + 1)); }
 
@@ -2182,22 +2203,36 @@ test_release_endpoint_empty() {
 test_release_endpoint_full() {
     log_section "Testing /api/release Endpoint (Full Cache)"
     local NUM_ITERATIONS=50
+    local num_created=${#CREATED_IDS[@]}
+
+    if [ $num_created -lt $((100 + NUM_ITERATIONS)) ]; then
+        log_warning "Not enough objects (have: $num_created, need: $((100 + NUM_ITERATIONS)))"
+        ENDPOINT_STATUS["release"]="⚠️ Skipped"
+        return
+    fi
+
+    log_info "Testing release endpoint with full cache ($NUM_ITERATIONS iterations)..."
+    log_info "Using objects 101-150 from create_full test..."
+
     declare -a times=()
     local total=0 success=0
-    for i in $(seq 1 $NUM_ITERATIONS); do
-        # Create a new object for each iteration since release is permanent
-        local new_test_id=$(create_test_object "{\"type\":\"ReleaseTest\",\"value\":\"iteration$i\"}")
-        [ -z "$new_test_id" ] && continue
-        local new_obj_id=$(echo "$new_test_id" | sed 's|.*/||')
+    # Use objects 100-149 from CREATED_IDS for release_full (from create_full test)
+    for i in $(seq 100 $((100 + NUM_ITERATIONS - 1))); do
+        local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
 
-        local result=$(measure_endpoint "${API_BASE}/api/release/${new_obj_id}" "PATCH" "" "Release" true)
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
+            continue
+        fi
+
+        local result=$(measure_endpoint "${API_BASE}/api/release/${obj_id}" "PATCH" "" "Release" true)
         local time=$(echo "$result" | cut -d'|' -f1)
         [ "$(echo "$result" | cut -d'|' -f2)" == "200" ] && { times+=($time); total=$((total + time)); success=$((success + 1)); }
 
         # Progress indicator
-        if [ $((i % 10)) -eq 0 ] || [ $i -eq $NUM_ITERATIONS ]; then
-            local pct=$((i * 100 / NUM_ITERATIONS))
-            echo -ne "\r  Progress: $i/$NUM_ITERATIONS iterations ($pct%)  " >&2
+        local iteration_num=$((i - 99))
+        if [ $((iteration_num % 10)) -eq 0 ] || [ $iteration_num -eq $NUM_ITERATIONS ]; then
+            local pct=$((iteration_num * 100 / NUM_ITERATIONS))
+            echo -ne "\r  Progress: $iteration_num/$NUM_ITERATIONS iterations ($pct%)  " >&2
         fi
     done
     echo "" >&2
@@ -2346,9 +2381,9 @@ main() {
         log_warning "Search phrase failed with code $warm_code"
     fi
     
-    # For ID, history, since - use the same IDs that were cached in Phase 3 (index 50)
-    if [ ${#CREATED_IDS[@]} -gt 50 ]; then
-        local test_id="${CREATED_IDS[50]}"
+    # For ID, history, since - use the same IDs that were cached in Phase 3 (index 0)
+    if [ ${#CREATED_IDS[@]} -gt 0 ]; then
+        local test_id="${CREATED_IDS[0]}"
         log_info "Testing /id with cache hit..."
         result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with cache hit")
         log_success "ID retrieval with cache hit"
@@ -2413,9 +2448,9 @@ main() {
         log_warning "Search phrase failed with code $warm_code"
     fi
     
-    # For ID, history, since - use different IDs than Phase 4A (index 51 instead of 50)
-    if [ ${#CREATED_IDS[@]} -gt 51 ]; then
-        local test_id="${CREATED_IDS[51]}"
+    # For ID, history, since - use different IDs than Phase 4A (index 1 instead of 0)
+    if [ ${#CREATED_IDS[@]} -gt 1 ]; then
+        local test_id="${CREATED_IDS[1]}"
         log_info "Testing /id with cache miss..."
         result=$(measure_endpoint "$test_id" "GET" "" "ID retrieval with cache miss")
         log_success "ID retrieval with cache miss"

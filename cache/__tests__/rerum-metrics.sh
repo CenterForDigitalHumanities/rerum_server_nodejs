@@ -1251,22 +1251,29 @@ test_release_endpoint() {
 
     ENDPOINT_DESCRIPTIONS["release"]="Release objects (lock as immutable)"
 
+    local num_created=${#CREATED_IDS[@]}
+    if [ $num_created -lt $NUM_WRITE_ITERATIONS ]; then
+        log_warning "Not enough objects (have: $num_created, need: $NUM_WRITE_ITERATIONS)"
+        ENDPOINT_STATUS["release"]="⚠️ Skipped"
+        return
+    fi
+
     log_info "Testing release endpoint ($NUM_WRITE_ITERATIONS iterations)..."
+    log_info "Using first $NUM_WRITE_ITERATIONS objects from create test..."
 
     declare -a times=()
     local total=0
     local success=0
 
-    for i in $(seq 1 $NUM_WRITE_ITERATIONS); do
-        # Create a new object for each iteration since release is permanent
-        local new_test_id=$(create_test_object "{\"type\":\"ReleaseTest\",\"value\":\"iteration$i\"}")
+    # Use first 50 objects from CREATED_IDS for release tests (objects 0-49)
+    for i in $(seq 0 $((NUM_WRITE_ITERATIONS - 1))); do
+        local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
 
-        if [ -z "$new_test_id" ] || [ "$new_test_id" == "null" ]; then
+        if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
             continue
         fi
 
-        local new_obj_id=$(echo "$new_test_id" | sed 's|.*/||')
-        local result=$(measure_endpoint "${API_BASE}/api/release/${new_obj_id}" "PATCH" "" "Release" true)
+        local result=$(measure_endpoint "${API_BASE}/api/release/${obj_id}" "PATCH" "" "Release" true)
         local time=$(echo "$result" | cut -d'|' -f1)
         local code=$(echo "$result" | cut -d'|' -f2)
 
@@ -1276,8 +1283,9 @@ test_release_endpoint() {
             success=$((success + 1))
         fi
 
-        if [ $((i % 10)) -eq 0 ]; then
-            echo -ne "\r  Progress: $i/$NUM_WRITE_ITERATIONS iterations  "
+        local display_i=$((i + 1))
+        if [ $((display_i % 10)) -eq 0 ]; then
+            echo -ne "\r  Progress: $display_i/$NUM_WRITE_ITERATIONS iterations  "
         fi
     done
     echo ""
@@ -1318,19 +1326,21 @@ test_delete_endpoint() {
     ENDPOINT_DESCRIPTIONS["delete"]="Delete objects"
 
     local num_created=${#CREATED_IDS[@]}
-    if [ $num_created -lt $NUM_DELETE_ITERATIONS ]; then
-        log_warning "Not enough objects (have: $num_created, need: $NUM_DELETE_ITERATIONS)"
+    if [ $num_created -lt $((NUM_DELETE_ITERATIONS + 50)) ]; then
+        log_warning "Not enough objects (have: $num_created, need: $((NUM_DELETE_ITERATIONS + 50)))"
         ENDPOINT_STATUS["delete"]="⚠️ Skipped"
         return
     fi
 
-    log_info "Deleting first $NUM_DELETE_ITERATIONS objects from create test..."
+    log_info "Deleting objects 51-100 from create test (released objects cannot be deleted)..."
 
     declare -a times=()
     local total=0
     local success=0
 
-    for i in $(seq 0 $((NUM_DELETE_ITERATIONS - 1))); do
+    # Use second 50 objects from CREATED_IDS for delete tests (objects 50-99)
+    # First 50 were released and cannot be deleted
+    for i in $(seq 50 $((50 + NUM_DELETE_ITERATIONS - 1))); do
         local obj_id=$(echo "${CREATED_IDS[$i]}" | sed 's|.*/||')
 
         if [ -z "$obj_id" ] || [ "$obj_id" == "null" ]; then
