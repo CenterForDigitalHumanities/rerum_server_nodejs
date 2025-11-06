@@ -224,12 +224,12 @@ const invalidateCache = (req, res, next) => {
                 const primeId = extractId(updatedObject?.__rerum?.history?.prime)
 
                 if (!invalidatedKeys.has(`id:${objIdShort}`)) {
-                    cache.delete(`id:${objIdShort}`, true)
+                    cache.delete(`id:${objIdShort}`)
                     invalidatedKeys.add(`id:${objIdShort}`)
                 }
 
                 if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
-                    cache.delete(`id:${previousId}`, true)
+                    cache.delete(`id:${previousId}`)
                     invalidatedKeys.add(`id:${previousId}`)
                 }
 
@@ -261,12 +261,12 @@ const invalidateCache = (req, res, next) => {
                 const primeId = extractId(deletedObject?.__rerum?.history?.prime)
 
                 if (!invalidatedKeys.has(`id:${objIdShort}`)) {
-                    cache.delete(`id:${objIdShort}`, true)
+                    cache.delete(`id:${objIdShort}`)
                     invalidatedKeys.add(`id:${objIdShort}`)
                 }
 
                 if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
-                    cache.delete(`id:${previousId}`, true)
+                    cache.delete(`id:${previousId}`)
                     invalidatedKeys.add(`id:${previousId}`)
                 }
 
@@ -287,15 +287,11 @@ const invalidateCache = (req, res, next) => {
     }
 
     res.json = async (data) => {
-        // Add worker ID header for debugging cache sync
-        res.set('X-Worker-ID', process.env.pm_id || process.pid)
         await performInvalidation(data)
         return originalJson(data)
     }
 
     res.send = async (data) => {
-        // Add worker ID header for debugging cache sync
-        res.set('X-Worker-ID', process.env.pm_id || process.pid)
         await performInvalidation(data)
         return originalSend(data)
     }

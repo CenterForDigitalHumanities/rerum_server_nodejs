@@ -261,12 +261,8 @@ class ClusterCache {
     /**
      * Delete specific key from cache
      * @param {string} key - Cache key to delete
-     * @param {boolean} countAsInvalidation - Deprecated parameter (kept for backwards compatibility)
      */
-    async delete(key, countAsInvalidation = false) {
-        const startTime = Date.now()
-        const workerId = process.env.pm_id || process.pid
-
+    async delete(key) {
         try {
             // Only delete from cluster cache in PM2 mode to avoid IPC timeouts
             if (this.isPM2) {
@@ -279,7 +275,6 @@ class ClusterCache {
             this.keySizes.delete(key)
             this.totalBytes -= size
             this.localCache.delete(key)
-            const duration = Date.now() - startTime
             return true
         } catch (err) {
             this.localCache.delete(key)
@@ -289,7 +284,6 @@ class ClusterCache {
             const size = this.keySizes.get(key) || 0
             this.keySizes.delete(key)
             this.totalBytes -= size
-            const duration = Date.now() - startTime
             return false
         }
     }
@@ -494,7 +488,7 @@ class ClusterCache {
                 }
 
                 if (regex.test(key)) {
-                    deletePromises.push(this.delete(key, true))
+                    deletePromises.push(this.delete(key))
                     matchedKeys.push(key)
                     invalidatedKeys.add(key)
                     count++
@@ -800,9 +794,6 @@ class ClusterCache {
      * @returns {Promise<number>} Number of cache entries invalidated
      */
     async invalidateByObject(obj, invalidatedKeys = new Set()) {
-        const startTime = Date.now()
-        const workerId = process.env.pm_id || process.pid
-
         if (!obj || typeof obj !== 'object') {
             return 0
         }
@@ -814,7 +805,6 @@ class ClusterCache {
         if (this.isPM2) {
             try {
                 // Scan all keys directly from cluster cache (all workers)
-                const clusterGetStart = Date.now()
                 const keysMap = await this.clusterCache.keys()
                 const uniqueKeys = new Set()
 
@@ -830,7 +820,6 @@ class ClusterCache {
                 }
 
                 keysToCheck = Array.from(uniqueKeys)
-                const clusterGetDuration = Date.now() - clusterGetStart
             } catch (err) {
                 keysToCheck = Array.from(this.allKeys).filter(k =>
                     k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
@@ -881,7 +870,7 @@ class ClusterCache {
                 const queryParams = JSON.parse(queryJson)
 
                 if (this.objectMatchesQuery(obj, queryParams)) {
-                    await this.delete(cacheKey, true)  // Pass true to count this deletion
+                    await this.delete(cacheKey)
                     invalidatedKeys.add(cacheKey)
                     count++
                 }
@@ -890,8 +879,6 @@ class ClusterCache {
                 continue
             }
         }
-
-        const duration = Date.now() - startTime
 
         return count
     }
