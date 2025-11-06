@@ -1,0 +1,18 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash /mnt/e/rerum_server_nodejs/.claude/statusline-command.sh"
+  },
+  "env": {
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "500000",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "MAX_MCP_OUTPUT_TOKENS": "500000",
+    "DISABLE_ERROR_REPORTING": "0",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "0",
+    "DISABLE_PROMPT_CACHING": "0",
+    "MAX_THINKING_TOKENS": "500000",
+    "BASH_MAX_TIMEOUT_MS": "3000000",
+    "OPENCODE_DISABLE_PRUNE": "true",
+    "OPENCODE_DISABLE_AUTOCOMPACT": "true"
+  }
+}
