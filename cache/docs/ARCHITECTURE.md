@@ -391,7 +391,12 @@ The cache enforces both entry count and memory size limits:
 │             │  • Since for: deleted ID + previous ID + prime     │
 │             │  • Uses res.locals.deletedObject for properties    │
 │             │                                                     │
-│  RELEASE    │  • Everything (full invalidation)                  │
+│  RELEASE    │  • Specific object ID cache                        │
+│             │  • Queries matching object properties              │
+│             │  • Searches matching object content                │
+│             │  • History for: released ID + previous ID + prime  │
+│             │  • Since for: released ID + previous ID + prime    │
+│             │  • Similar to OVERWRITE (modifies in-place)        │
 │             │                                                     │
 │  Note: Version chain invalidation ensures history/since queries  │
 │        for root objects are updated when descendants change      │

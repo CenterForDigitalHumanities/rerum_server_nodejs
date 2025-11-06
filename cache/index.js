@@ -45,6 +45,7 @@ class ClusterCache {
         this.localCache = new Map()
         this.keyExpirations = new Map() // Track TTL expiration times for local cache
         this.clearGeneration = 0 // Track clear operations to coordinate across workers
+        this.statsDirty = false // Track if stats have changed since last sync
 
         // Background stats sync every 5 seconds (only if PM2)
         if (this.isPM2) {
@@ -91,14 +92,16 @@ class ClusterCache {
                 // Expired - delete from all caches
                 await this.delete(key)
                 this.stats.misses++
+                this.statsDirty = true
                 return null
             }
 
             // Only use cluster cache in PM2 mode to avoid IPC timeouts
             if (this.isPM2) {
-                const wrappedValue = await this.clusterCache.get(key, undefined)
+                const wrappedValue = await this.clusterCache.get(key)
                 if (wrappedValue !== undefined) {
                     this.stats.hits++
+                    this.statsDirty = true
                     this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
                     // Unwrap the value if it's wrapped with metadata
                     return wrappedValue.data !== undefined ? wrappedValue.data : wrappedValue
@@ -109,10 +112,12 @@ class ClusterCache {
             const localValue = this.localCache.get(key)
             if (localValue !== undefined) {
                 this.stats.hits++
+                this.statsDirty = true
                 this.keyAccessTimes.set(key, Date.now()) // Update access time for LRU
                 return localValue
             }
             this.stats.misses++
+            this.statsDirty = true
             return null
         } catch (err) {
             // Check expiration even in error path
@@ -211,6 +216,7 @@ class ClusterCache {
 
             // Update local state (reuse precalculated values)
             this.stats.sets++
+            this.statsDirty = true
             this.allKeys.add(key)
             this.keyAccessTimes.set(key, now)
             this.keySizes.set(key, valueSize)
@@ -255,6 +261,7 @@ class ClusterCache {
             this.keyAccessTimes.set(key, Date.now())
             this.keySizes.set(key, valueSize)
             this.stats.sets++
+            this.statsDirty = true
         }
     }
 
@@ -450,6 +457,7 @@ class ClusterCache {
         if (oldestKey) {
             await this.delete(oldestKey)
             this.stats.evictions++
+            this.statsDirty = true
         }
     }
 
@@ -616,7 +624,7 @@ class ClusterCache {
 
                 // In PM2 mode, get from cluster cache; otherwise get from local cache
                 if (this.isPM2) {
-                    wrappedValue = await this.clusterCache.get(key, undefined)
+                    wrappedValue = await this.clusterCache.get(key)
                 } else {
                     wrappedValue = this.localCache.get(key)
                 }
@@ -654,7 +662,7 @@ class ClusterCache {
         }
 
         try {
-            const signal = await this.clusterCache.get('_clear_signal', undefined)
+            const signal = await this.clusterCache.get('_clear_signal')
             if (signal && signal.generation > this.clearGeneration) {
                 // Another worker initiated a clear - reset our local state
                 this.clearGeneration = signal.generation
@@ -693,6 +701,11 @@ class ClusterCache {
             return
         }
 
+        // Skip sync if stats haven't changed
+        if (!this.statsDirty) {
+            return
+        }
+
         try {
             const workerId = process.env.pm_id || process.pid
             const statsKey = `_stats_worker_${workerId}`
@@ -702,8 +715,10 @@ class ClusterCache {
                 workerId,
                 timestamp: Date.now()
             }, 10000)
+            // Reset dirty flag after successful sync
+            this.statsDirty = false
         } catch (err) {
-            // Silently fail
+            // Silently fail (keep dirty flag set to retry next interval)
         }
     }
 
@@ -1017,9 +1032,16 @@ class ClusterCache {
      * Get nested property value using dot notation
      * @param {Object} obj - The object
      * @param {string} path - Property path (e.g., "user.profile.name")
+     * @param {number} maxDepth - Maximum recursion depth (default: 8)
+     * @param {number} depth - Current recursion depth (default: 0)
      * @returns {*} Property value or undefined
      */
-    getNestedProperty(obj, path) {
+    getNestedProperty(obj, path, maxDepth = 8, depth = 0) {
+        // Protect against excessive recursion
+        if (depth >= maxDepth) {
+            return undefined
+        }
+
         if (!path.includes('.')) {
             return obj?.[path]
         }
@@ -1039,7 +1061,7 @@ class ClusterCache {
                 const remainingPath = keys.slice(i).join('.')
                 // Return the first matching value from array elements
                 for (const item of current) {
-                    const value = this.getNestedProperty(item, remainingPath)
+                    const value = this.getNestedProperty(item, remainingPath, maxDepth, depth + 1)
                     if (value !== undefined) {
                         return value
                     }

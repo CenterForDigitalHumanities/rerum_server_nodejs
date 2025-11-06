@@ -1763,6 +1763,96 @@ test_overwrite_endpoint_full() {
     fi
 }
 
+test_release_endpoint_empty() {
+    log_section "Testing /api/release Endpoint (Empty Cache)"
+    ENDPOINT_DESCRIPTIONS["release"]="Release objects (lock as immutable)"
+    local NUM_ITERATIONS=50
+    declare -a times=()
+    local total=0 success=0
+    for i in $(seq 1 $NUM_ITERATIONS); do
+        # Create a new object for each iteration since release is permanent
+        local new_test_id=$(create_test_object "{\"type\":\"ReleaseTest\",\"value\":\"iteration$i\"}")
+        [ -z "$new_test_id" ] && continue
+        local new_obj_id=$(echo "$new_test_id" | sed 's|.*/||')
+
+        local result=$(measure_endpoint "${API_BASE}/api/release/${new_obj_id}" "PATCH" "" "Release" true)
+        local time=$(echo "$result" | cut -d'|' -f1)
+        [ "$(echo "$result" | cut -d'|' -f2)" == "200" ] && { times+=($time); total=$((total + time)); success=$((success + 1)); }
+
+        # Progress indicator
+        if [ $((i % 10)) -eq 0 ] || [ $i -eq $NUM_ITERATIONS ]; then
+            local pct=$((i * 100 / NUM_ITERATIONS))
+            echo -ne "\r  Progress: $i/$NUM_ITERATIONS iterations ($pct%)  " >&2
+        fi
+    done
+    echo "" >&2
+    [ $success -eq 0 ] && { ENDPOINT_STATUS["release"]="❌ Failed"; return; }
+    local avg=$((total / success))
+    IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
+    unset IFS
+    local median=${sorted[$((success / 2))]}
+    local min=${sorted[0]}
+    local max=${sorted[$((success - 1))]}
+    ENDPOINT_COLD_TIMES["release"]=$avg
+    log_success "$success/$NUM_ITERATIONS successful"
+    echo "  Total: ${total}ms, Average: ${avg}ms, Median: ${median}ms, Min: ${min}ms, Max: ${max}ms"
+    log_success "Release functional"
+    ENDPOINT_STATUS["release"]="✅ Functional"
+}
+
+test_release_endpoint_full() {
+    log_section "Testing /api/release Endpoint (Full Cache - O(n) Scanning)"
+    local NUM_ITERATIONS=50
+
+    log_info "Testing release with full cache ($NUM_ITERATIONS iterations)..."
+    echo "[INFO] Using unique type to force O(n) scan with 0 invalidations..."
+
+    declare -a times=()
+    local total=0 success=0
+    for i in $(seq 1 $NUM_ITERATIONS); do
+        # Create a new object with unique type for each iteration
+        local new_test_id=$(create_test_object "{\"type\":\"WORST_CASE_WRITE_UNIQUE_99999\",\"value\":\"iteration$i\"}")
+        [ -z "$new_test_id" ] && continue
+        local new_obj_id=$(echo "$new_test_id" | sed 's|.*/||')
+
+        local result=$(measure_endpoint "${API_BASE}/api/release/${new_obj_id}" "PATCH" "" "Release" true)
+        local time=$(echo "$result" | cut -d'|' -f1)
+        [ "$(echo "$result" | cut -d'|' -f2)" == "200" ] && { times+=($time); total=$((total + time)); success=$((success + 1)); }
+
+        # Progress indicator
+        if [ $((i % 10)) -eq 0 ] || [ $i -eq $NUM_ITERATIONS ]; then
+            local pct=$((i * 100 / NUM_ITERATIONS))
+            echo -ne "\r  Progress: $i/$NUM_ITERATIONS iterations ($pct%)  " >&2
+        fi
+    done
+    echo "" >&2
+    [ $success -eq 0 ] && return
+    local avg=$((total / success))
+    IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
+    unset IFS
+    local median=${sorted[$((success / 2))]}
+    local min=${sorted[0]}
+    local max=${sorted[$((success - 1))]}
+    ENDPOINT_WARM_TIMES["release"]=$avg
+    log_success "$success/$NUM_ITERATIONS successful"
+    echo "  Total: ${total}ms, Average: ${avg}ms, Median: ${median}ms, Min: ${min}ms, Max: ${max}ms"
+    local empty=${ENDPOINT_COLD_TIMES["release"]:-0}
+    local full=$avg
+
+    if [ "$empty" -eq 0 ] || [ -z "$empty" ]; then
+        log_warning "Cannot calculate overhead - baseline test had no successful operations"
+    else
+        local overhead=$((full - empty))
+        local overhead_pct=$((overhead * 100 / empty))
+
+        if [ $overhead -lt 0 ]; then
+            log_overhead 0 "Overhead: 0ms (0%) [Empty: ${empty}ms → Full: ${full}ms] (negligible - within statistical variance)"
+        else
+            log_overhead $overhead "Overhead: ${overhead}ms (${overhead_pct}%) [Empty: ${empty}ms → Full: ${full}ms]"
+        fi
+    fi
+}
+
 test_delete_endpoint_empty() {
     log_section "Testing /api/delete Endpoint (Empty Cache)"
     ENDPOINT_DESCRIPTIONS["delete"]="Delete objects"
@@ -1933,6 +2023,7 @@ main() {
     test_set_endpoint_empty
     test_unset_endpoint_empty
     test_overwrite_endpoint_empty
+    test_release_endpoint_empty
     test_delete_endpoint_empty  # Uses objects from create_empty test
     
     # ============================================================
@@ -2072,6 +2163,7 @@ main() {
     test_set_endpoint_full
     test_unset_endpoint_full
     test_overwrite_endpoint_full
+    test_release_endpoint_full
     test_delete_endpoint_full  # Uses objects from create_full test
     
     # Generate report

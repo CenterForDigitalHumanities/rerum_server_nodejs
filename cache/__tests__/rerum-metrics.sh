@@ -1246,6 +1246,72 @@ test_overwrite_endpoint() {
     echo "  Total: ${total}ms, Average: ${avg}ms, Median: ${median}ms, Min: ${min}ms, Max: ${max}ms"
 }
 
+test_release_endpoint() {
+    log_section "Testing /api/release Endpoint"
+
+    ENDPOINT_DESCRIPTIONS["release"]="Release objects (lock as immutable)"
+
+    log_info "Testing release endpoint ($NUM_WRITE_ITERATIONS iterations)..."
+
+    declare -a times=()
+    local total=0
+    local success=0
+
+    for i in $(seq 1 $NUM_WRITE_ITERATIONS); do
+        # Create a new object for each iteration since release is permanent
+        local new_test_id=$(create_test_object "{\"type\":\"ReleaseTest\",\"value\":\"iteration$i\"}")
+
+        if [ -z "$new_test_id" ] || [ "$new_test_id" == "null" ]; then
+            continue
+        fi
+
+        local new_obj_id=$(echo "$new_test_id" | sed 's|.*/||')
+        local result=$(measure_endpoint "${API_BASE}/api/release/${new_obj_id}" "PATCH" "" "Release" true)
+        local time=$(echo "$result" | cut -d'|' -f1)
+        local code=$(echo "$result" | cut -d'|' -f2)
+
+        if [ "$code" == "200" ] && [ "$time" != "0" ]; then
+            times+=($time)
+            total=$((total + time))
+            success=$((success + 1))
+        fi
+
+        if [ $((i % 10)) -eq 0 ]; then
+            echo -ne "\r  Progress: $i/$NUM_WRITE_ITERATIONS iterations  "
+        fi
+    done
+    echo ""
+
+    if [ $success -eq 0 ]; then
+        log_failure "Release endpoint failed"
+        ENDPOINT_STATUS["release"]="❌ Failed"
+        return
+    fi
+
+    local avg=$((total / success))
+    IFS=$'\n' sorted=($(sort -n <<<"${times[*]}"))
+    unset IFS
+    local median=${sorted[$((success / 2))]}
+    local min=${sorted[0]}
+    local max=${sorted[$((success - 1))]}
+
+    ENDPOINT_TIMES["release"]=$avg
+    ENDPOINT_MEDIANS["release"]=$median
+    ENDPOINT_MINS["release"]=$min
+    ENDPOINT_MAXS["release"]=$max
+    ENDPOINT_SUCCESS_COUNTS["release"]=$success
+    ENDPOINT_TOTAL_COUNTS["release"]=$NUM_WRITE_ITERATIONS
+
+    if [ $success -lt $NUM_WRITE_ITERATIONS ]; then
+        log_failure "$success/$NUM_WRITE_ITERATIONS successful (partial failure)"
+        ENDPOINT_STATUS["release"]="⚠️ Partial Failures"
+    else
+        log_success "$success/$NUM_WRITE_ITERATIONS successful"
+        ENDPOINT_STATUS["release"]="✅ Functional"
+    fi
+    echo "  Total: ${total}ms, Average: ${avg}ms, Median: ${median}ms, Min: ${min}ms, Max: ${max}ms"
+}
+
 test_delete_endpoint() {
     log_section "Testing /api/delete Endpoint"
 
@@ -1547,6 +1613,7 @@ main() {
     test_set_endpoint
     test_unset_endpoint
     test_overwrite_endpoint
+    test_release_endpoint
     test_delete_endpoint
 
     # Phase 4: Generate Report

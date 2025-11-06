@@ -62,7 +62,6 @@ router.use('/api/patch', patchRouter)
 router.use('/api/set', setRouter)
 router.use('/api/unset', unsetRouter)
 router.use('/api/release', releaseRouter)
-// Cache management endpoints
 router.get('/api/cache/stats', cacheStats)
 router.post('/api/cache/clear', cacheClear)
 // Set default API response
@@ -79,8 +78,7 @@ router.get('/api', (req, res) => {
             "/query": "POST - Supply a JSON object to match on, and query the db for an array of matches.",
             "/release": "POST - Lock a JSON object from changes and guarantee the content and URI.",
             "/overwrite": "POST - Update a specific document in place, overwriting the existing body.",
-            "/cache/stats": "GET - View cache statistics and performance metrics.",
-            "/cache/clear": "POST - Clear all cache entries."
+            "/cache/stats": "GET - View cache statistics and performance metrics."
         }
     })
 })

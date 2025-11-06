@@ -247,6 +247,9 @@ const invalidateCache = (req, res, next) => {
                     cache.invalidate(regex, invalidatedKeys)
                 }
             } else {
+                console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                console.log("Bad updated object")
+                console.log(updatedObject)
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
         }
@@ -278,11 +281,43 @@ const invalidateCache = (req, res, next) => {
                     cache.invalidate(regex, invalidatedKeys)
                 }
             } else {
+                console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                console.log("Bad deleted object")
+                console.log(deletedObject)
                 cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
         }
         else if (path.includes('/release')) {
-            cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+            const releasedObject = data
+            const objectId = releasedObject?.["@id"] ?? releasedObject?.id ?? releasedObject?._id
+
+            if (releasedObject && objectId) {
+                const invalidatedKeys = new Set()
+                const objIdShort = extractId(objectId)
+
+                // Invalidate specific ID cache
+                if (!invalidatedKeys.has(`id:${objIdShort}`)) {
+                    cache.delete(`id:${objIdShort}`)
+                    invalidatedKeys.add(`id:${objIdShort}`)
+                }
+
+                // Invalidate queries matching this object
+                cache.invalidateByObject(releasedObject, invalidatedKeys)
+
+                // Invalidate version chain caches
+                const previousId = extractId(releasedObject?.__rerum?.history?.previous)
+                const primeId = extractId(releasedObject?.__rerum?.history?.prime)
+                const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                if (versionIds) {
+                    const regex = new RegExp(`^(history|since):(${versionIds})`)
+                    cache.invalidate(regex, invalidatedKeys)
+                }
+            } else {
+                console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                console.log("Bad released object")
+                console.log(releasedObject)
+                cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+            }
         }
     }
 

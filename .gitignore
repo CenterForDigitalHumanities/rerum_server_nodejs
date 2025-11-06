@@ -108,6 +108,3 @@ dist
 *.env
 /nbproject/private/
 .hintrc
-
-# Claude Code settings
-.claude/

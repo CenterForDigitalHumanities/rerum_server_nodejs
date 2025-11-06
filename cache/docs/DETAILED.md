@@ -442,14 +442,12 @@ This conservative approach ensures cache invalidation is based only on user-cont
 
 ### PATCH Invalidation
 
-**Triggers**: 
+**Triggers**:
 - `PATCH /v1/api/patch` - General property updates
 - `PATCH /v1/api/set` - Add new properties
 - `PATCH /v1/api/unset` - Remove properties
 
 **Behavior**: Same as UPDATE invalidation (creates new version with MongoDB operator support)
-
-**Note**: `PATCH /v1/api/release` does NOT use cache invalidation as it only modifies `__rerum` properties which are skipped during cache matching.
 
 ### OVERWRITE Invalidation
 
@@ -463,6 +461,21 @@ This conservative approach ensures cache invalidation is based only on user-cont
 - All `search` caches matching the new object content
 - The `history` cache for all versions in the chain
 - The `since` cache for all versions in the chain
+
+### RELEASE Invalidation
+
+**Triggers**: `PATCH /v1/api/release/{id}`
+
+**Behavior**: Similar to OVERWRITE but only modifies `__rerum` properties (marks object as immutable). While `__rerum` properties are skipped during query matching, the object itself changes state (unreleased → released), which can affect queries and version chain caches.
+
+**Invalidates**:
+- The `id` cache for the released object
+- All `query` caches matching the object properties
+- All `search` caches matching the object content
+- The `history` cache for all versions in the chain (released ID + previous ID + prime ID)
+- The `since` cache for all versions in the chain
+
+**Note**: Although only `__rerum.isReleased` and `__rerum.releases` properties change, the object's state transition requires cache invalidation to ensure downstream consumers see the updated released status.
 
 ---
 
@@ -480,10 +493,8 @@ All write operations that modify user-controllable properties have the `invalida
 | `/v1/api/set` | PATCH | ✅ `invalidateCache` | UPDATE |
 | `/v1/api/unset` | PATCH | ✅ `invalidateCache` | UPDATE |
 | `/v1/api/overwrite` | PUT | ✅ `invalidateCache` | OVERWRITE |
+| `/v1/api/release` | PATCH | ✅ `invalidateCache` | RELEASE |
 | `/v1/api/delete` | DELETE | ✅ `invalidateCache` | DELETE |
-
-**Not Requiring Invalidation**:
-- `/v1/api/release` (PATCH) - Only modifies `__rerum` properties (server-managed, skipped in cache matching)
 
 **Key Features**:
 - MongoDB operator support (`$or`, `$and`, `$exists`, `$size`, comparisons, `$in`)
