@@ -36,12 +36,42 @@ brew install jq bc curl
 
 These are typically pre-installed on Linux/macOS systems. If missing, install via your package manager.
 
+## Key Runtime Insights
+
+### Performance Implications 
+Write-heavy workloads may experience O(n) invalidation overhead, but deferred execution prevents blocking. Read-heavy workloads benefit from O(1) lookups regardless of cache size.
+
+### Big-O Analysis
+- **O(1) hash lookups for reads** (cache size irrelevant)
+  - Direct Map.get() operations for cache hits
+  - No performance degradation as cache grows to 1000 entries
+- **O(n) scanning for write invalidations** (scales with cache size)
+  - Smart invalidation scans all cache keys to find matches
+  - Worst case: 1000 entries scanned per write operation
+  - Deferred to background (non-blocking) but still affects throughput
+- **O(n) LRU eviction**
+  - Scans all keys to find least recently used entry
+  - Triggered when cache exceeds maxLength or maxBytes
+  - Deferred via setImmediate() to avoid blocking cache.set()
+- **O(k log k) cache key generation for complex queries**
+  - Sorts object properties alphabetically for consistent keys
+  - k = number of query properties (typically 5-10)
+  - Negligible overhead in practice
+- **O(p) object property matching during invalidation**
+  - p = depth/complexity of MongoDB query operators
+  - Supports nested properties, $or/$and, comparison operators
+  - Most queries are shallow (p < 5)
+- **O(w) stats aggregation across workers**
+  - w = number of PM2 workers (typically 4)
+  - Synced every 5 seconds in background
+  - Minimal overhead
+
 ## Cache Configuration
 
 ### Default Settings
 - **Enabled by default**: Set `CACHING=false` to disable
-- **Max Length**: 1000 entries per worker (configurable)
-- **Max Bytes**: 1GB per worker (1,000,000,000 bytes) (configurable)
+- **Max Length**: 1000 entries (cluster-wide limit, configurable)
+- **Max Bytes**: 1GB (cluster-wide limit, configurable; replicated to all workers)
 - **TTL (Time-To-Live)**: 24 hours default (86,400,000ms)
 - **Storage Mode**: PM2 Cluster Cache with 'all' replication mode (full cache copy on each worker, synchronized automatically)
 - **Stats Tracking**: Atomic counters for sets/evictions (race-condition free), local counters for hits/misses (synced every 5 seconds)
@@ -51,7 +81,7 @@ These are typically pre-installed on Linux/macOS systems. If missing, install vi
 ```bash
 CACHING=true                 # Enable/disable caching layer (true/false)
 CACHE_MAX_LENGTH=1000        # Maximum number of cached entries
-CACHE_MAX_BYTES=1000000000   # Maximum memory usage in bytes (per worker)
+CACHE_MAX_BYTES=1000000000   # Maximum cache size in bytes (replicated to all workers; 4 workers = ~4GB total RAM)
 CACHE_TTL=86400000           # Time-to-live in milliseconds (default: 86400000 = 24 hours)
 ```
 
@@ -558,9 +588,13 @@ Total Time: 300-800ms (depending on query complexity)
 
 ### Memory Usage
 - Average entry size: ~2-10KB (depending on object complexity)
-- Max memory per worker (1000 entries × ~10KB): ~10MB
+- Max cache size (1000 entries × ~10KB): ~10MB
+- **Replication**: With `storage: 'all'`, cache data is replicated to all PM2 workers
+  - Single worker: ~10MB RAM
+  - 4 workers (typical): ~40MB total RAM
+  - With max size (1GB limit): 4 workers = ~4GB total server RAM
+- **Trade-off**: High cache hit rates (every worker has full cache) vs replicated memory usage
 - LRU eviction ensures memory stays bounded (deferred to background via setImmediate())
-- All workers maintain identical cache state (storage mode: 'all')
 
 ### TTL Behavior
 - Entry created: Stored with TTL metadata (5 min default, 24 hr in production)

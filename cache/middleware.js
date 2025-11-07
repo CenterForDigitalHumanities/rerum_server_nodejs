@@ -22,9 +22,11 @@ const setupCacheMiss = (res, cacheKey, validator) => {
     const originalJson = res.json.bind(res)
     res.json = (data) => {
         const validatorResult = validator(res.statusCode, data)
-        
+
         if (validatorResult) {
-            cache.set(cacheKey, data).catch(() => {})
+            cache.set(cacheKey, data).catch(err => {
+                console.error('[Cache Error] Failed to set cache key:', err.message)
+            })
         }
         return originalJson(data)
     }
@@ -40,19 +42,24 @@ const cacheQuery = async (req, res, next) => {
         return next()
     }
 
-    const cacheKey = cache.generateKey('query', {
-        __cached: req.body,
-        limit: parseInt(req.query.limit ?? 100),
-        skip: parseInt(req.query.skip ?? 0)
-    })
+    try {
+        const cacheKey = cache.generateKey('query', {
+            __cached: req.body,
+            limit: parseInt(req.query.limit ?? 100),
+            skip: parseInt(req.query.skip ?? 0)
+        })
 
-    const cachedResult = await cache.get(cacheKey)
-    if (cachedResult) {
-        sendCacheHit(res, cachedResult)
-        return
+        const cachedResult = await cache.get(cacheKey)
+        if (cachedResult) {
+            sendCacheHit(res, cachedResult)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for query:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -64,20 +71,25 @@ const cacheSearch = async (req, res, next) => {
         return next()
     }
 
-    const cacheKey = cache.generateKey('search', {
-        searchText: req.body?.searchText ?? req.body,
-        options: req.body?.options ?? {},
-        limit: parseInt(req.query.limit ?? 100),
-        skip: parseInt(req.query.skip ?? 0)
-    })
+    try {
+        const cacheKey = cache.generateKey('search', {
+            searchText: req.body?.searchText ?? req.body,
+            options: req.body?.options ?? {},
+            limit: parseInt(req.query.limit ?? 100),
+            skip: parseInt(req.query.skip ?? 0)
+        })
 
-    const cachedResult = await cache.get(cacheKey)
-    if (cachedResult) {
-        sendCacheHit(res, cachedResult)
-        return
+        const cachedResult = await cache.get(cacheKey)
+        if (cachedResult) {
+            sendCacheHit(res, cachedResult)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for search:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -89,20 +101,25 @@ const cacheSearchPhrase = async (req, res, next) => {
         return next()
     }
 
-    const cacheKey = cache.generateKey('searchPhrase', {
-        searchText: req.body?.searchText ?? req.body,
-        options: req.body?.options ?? { slop: 2 },
-        limit: parseInt(req.query.limit ?? 100),
-        skip: parseInt(req.query.skip ?? 0)
-    })
+    try {
+        const cacheKey = cache.generateKey('searchPhrase', {
+            searchText: req.body?.searchText ?? req.body,
+            options: req.body?.options ?? { slop: 2 },
+            limit: parseInt(req.query.limit ?? 100),
+            skip: parseInt(req.query.skip ?? 0)
+        })
 
-    const cachedResult = await cache.get(cacheKey)
-    if (cachedResult) {
-        sendCacheHit(res, cachedResult)
-        return
+        const cachedResult = await cache.get(cacheKey)
+        if (cachedResult) {
+            sendCacheHit(res, cachedResult)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for searchPhrase:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -117,15 +134,20 @@ const cacheId = async (req, res, next) => {
     const id = req.params._id
     if (!id) return next()
 
-    const cacheKey = cache.generateKey('id', id)
-    const cachedResult = await cache.get(cacheKey)
-    
-    if (cachedResult) {
-        sendCacheHit(res, cachedResult, true)
-        return
+    try {
+        const cacheKey = cache.generateKey('id', id)
+        const cachedResult = await cache.get(cacheKey)
+
+        if (cachedResult) {
+            sendCacheHit(res, cachedResult, true)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && data)
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for ID lookup:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && data)
     next()
 }
 
@@ -140,15 +162,20 @@ const cacheHistory = async (req, res, next) => {
     const id = req.params._id
     if (!id) return next()
 
-    const cacheKey = cache.generateKey('history', id)
-    const cachedResult = await cache.get(cacheKey)
-    
-    if (cachedResult) {
-        sendCacheHit(res, cachedResult)
-        return
+    try {
+        const cacheKey = cache.generateKey('history', id)
+        const cachedResult = await cache.get(cacheKey)
+
+        if (cachedResult) {
+            sendCacheHit(res, cachedResult)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for history:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -163,15 +190,20 @@ const cacheSince = async (req, res, next) => {
     const id = req.params._id
     if (!id) return next()
 
-    const cacheKey = cache.generateKey('since', id)
-    const cachedResult = await cache.get(cacheKey)
-    
-    if (cachedResult) {
-        sendCacheHit(res, cachedResult)
-        return
+    try {
+        const cacheKey = cache.generateKey('since', id)
+        const cachedResult = await cache.get(cacheKey)
+
+        if (cachedResult) {
+            sendCacheHit(res, cachedResult)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for since:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -196,128 +228,133 @@ const invalidateCache = (req, res, next) => {
         }
         invalidationPerformed = true
 
-        const path = req.originalUrl || req.path
+        try {
+            const path = req.originalUrl || req.path
 
-        if (path.includes('/create') || path.includes('/bulkCreate')) {
-            const createdObjects = path.includes('/bulkCreate')
-                ? (Array.isArray(data) ? data : [data])
-                : [data]
+            if (path.includes('/create') || path.includes('/bulkCreate')) {
+                const createdObjects = path.includes('/bulkCreate')
+                    ? (Array.isArray(data) ? data : [data])
+                    : [data]
 
-            const invalidatedKeys = new Set()
-            for (const obj of createdObjects) {
-                if (obj) {
-                    cache.invalidateByObject(obj, invalidatedKeys)
-                }
-            }
-        } 
-        else if (path.includes('/update') || path.includes('/patch') ||
-                 path.includes('/set') || path.includes('/unset') ||
-                 path.includes('/overwrite') || path.includes('/bulkUpdate')) {
-            const previousObject = res.locals.previousObject  // OLD version (what's currently in cache)
-            const updatedObject = data  // NEW version
-            const objectId = updatedObject?.["@id"] ?? updatedObject?.id ?? updatedObject?._id
-
-            if (updatedObject && objectId) {
                 const invalidatedKeys = new Set()
-                const objIdShort = extractId(objectId)
-                const previousId = extractId(updatedObject?.__rerum?.history?.previous)
-                const primeId = extractId(updatedObject?.__rerum?.history?.prime)
-
-                if (!invalidatedKeys.has(`id:${objIdShort}`)) {
-                    cache.delete(`id:${objIdShort}`)
-                    invalidatedKeys.add(`id:${objIdShort}`)
+                for (const obj of createdObjects) {
+                    if (obj) {
+                        await cache.invalidateByObject(obj, invalidatedKeys)
+                    }
                 }
-
-                if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
-                    cache.delete(`id:${previousId}`)
-                    invalidatedKeys.add(`id:${previousId}`)
-                }
-
-                // Invalidate based on PREVIOUS object (what's in cache) to match existing cached queries
-                if (previousObject) {
-                    await cache.invalidateByObject(previousObject, invalidatedKeys)
-                }
-
-                // Also invalidate based on NEW object in case it matches different queries
-                await cache.invalidateByObject(updatedObject, invalidatedKeys)
-
-                const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
-                if (versionIds) {
-                    const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    cache.invalidate(regex, invalidatedKeys)
-                }
-            } else {
-                console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
-                console.log("Bad updated object")
-                console.log(updatedObject)
-                cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
-        }
-        else if (path.includes('/delete')) {
-            const deletedObject = res.locals.deletedObject
-            const objectId =  deletedObject?.["@id"] ?? deletedObject?.id ?? deletedObject?._id
+            else if (path.includes('/update') || path.includes('/patch') ||
+                     path.includes('/set') || path.includes('/unset') ||
+                     path.includes('/overwrite') || path.includes('/bulkUpdate')) {
+                const previousObject = res.locals.previousObject  // OLD version (what's currently in cache)
+                const updatedObject = data  // NEW version
+                const objectId = updatedObject?.["@id"] ?? updatedObject?.id ?? updatedObject?._id
 
-            if (deletedObject && objectId) {
-                const invalidatedKeys = new Set()
-                const objIdShort = extractId(objectId)
-                const previousId = extractId(deletedObject?.__rerum?.history?.previous)
-                const primeId = extractId(deletedObject?.__rerum?.history?.prime)
+                if (updatedObject && objectId) {
+                    const invalidatedKeys = new Set()
+                    const objIdShort = extractId(objectId)
+                    const previousId = extractId(updatedObject?.__rerum?.history?.previous)
+                    const primeId = extractId(updatedObject?.__rerum?.history?.prime)
 
-                if (!invalidatedKeys.has(`id:${objIdShort}`)) {
-                    cache.delete(`id:${objIdShort}`)
-                    invalidatedKeys.add(`id:${objIdShort}`)
+                    if (!invalidatedKeys.has(`id:${objIdShort}`)) {
+                        await cache.delete(`id:${objIdShort}`)
+                        invalidatedKeys.add(`id:${objIdShort}`)
+                    }
+
+                    if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
+                        await cache.delete(`id:${previousId}`)
+                        invalidatedKeys.add(`id:${previousId}`)
+                    }
+
+                    // Invalidate based on PREVIOUS object (what's in cache) to match existing cached queries
+                    if (previousObject) {
+                        await cache.invalidateByObject(previousObject, invalidatedKeys)
+                    }
+
+                    // Also invalidate based on NEW object in case it matches different queries
+                    await cache.invalidateByObject(updatedObject, invalidatedKeys)
+
+                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                    if (versionIds) {
+                        const regex = new RegExp(`^(history|since):(${versionIds})`)
+                        await cache.invalidate(regex, invalidatedKeys)
+                    }
+                } else {
+                    console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                    console.log("Bad updated object")
+                    console.log(updatedObject)
+                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
                 }
-
-                if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
-                    cache.delete(`id:${previousId}`)
-                    invalidatedKeys.add(`id:${previousId}`)
-                }
-
-                cache.invalidateByObject(deletedObject, invalidatedKeys)
-
-                const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
-                if (versionIds) {
-                    const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    cache.invalidate(regex, invalidatedKeys)
-                }
-            } else {
-                console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
-                console.log("Bad deleted object")
-                console.log(deletedObject)
-                cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
-        }
-        else if (path.includes('/release')) {
-            const releasedObject = data
-            const objectId = releasedObject?.["@id"] ?? releasedObject?.id ?? releasedObject?._id
+            else if (path.includes('/delete')) {
+                const deletedObject = res.locals.deletedObject
+                const objectId =  deletedObject?.["@id"] ?? deletedObject?.id ?? deletedObject?._id
 
-            if (releasedObject && objectId) {
-                const invalidatedKeys = new Set()
-                const objIdShort = extractId(objectId)
+                if (deletedObject && objectId) {
+                    const invalidatedKeys = new Set()
+                    const objIdShort = extractId(objectId)
+                    const previousId = extractId(deletedObject?.__rerum?.history?.previous)
+                    const primeId = extractId(deletedObject?.__rerum?.history?.prime)
 
-                // Invalidate specific ID cache
-                if (!invalidatedKeys.has(`id:${objIdShort}`)) {
-                    cache.delete(`id:${objIdShort}`)
-                    invalidatedKeys.add(`id:${objIdShort}`)
+                    if (!invalidatedKeys.has(`id:${objIdShort}`)) {
+                        await cache.delete(`id:${objIdShort}`)
+                        invalidatedKeys.add(`id:${objIdShort}`)
+                    }
+
+                    if (previousId && previousId !== 'root' && !invalidatedKeys.has(`id:${previousId}`)) {
+                        await cache.delete(`id:${previousId}`)
+                        invalidatedKeys.add(`id:${previousId}`)
+                    }
+
+                    await cache.invalidateByObject(deletedObject, invalidatedKeys)
+
+                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                    if (versionIds) {
+                        const regex = new RegExp(`^(history|since):(${versionIds})`)
+                        await cache.invalidate(regex, invalidatedKeys)
+                    }
+                } else {
+                    console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                    console.log("Bad deleted object")
+                    console.log(deletedObject)
+                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
                 }
-
-                // Invalidate queries matching this object
-                cache.invalidateByObject(releasedObject, invalidatedKeys)
-
-                // Invalidate version chain caches
-                const previousId = extractId(releasedObject?.__rerum?.history?.previous)
-                const primeId = extractId(releasedObject?.__rerum?.history?.prime)
-                const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
-                if (versionIds) {
-                    const regex = new RegExp(`^(history|since):(${versionIds})`)
-                    cache.invalidate(regex, invalidatedKeys)
-                }
-            } else {
-                console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
-                console.log("Bad released object")
-                console.log(releasedObject)
-                cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
             }
+            else if (path.includes('/release')) {
+                const releasedObject = data
+                const objectId = releasedObject?.["@id"] ?? releasedObject?.id ?? releasedObject?._id
+
+                if (releasedObject && objectId) {
+                    const invalidatedKeys = new Set()
+                    const objIdShort = extractId(objectId)
+
+                    // Invalidate specific ID cache
+                    if (!invalidatedKeys.has(`id:${objIdShort}`)) {
+                        await cache.delete(`id:${objIdShort}`)
+                        invalidatedKeys.add(`id:${objIdShort}`)
+                    }
+
+                    // Invalidate queries matching this object
+                    await cache.invalidateByObject(releasedObject, invalidatedKeys)
+
+                    // Invalidate version chain caches
+                    const previousId = extractId(releasedObject?.__rerum?.history?.previous)
+                    const primeId = extractId(releasedObject?.__rerum?.history?.prime)
+                    const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
+                    if (versionIds) {
+                        const regex = new RegExp(`^(history|since):(${versionIds})`)
+                        await cache.invalidate(regex, invalidatedKeys)
+                    }
+                } else {
+                    console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                    console.log("Bad released object")
+                    console.log(releasedObject)
+                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+                }
+            }
+        } catch (err) {
+            console.error('[Cache Error] Cache invalidation failed, but operation will continue:', err.message)
+            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
         }
     }
 
@@ -385,22 +422,27 @@ const cacheGogFragments = async (req, res, next) => {
         return next()
     }
 
-    // Extract agent from JWT to include in cache key for proper authorization
-    const agent = getAgentClaim(req, next)
-    if (!agent) return  // getAgentClaim already called next(err)
-    const agentID = agent.split("/").pop()
+    try {
+        // Extract agent from JWT to include in cache key for proper authorization
+        const agent = getAgentClaim(req, next)
+        if (!agent) return  // getAgentClaim already called next(err)
+        const agentID = agent.split("/").pop()
 
-    const limit = parseInt(req.query.limit ?? 50)
-    const skip = parseInt(req.query.skip ?? 0)
-    const cacheKey = cache.generateKey('gog-fragments', { agentID, manID, limit, skip })
-    
-    const cachedResponse = await cache.get(cacheKey)
-    if (cachedResponse) {
-        sendCacheHit(res, cachedResponse)
-        return
+        const limit = parseInt(req.query.limit ?? 50)
+        const skip = parseInt(req.query.skip ?? 0)
+        const cacheKey = cache.generateKey('gog-fragments', { agentID, manID, limit, skip })
+
+        const cachedResponse = await cache.get(cacheKey)
+        if (cachedResponse) {
+            sendCacheHit(res, cachedResponse)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for GOG fragments:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
@@ -417,22 +459,27 @@ const cacheGogGlosses = async (req, res, next) => {
         return next()
     }
 
-    // Extract agent from JWT to include in cache key for proper authorization
-    const agent = getAgentClaim(req, next)
-    if (!agent) return  // getAgentClaim already called next(err)
-    const agentID = agent.split("/").pop()
+    try {
+        // Extract agent from JWT to include in cache key for proper authorization
+        const agent = getAgentClaim(req, next)
+        if (!agent) return  // getAgentClaim already called next(err)
+        const agentID = agent.split("/").pop()
 
-    const limit = parseInt(req.query.limit ?? 50)
-    const skip = parseInt(req.query.skip ?? 0)
-    const cacheKey = cache.generateKey('gog-glosses', { agentID, manID, limit, skip })
-    
-    const cachedResponse = await cache.get(cacheKey)
-    if (cachedResponse) {
-        sendCacheHit(res, cachedResponse)
-        return
+        const limit = parseInt(req.query.limit ?? 50)
+        const skip = parseInt(req.query.skip ?? 0)
+        const cacheKey = cache.generateKey('gog-glosses', { agentID, manID, limit, skip })
+
+        const cachedResponse = await cache.get(cacheKey)
+        if (cachedResponse) {
+            sendCacheHit(res, cachedResponse)
+            return
+        }
+
+        setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
+    } catch (err) {
+        console.error('[Cache Error] Failed to get/set cache for GOG glosses:', err.message)
     }
 
-    setupCacheMiss(res, cacheKey, (status, data) => status === 200 && Array.isArray(data))
     next()
 }
 
