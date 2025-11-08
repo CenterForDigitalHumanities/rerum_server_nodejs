@@ -156,10 +156,9 @@ Monitor these logs in production to detect:
 
 ## Files Created (Testing)
 
-1. `test-cache-invalidation-direct.js` - Tests optimization methods
-2. `test-async-middleware.js` - Tests middleware blocking behavior
-3. `test-cache-fix.sh` - Basic app stability test
-4. `ecosystem.config.cjs` - PM2 cluster configuration
+1. `cache/__tests__/test-cache-invalidation-direct.js` - Tests optimization methods
+2. `cache/__tests__/test-async-middleware.js` - Tests middleware blocking behavior
+3. `ecosystem.config.cjs` - PM2 cluster configuration for testing
 
 ## Next Steps for Production
 

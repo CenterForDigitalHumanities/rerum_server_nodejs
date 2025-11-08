@@ -287,9 +287,8 @@ const invalidateCache = (req, res, next) => {
                         await cache.invalidate(regex, invalidatedKeys, allCacheKeys)
                     }
                 } else {
-                    console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
-                    console.log("Bad updated object")
-                    console.log(updatedObject)
+                    console.error('[Cache Error] Invalid object on update - clearing all cache as safety measure')
+                    console.error('  Object missing required ID:', updatedObject)
                     await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/, new Set(), allCacheKeys)
                 }
             }
@@ -321,9 +320,8 @@ const invalidateCache = (req, res, next) => {
                         await cache.invalidate(regex, invalidatedKeys, allCacheKeys)
                     }
                 } else {
-                    console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
-                    console.log("Bad deleted object")
-                    console.log(deletedObject)
+                    console.error('[Cache Error] Invalid object on delete - clearing all cache as safety measure')
+                    console.error('  Object missing required ID:', deletedObject)
                     await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/, new Set(), allCacheKeys)
                 }
             }
@@ -353,9 +351,8 @@ const invalidateCache = (req, res, next) => {
                         await cache.invalidate(regex, invalidatedKeys, allCacheKeys)
                     }
                 } else {
-                    console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
-                    console.log("Bad released object")
-                    console.log(releasedObject)
+                    console.error('[Cache Error] Invalid object on release - clearing all cache as safety measure')
+                    console.error('  Object missing required ID:', releasedObject)
                     await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/, new Set(), allCacheKeys)
                 }
             }

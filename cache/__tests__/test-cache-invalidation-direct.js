@@ -5,7 +5,7 @@
  * Tests that await performInvalidation() works correctly
  */
 
-import cache from './cache/index.js'
+import cache from '../index.js'
 
 const RED = '\x1b[31m'
 const GREEN = '\x1b[32m'
