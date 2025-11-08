@@ -11,9 +11,9 @@ import { getAgentClaim } from '../controllers/utils.js'
 const sendCacheHit = (res, data, includeCacheControl = false) => {
     res.set('Content-Type', 'application/json; charset=utf-8')
     res.set('X-Cache', 'HIT')
-    if (includeCacheControl) {
-        res.set('Cache-Control', 'max-age=86400, must-revalidate')
-    }
+    // if (includeCacheControl) {
+    //     res.set('Cache-Control', 'max-age=86400, must-revalidate')
+    // }
     res.status(200).json(data)
 }
 
@@ -280,7 +280,7 @@ const invalidateCache = (req, res, next) => {
                         await cache.invalidate(regex, invalidatedKeys)
                     }
                 } else {
-                    console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                    console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
                     console.log("Bad updated object")
                     console.log(updatedObject)
                     await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
@@ -314,7 +314,7 @@ const invalidateCache = (req, res, next) => {
                         await cache.invalidate(regex, invalidatedKeys)
                     }
                 } else {
-                    console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                    console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
                     console.log("Bad deleted object")
                     console.log(deletedObject)
                     await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
@@ -346,7 +346,7 @@ const invalidateCache = (req, res, next) => {
                         await cache.invalidate(regex, invalidatedKeys)
                     }
                 } else {
-                    console.error("An error occurred.  Cache is falling back to the nulcear option and removing all cache.")
+                    console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
                     console.log("Bad released object")
                     console.log(releasedObject)
                     await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
@@ -358,20 +358,32 @@ const invalidateCache = (req, res, next) => {
         }
     }
 
-    res.json = async (data) => {
-        await performInvalidation(data)
+    res.json = (data) => {
+        // Fire-and-forget: Don't await invalidation to prevent hanging
+        performInvalidation(data).catch(err => {
+            console.error('[Cache Error] Background invalidation failed:', err.message)
+            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
+        })
         return originalJson(data)
     }
 
-    res.send = async (data) => {
-        await performInvalidation(data)
+    res.send = (data) => {
+        // Fire-and-forget: Don't await invalidation to prevent hanging
+        performInvalidation(data).catch(err => {
+            console.error('[Cache Error] Background invalidation failed:', err.message)
+            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
+        })
         return originalSend(data)
     }
 
-    res.sendStatus = async (statusCode) => {
+    res.sendStatus = (statusCode) => {
         res.statusCode = statusCode
         const objectForInvalidation = res.locals.deletedObject ?? { "@id": req.params._id, id: req.params._id, _id: req.params._id }
-        await performInvalidation(objectForInvalidation)
+        // Fire-and-forget: Don't await invalidation to prevent hanging
+        performInvalidation(objectForInvalidation).catch(err => {
+            console.error('[Cache Error] Background invalidation failed:', err.message)
+            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
+        })
         return originalSendStatus(statusCode)
     }
 
