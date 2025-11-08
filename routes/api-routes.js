@@ -44,6 +44,8 @@ import releaseRouter from './release.js';
 import sinceRouter from './since.js';
 // Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
 import historyRouter from './history.js';
+// Cache management endpoints
+import { cacheStats, cacheClear } from '../cache/middleware.js'
 
 router.use(staticRouter)
 router.use('/id',idRouter)
@@ -60,6 +62,8 @@ router.use('/api/patch', patchRouter)
 router.use('/api/set', setRouter)
 router.use('/api/unset', unsetRouter)
 router.use('/api/release', releaseRouter)
+router.get('/api/cache/stats', cacheStats)
+router.post('/api/cache/clear', cacheClear)
 // Set default API response
 router.get('/api', (req, res) => {
     res.json({
@@ -73,7 +77,8 @@ router.get('/api', (req, res) => {
             "/delete": "DELETE - Mark an object as deleted.",
             "/query": "POST - Supply a JSON object to match on, and query the db for an array of matches.",
             "/release": "POST - Lock a JSON object from changes and guarantee the content and URI.",
-            "/overwrite": "POST - Update a specific document in place, overwriting the existing body."
+            "/overwrite": "POST - Update a specific document in place, overwriting the existing body.",
+            "/cache/stats": "GET - View cache statistics and performance metrics."
         }
     })
 })

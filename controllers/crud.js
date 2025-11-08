@@ -2,7 +2,7 @@
 
 /**
  * Basic CRUD operations for RERUM v1
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
@@ -41,7 +41,6 @@ const create = async function (req, res, next) {
     delete provided["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
-    console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -49,6 +48,7 @@ const create = async function (req, res, next) {
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
         res.status(201)
+        console.log(`RERUM v1 POST created ${newObject["@id"] ?? newObject.id} `)
         res.json(newObject)
     }
     catch (error) {

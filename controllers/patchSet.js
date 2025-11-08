@@ -3,7 +3,7 @@
 /**
  * PATCH Set controller for RERUM operations
  * Handles PATCH operations that add new keys only
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -89,8 +89,9 @@ const patchSet = async function (req, res, next) {
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             try {
                 let result = await db.insertOne(newObject)
-                if (alterHistoryNext(originalObject, newObject["@id"])) {
+                if (await alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
+                    res.locals.previousObject = originalObject // Store for cache invalidation
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))

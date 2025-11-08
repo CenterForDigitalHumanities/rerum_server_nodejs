@@ -2,7 +2,7 @@
 
 /**
  * Utility functions for RERUM controllers
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
@@ -179,12 +179,17 @@ function parseDocumentID(atID){
  */
 async function alterHistoryNext(objToUpdate, newNextID) {
     //We can keep this real short if we trust the objects sent into here.  I think these are private helper functions, and so we can.
-    if(objToUpdate.__rerum.history.next.indexOf(newNextID) === -1){
-        objToUpdate.__rerum.history.next.push(newNextID)
-        let result = await db.replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
-        return result.modifiedCount > 0
+    try {
+        if(objToUpdate.__rerum.history.next.indexOf(newNextID) === -1){
+            objToUpdate.__rerum.history.next.push(newNextID)
+            let result = await db.replaceOne({ "_id": objToUpdate["_id"] }, objToUpdate)
+            return result.modifiedCount > 0
+        }
+        return true
+    } catch (error) {
+        console.error('alterHistoryNext error:', error)
+        throw error  // Re-throw to be caught by controller's try/catch
     }
-    return true
 }
 
 /**

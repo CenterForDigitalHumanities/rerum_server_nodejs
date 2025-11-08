@@ -3,7 +3,7 @@
 /**
  * PATCH Unset controller for RERUM operations
  * Handles PATCH operations that remove keys
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -91,11 +91,11 @@ const patchUnset = async function (req, res, next) {
             if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
-            console.log("PATCH UNSET")
             try {
                 let result = await db.insertOne(newObject)
-                if (alterHistoryNext(originalObject, newObject["@id"])) {
+                if (await alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
+                    res.locals.previousObject = originalObject // Store for cache invalidation
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))

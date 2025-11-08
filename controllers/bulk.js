@@ -3,7 +3,7 @@
 /**
  * Bulk operations controller for RERUM operations
  * Handles bulk create and bulk update operations
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
