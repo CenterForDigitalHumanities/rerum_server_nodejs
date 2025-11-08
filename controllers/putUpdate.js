@@ -3,7 +3,7 @@
 /**
  * PUT Update controller for RERUM operations
  * Handles PUT updates and import operations
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -20,6 +20,7 @@ import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentI
  * Respond RESTfully
  * */
 const putUpdate = async function (req, res, next) {
+    console.log("PUT /v1/api/update in RERUM")
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -52,6 +53,7 @@ const putUpdate = async function (req, res, next) {
             })
         }
         else {
+            console.log("/v1/api/update use original object")
             id = ObjectID()
             let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
             let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
@@ -61,21 +63,23 @@ const putUpdate = async function (req, res, next) {
             // id is also protected in this case, so it can't be set.
             if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
-            
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-            console.log("UPDATE")
             try {
+                console.log("/v1/api/update insert new object")
                 let result = await db.insertOne(newObject)
-                if (alterHistoryNext(originalObject, newObject["@id"])) {
+                if (await alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
+                    res.locals.previousObject = originalObject // Store for cache invalidation
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
+                    console.log(`RERUM v1 PUT update for ${idReceived} successful.  It is now ${newObject["@id"] ?? newObject.id}`)
                     res.status(200)
                     res.json(newObject)
                     return
                 }
+                console.log("/v1/api/update err 1")
                 err = Object.assign(err, {
                     message: `Unable to alter the history next of the originating object.  The history tree may be broken. See ${originalObject["@id"]}. ${err.message}`,
                     status: 500
@@ -83,6 +87,7 @@ const putUpdate = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
+                console.log("/v1/api/update error 2")
                 next(createExpressError(error))
                 return
             }
@@ -90,11 +95,13 @@ const putUpdate = async function (req, res, next) {
     }
     else {
         //The http module will not detect this as a 400 on its own
+        console.log("/v1/api/update err 3")
         err = Object.assign(err, {
             message: `Object in request body must have an 'id' or '@id' property. ${err.message}`,
             status: 400
         })
     }
+    console.log("/v1/api/update err 4")
     next(createExpressError(err))
 }
 
@@ -122,7 +129,6 @@ async function _import(req, res, next) {
     delete objectReceived["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-    console.log("IMPORT")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))

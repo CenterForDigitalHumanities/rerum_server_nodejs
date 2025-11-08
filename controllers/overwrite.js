@@ -3,7 +3,7 @@
 /**
  * Overwrite controller for RERUM operations
  * Handles overwrite operations with optimistic locking
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -23,7 +23,7 @@ const overwrite = async function (req, res, next) {
     let agentRequestingOverwrite = getAgentClaim(req, next)
     const receivedID = objectReceived["@id"] ?? objectReceived.id
     if (receivedID) {
-        console.log("OVERWRITE")
+        console.log(`RERUM v1 PUT overwrite for ${receivedID}`)
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
@@ -62,6 +62,8 @@ const overwrite = async function (req, res, next) {
             const currentVersionTS = originalObject.__rerum?.isOverwritten ?? ""
             
             if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
+                console.log(`RERUM v1 says 'If-Overwritten-Version' header value '${expectedVersion}' does not match current version '${currentVersionTS}'`)
+                console.log("overwrite 409")
                 res.status(409)
                 res.json({
                     currentVersion: originalObject
@@ -92,11 +94,13 @@ const overwrite = async function (req, res, next) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
                 // Include current version in response headers for future optimistic locking
+                res.locals.previousObject = originalObject // Store for cache invalidation
                 res.set('Current-Overwritten-Version', rerumProp["__rerum"].isOverwritten)
                 res.set(utils.configureWebAnnoHeadersFor(newObject))
                 newObject = idNegotiation(newObject)
                 newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                 res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
+                console.log(`PUT overwrite successful for ${newObject["@id"] ?? newObject.id}`)
                 res.json(newObject)
                 return
             }

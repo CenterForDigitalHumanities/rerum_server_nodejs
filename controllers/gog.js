@@ -3,7 +3,7 @@
 /**
  * Gallery of Glosses (GOG) controller for RERUM operations
  * Handles specialized operations for the Gallery of Glosses application
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -162,7 +162,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (!agentID === "61043ad4ffce846a83e700dd") {
+    if (agentID !== "61043ad4ffce846a83e700dd") {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403

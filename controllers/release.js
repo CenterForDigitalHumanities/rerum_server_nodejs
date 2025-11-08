@@ -3,7 +3,7 @@
 /**
  * Release controller for RERUM operations
  * Handles release operations and associated tree management
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
@@ -71,7 +71,6 @@ const release = async function (req, res, next) {
             next(createExpressError(err))
             return
         }
-        console.log("RELEASE")
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
             safe_original["__rerum"].releases.replaces = previousReleasedID
@@ -108,7 +107,6 @@ const release = async function (req, res, next) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
                 res.set(utils.configureWebAnnoHeadersFor(releasedObject))
-                console.log(releasedObject._id+" has been released")
                 releasedObject = idNegotiation(releasedObject)
                 releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
                 res.location(releasedObject[_contextid(releasedObject["@context"]) ? "id":"@id"])

@@ -189,8 +189,8 @@ const config = {
   // Setting this value to "fake" allows the use of fake timers for functions such as "setTimeout"
   // timers: "real",
 
-  // Sometimes the MongoDB or Network are choking and the tests take longer than 5s.  
-  // testTimeout: 10000,
+  // Sometimes the MongoDB or Network are choking and the tests take longer than 5s.
+  testTimeout: 10000,
 
   // A map from regular expressions to paths to transformers
   transform: {},

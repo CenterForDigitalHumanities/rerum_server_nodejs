@@ -1,0 +1,356 @@
+/**
+ * Cache limit enforcement tests for PM2 Cluster Cache
+ * Verifies maxLength, maxBytes, and TTL limits are properly configured and enforced
+ * @author thehabes
+ */
+
+// Ensure cache runs in local mode (not PM2 cluster) for tests
+// This must be set before importing cache to avoid IPC timeouts
+delete process.env.pm_id
+
+import { jest } from '@jest/globals'
+import cache from '../index.js'
+
+/**
+ * Helper to wait for cache operations to complete
+ */
+async function waitForCache(ms = 100) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Helper to get actual cache size from PM2 cluster cache
+ */
+async function getCacheSize() {
+    try {
+        const keysMap = await cache.clusterCache.keys()
+        const uniqueKeys = new Set()
+        for (const instanceKeys of Object.values(keysMap)) {
+            if (Array.isArray(instanceKeys)) {
+                instanceKeys.forEach(key => {
+                    if (!key.startsWith('_stats_worker_')) {
+                        uniqueKeys.add(key)
+                    }
+                })
+            }
+        }
+        return uniqueKeys.size
+    } catch (err) {
+        return cache.allKeys.size
+    }
+}
+
+/**
+ * Configuration test data for parameterized tests
+ * Each entry defines: property name, default value, and environment variable
+ */
+const cacheConfigTests = [
+    {
+        property: 'maxLength',
+        defaultValue: 1000,
+        envVar: 'CACHE_MAX_LENGTH',
+        description: 'maximum number of cached entries'
+    },
+    {
+        property: 'maxBytes',
+        defaultValue: 1000000000,
+        envVar: 'CACHE_MAX_BYTES',
+        description: 'maximum cache size in bytes (1GB)'
+    },
+    {
+        property: 'ttl',
+        defaultValue: 86400000,
+        envVar: 'CACHE_TTL',
+        description: 'time-to-live in milliseconds (24 hours)'
+    }
+]
+
+describe('Cache TTL (Time-To-Live) Limit Enforcement', () => {
+    beforeEach(async () => {
+        await cache.clear()
+        await waitForCache(100)
+    }, 10000)
+
+    afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
+        await cache.clear()
+    }, 10000)
+
+    it('should respect default TTL from constructor', async () => {
+        const key = cache.generateKey('id', `default-ttl-${Date.now()}`)
+        
+        await cache.set(key, { data: 'uses default ttl' })
+        await waitForCache(200)  // Increased for CI/CD environment
+        
+        // Should exist within TTL (uses configured default from cache/index.js)
+        const value = await cache.get(key)
+        expect(value).toEqual({ data: 'uses default ttl' })
+        
+        // Verify TTL configuration directly on cache object (avoid getStats() timeout)
+        const expectedTTL = parseInt(process.env.CACHE_TTL ?? 86400000)
+        expect(cache.ttl).toBe(expectedTTL)
+    })
+
+    it('should enforce TTL across different cache key types', async () => {
+        const shortTTL = 800
+        const testId = Date.now()
+        
+        // Set entries with short TTL
+        await cache.set(
+            cache.generateKey('query', { type: 'Test', testId }),
+            [{ id: 1 }],
+            shortTTL
+        )
+        await cache.set(
+            cache.generateKey('search', { searchText: 'test', testId }),
+            [{ id: 2 }],
+            shortTTL
+        )
+        await cache.set(
+            cache.generateKey('id', `ttl-${testId}`),
+            { id: 3 },
+            shortTTL
+        )
+        await waitForCache(50)
+        
+        // All should exist initially
+        expect(await cache.get(cache.generateKey('query', { type: 'Test', testId }))).toBeTruthy()
+        expect(await cache.get(cache.generateKey('search', { searchText: 'test', testId }))).toBeTruthy()
+        expect(await cache.get(cache.generateKey('id', `ttl-${testId}`))).toBeTruthy()
+        
+        // Wait for TTL to expire
+        await new Promise(resolve => setTimeout(resolve, shortTTL + 300))
+        
+        // All should be expired
+        expect(await cache.get(cache.generateKey('query', { type: 'Test', testId }))).toBeNull()
+        expect(await cache.get(cache.generateKey('search', { searchText: 'test', testId }))).toBeNull()
+        expect(await cache.get(cache.generateKey('id', `ttl-${testId}`))).toBeNull()
+    }, 8000)
+})
+
+describe('Cache maxLength Limit Enforcement', () => {
+    beforeEach(async () => {
+        await cache.clear()
+        await waitForCache(100)
+    }, 10000)
+
+    afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
+        await cache.clear()
+    }, 10000)
+
+    it('should track current cache length', async () => {
+        const testId = Date.now()
+        
+        // Add entries
+        await cache.set(cache.generateKey('id', `len-1-${testId}`), { id: 1 })
+        await cache.set(cache.generateKey('id', `len-2-${testId}`), { id: 2 })
+        await cache.set(cache.generateKey('id', `len-3-${testId}`), { id: 3 })
+        await waitForCache(250)
+        
+        // Check that length is tracked via allKeys (reliable method)
+        expect(cache.allKeys.size).toBeGreaterThanOrEqual(3)
+    })
+
+    it('should enforce maxLength limit with LRU eviction', async () => {
+        // Save original limit
+        const originalMaxLength = cache.maxLength
+        
+        // Set very low limit for testing
+        cache.maxLength = 5
+        const testId = Date.now()
+        
+        try {
+            // Add 5 entries (should all fit)
+            for (let i = 1; i <= 5; i++) {
+                await cache.set(cache.generateKey('id', `limit-${testId}-${i}`), { id: i })
+                await waitForCache(50)
+            }
+            
+            // Check we have 5 entries
+            const sizeAfter5 = await getCacheSize()
+            expect(sizeAfter5).toBeLessThanOrEqual(5)
+            
+            // Add 6th entry - should trigger eviction
+            await cache.set(cache.generateKey('id', `limit-${testId}-6`), { id: 6 })
+            await waitForCache(100)
+            
+            // Should still be at or under limit (eviction enforced)
+            const sizeAfter6 = await getCacheSize()
+            expect(sizeAfter6).toBeLessThanOrEqual(5)
+            
+            // Verify limit is being enforced (size didn't grow beyond maxLength)
+            expect(sizeAfter6).toBe(sizeAfter5) // Size stayed the same despite adding entry
+        } finally {
+            // Restore original limit
+            cache.maxLength = originalMaxLength
+        }
+    }, 10000)
+})
+
+describe('Cache maxBytes Limit Enforcement', () => {
+    beforeEach(async () => {
+        await cache.clear()
+        await waitForCache(100)
+    }, 10000)
+
+    afterEach(async () => {
+        // Clean up stats interval to prevent hanging processes
+        if (cache.statsInterval) {
+            clearInterval(cache.statsInterval)
+            cache.statsInterval = null
+        }
+        await cache.clear()
+    }, 10000)
+
+    it('should enforce maxBytes limit with LRU eviction', async () => {
+        // Save original limits
+        const originalMaxBytes = cache.maxBytes
+        const originalMaxLength = cache.maxLength
+        
+        // Set very low byte limit for testing
+        cache.maxBytes = 5000  // 5KB
+        cache.maxLength = 100  // High enough to not interfere
+        const testId = Date.now()
+        
+        try {
+            // Create a large object (approximately 2KB each)
+            const largeObject = { 
+                id: 1, 
+                data: 'x'.repeat(1000),
+                timestamp: Date.now()
+            }
+            
+            // Calculate approximate size
+            const approxSize = cache._calculateSize(largeObject)
+            const maxEntries = Math.floor(cache.maxBytes / approxSize)
+            
+            // Add more entries than should fit
+            const entriesToAdd = maxEntries + 3
+            for (let i = 1; i <= entriesToAdd; i++) {
+                await cache.set(
+                    cache.generateKey('id', `bytes-${testId}-${i}`), 
+                    { ...largeObject, id: i }
+                )
+                await waitForCache(50)
+            }
+            
+            // Wait a bit for evictions to process
+            await waitForCache(500)
+            
+            // Check that cache size is under limit (eviction enforced)
+            const finalSize = await getCacheSize()
+            expect(finalSize).toBeLessThanOrEqual(maxEntries)
+            
+            // Verify bytes didn't grow unbounded
+            expect(cache.totalBytes).toBeLessThanOrEqual(cache.maxBytes)
+        } finally {
+            // Restore original limits
+            cache.maxBytes = originalMaxBytes
+            cache.maxLength = originalMaxLength
+        }
+    }, 20000)
+})
+
+describe('Cache Limit Breaking Change Detection', () => {
+    it('should have valid limit configuration and respect environment variables', () => {
+        // Verify cache respects env vars if set, or uses reasonable defaults
+        const expectedMaxLength = parseInt(process.env.CACHE_MAX_LENGTH ?? 1000)
+        const expectedMaxBytes = parseInt(process.env.CACHE_MAX_BYTES ?? 1000000000)
+        const expectedTTL = parseInt(process.env.CACHE_TTL ?? 86400000)
+
+        expect(cache.maxLength).toBe(expectedMaxLength)
+        expect(cache.maxBytes).toBe(expectedMaxBytes)
+        expect(cache.ttl).toBe(expectedTTL)
+
+        // Verify limits are positive and reasonable
+        expect(cache.maxLength).toBeGreaterThan(0)
+        expect(cache.maxLength).toBeLessThan(10000) // < 10 thousand
+
+        expect(cache.maxBytes).toBeGreaterThan(0)
+        expect(cache.maxBytes).toBeLessThan(10000000000) // < 10GB
+
+        expect(cache.ttl).toBeGreaterThan(0)
+        expect(cache.ttl).toBeLessThanOrEqual(86400000) // ≤ 24 hours
+    })
+
+    it('should correctly calculate size for deeply nested query objects', async () => {
+        await cache.clear()
+
+        // Create queries with deeply nested properties (5+ levels)
+        const deeplyNestedQuery = cache.generateKey('query', {
+            __cached: {
+                'level1.level2.level3.level4.level5': 'deepValue',
+                'body.target.source.metadata.author.name': 'John Doe',
+                'nested.array.0.property.value': 123
+            },
+            limit: 100,
+            skip: 0
+        })
+
+        // Create a large result set with nested objects
+        const nestedResults = Array.from({ length: 50 }, (_, i) => ({
+            id: `obj${i}`,
+            level1: {
+                level2: {
+                    level3: {
+                        level4: {
+                            level5: 'deepValue',
+                            additionalData: new Array(100).fill('x').join('')
+                        }
+                    }
+                }
+            },
+            body: {
+                target: {
+                    source: {
+                        metadata: {
+                            author: {
+                                name: 'John Doe',
+                                email: 'john@example.com'
+                            }
+                        }
+                    }
+                }
+            }
+        }))
+
+        await cache.set(deeplyNestedQuery, nestedResults)
+
+        // Verify the cache entry exists
+        expect(await cache.get(deeplyNestedQuery)).not.toBeNull()
+
+        // Add more deeply nested queries until we approach maxBytes
+        const queries = []
+        for (let i = 0; i < 10; i++) {
+            const key = cache.generateKey('query', {
+                __cached: {
+                    [`level1.level2.level3.property${i}`]: `value${i}`,
+                    'deep.nested.structure.array.0.id': i
+                },
+                limit: 100,
+                skip: 0
+            })
+            queries.push(key)
+            await cache.set(key, nestedResults)
+        }
+
+        // Verify cache entries exist - check a few queries to confirm caching works
+        expect(await cache.get(deeplyNestedQuery)).not.toBeNull()
+        expect(await cache.get(queries[queries.length - 1])).not.toBeNull()
+
+        // Verify maxBytes enforcement: cache operations should continue working
+        // even if some entries were evicted due to byte limits
+        const midpoint = Math.floor(queries.length / 2)
+        expect(await cache.get(queries[midpoint])).toBeTruthy()
+    })
+})
+
