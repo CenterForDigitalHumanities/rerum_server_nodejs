@@ -219,8 +219,10 @@ const invalidateCache = (req, res, next) => {
     const originalJson = res.json.bind(res)
     const originalSend = res.send.bind(res)
     const originalSendStatus = res.sendStatus.bind(res)
+    const originalEnd = res.end.bind(res)
 
     let invalidationPerformed = false
+    let invalidationPromise = null
 
     const performInvalidation = async (data) => {
         if (invalidationPerformed || res.statusCode < 200 || res.statusCode >= 300) {
@@ -228,8 +230,13 @@ const invalidateCache = (req, res, next) => {
         }
         invalidationPerformed = true
 
+        const startTime = Date.now()
+
         try {
             const path = req.originalUrl || req.path
+
+            // OPTIMIZATION: Fetch all cache keys ONCE and reuse to avoid multiple IPC calls
+            const allCacheKeys = await cache.getAllKeys()
 
             if (path.includes('/create') || path.includes('/bulkCreate')) {
                 const createdObjects = path.includes('/bulkCreate')
@@ -239,7 +246,7 @@ const invalidateCache = (req, res, next) => {
                 const invalidatedKeys = new Set()
                 for (const obj of createdObjects) {
                     if (obj) {
-                        await cache.invalidateByObject(obj, invalidatedKeys)
+                        await cache.invalidateByObject(obj, invalidatedKeys, allCacheKeys)
                     }
                 }
             }
@@ -268,22 +275,22 @@ const invalidateCache = (req, res, next) => {
 
                     // Invalidate based on PREVIOUS object (what's in cache) to match existing cached queries
                     if (previousObject) {
-                        await cache.invalidateByObject(previousObject, invalidatedKeys)
+                        await cache.invalidateByObject(previousObject, invalidatedKeys, allCacheKeys)
                     }
 
                     // Also invalidate based on NEW object in case it matches different queries
-                    await cache.invalidateByObject(updatedObject, invalidatedKeys)
+                    await cache.invalidateByObject(updatedObject, invalidatedKeys, allCacheKeys)
 
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     if (versionIds) {
                         const regex = new RegExp(`^(history|since):(${versionIds})`)
-                        await cache.invalidate(regex, invalidatedKeys)
+                        await cache.invalidate(regex, invalidatedKeys, allCacheKeys)
                     }
                 } else {
                     console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
                     console.log("Bad updated object")
                     console.log(updatedObject)
-                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/, new Set(), allCacheKeys)
                 }
             }
             else if (path.includes('/delete')) {
@@ -306,18 +313,18 @@ const invalidateCache = (req, res, next) => {
                         invalidatedKeys.add(`id:${previousId}`)
                     }
 
-                    await cache.invalidateByObject(deletedObject, invalidatedKeys)
+                    await cache.invalidateByObject(deletedObject, invalidatedKeys, allCacheKeys)
 
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     if (versionIds) {
                         const regex = new RegExp(`^(history|since):(${versionIds})`)
-                        await cache.invalidate(regex, invalidatedKeys)
+                        await cache.invalidate(regex, invalidatedKeys, allCacheKeys)
                     }
                 } else {
                     console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
                     console.log("Bad deleted object")
                     console.log(deletedObject)
-                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/, new Set(), allCacheKeys)
                 }
             }
             else if (path.includes('/release')) {
@@ -335,7 +342,7 @@ const invalidateCache = (req, res, next) => {
                     }
 
                     // Invalidate queries matching this object
-                    await cache.invalidateByObject(releasedObject, invalidatedKeys)
+                    await cache.invalidateByObject(releasedObject, invalidatedKeys, allCacheKeys)
 
                     // Invalidate version chain caches
                     const previousId = extractId(releasedObject?.__rerum?.history?.previous)
@@ -343,48 +350,62 @@ const invalidateCache = (req, res, next) => {
                     const versionIds = [objIdShort, previousId, primeId].filter(id => id && id !== 'root').join('|')
                     if (versionIds) {
                         const regex = new RegExp(`^(history|since):(${versionIds})`)
-                        await cache.invalidate(regex, invalidatedKeys)
+                        await cache.invalidate(regex, invalidatedKeys, allCacheKeys)
                     }
                 } else {
                     console.error("An error occurred.  Cache is falling back to the nuclear option and removing all cache.")
                     console.log("Bad released object")
                     console.log(releasedObject)
-                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/)
+                    await cache.invalidate(/^(query|search|searchPhrase|id|history|since):/, new Set(), allCacheKeys)
                 }
             }
+
+            // Log performance warning for slow invalidations
+            const duration = Date.now() - startTime
+            if (duration > 200) {
+                console.warn(`[Cache Performance] Slow invalidation: ${duration}ms for ${path}`)
+            }
         } catch (err) {
-            console.error('[Cache Error] Cache invalidation failed, but operation will continue:', err.message)
-            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
+            const duration = Date.now() - startTime
+            console.error(`[CRITICAL] Cache invalidation failed after ${duration}ms:`, err.message)
+            console.error('[CRITICAL] Cache may be stale. Manual cache clear recommended.')
         }
     }
 
+    // COMPREHENSIVE FIX: Start invalidation when res.json/send is called
+    // But don't send response yet - store the promise
     res.json = (data) => {
-        // Fire-and-forget: Don't await invalidation to prevent hanging
-        performInvalidation(data).catch(err => {
-            console.error('[Cache Error] Background invalidation failed:', err.message)
-            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
-        })
+        invalidationPromise = performInvalidation(data)
         return originalJson(data)
     }
 
     res.send = (data) => {
-        // Fire-and-forget: Don't await invalidation to prevent hanging
-        performInvalidation(data).catch(err => {
-            console.error('[Cache Error] Background invalidation failed:', err.message)
-            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
-        })
+        invalidationPromise = performInvalidation(data)
         return originalSend(data)
     }
 
     res.sendStatus = (statusCode) => {
         res.statusCode = statusCode
         const objectForInvalidation = res.locals.deletedObject ?? { "@id": req.params._id, id: req.params._id, _id: req.params._id }
-        // Fire-and-forget: Don't await invalidation to prevent hanging
-        performInvalidation(objectForInvalidation).catch(err => {
-            console.error('[Cache Error] Background invalidation failed:', err.message)
-            console.error('[Cache Warning] Cache may be stale. Consider clearing cache manually.')
-        })
+        invalidationPromise = performInvalidation(objectForInvalidation)
         return originalSendStatus(statusCode)
+    }
+
+    // CRITICAL: Intercept res.end() to wait for invalidation before sending response
+    res.end = function(...args) {
+        if (invalidationPromise) {
+            // Wait for invalidation to complete before actually ending the response
+            invalidationPromise
+                .then(() => originalEnd.apply(res, args))
+                .catch(err => {
+                    console.error('[CRITICAL] Invalidation failed during response:', err)
+                    // Send response anyway to avoid hanging, but log critical error
+                    originalEnd.apply(res, args)
+                })
+        } else {
+            // No invalidation needed, send response immediately
+            originalEnd.apply(res, args)
+        }
     }
 
     next()

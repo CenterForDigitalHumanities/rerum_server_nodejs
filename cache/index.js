@@ -451,28 +451,58 @@ class ClusterCache {
     }
 
     /**
-     * Invalidate cache entries matching a pattern
-     * @param {string|RegExp} pattern - Pattern to match keys against
-     * @param {Set} invalidatedKeys - Set of already invalidated keys to skip
-     * @returns {Promise<number>} Number of keys invalidated
+     * Get all cache keys from cluster or local cache
+     * Optimization: Fetch once and reuse to avoid multiple IPC calls
+     * @returns {Promise<Array<string>>} Array of all cache keys
      */
-    async invalidate(pattern, invalidatedKeys = new Set()) {
-        let count = 0
-
-        try {
-            let allKeys = new Set()
-
-            // In PM2 mode, get keys from cluster cache; otherwise use local keys
-            if (this.isPM2) {
+    async getAllKeys() {
+        if (this.isPM2) {
+            try {
                 const keysMap = await this.clusterCache.keys()
+                const allKeys = new Set()
                 for (const instanceKeys of Object.values(keysMap)) {
                     if (Array.isArray(instanceKeys)) {
                         instanceKeys.forEach(key => allKeys.add(key))
                     }
                 }
+                return Array.from(allKeys)
+            } catch (err) {
+                console.error('[Cache Error] Failed to get cluster keys, falling back to local:', err.message)
+                return Array.from(this.allKeys)
+            }
+        }
+        return Array.from(this.allKeys)
+    }
+
+    /**
+     * Invalidate cache entries matching a pattern
+     * @param {string|RegExp} pattern - Pattern to match keys against
+     * @param {Set} invalidatedKeys - Set of already invalidated keys to skip
+     * @param {Array<string>} allCacheKeys - Optional pre-fetched keys (optimization)
+     * @returns {Promise<number>} Number of keys invalidated
+     */
+    async invalidate(pattern, invalidatedKeys = new Set(), allCacheKeys = null) {
+        let count = 0
+
+        try {
+            let allKeys
+
+            // Use pre-fetched keys if provided (optimization)
+            if (allCacheKeys) {
+                allKeys = new Set(allCacheKeys)
             } else {
-                // In non-PM2 mode, use local keys to avoid IPC timeouts
-                allKeys = new Set(this.allKeys)
+                // Fallback: fetch keys now
+                allKeys = new Set()
+                if (this.isPM2) {
+                    const keysMap = await this.clusterCache.keys()
+                    for (const instanceKeys of Object.values(keysMap)) {
+                        if (Array.isArray(instanceKeys)) {
+                            instanceKeys.forEach(key => allKeys.add(key))
+                        }
+                    }
+                } else {
+                    allKeys = new Set(this.allKeys)
+                }
             }
 
             const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern)
@@ -795,24 +825,30 @@ class ClusterCache {
      * Invalidates query/search caches that could potentially match this object
      * @param {Object} obj - The created/updated object
      * @param {Set} invalidatedKeys - Set to track invalidated keys (optional)
+     * @param {Array<string>} allCacheKeys - Optional pre-fetched keys (optimization)
      * @returns {Promise<number>} Number of cache entries invalidated
      */
-    async invalidateByObject(obj, invalidatedKeys = new Set()) {
+    async invalidateByObject(obj, invalidatedKeys = new Set(), allCacheKeys = null) {
         if (!obj || typeof obj !== 'object') {
             return 0
         }
 
         let count = 0
 
-        // Get all query/search keys from ALL workers in the cluster by scanning cluster cache directly
+        // Get all query/search keys - use pre-fetched if available (optimization)
         let keysToCheck = []
-        if (this.isPM2) {
+
+        if (allCacheKeys) {
+            // Use pre-fetched keys (optimization - avoids IPC call)
+            keysToCheck = allCacheKeys.filter(k =>
+                k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
+            )
+        } else if (this.isPM2) {
+            // Fallback: fetch from cluster cache
             try {
-                // Scan all keys directly from cluster cache (all workers)
                 const keysMap = await this.clusterCache.keys()
                 const uniqueKeys = new Set()
 
-                // Aggregate keys from all PM2 instances
                 for (const instanceKeys of Object.values(keysMap)) {
                     if (Array.isArray(instanceKeys)) {
                         instanceKeys.forEach(key => {
@@ -830,6 +866,7 @@ class ClusterCache {
                 )
             }
         } else {
+            // Non-PM2: use local keys
             keysToCheck = Array.from(this.allKeys).filter(k =>
                 k.startsWith('query:') || k.startsWith('search:') || k.startsWith('searchPhrase:')
             )
