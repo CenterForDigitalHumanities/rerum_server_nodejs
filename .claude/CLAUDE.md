@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI assistants when working with code in this repository.
 
 ## Project Overview
 
@@ -78,7 +78,6 @@ database/index.js (MongoDB connection & operations)
 **1. Request Flow:**
 - Client → Express middleware (CORS, logging, body parsing)
 - → Auth middleware (JWT validation via Auth0)
-- → Cache middleware (PM2 cluster cache for reads)
 - → Route handlers (routes/*.js)
 - → Controllers (controllers/*.js with business logic)
 - → Database operations (MongoDB via database/index.js)
@@ -92,15 +91,7 @@ database/index.js (MongoDB connection & operations)
 - Updates create new objects with new IDs, maintaining version chains
 - Released objects are immutable (isReleased !== "")
 
-**3. Caching System (PM2 Cluster Cache):**
-- **Location:** `cache/` directory with middleware and management
-- **Strategy:** In-memory cache shared across PM2 worker processes
-- **Configuration:** 1000 entry limit, 1GB size monitor, 5-minute TTL
-- **Read Operations Cached:** /query, /search, /id/{id}, /history/{id}, /since/{id}, GOG endpoints
-- **Smart Invalidation:** Write operations (create/update/delete) intelligently invalidate related cache entries by matching object properties and version chains
-- **Monitoring:** `/api/cache/stats` (GET) and `/api/cache/clear` (POST) endpoints
-
-**4. Controllers Organization:**
+**3. Controllers Organization:**
 The `db-controller.js` is a facade that imports from specialized controller modules:
 - `controllers/crud.js`: Core create, query, id operations
 - `controllers/update.js`: PUT/PATCH update operations (putUpdate, patchUpdate, patchSet, patchUnset, overwrite)
@@ -112,14 +103,14 @@ The `db-controller.js` is a facade that imports from specialized controller modu
 - `controllers/gog.js`: Gallery of Glosses specific operations (fragments, glosses, expand)
 - `controllers/utils.js`: Shared utilities (ID generation, slug handling, agent claims)
 
-**5. Authentication & Authorization:**
+**4. Authentication & Authorization:**
 - **Provider:** Auth0 JWT bearer tokens
 - **Middleware:** `auth/index.js` with express-oauth2-jwt-bearer
 - **Flow:** checkJwt array includes READONLY check, Auth0 validation, token error handling, user extraction
 - **Agent Matching:** Write operations verify `req.user` matches `__rerum.generatedBy`
 - **Bot Access:** Special bot tokens (BOT_TOKEN, BOT_AGENT) bypass some checks
 
-**6. Special Features:**
+**5. Special Features:**
 - **Slug IDs:** Optional human-readable IDs via Slug header (e.g., "my-annotation")
 - **PATCH Override:** X-HTTP-Method-Override header allows POST to emulate PATCH for clients without PATCH support
 - **GOG Routes:** Specialized endpoints for Gallery of Glosses project (`/gog/fragmentsInManuscript`, `/gog/glossesInManuscript`)
@@ -133,7 +124,6 @@ The `db-controller.js` is a facade that imports from specialized controller modu
 /controllers/           Business logic organized by domain
 /auth/                  Authentication middleware and token handling
 /database/              MongoDB connection and utilities
-/cache/                 PM2 cluster cache implementation and middleware
 /public/                Static files (API.html docs, context.json)
 /utils.js               Core utilities (__rerum configuration, header generation)
 /rest.js                REST error handling and messaging
@@ -183,12 +173,6 @@ When updating (PUT/PATCH):
 
 ### 7. Deleted Objects
 Deleted objects are transformed: `{"@id": "{id}", "__deleted": {original object properties, "time": ISO-date}}`.  The history trees there were a part of are healed to remain connected (this cannot be undone).  They are removed from /query and /search results, but deleted objects can always be retrieved by the URI id and will be returned in their deleted form. 
-
-### 8. Cache Implementation
-- **Read middleware** (`cache/middleware.js`): Check cache before controller, store on miss
-- **Write middleware** (`invalidateCache`): Intercept res.json(), extract object properties, invalidate matching queries
-- **Key patterns**: `id:{id}`, `query:{json}`, `search:{term}`, `history:{id}`, `since:{id}`, `gog-fragments:{id}:limit:skip`
-- Version chain invalidation ensures history/since caches update when objects in the chain change
 
 ## Configuration
 
@@ -249,8 +233,7 @@ BOT_AGENT=your-bot-agent-url
 5. **ES2015 syntax:** Uses modern ES2015 javascript sytax
 5. **Import statements:** Uses ES6 modules (`import`), not CommonJS (`require`)
 6. **Controller returns:** Controllers call `next(err)` for errors and `res.json()` for success—don't mix both
-7. **Cache invalidation:** When adding new write endpoints, remember to add invalidateCache middleware
-8. **Version chains:** History and since queries follow bidirectional version relationships through prime, previous, and next properties
+7. **Version chains:** History and since queries follow bidirectional version relationships through prime, previous, and next properties
 
 ## API Endpoints Reference
 
@@ -272,8 +255,6 @@ Full documentation at http://localhost:3001/v1/API.html when server is running.
 - POST `/v1/api/release` - Lock object as immutable
 - POST `/v1/api/bulkCreate` - Create multiple objects
 - POST `/v1/api/bulkUpdate` - Update multiple objects
-- GET `/v1/api/cache/stats` - View cache performance metrics
-- POST `/v1/api/cache/clear` - Clear all cache entries
 
 ## Additional Resources
 
@@ -283,9 +264,8 @@ Full documentation at http://localhost:3001/v1/API.html when server is running.
 - RERUM API Document: https://store.rerum.io/API.html
 - Repository: https://github.com/CenterForDigitalHumanities/rerum_server_nodejs
 - Auth0 setup: Contact research.computing@slu.edu
-- Cache architecture: See `cache/docs/ARCHITECTURE.md`
 
-## Additional Developer Preferences for Claude Behavior
+## Additional Developer Preferences for AI Assistant Behavior
 
 1. Do not automatically commit or push code.  Developers prefer to do this themselves when the time is right.
   - Make the code changes as requested.
