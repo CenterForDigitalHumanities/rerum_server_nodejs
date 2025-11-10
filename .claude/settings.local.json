@@ -14,14 +14,11 @@
       "Bash(bash:*)",
       "Bash(tee:*)",
       "Bash(echo:*)",
-      "Bash(cache/__tests__/cache-metrics.sh:*)",
-      "Bash(cache/__tests__/cache-metrics-worst-case.sh:*)",
-      "Bash(cache/__tests__/rerum-metrics.sh:*)",
-      "Bash(chmod:*)",
       "Bash(cat:*)",
-      "Bash(./cache-metrics.sh:*)",
-      "Bash(./cache-metrics-worst-case.sh:*)",
-      "Bash(./rerum-metrics.sh:*)"
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []
