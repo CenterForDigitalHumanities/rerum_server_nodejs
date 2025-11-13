@@ -28,22 +28,21 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     const manID = req.body["ManuscriptWitness"]
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
-    let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== "61043ad4ffce846a83e700dd") {
-        err = Object.assign(err, {
+        const err = {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
-        })
+        }
+        next(createExpressError(err))
+        return
     }
     // Must have a properly formed body with a usable value
-    else if(!manID || !manID.startsWith("http")){
-        err = Object.assign(err, {
+    if(!manID || !manID.startsWith("http")){
+        const err = {
             message: `The body must be JSON like {"ManuscriptWitness":"witness_uri_here"}.`,
             status: 400
-        })
-    }
-    if (err.status) {
+        }
         next(createExpressError(err))
         return
     }
