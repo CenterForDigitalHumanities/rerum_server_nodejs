@@ -221,9 +221,14 @@ async function newTreePrime(obj) {
 async function getAllVersions(obj) {
     let ls_versions
     let primeID = obj?.__rerum.history.prime
-    let rootObj = ( primeID === "root") 
-    ?   JSON.parse(JSON.stringify(obj))
-    :   await db.findOne({ "@id": primeID })
+    let rootObj
+    if (primeID === "root") {
+        rootObj = JSON.parse(JSON.stringify(obj))
+    } else {
+        //Use _id for indexed query performance instead of @id
+        const primeHexId = parseDocumentID(primeID)
+        rootObj = await db.findOne({"$or":[{"_id": primeHexId}, {"__rerum.slug": primeHexId}]})
+    }
     ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
     ls_versions.unshift(rootObj)
     return ls_versions
