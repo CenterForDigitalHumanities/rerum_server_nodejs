@@ -23,7 +23,7 @@ import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentI
 const release = async function (req, res, next) {
     let agentRequestingRelease = getAgentClaim(req, next)
     let id = req.params["_id"]
-    let slug = ""
+    let slug = null
     let err = {"message":""}
     let treeHealed = false
     if(req.get("Slug")){
