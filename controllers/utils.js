@@ -205,7 +205,12 @@ async function getAllVersions(obj) {
     } else if (primeID) {
         //The obj passed in knows the ID of root, grab it from Mongo
         //Use _id for indexed query performance instead of @id
-        const primeHexId = parseDocumentID(primeID)
+        let primeHexId
+        try {
+            primeHexId = parseDocumentID(primeID)
+        } catch (error) {
+            throw new Error(`Invalid history.prime value '${primeID}': ${error.message}`)
+        }
         rootObj = await db.findOne({"$or":[{"_id": primeHexId}, {"__rerum.slug": primeHexId}]})
         if (!rootObj) {
             throw new Error(`Root object with id '${primeID}' not found in database`)

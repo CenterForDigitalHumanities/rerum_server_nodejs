@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { createExpressError, getAgentClaim, parseDocumentID } from './utils.js'
+import { createExpressError, getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
 /**
  * Mark an object as deleted in the database.
@@ -216,48 +216,6 @@ async function newTreePrime(obj) {
         return false
     }
     return true
-}
-
-async function getAllVersions(obj) {
-    let ls_versions
-    let primeID = obj?.__rerum.history.prime
-    let rootObj
-    if (primeID === "root") {
-        rootObj = JSON.parse(JSON.stringify(obj))
-    } else if (primeID) {
-        //Use _id for indexed query performance instead of @id
-        const primeHexId = parseDocumentID(primeID)
-        rootObj = await db.findOne({"$or":[{"_id": primeHexId}, {"__rerum.slug": primeHexId}]})
-        if (!rootObj) {
-            throw new Error(`Root object with id '${primeID}' not found in database`)
-        }
-    } else {
-        //primeID is undefined or null, cannot proceed
-        throw new Error("Object has no valid history.prime value")
-    }
-    ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
-    ls_versions.unshift(rootObj)
-    return ls_versions
-}
-
-function getAllDescendants(ls_versions, keyObj, discoveredDescendants) {
-    let nextIDarr = []
-    if (keyObj.__rerum.history.next.length === 0) {
-        //essentially, do nothing.  This branch is done.
-    }
-    else {
-        nextIDarr = keyObj.__rerum.history.next
-    }
-    for (let nextID of nextIDarr) {
-        for (let v of ls_versions) {
-            if (v["@id"] === nextID) {
-                discoveredDescendants.push(v)
-                getAllDescendants(ls_versions, v, discoveredDescendants)
-                break
-            }
-        }
-    }
-    return discoveredDescendants
 }
 
 export {
