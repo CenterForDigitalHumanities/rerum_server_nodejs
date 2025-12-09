@@ -18,6 +18,9 @@ import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentI
  * Respond RESTfully
  * */
 const patchUpdate = async function (req, res, next) {
+    const perfStart = Date.now()
+    console.log(`\x1b[36m[PERF] RERUM patchUpdate started for ${req.body?.["@id"] || req.body?.id}\x1b[0m`)
+
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -28,7 +31,9 @@ const patchUpdate = async function (req, res, next) {
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
+            const findStart = Date.now()
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            console.log(`\x1b[35m[PERF] RERUM patchUpdate: db.findOne took ${Date.now() - findStart}ms\x1b[0m`)
         } catch (error) {
             next(createExpressError(error))
             return
@@ -92,8 +97,15 @@ const patchUpdate = async function (req, res, next) {
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
             try {
+                const insertStart = Date.now()
                 let result = await db.insertOne(newObject)
+                console.log(`\x1b[35m[PERF] RERUM patchUpdate: db.insertOne took ${Date.now() - insertStart}ms\x1b[0m`)
+
+                const historyStart = Date.now()
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
+                    console.log(`\x1b[35m[PERF] RERUM patchUpdate: alterHistoryNext took ${Date.now() - historyStart}ms\x1b[0m`)
+                    console.log(`\x1b[32m[PERF] RERUM patchUpdate total: ${Date.now() - perfStart}ms\x1b[0m`)
+
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)

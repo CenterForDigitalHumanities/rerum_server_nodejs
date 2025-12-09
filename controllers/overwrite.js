@@ -17,6 +17,9 @@ import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentI
  * Respond RESTfully
  * */
 const overwrite = async function (req, res, next) {
+    const perfStart = Date.now()
+    console.log(`\x1b[36m[PERF] RERUM overwrite started for ${req.body?.["@id"] || req.body?.id}\x1b[0m`)
+
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
@@ -27,7 +30,11 @@ const overwrite = async function (req, res, next) {
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
-            originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
+            const findStart = Date.now()
+            const query = {"$or":[{"_id": id}, {"__rerum.slug": id}]}
+            console.log(`\x1b[90m[DEBUG] RERUM findOne query: ${JSON.stringify(query)}\x1b[0m`)
+            originalObject = await db.findOne(query)
+            console.log(`\x1b[34m[PERF] RERUM overwrite: db.findOne took ${Date.now() - findStart}ms\x1b[0m`)
         } catch (error) {
             next(createExpressError(error))
             return
@@ -60,8 +67,9 @@ const overwrite = async function (req, res, next) {
             // Optimistic locking check - no expected version is a brutal overwrite
             const expectedVersion = req.get('If-Overwritten-Version') ?? req.body.__rerum?.isOverwritten
             const currentVersionTS = originalObject.__rerum?.isOverwritten ?? ""
-            
+
             if (expectedVersion !== undefined && expectedVersion !== currentVersionTS) {
+                console.log(`\x1b[33m[PERF] RERUM overwrite: VERSION CONFLICT (409) - expected ${expectedVersion}, got ${currentVersionTS}\x1b[0m`)
                 res.status(409)
                 res.json({
                     currentVersion: originalObject
@@ -83,7 +91,9 @@ const overwrite = async function (req, res, next) {
                 let newObject = Object.assign(context, { "@id": originalObject["@id"] }, objectReceived, rerumProp, { "_id": id })
                 let result
                 try {
+                    const replaceStart = Date.now()
                     result = await db.replaceOne({ "_id": id }, newObject)
+                    console.log(`\x1b[34m[PERF] RERUM overwrite: db.replaceOne took ${Date.now() - replaceStart}ms\x1b[0m`)
                 } catch (error) {
                     next(createExpressError(error))
                     return
@@ -91,6 +101,8 @@ const overwrite = async function (req, res, next) {
                 if (result.modifiedCount == 0) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
+                console.log(`\x1b[32m[PERF] RERUM overwrite total: ${Date.now() - perfStart}ms\x1b[0m`)
+
                 // Include current version in response headers for future optimistic locking
                 res.set('Current-Overwritten-Version', rerumProp["__rerum"].isOverwritten)
                 res.set(utils.configureWebAnnoHeadersFor(newObject))
