@@ -15,7 +15,7 @@ import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError
  * */
 const create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let slug = null
+    let slug
     if(req.get("Slug")){
         let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
@@ -31,7 +31,9 @@ const create = async function (req, res, next) {
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
-    rerumProp.__rerum.slug = slug
+    if(slug){
+        rerumProp.__rerum.slug = slug
+    }
     const providedID = provided._id
     const id = isValidID(providedID) ? providedID : ObjectID()
     delete provided["__rerum"]

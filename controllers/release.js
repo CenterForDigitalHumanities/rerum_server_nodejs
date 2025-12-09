@@ -23,7 +23,7 @@ import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentI
 const release = async function (req, res, next) {
     let agentRequestingRelease = getAgentClaim(req, next)
     let id = req.params["_id"]
-    let slug = null
+    let slug
     let err = {"message":""}
     let treeHealed = false
     if(req.get("Slug")){
@@ -75,7 +75,9 @@ const release = async function (req, res, next) {
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
             safe_original["__rerum"].releases.replaces = previousReleasedID
-            safe_original["__rerum"].slug = slug
+            if(slug){
+                safe_original["__rerum"].slug = slug
+            }
             if (previousReleasedID !== "") {
                 // A releases tree exists and an ancestral object is being released.
                 treeHealed = await healReleasesTree(safe_original)
