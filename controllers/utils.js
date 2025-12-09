@@ -198,16 +198,27 @@ async function alterHistoryNext(objToUpdate, newNextID) {
 async function getAllVersions(obj) {
     let ls_versions
     let primeID = obj?.__rerum.history.prime
-    let rootObj = ( primeID === "root") 
-    ?   //The obj passed in is root.  So it is the rootObj we need.
-        JSON.parse(JSON.stringify(obj))
-    :   //The obj passed in knows the ID of root, grab it from Mongo
-        await db.findOne({ "@id": primeID })
-        /**
-         * Note that if you attempt the following code, it will cause  Cannot convert undefined or null to object in getAllVersions.
-         * rootObj = await db.findOne({"$or":[{"_id": primeID}, {"__rerum.slug": primeID}]})
-         * This is the because some of the @ids have different RERUM URL patterns on them.
-         **/
+    let rootObj
+    if (primeID === "root") {
+        //The obj passed in is root.  So it is the rootObj we need.
+        rootObj = JSON.parse(JSON.stringify(obj))
+    } else if (primeID) {
+        //The obj passed in knows the ID of root, grab it from Mongo
+        //Use _id for indexed query performance instead of @id
+        let primeHexId
+        try {
+            primeHexId = parseDocumentID(primeID)
+        } catch (error) {
+            throw new Error(`Invalid history.prime value '${primeID}': ${error.message}`)
+        }
+        rootObj = await db.findOne({"$or":[{"_id": primeHexId}, {"__rerum.slug": primeHexId}]})
+        if (!rootObj) {
+            throw new Error(`Root object with id '${primeID}' not found in database`)
+        }
+    } else {
+        //primeID is undefined or null, cannot proceed
+        throw new Error("Object has no valid history.prime value")
+    }
     //All the children of this object will have its @id in __rerum.history.prime
     ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
     //The root object is a version, prepend it in
