@@ -15,7 +15,7 @@ import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError
  * */
 const create = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    let slug = ""
+    let slug = null
     if(req.get("Slug")){
         let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
