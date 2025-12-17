@@ -20,7 +20,8 @@
   "author": "Research Computing Group <research.computing@slu.edu> (https://slu.edu)",
   "repository": "github:CenterForDigitalHumanities/rerum_server_nodejs",
   "engines": {
-    "node": ">=22.20.0"
+    "node": ">=24.12.0",
+    "npm": ">=11.7.0"
   },
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
@@ -32,15 +33,15 @@
     "cors": "^2.8.5",
     "debug": "~4.4.3",
     "dotenv": "~17.2.3",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "express-oauth2-jwt-bearer": "~1.7.1",
     "express-urlrewrite": "~2.0.3",
-    "mongodb": "~6.20.0",
+    "mongodb": "^7.0.0",
     "morgan": "~1.10.1"
   },
   "devDependencies": {
-    "jest": "^30.2.0",
     "@jest/globals": "^30.2.0",
+    "jest": "^30.2.0",
     "supertest": "^7.1.4"
   }
 }
