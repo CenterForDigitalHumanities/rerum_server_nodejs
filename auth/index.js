@@ -81,10 +81,9 @@ const generateNewAccessToken = async (req, res, next) => {
         if(tokenObj.error){
             console.error(tokenObj.error_description)
             res.status(500).send(tokenObj.error_description)
+            return
         }
-        else{
-            res.status(200).send(tokenObj) 
-        }
+        res.status(200).send(tokenObj)
     }
     catch (e) {
         console.error(e.response ? e.response.body : e.message ? e.message : e)
@@ -127,10 +126,9 @@ const generateNewRefreshToken = async (req, res, next) => {
         if(tokenObj.error){
             console.error(tokenObj.error_description)
             res.status(500).send(tokenObj.error_description)
+            return
         }
-        else{
-            res.status(200).send(tokenObj) 
-        }
+        res.status(200).send(tokenObj)
      } 
      catch (e) {
         console.error(e.response ? e.response.body : e.message ? e.message : e)
