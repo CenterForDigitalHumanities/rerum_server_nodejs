@@ -1,0 +1,22 @@
+# Documentation
+docs/
+*.md
+!README.md
+
+# Test files
+tests/
+test/
+__tests__/
+jest.config.js
+coverage/
+
+# Backup folders
+backups/
+*.backup
+*.bak
+
+# Local configuration files
+.env
+.env.*
+config.local.js
+*.local.js
