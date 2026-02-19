@@ -32,7 +32,7 @@ const config = {
   collectCoverageFrom: [
       //"**/*.js",
       "**/db-controller.js",
-      "**/routes/*.js"
+      "**/services/*.js"
   ],
 
   // Indicates which provider should be used to instrument code for coverage

@@ -6,8 +6,8 @@
  */
 
 import request from "supertest"
-import api_routes from "../routes/api-routes.js"
-import app from "../app.js"
+import api_routes from "../src/services/api-routes.js"
+import app from "../src/index.js"
 import fs from "fs"
 
 let app_stack = app.router.stack

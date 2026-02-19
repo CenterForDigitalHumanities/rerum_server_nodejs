@@ -4,7 +4,7 @@
  * Module dependencies.
  */
 
-import app from '../app.js'
+import app from '../src/index.js'
 import debug from 'debug'
 debug('rerum_server_nodejs:server')
 import http from "http"
