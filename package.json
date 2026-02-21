@@ -2,7 +2,7 @@
   "name": "rerum_server_nodejs",
   "type": "module",
   "version": "0.0.0",
-  "private": true,
+  "main": "./app.js",
   "description": "Rerum API server for database access.",
   "keywords": [
     "rerum",
@@ -18,15 +18,20 @@
   "homepage": "https://store.rerum.io",
   "license": "UNLICENSED",
   "author": "Research Computing Group <research.computing@slu.edu> (https://slu.edu)",
-  "repository": "github:CenterForDigitalHumanities/rerum_server_nodejs",
+  "repository": {
+      "type": "git",
+      "url": "git+https://github.com/CenterForDigitalHumanities/rerum_server_nodejs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/issues"
+  },
   "engines": {
     "node": ">=24.12.0",
     "npm": ">=11.7.0"
   },
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
-    "test": "jest",
-    "runtest": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "cookie-parser": "~1.4.7",
