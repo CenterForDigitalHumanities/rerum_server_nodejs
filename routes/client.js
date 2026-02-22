@@ -2,18 +2,19 @@ import express from 'express'
 const router = express.Router()
 import auth from '../auth/index.js'
 import { getAgentClaim } from '../controllers/utils.js'
+import config from '../config/index.js'
 
 router.get('/register', (req, res, next) => {
   //Register means register with the RERUM Server Auth0 client and get a new code for a refresh token.
   //See https://auth0.com/docs/libraries/custom-signup
-      const params = new URLSearchParams({
-          "audience":process.env.AUDIENCE,
+        const params = new URLSearchParams({
+          "audience":config.AUDIENCE ?? process.env.AUDIENCE ?? '',
           "scope":"offline_access",
           "response_type":"code",
-          "client_id":process.env.CLIENT_ID,
-          "redirect_uri":process.env.RERUM_PREFIX,
+          "client_id":config.CLIENT_ID,
+          "redirect_uri":config.RERUM_PREFIX,
           "state":"register"           
-      }).toString()
+        }).toString()
       res.status(200).send(`https://cubap.auth0.com/authorize?${params}`)
   })
 

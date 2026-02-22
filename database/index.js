@@ -1,8 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb'
-import dotenv from "dotenv"
-dotenv.config()
+import config from '../config/index.js'
 
-const client = new MongoClient(process.env.MONGO_CONNECTION_STRING)
+const client = new MongoClient(config.MONGO_CONNECTION_STRING)
 const newID = () => new ObjectId().toHexString()
 const isValidID = (id) => ObjectId.isValid(id)
 const connected = async function () {
@@ -10,12 +9,12 @@ const connected = async function () {
     await client.db("admin").command({ ping: 1 }).catch(err => err)
     return true
 }
-const db = client.db(process.env.MONGODBNAME)?.collection(process.env.MONGODBCOLLECTION)
+const db = client.db(config.MONGODBNAME)?.collection(config.MONGODBCOLLECTION)
 const connect = async () => {
         await client.connect()
         console.dir({
-            db : process.env.MONGODBNAME,
-            coll : process.env.MONGODBCOLLECTION
+            db : config.MONGODBNAME,
+            coll : config.MONGODBCOLLECTION
         })
 }
 connect().catch(console.dir)

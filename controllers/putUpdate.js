@@ -8,6 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
@@ -62,7 +63,7 @@ const putUpdate = async function (req, res, next) {
             if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
             
-            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+            let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             console.log("UPDATE")
             try {
                 let result = await db.insertOne(newObject)
@@ -121,7 +122,7 @@ async function _import(req, res, next) {
     if(_contextid(objectReceived["@context"])) delete objectReceived.id
     delete objectReceived["@context"]
     
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+    let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
     console.log("IMPORT")
     try {
         let result = await db.insertOne(newObject)
