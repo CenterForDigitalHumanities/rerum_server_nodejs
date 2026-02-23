@@ -1,23 +1,20 @@
-import { MongoClient, ObjectId } from 'mongodb'
-import config from '../config/index.js'
+// database/index.js now acts as a thin facade around the
+// shared MongoDB client located in database/client.js.  This keeps
+// existing import paths in controllers/tests working while centralizing
+// the connection logic in one place.
 
-const client = new MongoClient(config.MONGO_CONNECTION_STRING)
-const newID = () => new ObjectId().toHexString()
-const isValidID = (id) => ObjectId.isValid(id)
-const connected = async function () {
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 }).catch(err => err)
-    return true
-}
-const db = client.db(config.MONGODBNAME)?.collection(config.MONGODBCOLLECTION)
-const connect = async () => {
-        await client.connect()
-        console.dir({
-            db : config.MONGODBNAME,
-            coll : config.MONGODBCOLLECTION
-        })
-}
-connect().catch(console.dir)
+import * as clientModule from './client.js'
+
+// re-export the most commonly used helpers so other modules can
+// continue to import from "database/index.js" with no changes.
+export const newID = clientModule.newID
+export const isValidID = clientModule.isValidID
+export const connected = clientModule.connected
+export const db = clientModule.db
+
+// Expose additional pieces if necessary; controllers rarely need
+// them but we keep them available for future use.
+export { client, connect } from './client.js'
 
 /**
  * Find a single record based on a query object.

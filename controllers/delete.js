@@ -4,7 +4,7 @@
  * Delete operations for RERUM v1
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
 import config from '../config/index.js'
 import { createExpressError, getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'

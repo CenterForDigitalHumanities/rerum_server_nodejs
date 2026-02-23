@@ -4,7 +4,7 @@
  * Utility functions for RERUM controllers
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
 import config from '../config/index.js'
 

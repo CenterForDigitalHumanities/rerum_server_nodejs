@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals"
 import express from "express"
 import request from "supertest"
-import { db } from '../../database/index.js'
+import { db } from '../../database/client.js'
 import controller from '../../db-controller.js'
 
 const rerum_uri = `${process.env.RERUM_ID_PREFIX}123456`
