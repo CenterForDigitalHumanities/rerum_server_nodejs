@@ -3,7 +3,7 @@ import { jest } from "@jest/globals"
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
 import request from "supertest"
-import { controller } from '../../index.js'
+import controller from '../../db-controller.js'
 
 const routeTester = new express()
 routeTester.use(express.json())

@@ -45,22 +45,6 @@ documentation, but broadly, you will find:
 ## 🌟👍 Contributors 👍🌟
 Trying to contribute or perform a fix in the public RERUM API?  If not, are you _sure_ you don't want to?  Read the [Contributors Guide](CONTRIBUTING.md) for inspiration!  If you are trying to set up your own RERUM then keep reading to learn more.
   
-### Public API entry point
-
-A single `index.js` file at the project root acts as the public entry
-point for library consumers.  Only stable interfaces are exported here;
-internal helpers, controllers, and route handlers remain private and are
-not reachable unless you know their deep path.  Users of the code base or
-embedded applications should import from the root instead of referencing
-`./controllers/...` or `./database/...` directly.
-
-Example:
-```js
-import { app, controller, database } from 'rerum_server'
-// or when referencing locally:
-import { app, controller } from '../index.js'
-```
-
 ### Installation
 
 #### Get a Mongo Database

@@ -3,7 +3,7 @@ import { jest } from "@jest/globals"
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
 import request from "supertest"
-import { controller } from '../../index.js'
+import controller from '../../db-controller.js'
 
 // Here is the auth mock so we get a req.user so controller.create can function without a NPE.
 const addAuth = (req, res, next) => {
