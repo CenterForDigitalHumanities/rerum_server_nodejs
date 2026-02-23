@@ -1,10 +1,3 @@
-// Public entry point for the RERUM API v1 server library
-// Only the things exported here are considered a supported, stable
-// API.  Internal helpers and modules (controllers, database, routes,
-// etc.) remain private and are not re-exported.  Consumers of the
-// package should be able to import from the package root rather than
-// reach into deep paths.
-
 import http from 'http'
 import app from './app.js'
 
@@ -38,8 +31,6 @@ export function createServer(port = process.env.PORT ?? 3001) {
   app.set('port', port)
   const server = http.createServer(app)
 
-  // mirror the configuration from bin/rerum_v1.js so that programmatic
-  // users get the same keep-alive behaviour as the CLI entry point.
   server.keepAliveTimeout = 8 * 1000
   server.headersTimeout = 8.5 * 1000
 
