@@ -1,19 +1,10 @@
-// database/index.js now acts as a thin facade around the
-// shared MongoDB client located in database/client.js.  This keeps
-// existing import paths in controllers/tests working while centralizing
-// the connection logic in one place.
-
 import * as clientModule from './client.js'
 
-// re-export the most commonly used helpers so other modules can
-// continue to import from "database/index.js" with no changes.
 export const newID = clientModule.newID
 export const isValidID = clientModule.isValidID
 export const connected = clientModule.connected
 export const db = clientModule.db
 
-// Expose additional pieces if necessary; controllers rarely need
-// them but we keep them available for future use.
 export { client, connect } from './client.js'
 
 /**
@@ -45,9 +36,9 @@ function isValidURL(url) {
     }
 }
 
+// getMatching, isObject, and isValidURL are kept for backward compatibility
 export {
-    newID,
-    isValidID,
-    connected,
-    db
+    getMatching,
+    isObject,
+    isValidURL
 }
