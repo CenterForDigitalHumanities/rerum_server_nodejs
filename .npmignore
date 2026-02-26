@@ -1,0 +1,30 @@
+# Documentation
+docs/
+*.md
+!README.md
+CODEOWNERS
+
+# Test and mock files
+__tests__/
+__mocks__/
+**/__tests__/
+**/__mocks__/
+coverage/
+jest.config.js
+
+# Backup folders / artifacts
+backups/
+*.backup
+*.bak
+*.swp
+*.tgz
+
+# Local configuration files
+.env
+.env.*
+config.local.js
+*.local.js
+
+# Tooling and CI
+.github/
+.claude/
