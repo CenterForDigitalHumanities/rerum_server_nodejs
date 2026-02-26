@@ -31,7 +31,8 @@
   },
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "runtest": "npm test"
   },
   "dependencies": {
     "cookie-parser": "~1.4.7",
