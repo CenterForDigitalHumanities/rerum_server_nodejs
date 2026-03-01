@@ -1,3 +1,11 @@
+/**
+ * Centralized MongoDB client for the RERUM API.
+ * Provides a single shared MongoClient instance, connection
+ * management, and collection access for the application.
+ *
+ * @module database/client
+ * @author joeljoby02
+ */
 import { MongoClient, ObjectId } from 'mongodb'
 import config from '../config/index.js'
 
@@ -6,13 +14,11 @@ const client = new MongoClient(config.MONGO_CONNECTION_STRING)
 
 // connect immediately; callers may import `connect` if they want to await it
 const connect = async () => {
-    if (!client.topology || !client.topology.isConnected()) {
-        await client.connect()
-        console.dir({
-            db: config.MONGODBNAME,
-            coll: config.MONGODBCOLLECTION
-        })
-    }
+    await client.connect()
+    console.dir({
+        db: config.MONGODBNAME,
+        coll: config.MONGODBCOLLECTION
+    })
 }
 
 // collection helper

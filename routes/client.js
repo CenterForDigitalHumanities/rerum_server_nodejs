@@ -7,14 +7,14 @@ import config from '../config/index.js'
 router.get('/register', (req, res, next) => {
   //Register means register with the RERUM Server Auth0 client and get a new code for a refresh token.
   //See https://auth0.com/docs/libraries/custom-signup
-        const params = new URLSearchParams({
-          "audience":config.AUDIENCE ?? process.env.AUDIENCE ?? '',
-          "scope":"offline_access",
-          "response_type":"code",
-          "client_id":config.CLIENT_ID,
-          "redirect_uri":config.RERUM_PREFIX,
-          "state":"register"           
-        }).toString()
+      const params = new URLSearchParams({
+          "audience": config.AUDIENCE,
+          "scope": "offline_access",
+          "response_type": "code",
+          "client_id": config.CLIENT_ID,
+          "redirect_uri": config.RERUM_PREFIX,
+          "state": "register"
+      }).toString()
       res.status(200).send(`https://cubap.auth0.com/authorize?${params}`)
   })
 

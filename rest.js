@@ -67,7 +67,7 @@ If the body is JSON, make sure it is valid JSON.`
 The token provided is Unauthorized.  Please check that it is your token and that it is not expired. 
 Token: ${token} `
             }
-                else {
+            else {
                 error.message += `
 The request does not contain an "Authorization" header and so is Unauthorized. Please include a token with your requests
 like "Authorization: Bearer <token>". Make sure you have registered at ${config.RERUM_PREFIX}.`
@@ -80,9 +80,9 @@ like "Authorization: Bearer <token>". Make sure you have registered at ${config.
 You are Forbidden from performing this action.  Check your privileges.
 Token: ${token}`
             }
-                else {
+            else {
                 //If there was no Token, this would be a 401.  If you made it here, you didn't REST.
-                err.message += `
+                error.message += `
 You are Forbidden from performing this action. The request does not contain an "Authorization" header.
 Make sure you have registered at ${config.RERUM_PREFIX}. `
             }
