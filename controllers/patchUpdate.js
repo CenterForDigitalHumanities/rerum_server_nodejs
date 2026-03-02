@@ -6,8 +6,9 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
@@ -89,7 +90,7 @@ const patchUpdate = async function (req, res, next) {
             // id is also protected in this case, so it can't be set.
             if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
-            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
+            let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
             console.log("PATCH UPDATE")
             try {
                 let result = await db.insertOne(newObject)

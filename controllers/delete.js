@@ -4,8 +4,9 @@
  * Delete operations for RERUM v1
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 import { createExpressError, getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
 /**
@@ -159,7 +160,7 @@ async function healHistoryTree(obj) {
                 throw Error("Could not update all descendants with their new prime value")
             }
         }
-        if (previous_id.indexOf(process.env.RERUM_PREFIX) > -1) {
+        if (previous_id.indexOf(config.RERUM_PREFIX) > -1) {
             let previousIdForQuery = parseDocumentID(previous_id)
             const objToUpdate2 = await db.findOne({"$or":[{"_id": previousIdForQuery}, {"__rerum.slug": previousIdForQuery}]})
             if (null !== objToUpdate2) {

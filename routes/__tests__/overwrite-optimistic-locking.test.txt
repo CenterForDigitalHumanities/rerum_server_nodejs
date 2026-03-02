@@ -7,7 +7,7 @@ const mockFindOne = jest.fn()
 const mockReplaceOne = jest.fn()
 
 // Mock the database module
-jest.mock('../../database/index.js', () => ({
+jest.mock('../../database/client.js', () => ({
     db: {
         findOne: mockFindOne,
         replaceOne: mockReplaceOne

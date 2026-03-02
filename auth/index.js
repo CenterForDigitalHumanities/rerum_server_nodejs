@@ -1,6 +1,5 @@
 import { auth } from 'express-oauth2-jwt-bearer'
-import dotenv from 'dotenv'
-dotenv.config()
+import config from '../config/index.js'
 
 const _tokenError = function (err, req, res, next) {
     if(!err.code || err.code !== "invalid_token"){ 
@@ -55,10 +54,10 @@ const generateNewAccessToken = async (req, res, next) => {
     console.log("RERUM v1 is generating a proxy access token.")
     const form = {
         grant_type: 'refresh_token',
-        client_id: process.env.CLIENT_ID,
-        client_secret: process.env.CLIENT_SECRET,
+        client_id: config.CLIENT_ID,
+        client_secret: config.CLIENT_SECRET,
         refresh_token: req.body.refresh_token,
-        redirect_uri:process.env.RERUM_PREFIX
+        redirect_uri: config.RERUM_PREFIX
     }
     try{
         // Successful responses from auth 0 look like {"refresh_token":"BLAHBLAH", "access_token":"BLAHBLAH"}
@@ -101,10 +100,10 @@ const generateNewRefreshToken = async (req, res, next) => {
     console.log("RERUM v1 is generating a new refresh token.")
     const form = {
         grant_type: 'authorization_code',
-        client_id: process.env.CLIENT_ID,
-        client_secret: process.env.CLIENT_SECRET,
+        client_id: config.CLIENT_ID,
+        client_secret: config.CLIENT_SECRET,
         code: req.body.authorization_code,
-        redirect_uri:process.env.RERUM_PREFIX
+        redirect_uri: config.RERUM_PREFIX
     }
     try {
         // Successful responses from auth 0 look like {"refresh_token":"BLAHBLAH", "access_token":"BLAHBLAH"}
@@ -160,7 +159,7 @@ const verifyAccess = (secret) => {
  * @returns Boolean match between encoded Generator Agent and obj generator
  */
 const isGenerator = (obj, userObj) => {
-    return userObj[process.env.RERUM_AGENT_CLAIM] === obj.__rerum.generatedBy
+    return userObj[config.RERUM_AGENT_CLAIM] === obj.__rerum.generatedBy
 }
 
 /**
@@ -170,11 +169,11 @@ const isGenerator = (obj, userObj) => {
  * @returns Boolean for matching ID.
  */
 const isBot = (userObj) => {
-    return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM]
+    return config.BOT_AGENT === userObj[config.RERUM_AGENT_CLAIM]
 }
 
 function READONLY(req, res, next) {
-     if(process.env.READONLY=="true"){
+    if(config.READONLY=="true"){
         res.status(503).json({"message":"RERUM v1 is read only at this time.  We apologize for the inconvenience.  Try again later."})
         return
      }

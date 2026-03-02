@@ -6,8 +6,9 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
@@ -75,13 +76,13 @@ const bulkCreate = async function (req, res, next) {
         // id is also protected in this case, so it can't be set.
         if(_contextid(d["@context"])) delete d.id
         d._id = id
-        d['@id'] = `${process.env.RERUM_ID_PREFIX}${id}`
+        d['@id'] = `${config.RERUM_ID_PREFIX}${id}`
         bulkOps.push({ insertOne : { "document" : d }})
     }
     try {
         let dbResponse = await db.bulkWrite(bulkOps, {'ordered':false})
         res.set("Content-Type", "application/json; charset=utf-8")
-        res.set("Link",dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
+        res.set("Link",dbResponse.result.insertedIds.map(r => `${config.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(201)
         const estimatedResults = bulkOps.map(f=>{
             let doc = f.insertOne.document
@@ -148,7 +149,7 @@ const bulkUpdate = async function (req, res, next) {
         // Update the same thing twice?  can vs should.
         // if(encountered.includes(idReceived)) continue
         encountered.push(idReceived)
-        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)) continue
+        if(!idReceived.includes(config.RERUM_ID_PREFIX)) continue
         let id = parseDocumentID(idReceived)
         let originalObject
         try {
@@ -168,7 +169,7 @@ const bulkUpdate = async function (req, res, next) {
         // id is also protected in this case, so it can't be set.
         if(_contextid(objectReceived["@context"])) delete objectReceived.id
         delete objectReceived["@context"]
-        let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+        let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
         bulkOps.push({ insertOne : { "document" : newObject }})
         if(originalObject.__rerum.history.next.indexOf(newObject["@id"]) === -1){
             originalObject.__rerum.history.next.push(newObject["@id"])
@@ -185,7 +186,7 @@ const bulkUpdate = async function (req, res, next) {
     try {
         let dbResponse = await db.bulkWrite(bulkOps, {'ordered':false})
         res.set("Content-Type", "application/json; charset=utf-8")
-        res.set("Link", dbResponse.result.insertedIds.map(r => `${process.env.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
+        res.set("Link", dbResponse.result.insertedIds.map(r => `${config.RERUM_ID_PREFIX}${r._id}`)) // https://www.rfc-editor.org/rfc/rfc5988
         res.status(200)
         const estimatedResults = bulkOps.filter(f=>f.insertOne).map(f=>{
             let doc = f.insertOne.document

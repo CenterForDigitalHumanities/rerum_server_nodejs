@@ -4,7 +4,7 @@
  * Search ($search) operations for RERUM v1
  * @author thehabes
  */
-import { db } from '../database/index.js'
+import { db } from '../database/client.js'
 import utils from '../utils.js'
 import { idNegotiation, createExpressError } from './utils.js'
 

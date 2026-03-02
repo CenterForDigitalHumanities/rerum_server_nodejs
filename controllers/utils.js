@@ -4,8 +4,9 @@
  * Utility functions for RERUM controllers
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 
 const ObjectID = newID
 
@@ -57,7 +58,7 @@ const idNegotiation = function (resBody) {
     if(_contextid(resBody["@context"])) {
         delete resBody["@id"]
         delete resBody["@context"]
-        modifiedResBody = Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
+        modifiedResBody = Object.assign(context, { "id": config.RERUM_ID_PREFIX + _id }, resBody)
     }
     return modifiedResBody
 }
@@ -144,7 +145,7 @@ const remove = async function(id) {
  * The app is forbidden until registered with RERUM.  Access tokens are encoded with the agent.
  */
 function getAgentClaim(req, next) {
-    const claimKeys = [process.env.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
+    const claimKeys = [config.RERUM_AGENT_CLAIM, "http://devstore.rerum.io/v1/agent", "http://store.rerum.io/agent"]
     let agent = ""
     for (const claimKey of claimKeys) {
         agent = req.user[claimKey]
