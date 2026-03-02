@@ -7,7 +7,8 @@
 
 import request from "supertest"
 import api_routes from "../routes/api-routes.js"
-import app from "../app.js"
+// leverage the public entry point instead of a deep path
+import app from "../index.js"
 import fs from "fs"
 
 let app_stack = app.router.stack
