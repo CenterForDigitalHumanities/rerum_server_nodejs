@@ -5,7 +5,7 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { isDeleted, isReleased, isGenerator } from '../predicates.js'
 import config from '../config/index.js'
 import { createExpressError, getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
@@ -40,19 +40,19 @@ const deleteObj = async function(req, res, next) {
     }
     if (null !== originalObject) {
         let safe_original = JSON.parse(JSON.stringify(originalObject))
-        if (utils.isDeleted(safe_original)) {
+        if (isDeleted(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to delete is already deleted. ${err.message}`,
                 status: 403
             })
         }
-        else if (utils.isReleased(safe_original)) {
+        else if (isReleased(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to delete is released. Fork to make changes. ${err.message}`,
                 status: 403
             })
         }
-        else if (!utils.isGenerator(safe_original, agentRequestingDelete)) {
+        else if (!isGenerator(safe_original, agentRequestingDelete)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object and so are not authorized to delete it. ${err.message}`,
                 status: 401
