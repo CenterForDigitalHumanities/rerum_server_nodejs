@@ -37,7 +37,7 @@ it("'/create' route functions", async () => {
   expect(response.headers["etag"]).toBeTruthy()
   expect(response.headers["link"]).toBeTruthy()
 
-}, 20000)
+})
 
 it.skip("Support setting valid '_id' on '/create' request body.", async () => {
   // TODO

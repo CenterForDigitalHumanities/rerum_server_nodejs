@@ -37,4 +37,4 @@ it("'/delete' route functions", async () => {
     .then(resp => resp)
     .catch(err => err) 
   expect(response.statusCode).toBe(204)
-}, 20000)
+})

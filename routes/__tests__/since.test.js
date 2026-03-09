@@ -26,4 +26,4 @@ it("'/since/:id' route functions", async () => {
   expect(response.headers["allow"]).toBeTruthy()
   expect(response.headers["link"]).toBeTruthy()
   expect(Array.isArray(response.body)).toBe(true)
-}, 20000)
+})

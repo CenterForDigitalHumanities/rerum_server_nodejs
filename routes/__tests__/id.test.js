@@ -30,7 +30,7 @@ it("'/id/:id' route functions", async () => {
   expect(response.headers["last-modified"]).toBeTruthy()
   expect(response.headers["link"]).toBeTruthy()
   expect(response.headers["location"]).toBeTruthy()
-}, 20000)
+})
 
 it.skip("Proper '@id-id' negotation on GET by URI.", async () => {
   // TODO

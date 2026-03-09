@@ -37,4 +37,4 @@ it("'/patch' route functions", async () => {
   expect(response.headers["allow"]).toBeTruthy()
   expect(response.headers["link"]).toBeTruthy()
 
-}, 20000)
+})
