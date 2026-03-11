@@ -57,7 +57,7 @@ const configureLDHeadersFor = function(obj){
 const configureLastModifiedHeader = function(obj){
     let date = ""
     if(obj.__rerum){
-        if(!obj.__rerum.isOverwritten === ""){
+        if(obj.__rerum.isOverwritten !== ""){
             date = obj.__rerum.isOverwritten
         }
         else{

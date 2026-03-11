@@ -19,3 +19,7 @@ export default {
     // header constructors
     ...headers
 }
+
+export { configureRerumOptions } from './versioning.js'
+export { configureWebAnnoHeadersFor, configureLDHeadersFor, configureLastModifiedHeader } from './headers.js'
+export { isDeleted, isReleased, isGenerator, isContainerType, isLD } from './predicates.js'

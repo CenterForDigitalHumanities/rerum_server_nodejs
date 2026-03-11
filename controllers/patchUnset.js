@@ -7,7 +7,9 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { isDeleted } from '../predicates.js'
+import { configureRerumOptions } from '../versioning.js'
+import { configureWebAnnoHeadersFor } from '../headers.js'
 import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
@@ -43,7 +45,7 @@ const patchUnset = async function (req, res, next) {
                 status: 501
             })
         }
-        else if (utils.isDeleted(originalObject)) {
+        else if (isDeleted(originalObject)) {
             err = Object.assign(err, {
                 message: `The object you are trying to update is deleted. ${err.message}`,
                 status: 403
@@ -74,7 +76,7 @@ const patchUnset = async function (req, res, next) {
             if (Object.keys(objectReceived).length === 0) {
                 //Then you aren't actually changing anything...no properties in the request body were removed from the original object.
                 //Just hand back the object.  The resulting of unsetting nothing is the object.
-                res.set(utils.configureWebAnnoHeadersFor(originalObject))
+                res.set(configureWebAnnoHeadersFor(originalObject))
                 originalObject = idNegotiation(originalObject)
                 originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
                 res.location(originalObject[_contextid(originalObject["@context"]) ? "id":"@id"])
@@ -84,7 +86,7 @@ const patchUnset = async function (req, res, next) {
             }
             const id = ObjectID()
             let context = patchedObject["@context"] ? { "@context": patchedObject["@context"] } : {}
-            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+            let rerumProp = { "__rerum": configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete patchedObject["__rerum"]
             delete patchedObject["_id"]
             delete patchedObject["@id"]
@@ -97,7 +99,7 @@ const patchUnset = async function (req, res, next) {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
-                    res.set(utils.configureWebAnnoHeadersFor(newObject))
+                    res.set(configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])

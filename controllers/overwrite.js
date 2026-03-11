@@ -7,7 +7,8 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { isDeleted, isReleased, isGenerator } from '../predicates.js'
+import { configureWebAnnoHeadersFor } from '../headers.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
@@ -38,19 +39,19 @@ const overwrite = async function (req, res, next) {
                 status: 404
             })
         }
-        else if (utils.isDeleted(originalObject)) {
+        else if (isDeleted(originalObject)) {
             err = Object.assign(err, {
                 message: `The object you are trying to overwrite is deleted. ${err.message}`,
                 status: 403
             })
         }
-        else if (utils.isReleased(originalObject)) {
+        else if (isReleased(originalObject)) {
             err = Object.assign(err, {
                 message: `The object you are trying to overwrite is released.  Fork with /update to make changes. ${err.message}`,
                 status: 403
             })
         }
-        else if (!utils.isGenerator(originalObject, agentRequestingOverwrite)) {
+        else if (!isGenerator(originalObject, agentRequestingOverwrite)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object. You cannot overwrite it. Fork with /update to make changes. ${err.message}`,
                 status: 401
@@ -93,7 +94,7 @@ const overwrite = async function (req, res, next) {
                 }
                 // Include current version in response headers for future optimistic locking
                 res.set('Current-Overwritten-Version', rerumProp["__rerum"].isOverwritten)
-                res.set(utils.configureWebAnnoHeadersFor(newObject))
+                res.set(configureWebAnnoHeadersFor(newObject))
                 newObject = idNegotiation(newObject)
                 newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                 res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])

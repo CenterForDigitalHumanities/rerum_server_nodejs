@@ -7,7 +7,7 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { configureLDHeadersFor } from '../headers.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
@@ -133,7 +133,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
         // console.log(witnessFragments.length+" fragments found for this Manuscript")
         // const end = Date.now()
         // console.log(`Total Execution time: ${end - start} ms`)
-        res.set(utils.configureLDHeadersFor(witnessFragments))
+        res.set(configureLDHeadersFor(witnessFragments))
         res.json(witnessFragments)
     }
     catch (error) {
@@ -295,7 +295,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
         // console.log(glosses.length+" Glosses found for this Manuscript")
         // const end = Date.now()
         // console.log(`Total Execution time: ${end - start} ms`)
-        res.set(utils.configureLDHeadersFor(glosses))
+        res.set(configureLDHeadersFor(glosses))
         res.json(glosses)
     }
     catch (error) {

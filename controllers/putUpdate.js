@@ -7,7 +7,9 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { isDeleted } from '../predicates.js'
+import { configureRerumOptions } from '../versioning.js'
+import { configureWebAnnoHeadersFor } from '../headers.js'
 import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
@@ -46,7 +48,7 @@ const putUpdate = async function (req, res, next) {
                 status: 404
             })
         }
-        else if (utils.isDeleted(originalObject)) {
+        else if (isDeleted(originalObject)) {
             err = Object.assign(err, {
                 message: `The object you are trying to update is deleted. ${err.message}`,
                 status: 403
@@ -55,7 +57,7 @@ const putUpdate = async function (req, res, next) {
         else {
             id = ObjectID()
             let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-            let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+            let rerumProp = { "__rerum": configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
             delete objectReceived["__rerum"]
             delete objectReceived["_id"]
             delete objectReceived["@id"]
@@ -69,7 +71,7 @@ const putUpdate = async function (req, res, next) {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
                     //Success, the original object has been updated.
-                    res.set(utils.configureWebAnnoHeadersFor(newObject))
+                    res.set(configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
                     newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
                     res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
@@ -114,7 +116,7 @@ async function _import(req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     const id = ObjectID()
     let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
+    let rerumProp = { "__rerum": configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
     delete objectReceived["__rerum"]
     delete objectReceived["_id"]
     delete objectReceived["@id"]
@@ -126,7 +128,7 @@ async function _import(req, res, next) {
     console.log("IMPORT")
     try {
         let result = await db.insertOne(newObject)
-        res.set(utils.configureWebAnnoHeadersFor(newObject))
+        res.set(configureWebAnnoHeadersFor(newObject))
         newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
