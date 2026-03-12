@@ -8,14 +8,13 @@ import app from '../app.js'
 import debug from 'debug'
 debug('rerum_server_nodejs:server')
 import http from "http"
-import dotenv from "dotenv"
-dotenv.config()
+import config from '../config/index.js'
 
 /**
  * Get port from environment and store in Express.
  */
 
-const port = process.env.PORT ?? 3001
+const port = config.PORT ?? 3001
 app.set('port', port)
 
 /**

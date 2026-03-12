@@ -4,8 +4,9 @@
  * Basic CRUD operations for RERUM v1
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError, getAgentClaim, parseDocumentID } from './utils.js'
 
 /**
@@ -42,7 +43,7 @@ const create = async function (req, res, next) {
     if(_contextid(provided["@context"])) delete provided.id
     delete provided["@context"]
     
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
+    let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
     console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)

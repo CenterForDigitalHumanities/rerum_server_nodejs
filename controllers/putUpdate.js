@@ -6,8 +6,9 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 
-import { newID, isValidID, db } from '../database/index.js'
+import { newID, isValidID, db } from '../database/client.js'
 import utils from '../utils.js'
+import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
@@ -26,7 +27,7 @@ const putUpdate = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     const idReceived = objectReceived["@id"] ?? objectReceived.id
     if (idReceived) {
-        if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
+        if(!idReceived.includes(config.RERUM_ID_PREFIX)){
             //This is not a regular update.  This object needs to be imported, it isn't in RERUM yet.
             return _import(req, res, next)
         }
@@ -62,7 +63,7 @@ const putUpdate = async function (req, res, next) {
             if(_contextid(objectReceived["@context"])) delete objectReceived.id
             delete objectReceived["@context"]
             
-            let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+            let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
             console.log("UPDATE")
             try {
                 let result = await db.insertOne(newObject)
@@ -121,7 +122,7 @@ async function _import(req, res, next) {
     if(_contextid(objectReceived["@context"])) delete objectReceived.id
     delete objectReceived["@context"]
     
-    let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
+    let newObject = Object.assign(context, { "@id": config.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
     console.log("IMPORT")
     try {
         let result = await db.insertOne(newObject)

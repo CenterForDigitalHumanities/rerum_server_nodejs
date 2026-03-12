@@ -1,5 +1,5 @@
 import request from 'supertest'
-import app from '../../app.js'
+import app from '../../index.js'  // public entry point
 import { jest } from '@jest/globals'
 
 // Mock the database and auth modules

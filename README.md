@@ -26,6 +26,27 @@ Stores important bits of knowledge in structured JSON-LD objects:
 1. **Open and Free**—expose all contributions immediately without charge to write or read;
 1. **Attributed and Versioned**—always include asserted ownership and transaction metadata so consumers can evaluate trustworthiness and relevance.
 
+### Programmatic usage
+This project exposes a single public entry point at the package root (`index.js`).  Only a few
+functions are exported – everything else lives in internal modules and is intentionally
+kept private.  Example:
+
+```js
+import { app, createServer, start } from 'rerum_server'
+
+// `app` is the configured Express application; you can pass it to Supertest or reuse it
+// inside another HTTP stack.
+
+const server = createServer(8080)   // returns a http.Server but does not listen
+server.listen()
+
+// or simply
+start(8080) // convenience helper that both creates and listens
+```
+
+Consumers no longer need to reach into `./app.js` or other deep paths – if it isn't
+exported here it isn't part of the stable API.
+
 ## What we add
 You will find a `__rerum` property on anything you read from this repository. This is written onto
 all objects by the server and is not editable by the client applications. While applications may assert

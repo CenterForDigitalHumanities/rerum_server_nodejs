@@ -6,6 +6,7 @@
  * 
  * @author thehabes 
  */
+import config from './config/index.js'
 
 /**
  * Add the __rerum properties object to a given JSONObject.If __rerum already exists, it will be overwritten because this method is only called on new objects. Properties for consideration are:
@@ -82,9 +83,9 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
     history.next = []
     history.previous = history_previous
     history.prime = history_prime
-    rerumOptions["@context"] = process.env.RERUM_CONTEXT
+    rerumOptions["@context"] = config.RERUM_CONTEXT
     rerumOptions.alpha = true
-    rerumOptions.APIversion = process.env.RERUM_API_VERSION
+    rerumOptions.APIversion = config.RERUM_API_VERSION
     //It is important for the cache workflow that these be properly formatted.  
     let creationDateTime = new Date(Date.now()).toISOString().replace("Z", "")
     rerumOptions.createdAt = creationDateTime
