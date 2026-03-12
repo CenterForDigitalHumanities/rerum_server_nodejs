@@ -20,8 +20,8 @@
   "author": "Research Computing Group <research.computing@slu.edu> (https://slu.edu)",
   "repository": "github:CenterForDigitalHumanities/rerum_server_nodejs",
   "engines": {
-    "node": ">=24.12.0",
-    "npm": ">=11.7.0"
+      "node": ">=24.14.0",
+      "npm": ">=11.0.0"
   },
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
