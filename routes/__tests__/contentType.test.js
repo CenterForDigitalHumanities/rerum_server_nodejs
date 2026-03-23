@@ -63,7 +63,7 @@ describe("Content-Type validation middleware", () => {
             .unset("Content-Type")
             .send(Buffer.from('{"test":"data"}'))
         expect(response.statusCode).toBe(415)
-        expect(response.text).toContain("Missing Content-Type header")
+        expect(response.text).toContain("Missing or empty Content-Type header")
     })
 
     it("returns 415 for text/plain on JSON-only endpoint", async () => {

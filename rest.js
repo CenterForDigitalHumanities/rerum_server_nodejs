@@ -42,17 +42,18 @@ const checkPatchOverrideSupport = function (req, res) {
  */
 const SKIP_CONTENT_TYPE_METHODS = ["GET", "HEAD", "OPTIONS", "DELETE"]
 const validateContentType = function (req, res, next) {
-    if (SKIP_CONTENT_TYPE_METHODS.includes(req.method) || req.path.startsWith("/release")) {
+    const isReleaseEndpoint = req.path === "/release" || req.path.startsWith("/release/")
+    if (SKIP_CONTENT_TYPE_METHODS.includes(req.method) || isReleaseEndpoint) {
         return next()
     }
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
-    if (!contentType) {
+    const mimeType = contentType.split(";")[0].trim()
+    if (!mimeType) {
         return next(createExpressError({
             statusCode: 415,
-            statusMessage: `Missing Content-Type header.`
+            statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    const mimeType = contentType.split(";")[0].trim()
     if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
     const isSearchEndpoint = req.path === "/search" || req.path.startsWith("/search/")
     if (mimeType === "text/plain" && isSearchEndpoint) return next()
