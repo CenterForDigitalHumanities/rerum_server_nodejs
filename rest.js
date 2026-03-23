@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
+import { createExpressError } from './controllers/utils.js'
+
 /**
  * This module is used for any REST support functionality.  It is used as middleware and so
  * has access to the http module request and response objects, as well as next()
- * It is in charge of responding to the client. 
- * 
- * @author thehabes 
+ * It is in charge of responding to the client.
+ *
+ * @author thehabes
  */
 
 /**
@@ -45,18 +47,20 @@ const validateContentType = function (req, res, next) {
     }
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     if (!contentType) {
-        res.statusMessage = `Missing Content-Type header.`
-        res.status(415)
-        return next(res)
+        return next(createExpressError({
+            statusCode: 415,
+            statusMessage: `Missing Content-Type header.`
+        }))
     }
     const mimeType = contentType.split(";")[0].trim()
     if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
     const isSearchEndpoint = req.path.startsWith("/search")
     if (mimeType === "text/plain" && isSearchEndpoint) return next()
     const acceptedTypes = `"application/json" or "application/ld+json"${isSearchEndpoint ? ' or "text/plain"' : ''}`
-    res.statusMessage = `Unsupported Content-Type: "${contentType}". This endpoint requires ${acceptedTypes}.`
-    res.status(415)
-    next(res)
+    next(createExpressError({
+        statusCode: 415,
+        statusMessage: `Unsupported Content-Type: "${contentType}". This endpoint requires ${acceptedTypes}.`
+    }))
 }
 
 /**
