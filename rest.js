@@ -45,7 +45,7 @@ const validateContentType = function (req, res, next) {
     }
     const contentType = req.get("Content-Type") ?? ""
     if (!contentType) {
-        res.statusMessage = `Missing Content-Type header. Requests to this endpoint require a Content-Type of "application/json" or "application/ld+json".`
+        res.statusMessage = `Missing Content-Type header.`
         res.status(415)
         return next(res)
     }
