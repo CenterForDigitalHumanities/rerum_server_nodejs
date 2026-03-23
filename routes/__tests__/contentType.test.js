@@ -26,6 +26,16 @@ routeTester.get("/api/info", (req, res) => {
     res.status(200).json({ info: true })
 })
 
+// DELETE endpoint should pass through without Content-Type validation
+routeTester.delete("/api/delete/:_id", (req, res) => {
+    res.status(200).json({ deleted: req.params._id })
+})
+
+// Release endpoint uses PATCH without a JSON body (uses Slug header)
+routeTester.patch("/api/release/:_id", (req, res) => {
+    res.status(200).json({ released: req.params._id })
+})
+
 // Error handler matching the app's pattern
 routeTester.use(rest.messenger)
 
@@ -116,6 +126,20 @@ describe("Content-Type validation middleware", () => {
             .get("/api/info")
         expect(response.statusCode).toBe(200)
         expect(response.body.info).toBe(true)
+    })
+
+    it("skips validation for DELETE requests", async () => {
+        const response = await request(routeTester)
+            .delete("/api/delete/abc123")
+        expect(response.statusCode).toBe(200)
+        expect(response.body.deleted).toBe("abc123")
+    })
+
+    it("skips validation for PATCH on release endpoint", async () => {
+        const response = await request(routeTester)
+            .patch("/api/release/abc123")
+        expect(response.statusCode).toBe(200)
+        expect(response.body.released).toBe("abc123")
     })
 
 })

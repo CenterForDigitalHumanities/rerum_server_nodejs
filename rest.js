@@ -32,7 +32,7 @@ const checkPatchOverrideSupport = function (req, res) {
  * reaching controllers, preventing unhandled errors from unparsed or mis-parsed bodies.
  *
  * - Skips validation for methods that don't carry bodies (GET, HEAD, OPTIONS, DELETE)
- * - Skips validation for endpoints that do not use a body (/release)
+ * - Skips validation for endpoints that don't carry bodies (/release)
  * - Allows text/plain for /search endpoints (which accept plain text search terms)
  * - Requires application/json or application/ld+json for all other write endpoints
  * - Returns 415 for missing or unsupported Content-Type
