@@ -38,9 +38,10 @@ const checkPatchOverrideSupport = function (req, res) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
+const SKIP_CONTENT_TYPE_METHODS = ["GET", "HEAD", "OPTIONS", "DELETE"]
+
 const validateContentType = function (req, res, next) {
-    const skipMethods = ["GET", "HEAD", "OPTIONS", "DELETE"]
-    if (skipMethods.includes(req.method)) {
+    if (SKIP_CONTENT_TYPE_METHODS.includes(req.method)) {
         return next()
     }
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
@@ -49,9 +50,10 @@ const validateContentType = function (req, res, next) {
         res.status(415)
         return next(res)
     }
-    if (contentType.includes("application/json") || contentType.includes("application/ld+json")) return next()
+    const mimeType = contentType.split(";")[0].trim()
+    if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
     const isSearchEndpoint = req.path.startsWith("/search")
-    if (contentType.includes("text/plain") && isSearchEndpoint) return next()
+    if (mimeType === "text/plain" && isSearchEndpoint) return next()
     const acceptedTypes = `"application/json" or "application/ld+json"${isSearchEndpoint ? ' or "text/plain"' : ''}`
     res.statusMessage = `Unsupported Content-Type: "${contentType}". This endpoint requires ${acceptedTypes}.`
     res.status(415)
