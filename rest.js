@@ -43,7 +43,7 @@ const validateContentType = function (req, res, next) {
     if (skipMethods.includes(req.method)) {
         return next()
     }
-    const contentType = req.get("Content-Type") ?? ""
+    const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     if (!contentType) {
         res.statusMessage = `Missing Content-Type header.`
         res.status(415)

@@ -102,6 +102,15 @@ describe("Content-Type validation middleware", () => {
         expect(response.body.received.searchText).toBe("hello")
     })
 
+    it("accepts Content-Type with unusual casing", async () => {
+        const response = await request(routeTester)
+            .post("/api/create")
+            .set("Content-Type", "Application/JSON")
+            .send({ test: "casing" })
+        expect(response.statusCode).toBe(200)
+        expect(response.body.received.test).toBe("casing")
+    })
+
     it("skips validation for GET requests", async () => {
         const response = await request(routeTester)
             .get("/api/info")
