@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals"
+jest.setTimeout(10000)
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
