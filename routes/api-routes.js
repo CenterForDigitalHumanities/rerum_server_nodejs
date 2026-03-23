@@ -49,7 +49,6 @@ import rest from '../rest.js'
 router.use(staticRouter)
 router.use('/id',idRouter)
 router.use('/api', compatabilityRouter)
-// Validate Content-Type headers on all /api write endpoints (fixes #245, #246, #248)
 router.use('/api', rest.validateContentType)
 router.use('/api/query', queryRouter)
 router.use('/api/search', searchRouter)
