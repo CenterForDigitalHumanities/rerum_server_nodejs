@@ -3,7 +3,7 @@ import request from "supertest"
 import rest from '../../rest.js'
 
 // Set up a minimal Express app with the Content-Type validation middleware
-const routeTester = new express()
+const routeTester = express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 routeTester.use(express.text())
 routeTester.use(express.urlencoded({ extended: false }))
