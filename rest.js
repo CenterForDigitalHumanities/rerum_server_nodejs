@@ -25,7 +25,7 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
- * Middleware to validate Content-Type headers on API write endpoints.
+ * Middleware to validate Content-Type headers.
  * Ensures that requests carrying bodies have an appropriate Content-Type before
  * reaching controllers, preventing unhandled errors from unparsed or mis-parsed bodies.
  *
@@ -43,27 +43,15 @@ const validateContentType = function (req, res, next) {
     if (skipMethods.includes(req.method)) {
         return next()
     }
-
     const contentType = req.get("Content-Type") ?? ""
-
     if (!contentType) {
         res.statusMessage = `Missing Content-Type header. Requests to this endpoint require a Content-Type of "application/json" or "application/ld+json".`
         res.status(415)
         return next(res)
     }
-
-    const isJson = contentType.includes("application/json") || contentType.includes("application/ld+json")
-    const isText = contentType.includes("text/plain")
+    if (contentType.includes("application/json") || contentType.includes("application/ld+json")) return next()
     const isSearchEndpoint = req.path.startsWith("/search")
-
-    if (isJson) {
-        return next()
-    }
-
-    if (isText && isSearchEndpoint) {
-        return next()
-    }
-
+    if (contentType.includes("text/plain") && isSearchEndpoint) return next()
     const acceptedTypes = `"application/json" or "application/ld+json"${isSearchEndpoint ? ' or "text/plain"' : ''}`
     res.statusMessage = `Unsupported Content-Type: "${contentType}". This endpoint requires ${acceptedTypes}.`
     res.status(415)
