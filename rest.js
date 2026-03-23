@@ -25,6 +25,52 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
+ * Middleware to validate Content-Type headers on API write endpoints.
+ * Ensures that requests carrying bodies have an appropriate Content-Type before
+ * reaching controllers, preventing unhandled errors from unparsed or mis-parsed bodies.
+ *
+ * - Skips validation for methods that don't carry bodies (GET, HEAD, OPTIONS, DELETE)
+ * - Allows text/plain for /search endpoints (which accept plain text search terms)
+ * - Requires application/json or application/ld+json for all other write endpoints
+ * - Returns 400 for missing Content-Type, 415 for unsupported Content-Type
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const validateContentType = function (req, res, next) {
+    const skipMethods = ["GET", "HEAD", "OPTIONS", "DELETE"]
+    if (skipMethods.includes(req.method)) {
+        return next()
+    }
+
+    const contentType = req.get("Content-Type") ?? ""
+
+    if (!contentType) {
+        res.statusMessage = `Missing Content-Type header. Requests to this endpoint require a Content-Type of "application/json" or "application/ld+json".`
+        res.status(415)
+        return next(res)
+    }
+
+    const isJson = contentType.includes("application/json") || contentType.includes("application/ld+json")
+    const isText = contentType.includes("text/plain")
+    const isSearchEndpoint = req.path.startsWith("/search")
+
+    if (isJson) {
+        return next()
+    }
+
+    if (isText && isSearchEndpoint) {
+        return next()
+    }
+
+    const acceptedTypes = `"application/json" or "application/ld+json"${isSearchEndpoint ? ' or "text/plain"' : ''}`
+    res.statusMessage = `Unsupported Content-Type: "${contentType}". This endpoint requires ${acceptedTypes}.`
+    res.status(415)
+    next(res)
+}
+
+/**
  * Throughout the routes are certain warning, error, and hard fail scenarios.
  * REST is all about communication.  The response code and the textual body are particular.
  * RERUM is all about being clear.  It will build custom responses sometimes for certain scenarios, will remaining RESTful.
@@ -95,6 +141,9 @@ The requested web page or resource could not be found.`
         case 409:
             // These are all handled in db-controller.js already.
             break
+        case 415:
+            // Unsupported Media Type.  The Content-Type header is not acceptable for this endpoint.
+            break
         case 501:
             // Not implemented.  Handled upstream.
             break
@@ -113,4 +162,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, messenger }
+export default { checkPatchOverrideSupport, validateContentType, messenger }
