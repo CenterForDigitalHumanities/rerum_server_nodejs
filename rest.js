@@ -38,9 +38,8 @@ const checkPatchOverrideSupport = function (req, res) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
-const SKIP_CONTENT_TYPE_METHODS = ["GET", "HEAD", "OPTIONS", "DELETE"]
-
 const validateContentType = function (req, res, next) {
+    const SKIP_CONTENT_TYPE_METHODS = ["GET", "HEAD", "OPTIONS", "DELETE"]
     if (SKIP_CONTENT_TYPE_METHODS.includes(req.method)) {
         return next()
     }
