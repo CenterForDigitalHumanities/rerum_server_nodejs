@@ -31,6 +31,11 @@ routeTester.delete("/api/delete/:_id", (req, res) => {
     res.status(200).json({ deleted: req.params._id })
 })
 
+// PUT endpoint (like /api/update, /api/bulkUpdate)
+routeTester.put("/api/update", (req, res) => {
+    res.status(200).json({ received: req.body })
+})
+
 // Release endpoint uses PATCH without a JSON body (uses Slug header)
 routeTester.patch("/api/release/:_id", (req, res) => {
     res.status(200).json({ released: req.params._id })
@@ -148,6 +153,24 @@ describe("Content-Type validation middleware", () => {
             .patch("/api/release/abc123")
         expect(response.statusCode).toBe(200)
         expect(response.body.released).toBe("abc123")
+    })
+
+    it("accepts application/json on PUT endpoint", async () => {
+        const response = await request(routeTester)
+            .put("/api/update")
+            .set("Content-Type", "application/json")
+            .send({ test: "put-data" })
+        expect(response.statusCode).toBe(200)
+        expect(response.body.received.test).toBe("put-data")
+    })
+
+    it("returns 415 for text/plain on PUT endpoint", async () => {
+        const response = await request(routeTester)
+            .put("/api/update")
+            .set("Content-Type", "text/plain")
+            .send("some text")
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Unsupported Content-Type")
     })
 
 })

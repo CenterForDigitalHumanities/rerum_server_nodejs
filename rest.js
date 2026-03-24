@@ -59,7 +59,7 @@ const validateContentType = function (req, res, next) {
     const isSearchEndpoint = req.path === "/search" || req.path.startsWith("/search/")
     if (mimeType === "text/plain" && isSearchEndpoint) return next()
     const acceptedTypes = `application/json or application/ld+json${isSearchEndpoint ? ' or text/plain' : ''}`
-    next(createExpressError({
+    return next(createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires ${acceptedTypes}.`
     }))
