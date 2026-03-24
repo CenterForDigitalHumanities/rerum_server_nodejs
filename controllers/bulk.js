@@ -7,8 +7,8 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import utils, { createExpressError } from '../utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * Create many objects at once with the power of MongoDB bulkWrite() operations.

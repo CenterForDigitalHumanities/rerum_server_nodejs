@@ -5,8 +5,8 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
-import utils from '../utils.js'
-import { createExpressError, getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
+import utils, { createExpressError } from '../utils.js'
+import { getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
 /**
  * Mark an object as deleted in the database.

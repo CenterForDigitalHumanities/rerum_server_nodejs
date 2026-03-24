@@ -7,8 +7,8 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
+import utils, { createExpressError } from '../utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
  * Update some existing object in MongoDB by changing the keys from the JSON object in the request body.

@@ -5,8 +5,8 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
-import utils from '../utils.js'
-import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError, getAgentClaim, parseDocumentID } from './utils.js'
+import utils, { createExpressError } from '../utils.js'
+import { _contextid, idNegotiation, generateSlugId, ObjectID, getAgentClaim, parseDocumentID } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.

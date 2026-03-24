@@ -7,8 +7,8 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
+import utils, { createExpressError } from '../utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
 
 /**
  * Public facing servlet to gather for all versions downstream from a provided `key object`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createExpressError } from './controllers/utils.js'
+import { createExpressError } from './utils.js'
 
 /**
  * This module is used for any REST support functionality.  It is used as middleware and so

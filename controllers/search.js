@@ -5,8 +5,8 @@
  * @author thehabes
  */
 import { db } from '../database/index.js'
-import utils from '../utils.js'
-import { idNegotiation, createExpressError } from './utils.js'
+import utils, { createExpressError } from '../utils.js'
+import { idNegotiation } from './utils.js'
 
 /**
  * Merges and deduplicates results from multiple MongoDB Atlas Search index queries.

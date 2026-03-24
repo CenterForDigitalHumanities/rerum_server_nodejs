@@ -5,6 +5,7 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
+import { createExpressError } from '../utils.js'
 
 const ObjectID = newID
 
@@ -96,18 +97,6 @@ const index = function (req, res, next) {
         status: "connected",
         message: "Not sure what to do"
     })
-}
-
-function createExpressError(err) {
-    let error = {
-        statusCode: err.statusCode ?? err.status ?? 500,
-        statusMessage: err.statusMessage ?? err.message ?? "There was an error that prevented this request from completing successfully."
-    }
-    if (err.code === 11000) {
-        error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
-        error.statusCode = 409
-    }
-    return error
 }
 
 /**
@@ -461,7 +450,6 @@ export {
     generateSlugId,
     index,
     ObjectID,
-    createExpressError,
     remove,
     getAgentClaim,
     parseDocumentID,
