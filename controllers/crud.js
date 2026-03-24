@@ -43,7 +43,6 @@ const create = async function (req, res, next) {
     delete provided["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
-    console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))

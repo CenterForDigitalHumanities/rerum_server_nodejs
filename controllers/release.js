@@ -71,7 +71,6 @@ const release = async function (req, res, next) {
             next(utils.createExpressError(err))
             return
         }
-        console.log("RELEASE")
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
             safe_original["__rerum"].releases.replaces = previousReleasedID

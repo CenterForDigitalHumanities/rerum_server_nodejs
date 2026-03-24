@@ -23,7 +23,6 @@ const overwrite = async function (req, res, next) {
     let agentRequestingOverwrite = getAgentClaim(req, next)
     const receivedID = objectReceived["@id"] ?? objectReceived.id
     if (receivedID) {
-        console.log("OVERWRITE")
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
