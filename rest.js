@@ -34,7 +34,7 @@ const checkPatchOverrideSupport = function (req, res) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
-const jsonContent = function (req, res, next) {
+const verifyJsonContentType = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
@@ -64,7 +64,7 @@ const jsonContent = function (req, res, next) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
-const textContent = function (req, res, next) {
+const verifyTextContentType = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
@@ -94,7 +94,7 @@ const textContent = function (req, res, next) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
-const eitherContent = function (req, res, next) {
+const verifyEitherContentType = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
@@ -208,4 +208,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, jsonContent, textContent, eitherContent, messenger }
+export default { checkPatchOverrideSupport, verifyJsonContentType, verifyTextContentType, verifyEitherContentType, messenger }

@@ -8,7 +8,7 @@ import auth from '../auth/index.js'
 import rest from '../rest.js'
 
 router.route('/')
-    .post(auth.checkJwt, rest.jsonContent, controller.bulkCreate)
+    .post(auth.checkJwt, rest.verifyJsonContentType, controller.bulkCreate)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)

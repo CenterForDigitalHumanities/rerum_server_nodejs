@@ -7,7 +7,7 @@ import auth from '../auth/index.js'
 import rest from '../rest.js'
 
 router.route('/')
-    .put(auth.checkJwt, rest.jsonContent, controller.overwrite)
+    .put(auth.checkJwt, rest.verifyJsonContentType, controller.overwrite)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
         res.status(405)

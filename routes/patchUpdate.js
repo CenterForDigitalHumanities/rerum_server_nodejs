@@ -7,8 +7,8 @@ import rest from '../rest.js'
 import auth from '../auth/index.js'
 
 router.route('/')
-    .patch(auth.checkJwt, rest.jsonContent, controller.patchUpdate) 
-    .post(auth.checkJwt, rest.jsonContent, (req, res, next) => {
+    .patch(auth.checkJwt, rest.verifyJsonContentType, controller.patchUpdate) 
+    .post(auth.checkJwt, rest.verifyJsonContentType, (req, res, next) => {
         if (rest.checkPatchOverrideSupport(req, res)) {
             controller.patchUpdate(req, res, next)
         }

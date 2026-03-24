@@ -3,7 +3,7 @@ import request from "supertest"
 import rest from '../../rest.js'
 
 /**
- * Tests for the Content-Type validation middlewares: jsonContent, textContent, and eitherContent.
+ * Tests for the Content-Type validation middlewares: verifyJsonContentType, verifyTextContentType, and verifyEitherContentType.
  * Each middleware is applied per-route rather than as a blanket middleware.
  */
 
@@ -13,30 +13,30 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 routeTester.use(express.text())
 
 // JSON-only endpoints (like /api/create, /api/query, /api/update, etc.)
-routeTester.post("/json-endpoint", rest.jsonContent, (req, res) => {
+routeTester.post("/json-endpoint", rest.verifyJsonContentType, (req, res) => {
     res.status(200).json({ received: req.body })
 })
-routeTester.put("/json-endpoint", rest.jsonContent, (req, res) => {
+routeTester.put("/json-endpoint", rest.verifyJsonContentType, (req, res) => {
     res.status(200).json({ received: req.body })
 })
-routeTester.patch("/json-endpoint", rest.jsonContent, (req, res) => {
+routeTester.patch("/json-endpoint", rest.verifyJsonContentType, (req, res) => {
     res.status(200).json({ received: req.body })
 })
 
 // Text-only endpoint
-routeTester.post("/text-endpoint", rest.textContent, (req, res) => {
+routeTester.post("/text-endpoint", rest.verifyTextContentType, (req, res) => {
     res.status(200).json({ received: req.body })
 })
 
 // Either JSON or text endpoint (like /api/search)
-routeTester.post("/either-endpoint", rest.eitherContent, (req, res) => {
+routeTester.post("/either-endpoint", rest.verifyEitherContentType, (req, res) => {
     res.status(200).json({ received: req.body })
 })
 
 // Error handler matching the app's pattern
 routeTester.use(rest.messenger)
 
-describe("jsonContent middleware", () => {
+describe("verifyJsonContentType middleware", () => {
 
     it("accepts application/json", async () => {
         const response = await request(routeTester)
@@ -156,7 +156,7 @@ describe("jsonContent middleware", () => {
     })
 })
 
-describe("textContent middleware", () => {
+describe("verifyTextContentType middleware", () => {
 
     it("accepts text/plain", async () => {
         const response = await request(routeTester)
@@ -204,7 +204,7 @@ describe("textContent middleware", () => {
     })
 })
 
-describe("eitherContent middleware", () => {
+describe("verifyEitherContentType middleware", () => {
 
     it("accepts application/json", async () => {
         const response = await request(routeTester)
