@@ -121,7 +121,7 @@ Token: ${token}`
             }
             else {
                 //If there was no Token, this would be a 401.  If you made it here, you didn't REST.
-                err.message += `
+                error.message += `
 You are Forbidden from performing this action. The request does not contain an "Authorization" header.
 Make sure you have registered at ${process.env.RERUM_PREFIX}. `
             }
