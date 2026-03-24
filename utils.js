@@ -246,7 +246,7 @@ const configureLastModifiedHeader = function(obj){
  * @param {Object} err - An error or object with statusCode/status and statusMessage/message properties
  * @return {Object} A normalized error object with statusCode and statusMessage
  */
-export function createExpressError(err) {
+function createExpressError(err) {
     let error = {
         statusCode: err.statusCode ?? err.status ?? 500,
         statusMessage: err.statusMessage ?? err.message ?? "There was an error that prevented this request from completing successfully."

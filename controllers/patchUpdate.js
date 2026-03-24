@@ -7,7 +7,7 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils, { createExpressError } from '../utils.js'
+import utils from '../utils.js'
 import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
@@ -30,7 +30,7 @@ const patchUpdate = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -110,7 +110,7 @@ const patchUpdate = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                next(createExpressError(error))
+                next(utils.createExpressError(error))
                 return
             }
         }
@@ -122,7 +122,7 @@ const patchUpdate = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    next(utils.createExpressError(err))
 }
 
 export { patchUpdate }

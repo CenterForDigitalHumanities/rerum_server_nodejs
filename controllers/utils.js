@@ -5,7 +5,7 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/index.js'
-import { createExpressError } from '../utils.js'
+import utils from '../utils.js'
 
 const ObjectID = newID
 
@@ -66,7 +66,7 @@ const idNegotiation = function (resBody) {
  * Check if an object with the proposed custom _id already exists.
  * If so, this is a 409 conflict.  It will be detected downstream if we continue one by returning the proposed Slug.
  * We can avoid the 409 conflict downstream and return a newly minted ObjectID.toHextString()
- * We error out right here with next(createExpressError({"code" : 11000}))
+ * We error out right here with next(utils.createExpressError({"code" : 11000}))
  * @param slug_id A proposed _id.  
  * 
  */  
@@ -137,7 +137,7 @@ function getAgentClaim(req, next) {
         "message": "Could not get agent from req.user.  Have you registered with RERUM?",
         "status": 403
     }
-    next(createExpressError(err))  
+    next(utils.createExpressError(err))  
 }
 
 function parseDocumentID(atID){

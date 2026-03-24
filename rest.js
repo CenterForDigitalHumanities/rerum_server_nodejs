@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createExpressError } from './utils.js'
+import utils from './utils.js'
 
 /**
  * This module is used for any REST support functionality.  It is used as middleware and so
@@ -37,19 +37,19 @@ const jsonContent = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
-        return next(createExpressError({
+        return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
     if (contentType.includes(",")) {
-        return next(createExpressError({
+        return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
         }))
     }
     if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
-    return next(createExpressError({
+    return next(utils.createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires application/json or application/ld+json.`
     }))
@@ -66,19 +66,19 @@ const textContent = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
-        return next(createExpressError({
+        return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
     if (contentType.includes(",")) {
-        return next(createExpressError({
+        return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
         }))
     }
     if (mimeType === "text/plain") return next()
-    return next(createExpressError({
+    return next(utils.createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires text/plain.`
     }))
@@ -95,19 +95,19 @@ const eitherContent = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
-        return next(createExpressError({
+        return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
     if (contentType.includes(",")) {
-        return next(createExpressError({
+        return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
         }))
     }
     if (mimeType === "text/plain" || mimeType === "application/json" || mimeType === "application/ld+json") return next()
-    return next(createExpressError({
+    return next(utils.createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires application/json, application/ld+json, or text/plain.`
     }))
@@ -118,7 +118,7 @@ const eitherContent = function (req, res, next) {
  * REST is all about communication.  The response code and the textual body are particular.
  * RERUM is all about being clear.  It will build custom responses sometimes for certain scenarios, will remaining RESTful.
  * 
- * You have likely reached this with a next(createExpressError(err)) call.  End here and send the error.
+ * You have likely reached this with a next(utils.createExpressError(err)) call.  End here and send the error.
  */
 const messenger = function (err, req, res, next) {
     if (res.headersSent) {

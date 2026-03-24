@@ -7,7 +7,7 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils, { createExpressError } from '../utils.js'
+import utils from '../utils.js'
 import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
@@ -29,7 +29,7 @@ const overwrite = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -85,7 +85,7 @@ const overwrite = async function (req, res, next) {
                 try {
                     result = await db.replaceOne({ "_id": id }, newObject)
                 } catch (error) {
-                    next(createExpressError(error))
+                    next(utils.createExpressError(error))
                     return
                 }
                 if (result.modifiedCount == 0) {
@@ -109,7 +109,7 @@ const overwrite = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    next(utils.createExpressError(err))
 }
 
 export { overwrite }

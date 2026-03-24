@@ -7,7 +7,7 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils, { createExpressError } from '../utils.js'
+import utils from '../utils.js'
 import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, generateSlugId, establishReleasesTree, healReleasesTree } from './utils.js'
 
 /**
@@ -29,7 +29,7 @@ const release = async function (req, res, next) {
     if(req.get("Slug")){
         let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
-            next(createExpressError(slug_json))
+            next(utils.createExpressError(slug_json))
             return
         }
         else{
@@ -42,7 +42,7 @@ const release = async function (req, res, next) {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } 
         catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         let safe_original = JSON.parse(JSON.stringify(originalObject))
@@ -68,7 +68,7 @@ const release = async function (req, res, next) {
             })
         }
         if (err.status) {
-            next(createExpressError(err))
+            next(utils.createExpressError(err))
             return
         }
         console.log("RELEASE")
@@ -103,7 +103,7 @@ const release = async function (req, res, next) {
                     result = await db.replaceOne({ "_id": id }, releasedObject)
                 } 
                 catch (error) {
-                    next(createExpressError(error))
+                    next(utils.createExpressError(error))
                     return
                 }
                 if (result.modifiedCount == 0) {
@@ -125,7 +125,7 @@ const release = async function (req, res, next) {
             message: "You must provide the id of an object to release.  Use /release/id-here or release?_id=id-here.",
             status: 400
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
 }

@@ -7,7 +7,7 @@
  */
 
 import { newID, isValidID, db } from '../database/index.js'
-import utils, { createExpressError } from '../utils.js'
+import utils from '../utils.js'
 import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
@@ -22,13 +22,13 @@ const bulkCreate = async function (req, res, next) {
     if (!Array.isArray(documents)) {
         err.message = "The request body must be an array of objects."
         err.status = 400
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     if (documents.length === 0) {
         err.message = "No action on an empty array."
         err.status = 400
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     const gatekeep = documents.filter(d=> {
@@ -46,7 +46,7 @@ const bulkCreate = async function (req, res, next) {
     if (gatekeep.length > 0) {
         err.message = "All objects in the body of a `/bulkCreate` must be JSON and must not contain a declared identifier property."
         err.status = 400
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
 
@@ -55,7 +55,7 @@ const bulkCreate = async function (req, res, next) {
     // if(slug){
     //     const slugError = await exports.generateSlugId(slug)
     //     if(slugError){
-    //         next(createExpressError(slugError))
+    //         next(utils.createExpressError(slugError))
     //         return
     //     }
     //     else{
@@ -92,7 +92,7 @@ const bulkCreate = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
@@ -111,13 +111,13 @@ const bulkUpdate = async function (req, res, next) {
     if (!Array.isArray(documents)) {
         err.message = "The request body must be an array of objects."
         err.status = 400
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     if (documents.length === 0) {
         err.message = "No action on an empty array."
         err.status = 400
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     const gatekeep = documents.filter(d => {
@@ -136,7 +136,7 @@ const bulkUpdate = async function (req, res, next) {
     if (gatekeep.length > 0) {
         err.message = "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property."
         err.status = 400
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     // unordered bulkWrite() operations have better performance metrics.
@@ -154,7 +154,7 @@ const bulkUpdate = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         if (null === originalObject) continue
@@ -196,7 +196,7 @@ const bulkUpdate = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
