@@ -7,7 +7,7 @@ import rest from '../rest.js'
 
 router.route('/')
     .patch(auth.checkJwt, rest.jsonContent, controller.patchSet)
-    .post(auth.checkJwt, (req, res, next) => {
+    .post(auth.checkJwt, rest.jsonContent, (req, res, next) => {
         if (rest.checkPatchOverrideSupport(req, res)) {
             controller.patchSet(req, res, next)
         }

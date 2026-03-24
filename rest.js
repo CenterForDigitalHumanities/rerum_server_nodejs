@@ -27,7 +27,8 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
- * Middleware to validate JSON Content-Type headers for endpoints recieving JSON bodies.
+ * Middleware to verify Content-Type headers for endpoints receiving JSON bodies.
+ * Responds with a 415 Invalid Media Type for Content-Type headers that are not for JSON bodies.
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -56,7 +57,8 @@ const jsonContent = function (req, res, next) {
 }
 
 /**
- * Middleware to validate Content-Type headers for endpoints recieving textual bodies.
+ * Middleware to verify Content-Type headers for endpoints receiving textual bodies.
+ * Responds with a 415 Invalid Media Type for Content-Type headers that are not for textual bodies.
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -85,7 +87,8 @@ const textContent = function (req, res, next) {
 }
 
 /**
- * Middleware to validate Content-Type headers for endpoints recieving either JSON or textual bodies.
+ * Middleware to verify Content-Type headers for endpoints receiving either JSON or textual bodies.
+ * Responds with a 415 Invalid Media Type for Content-Type headers that are neither for textual bodies nor JSON bodies.
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
