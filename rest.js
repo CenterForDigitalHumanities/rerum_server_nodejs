@@ -27,26 +27,13 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
- * Middleware to validate Content-Type headers.
- * Ensures that requests carrying bodies have an appropriate Content-Type before
- * reaching controllers, preventing unhandled errors from unparsed or mis-parsed bodies.
- *
- * - Skips validation for methods that don't carry bodies (GET, HEAD, OPTIONS, DELETE)
- * - Skips validation for endpoints that don't carry bodies (/release)
- * - Allows text/plain for /search endpoints (which accept plain text search terms)
- * - Requires application/json or application/ld+json for all other write endpoints
- * - Returns 415 for missing or unsupported Content-Type
+ * Middleware to validate JSON Content-Type headers for endpoints recieving JSON bodies.
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
  */
-const SKIP_CONTENT_TYPE_METHODS = ["GET", "HEAD", "OPTIONS", "DELETE"]
-const validateContentType = function (req, res, next) {
-    const isReleaseEndpoint = req.path === "/release" || req.path.startsWith("/release/")
-    if (SKIP_CONTENT_TYPE_METHODS.includes(req.method) || isReleaseEndpoint) {
-        return next()
-    }
+const jsonContent = function (req, res, next) {
     const contentType = (req.get("Content-Type") ?? "").toLowerCase()
     const mimeType = contentType.split(";")[0].trim()
     if (!mimeType) {
@@ -62,12 +49,67 @@ const validateContentType = function (req, res, next) {
         }))
     }
     if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
-    const isSearchEndpoint = req.path === "/search" || req.path.startsWith("/search/")
-    if (mimeType === "text/plain" && isSearchEndpoint) return next()
-    const acceptedTypes = `application/json or application/ld+json${isSearchEndpoint ? ' or text/plain' : ''}`
     return next(createExpressError({
         statusCode: 415,
-        statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires ${acceptedTypes}.`
+        statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires application/json or application/ld+json.`
+    }))
+}
+
+/**
+ * Middleware to validate Content-Type headers for endpoints recieving textual bodies.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const textContent = function (req, res, next) {
+    const contentType = (req.get("Content-Type") ?? "").toLowerCase()
+    const mimeType = contentType.split(";")[0].trim()
+    if (!mimeType) {
+        return next(createExpressError({
+            statusCode: 415,
+            statusMessage: `Missing or empty Content-Type header.`
+        }))
+    }
+    if (contentType.includes(",")) {
+        return next(createExpressError({
+            statusCode: 415,
+            statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
+        }))
+    }
+    if (mimeType === "text/plain") return next()
+    return next(createExpressError({
+        statusCode: 415,
+        statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires text/plain.`
+    }))
+}
+
+/**
+ * Middleware to validate Content-Type headers for endpoints recieving either JSON or textual bodies.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const eitherContent = function (req, res, next) {
+    const contentType = (req.get("Content-Type") ?? "").toLowerCase()
+    const mimeType = contentType.split(";")[0].trim()
+    if (!mimeType) {
+        return next(createExpressError({
+            statusCode: 415,
+            statusMessage: `Missing or empty Content-Type header.`
+        }))
+    }
+    if (contentType.includes(",")) {
+        return next(createExpressError({
+            statusCode: 415,
+            statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
+        }))
+    }
+    if (mimeType === "text/plain" || mimeType === "application/json" || mimeType === "application/ld+json") return next()
+    return next(createExpressError({
+        statusCode: 415,
+        statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires text/plain.`
     }))
 }
 
@@ -163,4 +205,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, validateContentType, messenger }
+export default { checkPatchOverrideSupport, jsonContent, textContent, messenger }

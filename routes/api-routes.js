@@ -44,12 +44,10 @@ import releaseRouter from './release.js';
 import sinceRouter from './since.js';
 // Support GET requests like v1/history/{object id} to discover all previous versions tracing back to the prime.
 import historyRouter from './history.js';
-import rest from '../rest.js'
 
 router.use(staticRouter)
-router.use('/id',idRouter)
+router.use('/id', idRouter)
 router.use('/api', compatabilityRouter)
-router.use('/api', rest.validateContentType)
 router.use('/api/query', queryRouter)
 router.use('/api/search', searchRouter)
 router.use('/api/create', createRouter)
