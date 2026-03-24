@@ -67,6 +67,14 @@ describe("Content-Type validation middleware", () => {
         expect(response.statusCode).toBe(200)
     })
 
+    it("accepts application/ld+json with charset parameter", async () => {
+        const response = await request(routeTester)
+            .post("/api/create")
+            .set("Content-Type", "application/ld+json; charset=utf-8")
+            .send(JSON.stringify({ "@context": "http://example.org", test: "ld-charset" }))
+        expect(response.statusCode).toBe(200)
+    })
+
     it("returns 415 for missing Content-Type header", async () => {
         const response = await request(routeTester)
             .post("/api/create")
