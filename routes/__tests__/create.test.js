@@ -13,7 +13,7 @@ const addAuth = (req, res, next) => {
 }
 
 const routeTester = new express()
-routeTester.use(express.json())
+routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
 // Mount our own /create route without auth that will use controller.create
 routeTester.use("/create", [addAuth, controller.create])

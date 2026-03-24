@@ -146,14 +146,15 @@ describe("verifyJsonContentType middleware", () => {
         expect(response.text).toContain("Multiple Content-Type values are not allowed")
     })
 
-    it("accepts valid MIME type even with trailing comma-separated parameter noise", async () => {
-        // The MIME type is application/json (valid), so the request passes.
-        // The comma after charset is in the parameter portion, not the MIME type.
+    it("returns 415 for comma-injected Content-Type parameter", async () => {
+        // Even though the MIME type portion is valid, the comma in the full header
+        // is rejected to prevent Content-Type smuggling via parameter injection.
         const response = await request(routeTester)
             .post("/json-endpoint")
             .set("Content-Type", "application/json; charset=utf-8, text/plain")
             .send('{"test":"data"}')
-        expect(response.statusCode).toBe(200)
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
     })
 })
 

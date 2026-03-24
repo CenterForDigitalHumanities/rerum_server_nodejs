@@ -13,7 +13,7 @@ const addAuth = (req, res, next) => {
 }
 
 const routeTester = new express()
-routeTester.use(express.json())
+routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
 // Mount our own /patch route without auth that will use controller.patch
 routeTester.use("/patch", [addAuth, controller.patchUpdate])

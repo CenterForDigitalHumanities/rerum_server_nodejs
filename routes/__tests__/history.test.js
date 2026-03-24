@@ -7,7 +7,7 @@ import request from "supertest"
 import controller from '../../db-controller.js'
 
 const routeTester = new express()
-routeTester.use(express.json())
+routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
 // Mount our own /history route without auth that will use controller.history
 routeTester.use("/history/:_id", controller.history)
