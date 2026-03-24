@@ -101,7 +101,7 @@ const index = function (req, res, next) {
 
 function createExpressError(err) {
     let error = {
-        statusCode: err.statusCode ?? err.status ?? 500,
+        statusCode: err.statusCode ?? err.status ?? err.code ?? 500,
         statusMessage: err.statusMessage ?? err.message ?? "There was an error that prevented this request from completing successfully."
     }
     if (err.code === 11000) {
