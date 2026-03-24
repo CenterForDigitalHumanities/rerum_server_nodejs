@@ -100,21 +100,14 @@ const index = function (req, res, next) {
 }
 
 function createExpressError(err) {
-    let error = {}
-    if (err.code) {
-        switch (err.code) {
-            case 11000:
-                //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
-                error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
-                error.statusCode = 409
-                break
-            default:
-                error.statusMessage = "There was a mongo error that prevented this request from completing successfully."
-                error.statusCode = 500
-        }
+    let error = {
+        statusCode: err.statusCode ?? err.code ?? 500,
+        statusMessage: err.statusMessage ?? err.message ?? "There was an error that prevented this request from completing successfully."
     }
-    error.statusCode = err.statusCode ?? err.status ?? 500
-    error.statusMessage = err.statusMessage ?? err.message ?? "Detected Error"
+    if (err.code === 11000) {
+        error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
+        error.statusCode = 409
+    }
     return error
 }
 
