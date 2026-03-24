@@ -156,6 +156,24 @@ describe("verifyJsonContentType middleware", () => {
         expect(response.statusCode).toBe(415)
         expect(response.text).toContain("Multiple Content-Type values are not allowed")
     })
+
+    it("returns 415 for semicolon-smuggled MIME type", async () => {
+        const response = await request(routeTester)
+            .post("/json-endpoint")
+            .set("Content-Type", "application/json; text/plain")
+            .send('{"test":"data"}')
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
+    })
+
+    it("returns 415 for semicolon-smuggled MIME type with valid parameter", async () => {
+        const response = await request(routeTester)
+            .post("/json-endpoint")
+            .set("Content-Type", "application/json; charset=utf-8; text/plain")
+            .send('{"test":"data"}')
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
+    })
 })
 
 describe("verifyTextContentType middleware", () => {
@@ -200,6 +218,15 @@ describe("verifyTextContentType middleware", () => {
         const response = await request(routeTester)
             .post("/text-endpoint")
             .set("Content-Type", "text/plain, application/json")
+            .send("hello")
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
+    })
+
+    it("returns 415 for semicolon-smuggled MIME type", async () => {
+        const response = await request(routeTester)
+            .post("/text-endpoint")
+            .set("Content-Type", "text/plain; application/json")
             .send("hello")
         expect(response.statusCode).toBe(415)
         expect(response.text).toContain("Multiple Content-Type values are not allowed")
@@ -258,6 +285,15 @@ describe("verifyEitherContentType middleware", () => {
         const response = await request(routeTester)
             .post("/either-endpoint")
             .set("Content-Type", "application/json, text/plain")
+            .send('{"test":"data"}')
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
+    })
+
+    it("returns 415 for semicolon-smuggled MIME type", async () => {
+        const response = await request(routeTester)
+            .post("/either-endpoint")
+            .set("Content-Type", "application/json; text/plain")
             .send('{"test":"data"}')
         expect(response.statusCode).toBe(415)
         expect(response.text).toContain("Multiple Content-Type values are not allowed")

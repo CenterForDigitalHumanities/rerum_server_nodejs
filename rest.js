@@ -27,6 +27,22 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
+ * Detects multiple MIME types smuggled into a single Content-Type header.
+ * Catches both comma-separated types (e.g., "application/json, text/plain")
+ * and semicolon-smuggled types (e.g., "application/json; text/plain").
+ * Per RFC 7231/2045, semicolons delimit parameters which must be key=value pairs.
+ * A segment without '=' after a semicolon is a bare token, not a valid parameter.
+ *
+ * @param {string} contentType - Lowercased Content-Type header value
+ * @returns {boolean} True if multiple MIME types are detected
+ */
+const hasMultipleContentTypes = (contentType) => {
+    if (contentType.includes(",")) return true
+    const segments = contentType.split(";")
+    return segments.slice(1).some(segment => !segment.trim().includes("="))
+}
+
+/**
  * Middleware to verify Content-Type headers for endpoints receiving JSON bodies.
  * Responds with a 415 Invalid Media Type for Content-Type headers that are not for JSON bodies.
  *
@@ -43,7 +59,7 @@ const verifyJsonContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    if (contentType.includes(",")) {
+    if (hasMultipleContentTypes(contentType)) {
         return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
@@ -73,7 +89,7 @@ const verifyTextContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    if (contentType.includes(",")) {
+    if (hasMultipleContentTypes(contentType)) {
         return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
@@ -103,7 +119,7 @@ const verifyEitherContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    if (contentType.includes(",")) {
+    if (hasMultipleContentTypes(contentType)) {
         return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
