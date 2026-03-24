@@ -43,13 +43,13 @@ const verifyJsonContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
     if (contentType.includes(",")) {
         return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
         }))
     }
+    if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
     return next(utils.createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires application/json or application/ld+json.`
@@ -73,13 +73,13 @@ const verifyTextContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    if (mimeType === "text/plain") return next()
     if (contentType.includes(",")) {
         return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
         }))
     }
+    if (mimeType === "text/plain") return next()
     return next(utils.createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires text/plain.`
@@ -103,13 +103,13 @@ const verifyEitherContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
-    if (mimeType === "text/plain" || mimeType === "application/json" || mimeType === "application/ld+json") return next()
     if (contentType.includes(",")) {
         return next(utils.createExpressError({
             statusCode: 415,
             statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
         }))
     }
+    if (mimeType === "text/plain" || mimeType === "application/json" || mimeType === "application/ld+json") return next()
     return next(utils.createExpressError({
         statusCode: 415,
         statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires application/json, application/ld+json, or text/plain.`
