@@ -155,7 +155,7 @@ If the body is JSON, make sure it is valid JSON.`
             if (token) {
                 error.message += `
 The token provided is Unauthorized.  Please check that it is your token and that it is not expired. 
-Token: ${token} `
+Token: ${token.slice(0, 15)}... `
             }
             else {
                 error.message += `
@@ -168,7 +168,7 @@ like "Authorization: Bearer <token>". Make sure you have registered at ${process
             if (token) {
                 error.message += `
 You are Forbidden from performing this action.  Check your privileges.
-Token: ${token}`
+Token: ${token.slice(0, 15)}...`
             }
             else {
                 //If there was no Token, this would be a 401.  If you made it here, you didn't REST.
