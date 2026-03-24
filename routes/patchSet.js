@@ -4,10 +4,9 @@ const router = express.Router()
 import controller from '../db-controller.js'
 import auth from '../auth/index.js'
 import rest from '../rest.js'
-import { jsonContent } from '../rest.js'
 
 router.route('/')
-    .patch(auth.checkJwt, jsonContent, controller.patchSet)
+    .patch(auth.checkJwt, rest.jsonContent, controller.patchSet)
     .post(auth.checkJwt, (req, res, next) => {
         if (rest.checkPatchOverrideSupport(req, res)) {
             controller.patchSet(req, res, next)

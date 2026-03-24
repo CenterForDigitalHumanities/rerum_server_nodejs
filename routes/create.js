@@ -4,10 +4,10 @@ const router = express.Router()
 //This controller will handle all MongoDB interactions.
 import controller from '../db-controller.js'
 import auth from '../auth/index.js'
-import { jsonContent } from '../rest.js'
+import rest from '../rest.js'
 
 router.route('/')
-    .post(auth.checkJwt, jsonContent, controller.create)
+    .post(auth.checkJwt, rest.jsonContent, controller.create)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
         res.status(405)

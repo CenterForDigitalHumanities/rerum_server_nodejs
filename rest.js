@@ -109,7 +109,7 @@ const eitherContent = function (req, res, next) {
     if (mimeType === "text/plain" || mimeType === "application/json" || mimeType === "application/ld+json") return next()
     return next(createExpressError({
         statusCode: 415,
-        statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires text/plain.`
+        statusMessage: `Unsupported Content-Type: ${contentType}. This endpoint requires application/json, application/ld+json, or text/plain.`
     }))
 }
 
@@ -205,4 +205,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, jsonContent, textContent, messenger }
+export default { checkPatchOverrideSupport, jsonContent, textContent, eitherContent, messenger }

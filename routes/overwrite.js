@@ -4,10 +4,10 @@ const router = express.Router()
 //This controller will handle all MongoDB interactions.
 import controller from '../db-controller.js'
 import auth from '../auth/index.js'
-import { jsonContent } from '../rest.js'
+import rest from '../rest.js'
 
 router.route('/')
-    .put(auth.checkJwt, jsonContent, controller.overwrite)
+    .put(auth.checkJwt, rest.jsonContent, controller.overwrite)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for overwriting, please use PUT to overwrite this object.'
         res.status(405)

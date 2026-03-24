@@ -1,10 +1,10 @@
 import express from 'express'
 const router = express.Router()
 import controller from '../db-controller.js'
-import { eitherContent } from '../rest.js'
+import rest from '../rest.js'
 
 router.route('/')
-    .post(eitherContent, controller.searchAsWords)
+    .post(rest.eitherContent, controller.searchAsWords)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for search.  Please use POST.'
         res.status(405)
@@ -12,7 +12,7 @@ router.route('/')
     })
 
 router.route('/phrase')
-    .post(eitherContent, controller.searchAsPhrase)
+    .post(rest.eitherContent, controller.searchAsPhrase)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for search.  Please use POST.'
         res.status(405)
