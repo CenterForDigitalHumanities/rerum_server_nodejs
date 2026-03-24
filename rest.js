@@ -55,6 +55,12 @@ const validateContentType = function (req, res, next) {
             statusMessage: `Missing or empty Content-Type header.`
         }))
     }
+    if (contentType.includes(",")) {
+        return next(createExpressError({
+            statusCode: 415,
+            statusMessage: `Multiple Content-Type values are not allowed. Provide exactly one Content-Type header.`
+        }))
+    }
     if (mimeType === "application/json" || mimeType === "application/ld+json") return next()
     const isSearchEndpoint = req.path === "/search" || req.path.startsWith("/search/")
     if (mimeType === "text/plain" && isSearchEndpoint) return next()

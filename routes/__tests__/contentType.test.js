@@ -173,4 +173,22 @@ describe("Content-Type validation middleware", () => {
         expect(response.text).toContain("Unsupported Content-Type")
     })
 
+    it("returns 415 for comma-separated multiple Content-Type values", async () => {
+        const response = await request(routeTester)
+            .post("/api/create")
+            .set("Content-Type", "application/json, text/plain")
+            .send('{"test":"data"}')
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
+    })
+
+    it("returns 415 for valid type smuggled via comma after charset", async () => {
+        const response = await request(routeTester)
+            .post("/api/create")
+            .set("Content-Type", "application/json; charset=utf-8, text/plain")
+            .send('{"test":"data"}')
+        expect(response.statusCode).toBe(415)
+        expect(response.text).toContain("Multiple Content-Type values are not allowed")
+    })
+
 })
