@@ -6,7 +6,7 @@ import rest from '../../rest.js'
 const routeTester = express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 routeTester.use(express.text())
-routeTester.use(express.urlencoded({ extended: true }))
+
 
 // Mount the validateContentType middleware on /api just like api-routes.js
 routeTester.use("/api", rest.validateContentType)

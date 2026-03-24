@@ -15,7 +15,6 @@ const addAuth = (req, res, next) => {
 
 const routeTester = new express()
 routeTester.use(express.json())
-routeTester.use(express.urlencoded({ extended: false }))
 
 // Mount our own /create route without auth that will use controller.create
 routeTester.use("/set", [addAuth, controller.patchSet])

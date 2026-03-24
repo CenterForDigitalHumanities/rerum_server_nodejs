@@ -7,7 +7,6 @@ import controller from '../../db-controller.js'
 
 const routeTester = new express()
 routeTester.use(express.json())
-routeTester.use(express.urlencoded({ extended: false }))
 
 // Mount our own /query route without auth that will use controller.query
 routeTester.use("/query", controller.query)

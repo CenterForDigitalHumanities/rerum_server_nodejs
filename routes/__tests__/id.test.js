@@ -7,7 +7,6 @@ import controller from '../../db-controller.js'
 
 const routeTester = new express()
 routeTester.use(express.json())
-routeTester.use(express.urlencoded({ extended: false }))
 
 // Mount our own /id route without auth that will use controller.id
 routeTester.use("/id/:_id", controller.id)

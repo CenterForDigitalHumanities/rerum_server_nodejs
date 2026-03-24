@@ -59,7 +59,6 @@ app.use(
 app.use(logger('dev'))
 app.use(express.json({ type: ["application/json", "application/ld+json"] }))
 app.use(express.text())
-app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
 //Publicly available scripts, CSS, and HTML pages.

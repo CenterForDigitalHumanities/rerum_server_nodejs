@@ -13,7 +13,6 @@ const addAuth = (req, res, next) => {
 
 const routeTester = new express()
 routeTester.use(express.json())
-routeTester.use(express.urlencoded({ extended: false }))
 
 // Mount our own /bulkCreate route without auth that will use controller.bulkCreate
 routeTester.use("/bulkCreate", [addAuth, controller.bulkCreate])
