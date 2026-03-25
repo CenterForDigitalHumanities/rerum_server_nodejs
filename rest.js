@@ -37,8 +37,8 @@ const checkPatchOverrideSupport = function (req, res) {
  * @returns {boolean} True if multiple MIME types are detected
  */
 const hasMultipleContentTypes = (contentType) => {
-    if (contentType.includes(",")) return true
     const segments = contentType.split(";")
+    if (segments[0].includes(",")) return true
     return segments.slice(1).some(segment => !segment.trim().includes("="))
 }
 
