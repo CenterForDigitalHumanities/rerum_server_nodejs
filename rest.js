@@ -37,6 +37,7 @@ const checkPatchOverrideSupport = function (req, res) {
   - application/json; a=b; text/plain;
   - application/json; a=b text/plain;
   - application/json; charset=utf-8, text/plain
+  - application/json;
  
  * @param {string} contentType - Lowercased Content-Type header value
  * @returns {boolean} True if multiple MIME types are detected

@@ -13,7 +13,9 @@
   - text/plain; application/json
   - text/plain; a=b, application/json
   - application/json; a=b; text/plain;
+  - application/json; a=b text/plain;
   - application/json; charset=utf-8, text/plain
+  - application/json;
 
   * If a request contains more than one Content-Type header, that should also result in a 415.
   *
@@ -59,6 +61,15 @@ describe("verifyJsonContentType middleware", () => {
             // Must stringify manually; supertest's .send(object) would override Content-Type to application/json
             .send(JSON.stringify({ "@context": "http://example.org", test: "ld" }))
         expect(response.statusCode).toBe(200)
+    })
+
+    it("returns 415 for trailing semicolon without parameter", async () => {
+        // A trailing semicolon is malformed per RFC 7231 and express.json() won't parse it
+        const response = await request(routeTester)
+            .post("/json-endpoint")
+            .set("Content-Type", "application/json;")
+            .send('{"test":"trailing-semicolon"}')
+        expect(response.statusCode).toBe(415)
     })
 
     it("accepts application/json with charset parameter", async () => {

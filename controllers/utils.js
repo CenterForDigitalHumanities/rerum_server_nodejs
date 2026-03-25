@@ -137,7 +137,7 @@ function getAgentClaim(req, next) {
         "message": "Could not get agent from req.user.  Have you registered with RERUM?",
         "status": 403
     }
-    next(utils.createExpressError(err))  
+    return next(utils.createExpressError(err))  
 }
 
 function parseDocumentID(atID){
