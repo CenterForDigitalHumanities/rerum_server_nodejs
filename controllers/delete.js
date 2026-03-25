@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { createExpressError, getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
+import { getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
 /**
  * Mark an object as deleted in the database.
@@ -26,7 +26,7 @@ const deleteObj = async function(req, res, next) {
     try {
         id = req.params["_id"] ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["@id"]) ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["id"])
     } catch(error){
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
         return
     }
     let agentRequestingDelete = getAgentClaim(req, next)
@@ -34,7 +34,7 @@ const deleteObj = async function(req, res, next) {
     try {
         originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
         return
     }
     if (null !== originalObject) {
@@ -58,7 +58,7 @@ const deleteObj = async function(req, res, next) {
             })
         }
         if (err.status) {
-            next(createExpressError(err))
+            next(utils.createExpressError(err))
             return
         }
         let preserveID = safe_original["@id"]
@@ -76,14 +76,14 @@ const deleteObj = async function(req, res, next) {
             try {
                 result = await db.replaceOne({ "_id": originalObject["_id"] }, deletedObject)
             } catch (error) {
-                next(createExpressError(error))
+                next(utils.createExpressError(error))
                 return
             }
             if (result.modifiedCount === 0) {
                 //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 err.message = "The original object was not replaced with the deleted object in the database."
                 err.status = 500
-                next(createExpressError(err))
+                next(utils.createExpressError(err))
                 return
             }
             //204 to say it is deleted and there is nothing in the body
@@ -94,12 +94,12 @@ const deleteObj = async function(req, res, next) {
         //Not sure we can get here, as healHistoryTree might throw and error.
         err.message = "The history tree for the object being deleted could not be mended."
         err.status = 500
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     err.message = "No object with this id could be found in RERUM.  Cannot delete."
     err.status = 404
-    next(createExpressError(err))
+    next(utils.createExpressError(err))
 }
 
 /**

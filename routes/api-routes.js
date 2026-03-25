@@ -46,7 +46,7 @@ import sinceRouter from './since.js';
 import historyRouter from './history.js';
 
 router.use(staticRouter)
-router.use('/id',idRouter)
+router.use('/id', idRouter)
 router.use('/api', compatabilityRouter)
 router.use('/api/query', queryRouter)
 router.use('/api/search', searchRouter)

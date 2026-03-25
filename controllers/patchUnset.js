@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
  * Update some existing object in MongoDB by removing the keys noted in the JSON object in the request body.
@@ -31,7 +31,7 @@ const patchUnset = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -91,7 +91,6 @@ const patchUnset = async function (req, res, next) {
             if(_contextid(patchedObject["@context"])) delete patchedObject.id
             delete patchedObject["@context"]
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, patchedObject, rerumProp, { "_id": id })
-            console.log("PATCH UNSET")
             try {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
@@ -111,7 +110,7 @@ const patchUnset = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                next(createExpressError(error))
+                next(utils.createExpressError(error))
                 return
             }
         }
@@ -123,7 +122,7 @@ const patchUnset = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    next(utils.createExpressError(err))
 }
 
 export { patchUnset }

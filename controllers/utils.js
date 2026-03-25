@@ -66,7 +66,7 @@ const idNegotiation = function (resBody) {
  * Check if an object with the proposed custom _id already exists.
  * If so, this is a 409 conflict.  It will be detected downstream if we continue one by returning the proposed Slug.
  * We can avoid the 409 conflict downstream and return a newly minted ObjectID.toHextString()
- * We error out right here with next(createExpressError({"code" : 11000}))
+ * We error out right here with next(utils.createExpressError({"code" : 11000}))
  * @param slug_id A proposed _id.  
  * 
  */  
@@ -97,25 +97,6 @@ const index = function (req, res, next) {
         status: "connected",
         message: "Not sure what to do"
     })
-}
-
-function createExpressError(err) {
-    let error = {}
-    if (err.code) {
-        switch (err.code) {
-            case 11000:
-                //Duplicate _id key error, specific to SLUG support.  This is a Conflict.
-                error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
-                error.statusCode = 409
-                break
-            default:
-                error.statusMessage = "There was a mongo error that prevented this request from completing successfully."
-                error.statusCode = 500
-        }
-    }
-    error.statusCode = err.statusCode ?? err.status ?? 500
-    error.statusMessage = err.statusMessage ?? err.message ?? "Detected Error"
-    return error
 }
 
 /**
@@ -156,7 +137,7 @@ function getAgentClaim(req, next) {
         "message": "Could not get agent from req.user.  Have you registered with RERUM?",
         "status": 403
     }
-    next(createExpressError(err))  
+    return next(utils.createExpressError(err))  
 }
 
 function parseDocumentID(atID){
@@ -469,7 +450,6 @@ export {
     generateSlugId,
     index,
     ObjectID,
-    createExpressError,
     remove,
     getAgentClaim,
     parseDocumentID,

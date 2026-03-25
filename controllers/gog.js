@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * THIS IS SPECIFICALLY FOR 'Gallery of Glosses'
@@ -44,7 +44,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
         })
     }
     if (err.status) {
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     try {
@@ -138,7 +138,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     }
     catch (error) {
         console.error(error)
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
@@ -162,7 +162,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (!agentID === "61043ad4ffce846a83e700dd") {
+    if (agentID !== "61043ad4ffce846a83e700dd") {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
@@ -176,7 +176,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
         })
     }
     if (err.status) {
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     try {
@@ -300,7 +300,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     }
     catch (error) {
         console.error(error)
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 

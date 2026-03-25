@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
 
 /**
  * Public facing servlet to gather for all versions downstream from a provided `key object`.
@@ -23,7 +23,7 @@ const since = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
         return
     }
     if (null === obj) {
@@ -31,7 +31,7 @@ const since = async function (req, res, next) {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
@@ -60,7 +60,7 @@ const history = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
         return
     }
     if (null === obj) {
@@ -68,7 +68,7 @@ const history = async function (req, res, next) {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
@@ -103,9 +103,9 @@ const idHeadRequest = async function (req, res, next) {
             "message": `No RERUM object with id '${id}'`,
             "status": 404
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
@@ -128,9 +128,9 @@ const queryHeadRequest = async function (req, res, next) {
             "message": `There are no objects in the database matching the query. Check the request body.`,
             "status": 404
         } 
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
@@ -145,7 +145,7 @@ const sinceHeadRequest = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
         return
     }
     if (null === obj) {
@@ -153,7 +153,7 @@ const sinceHeadRequest = async function (req, res, next) {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)
@@ -183,7 +183,7 @@ const historyHeadRequest = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
         return
     }
     if (null === obj) {
@@ -191,7 +191,7 @@ const historyHeadRequest = async function (req, res, next) {
             message: "Cannot produce a history. There is no object in the database with this id. Check the URL.",
             status: 404
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     let all = await getAllVersions(obj)

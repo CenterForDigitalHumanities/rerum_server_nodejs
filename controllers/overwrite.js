@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
@@ -23,13 +23,12 @@ const overwrite = async function (req, res, next) {
     let agentRequestingOverwrite = getAgentClaim(req, next)
     const receivedID = objectReceived["@id"] ?? objectReceived.id
     if (receivedID) {
-        console.log("OVERWRITE")
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -85,7 +84,7 @@ const overwrite = async function (req, res, next) {
                 try {
                     result = await db.replaceOne({ "_id": id }, newObject)
                 } catch (error) {
-                    next(createExpressError(error))
+                    next(utils.createExpressError(error))
                     return
                 }
                 if (result.modifiedCount == 0) {
@@ -109,7 +108,7 @@ const overwrite = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    next(utils.createExpressError(err))
 }
 
 export { overwrite }

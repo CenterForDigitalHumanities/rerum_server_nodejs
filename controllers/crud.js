@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError, getAgentClaim, parseDocumentID } from './utils.js'
+import { _contextid, idNegotiation, generateSlugId, ObjectID, getAgentClaim, parseDocumentID } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.
@@ -19,7 +19,7 @@ const create = async function (req, res, next) {
     if(req.get("Slug")){
         let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
-            next(createExpressError(slug_json))
+            next(utils.createExpressError(slug_json))
             return
         }
         else{
@@ -43,7 +43,6 @@ const create = async function (req, res, next) {
     delete provided["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, provided, rerumProp, { "_id": id })
-    console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -55,7 +54,7 @@ const create = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
@@ -75,7 +74,7 @@ const query = async function (req, res, next) {
             message: "Detected empty JSON object.  You must provide at least one property in the /query request body JSON.",
             status: 400
         }
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
         return
     }
     try {
@@ -84,7 +83,7 @@ const query = async function (req, res, next) {
         res.set(utils.configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 
@@ -116,9 +115,9 @@ const id = async function (req, res, next) {
             "message": `No RERUM object with id '${id}'`,
             "status": 404
         } 
-        next(createExpressError(err))
+        next(utils.createExpressError(err))
     } catch (error) {
-        next(createExpressError(error))
+        next(utils.createExpressError(error))
     }
 }
 

@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
  * Update some existing object in MongoDB by adding the keys from the JSON object in the request body.
@@ -32,7 +32,7 @@ const patchSet = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
+            next(utils.createExpressError(error))
             return
         }
         if (null === originalObject) {
@@ -106,7 +106,7 @@ const patchSet = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                next(createExpressError(error))
+                next(utils.createExpressError(error))
                 return
             }
         }
@@ -118,7 +118,7 @@ const patchSet = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    next(utils.createExpressError(err))
 }
 
 export { patchSet }
