@@ -269,8 +269,7 @@ const searchAsWords = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
@@ -287,7 +286,7 @@ const searchAsWords = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -357,8 +356,7 @@ const searchAsPhrase = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
@@ -375,7 +373,7 @@ const searchAsPhrase = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -437,8 +435,7 @@ const searchFuzzily = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
@@ -455,7 +452,7 @@ const searchFuzzily = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -525,8 +522,7 @@ const searchWildly = async function (req, res, next) {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     // Require wildcards in the search text
     if (!searchText.includes('*') && !searchText.includes('?')) {
@@ -534,8 +530,7 @@ const searchWildly = async function (req, res, next) {
             message: "Wildcards must be used in wildcard search. Use '*' to match any characters or '?' to match a single character.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
@@ -552,7 +547,7 @@ const searchWildly = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -629,8 +624,7 @@ const searchAlikes = async function (req, res, next) {
             message: "You must provide a JSON document in the request body to find similar documents.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const limit = parseInt(req.query.limit ?? 100)
     const skip = parseInt(req.query.skip ?? 0)
@@ -686,7 +680,7 @@ const searchAlikes = async function (req, res, next) {
         res.json(results)
     } catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 

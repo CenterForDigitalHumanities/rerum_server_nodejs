@@ -24,6 +24,7 @@ import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } f
 const _gog_fragments_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
+    if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
     const limit = parseInt(req.query.limit ?? 50)
@@ -44,8 +45,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
         })
     }
     if (err.status) {
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     try {
         let matches = []
@@ -138,7 +138,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     }
     catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -156,6 +156,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
 const _gog_glosses_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
+    if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
     const limit = parseInt(req.query.limit ?? 50)
@@ -176,8 +177,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
         })
     }
     if (err.status) {
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     try {
         let matches = []
@@ -300,7 +300,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     }
     catch (error) {
         console.error(error)
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 

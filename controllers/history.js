@@ -23,16 +23,14 @@ const since = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(utils.createExpressError(error))
-        return
+        return next(utils.createExpressError(error))
     }
     if (null === obj) {
         let err = {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     let all = await getAllVersions(obj)
         .catch(error => {
@@ -60,16 +58,14 @@ const history = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(utils.createExpressError(error))
-        return
+        return next(utils.createExpressError(error))
     }
     if (null === obj) {
         let err = {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     let all = await getAllVersions(obj)
         .catch(error => {
@@ -103,9 +99,9 @@ const idHeadRequest = async function (req, res, next) {
             "message": `No RERUM object with id '${id}'`,
             "status": 404
         }
-        next(utils.createExpressError(err))
+        return next(utils.createExpressError(err))
     } catch (error) {
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -128,9 +124,9 @@ const queryHeadRequest = async function (req, res, next) {
             "message": `There are no objects in the database matching the query. Check the request body.`,
             "status": 404
         } 
-        next(utils.createExpressError(err))
+        return next(utils.createExpressError(err))
     } catch (error) {
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -145,16 +141,14 @@ const sinceHeadRequest = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(utils.createExpressError(error))
-        return
+        return next(utils.createExpressError(error))
     }
     if (null === obj) {
         let err = {
             message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
             status: 404
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     let all = await getAllVersions(obj)
         .catch(error => {
@@ -183,16 +177,14 @@ const historyHeadRequest = async function (req, res, next) {
     try {
         obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
     } catch (error) {
-        next(utils.createExpressError(error))
-        return
+        return next(utils.createExpressError(error))
     }
     if (null === obj) {
         let err = {
             message: "Cannot produce a history. There is no object in the database with this id. Check the URL.",
             status: 404
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     let all = await getAllVersions(obj)
         .catch(error => {

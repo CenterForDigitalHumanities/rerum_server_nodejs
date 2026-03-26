@@ -22,6 +22,7 @@ import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, ge
  */
 const release = async function (req, res, next) {
     let agentRequestingRelease = getAgentClaim(req, next)
+    if (!agentRequestingRelease) return
     let id = req.params["_id"]
     let slug
     let err = {"message":""}
@@ -29,8 +30,7 @@ const release = async function (req, res, next) {
     if(req.get("Slug")){
         let slug_json = await generateSlugId(req.get("Slug"), next)
         if(slug_json.code){
-            next(utils.createExpressError(slug_json))
-            return
+            return next(utils.createExpressError(slug_json))
         }
         else{
             slug = slug_json.slug_id
@@ -42,8 +42,7 @@ const release = async function (req, res, next) {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } 
         catch (error) {
-            next(utils.createExpressError(error))
-            return
+            return next(utils.createExpressError(error))
         }
         let safe_original = JSON.parse(JSON.stringify(originalObject))
         let previousReleasedID = safe_original.__rerum.releases.previous
@@ -68,8 +67,7 @@ const release = async function (req, res, next) {
             })
         }
         if (err.status) {
-            next(utils.createExpressError(err))
-            return
+            return next(utils.createExpressError(err))
         }
         if (null !== originalObject){
             safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
@@ -102,8 +100,7 @@ const release = async function (req, res, next) {
                     result = await db.replaceOne({ "_id": id }, releasedObject)
                 } 
                 catch (error) {
-                    next(utils.createExpressError(error))
-                    return
+                    return next(utils.createExpressError(error))
                 }
                 if (result.modifiedCount == 0) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
@@ -124,8 +121,7 @@ const release = async function (req, res, next) {
             message: "You must provide the id of an object to release.  Use /release/id-here or release?_id=id-here.",
             status: 400
         }
-        next(utils.createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
 }
 
