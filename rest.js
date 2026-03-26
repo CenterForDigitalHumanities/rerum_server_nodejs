@@ -142,8 +142,7 @@ const messenger = function (err, req, res, next) {
     }
     let token = req.header("Authorization")
     if(token && !token.startsWith("Bearer ")){
-        error.message +=`
-        Your token is not in the correct format.  It should be a Bearer token formatted like: "Bearer <token>"`
+        error.message +=`Your token is not in the correct format.  It should be a Bearer token formatted like: "Bearer <token>"`
         error.status = 401
     }
     switch (error.status) {
