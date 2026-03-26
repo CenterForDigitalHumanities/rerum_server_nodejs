@@ -83,7 +83,6 @@ const query = async function (req, res, next) {
             status: 400
         }
         return next(utils.createExpressError(err))
-        
     }
     try {
         let matches = await db.find(props).limit(limit).skip(skip).toArray()
