@@ -24,6 +24,7 @@ const putUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     const idReceived = objectReceived["@id"] ?? objectReceived.id
     if (idReceived) {
         if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
@@ -35,8 +36,7 @@ const putUpdate = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(utils.createExpressError(error))
-            return
+            return next(utils.createExpressError(error))
         }
         if (null === originalObject) {
             //This object is not found.
@@ -82,8 +82,7 @@ const putUpdate = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                next(utils.createExpressError(error))
-                return
+                return next(utils.createExpressError(error))
             }
         }
     }
@@ -94,7 +93,7 @@ const putUpdate = async function (req, res, next) {
             status: 400
         })
     }
-    next(utils.createExpressError(err))
+    return next(utils.createExpressError(err))
 }
 
 /**
@@ -110,6 +109,7 @@ async function _import(req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     const id = ObjectID()
     let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
@@ -132,7 +132,7 @@ async function _import(req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(utils.createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 

@@ -25,6 +25,7 @@ const patchSet = async function (req, res, next) {
     let originalContext
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     const receivedID = objectReceived["@id"] ?? objectReceived.id
     if (receivedID) {
         let id = parseDocumentID(receivedID)
@@ -32,8 +33,7 @@ const patchSet = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(utils.createExpressError(error))
-            return
+            return next(utils.createExpressError(error))
         }
         if (null === originalObject) {
             //This object is not in RERUM, they want to import it.  Do that automatically.  
@@ -106,8 +106,7 @@ const patchSet = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                next(utils.createExpressError(error))
-                return
+                return next(utils.createExpressError(error))
             }
         }
     }
@@ -118,7 +117,7 @@ const patchSet = async function (req, res, next) {
             status: 400
         })
     }
-    next(utils.createExpressError(err))
+    return next(utils.createExpressError(err))
 }
 
 export { patchSet }
