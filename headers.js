@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import utilsPred from './predicates.js'
+import { isLD, isContainerType } from './predicates.js'
 
 /**
  * Mint the HTTP response headers required by REST best practices and/or Web Annotation standards.
@@ -8,10 +8,10 @@ import utilsPred from './predicates.js'
  */
 const configureWebAnnoHeadersFor = function(obj){
     let headers = {}
-    if(utilsPred.isLD(obj)){
+    if(isLD(obj)){
         headers["Content-Type"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
-    if(utilsPred.isContainerType(obj)){
+    if(isContainerType(obj)){
         headers["Link"] = "application/ld+json;charset=utf-8;profile=\"http://www.w3.org/ns/anno.jsonld\""
     }
     else{
@@ -76,12 +76,6 @@ const configureLastModifiedHeader = function(obj){
 }
 
 export {
-    configureWebAnnoHeadersFor,
-    configureLDHeadersFor,
-    configureLastModifiedHeader
-}
-
-export default {
     configureWebAnnoHeadersFor,
     configureLDHeadersFor,
     configureLastModifiedHeader

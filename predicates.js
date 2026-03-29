@@ -75,11 +75,3 @@ export {
     isContainerType,
     isLD
 }
-
-export default {
-    isDeleted,
-    isReleased,
-    isGenerator,
-    isContainerType,
-    isLD
-}

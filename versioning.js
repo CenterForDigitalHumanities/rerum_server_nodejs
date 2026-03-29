@@ -96,7 +96,3 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
 export {
     configureRerumOptions
 }
-
-export default {
-    configureRerumOptions
-}
