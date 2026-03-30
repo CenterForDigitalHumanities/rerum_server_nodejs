@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import config from './config/index.js'
 
 /**

@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Check this object for deleted status.  deleted objects in RERUM look like {"@id":"{some-id}", __deleted:{object properties}}
  */ 

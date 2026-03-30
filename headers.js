@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { isLD, isContainerType } from './predicates.js'
 
 /**
