@@ -5,7 +5,9 @@
  * @author Claude Sonnet 4, cubap, thehabes
  */
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+// helpers used by many controllers have been split into focused modules
+import { configureWebAnnoHeadersFor, configureLDHeadersFor, configureLastModifiedHeader } from '../headers.js'
+import { configureRerumOptions } from '../versioning.js'
 import config from '../config/index.js'
 import { _contextid, idNegotiation, generateSlugId, ObjectID, createExpressError, getAgentClaim, parseDocumentID } from './utils.js'
 
@@ -31,7 +33,7 @@ const create = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
     let provided = JSON.parse(JSON.stringify(req.body))
-    let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
+    let rerumProp = { "__rerum": configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     if(slug){
         rerumProp.__rerum.slug = slug
     }
@@ -47,7 +49,7 @@ const create = async function (req, res, next) {
     console.log("CREATE")
     try {
         let result = await db.insertOne(newObject)
-        res.set(utils.configureWebAnnoHeadersFor(newObject))
+        res.set(configureWebAnnoHeadersFor(newObject))
         newObject = idNegotiation(newObject)
         newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
         res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
@@ -82,7 +84,7 @@ const query = async function (req, res, next) {
     try {
         let matches = await db.find(props).limit(limit).skip(skip).toArray()
         matches = matches.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(matches))
+        res.set(configureLDHeadersFor(matches))
         res.json(matches)
     } catch (error) {
         next(createExpressError(error))
@@ -100,11 +102,11 @@ const id = async function (req, res, next) {
     try {
         let match = await db.findOne({"$or": [{"_id": id}, {"__rerum.slug": id}]})
         if (match) {
-            res.set(utils.configureWebAnnoHeadersFor(match))
+            res.set(configureWebAnnoHeadersFor(match))
             //Support built in browser caching
             res.set("Cache-Control", "max-age=86400, must-revalidate")
             //Support requests with 'If-Modified_Since' headers
-            res.set(utils.configureLastModifiedHeader(match))
+            res.set(configureLastModifiedHeader(match))
             // Include current version for optimistic locking
             const currentVersion = match.__rerum?.isOverwritten ?? ""
             res.set('Current-Overwritten-Version', currentVersion)

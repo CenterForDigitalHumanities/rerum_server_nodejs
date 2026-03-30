@@ -7,7 +7,7 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { configureLDHeadersFor } from '../headers.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
 
 /**
@@ -42,7 +42,7 @@ const since = async function (req, res, next) {
     let descendants = getAllDescendants(all, obj, [])
     descendants =
         descendants.map(o => idNegotiation(o))
-    res.set(utils.configureLDHeadersFor(descendants))
+    res.set(configureLDHeadersFor(descendants))
     res.json(descendants)
 }
 
@@ -79,7 +79,7 @@ const history = async function (req, res, next) {
     let ancestors = getAllAncestors(all, obj, [])
     ancestors =
         ancestors.map(o => idNegotiation(o))
-    res.set(utils.configureLDHeadersFor(ancestors))
+    res.set(configureLDHeadersFor(ancestors))
     res.json(ancestors)
 }
 

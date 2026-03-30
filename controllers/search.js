@@ -5,7 +5,7 @@
  * @author thehabes
  */
 import { db } from '../database/client.js'
-import utils from '../utils.js'
+import { configureLDHeadersFor } from '../headers.js'
 import { idNegotiation, createExpressError } from './utils.js'
 
 /**
@@ -283,7 +283,7 @@ const searchAsWords = async function (req, res, next) {
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
+        res.set(configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
         console.error(error)
@@ -371,7 +371,7 @@ const searchAsPhrase = async function (req, res, next) {
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
+        res.set(configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
         console.error(error)
@@ -451,7 +451,7 @@ const searchFuzzily = async function (req, res, next) {
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
+        res.set(configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
         console.error(error)
@@ -548,7 +548,7 @@ const searchWildly = async function (req, res, next) {
         const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
+        res.set(configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
         console.error(error)
@@ -682,7 +682,7 @@ const searchAlikes = async function (req, res, next) {
         // Apply pagination after merging
         let results = merged.slice(skip, skip + limit)
         results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
+        res.set(configureLDHeadersFor(results))
         res.json(results)
     } catch (error) {
         console.error(error)

@@ -7,7 +7,8 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { configureRerumOptions } from '../versioning.js'
+import { isDeleted } from '../predicates.js'
 import config from '../config/index.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
@@ -72,7 +73,7 @@ const bulkCreate = async function (req, res, next) {
         if(Object.keys(d).length === 0) continue
         const providedID = d?._id
         const id = isValidID(providedID) ? providedID : ObjectID()
-        d = utils.configureRerumOptions(generatorAgent, d)
+        d = configureRerumOptions(generatorAgent, d)
         // id is also protected in this case, so it can't be set.
         if(_contextid(d["@context"])) delete d.id
         d._id = id
@@ -159,10 +160,10 @@ const bulkUpdate = async function (req, res, next) {
             return
         }
         if (null === originalObject) continue
-        if (utils.isDeleted(originalObject)) continue
+        if (isDeleted(originalObject)) continue
         id = ObjectID()
         let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
-        let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
+        let rerumProp = { "__rerum": configureRerumOptions(generatorAgent, originalObject, true, false)["__rerum"] }
         delete objectReceived["__rerum"]
         delete objectReceived["_id"]
         delete objectReceived["@id"]

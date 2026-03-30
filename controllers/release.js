@@ -7,7 +7,8 @@
  */
 
 import { newID, isValidID, db } from '../database/client.js'
-import utils from '../utils.js'
+import { isDeleted, isReleased, isGenerator } from '../predicates.js'
+import { configureWebAnnoHeadersFor } from '../headers.js'
 import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, generateSlugId, establishReleasesTree, healReleasesTree } from './utils.js'
 
 /**
@@ -49,19 +50,19 @@ const release = async function (req, res, next) {
         let previousReleasedID = safe_original.__rerum.releases.previous
         let nextReleases = safe_original.__rerum.releases.next
         
-        if (utils.isDeleted(safe_original)) {
+        if (isDeleted(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to release is deleted. ${err.message}`,
                 status: 403
             })
         }
-        if (utils.isReleased(safe_original)) {
+        if (isReleased(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to release is already released. ${err.message}`,
                 status: 403
             })
         }
-        if (!utils.isGenerator(safe_original, agentRequestingRelease)) {
+        if (!isGenerator(safe_original, agentRequestingRelease)) {
             err = Object.assign(err, {
                 message: `You are not the generating agent for this object. You cannot release it. ${err.message}`,
                 status: 401
@@ -109,7 +110,7 @@ const release = async function (req, res, next) {
                 if (result.modifiedCount == 0) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
                 }
-                res.set(utils.configureWebAnnoHeadersFor(releasedObject))
+                res.set(configureWebAnnoHeadersFor(releasedObject))
                 console.log(releasedObject._id+" has been released")
                 releasedObject = idNegotiation(releasedObject)
                 releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
