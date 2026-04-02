@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, alterHistoryNext } from './utils.js'
 
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
@@ -24,6 +24,7 @@ const putUpdate = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     const idReceived = objectReceived["@id"] ?? objectReceived.id
     if (idReceived) {
         if(!idReceived.includes(process.env.RERUM_ID_PREFIX)){
@@ -35,8 +36,7 @@ const putUpdate = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
-            return
+            return next(utils.createExpressError(error))
         }
         if (null === originalObject) {
             //This object is not found.
@@ -63,7 +63,6 @@ const putUpdate = async function (req, res, next) {
             delete objectReceived["@context"]
             
             let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-            console.log("UPDATE")
             try {
                 let result = await db.insertOne(newObject)
                 if (alterHistoryNext(originalObject, newObject["@id"])) {
@@ -83,8 +82,7 @@ const putUpdate = async function (req, res, next) {
             }
             catch (error) {
                 //WriteError or WriteConcernError
-                next(createExpressError(error))
-                return
+                return next(utils.createExpressError(error))
             }
         }
     }
@@ -95,7 +93,7 @@ const putUpdate = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    return next(utils.createExpressError(err))
 }
 
 /**
@@ -111,6 +109,7 @@ async function _import(req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     const id = ObjectID()
     let context = objectReceived["@context"] ? { "@context": objectReceived["@context"] } : {}
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, objectReceived, false, true)["__rerum"] }
@@ -122,7 +121,6 @@ async function _import(req, res, next) {
     delete objectReceived["@context"]
     
     let newObject = Object.assign(context, { "@id": process.env.RERUM_ID_PREFIX + id }, objectReceived, rerumProp, { "_id": id })
-    console.log("IMPORT")
     try {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
@@ -134,7 +132,7 @@ async function _import(req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 

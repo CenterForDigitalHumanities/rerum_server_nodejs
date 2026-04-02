@@ -61,10 +61,10 @@ npm install
 ```
 
 #### Create the Configuration File
-Create a file named `.env` in the root folder.  In the above example, the root is `/code_folder/tiny_things`.  `/code_folder/tiny_things/.env` looks like this:
+Create a file named `.env` in the root folder.  In the above example, the root is `/code_folder/rerum_api`.  `/code_folder/rerum_api/.env` looks like this:
 
 ```shell
-RERUM_API_VERSION = 1.0.0
+RERUM_API_VERSION = 1.1.0
 RERUM_BASE = URL_OF_YOUR_DEPLOYMENT
 RERUM_PREFIX = URL_OF_YOUR_DEPLOYMENT/v1/
 RERUM_ID_PREFIX = URL_OF_YOUR_DEPLOYMENT/v1/id/

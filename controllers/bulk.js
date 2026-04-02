@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * Create many objects at once with the power of MongoDB bulkWrite() operations.
@@ -23,16 +23,14 @@ const bulkCreate = async function (req, res, next) {
             message: "The request body must be an array of objects.",
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     if (documents.length === 0) {
         const err = {
             message: "No action on an empty array.",
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const gatekeep = documents.filter(d=> {
         // Each item must be valid JSON, but can't be an array.
@@ -45,14 +43,13 @@ const bulkCreate = async function (req, res, next) {
         // Items must not have an @id, and in some cases same for id.
         const idcheck = _contextid(d["@context"]) ? (d.id ?? d["@id"]) : d["@id"]
         if(idcheck) return d
-    }) 
+    })
     if (gatekeep.length > 0) {
         const err = {
             message: "All objects in the body of a `/bulkCreate` must be JSON and must not contain a declared identifier property.",
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
 
     // TODO: bulkWrite SLUGS? Maybe assign an id to each document and then use that to create the slug?
@@ -60,7 +57,7 @@ const bulkCreate = async function (req, res, next) {
     // if(slug){
     //     const slugError = await exports.generateSlugId(slug)
     //     if(slugError){
-    //         next(createExpressError(slugError))
+    //         next(utils.createExpressError(slugError))
     //         return
     //     }
     //     else{
@@ -71,6 +68,7 @@ const bulkCreate = async function (req, res, next) {
     // unordered bulkWrite() operations have better performance metrics.
     const bulkOps = []
     const generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     for(const d of documents) {
         // Do not create empty {}s
         if(Object.keys(d).length === 0) continue
@@ -96,7 +94,7 @@ const bulkCreate = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -116,16 +114,14 @@ const bulkUpdate = async function (req, res, next) {
             message: "The request body must be an array of objects.",
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     if (documents.length === 0) {
         const err = {
             message: "No action on an empty array.",
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     const gatekeep = documents.filter(d => {
         // Each item must be valid JSON, but can't be an array.
@@ -145,12 +141,12 @@ const bulkUpdate = async function (req, res, next) {
             message: "All objects in the body of a `/bulkUpdate` must be JSON and must contain a declared identifier property.",
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     // unordered bulkWrite() operations have better performance metrics.
     const bulkOps = []
     const generatorAgent = getAgentClaim(req, next)
+    if (!generatorAgent) return
     for(const objectReceived of documents){
         // We know it has an id
         const idReceived = objectReceived["@id"] ?? objectReceived.id
@@ -163,8 +159,7 @@ const bulkUpdate = async function (req, res, next) {
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
-            return
+            return next(utils.createExpressError(error))
         }
         if (null === originalObject) continue
         if (utils.isDeleted(originalObject)) continue
@@ -204,7 +199,7 @@ const bulkUpdate = async function (req, res, next) {
     }
     catch (error) {
         //MongoServerError from the client has the following properties: index, code, keyPattern, keyValue
-        next(createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 

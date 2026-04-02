@@ -12,8 +12,7 @@ const addAuth = (req, res, next) => {
 }
 
 const routeTester = new express()
-routeTester.use(express.json())
-routeTester.use(express.urlencoded({ extended: false }))
+routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
 // FIXME here we need to create something to release in order to test this route.
 routeTester.use("/create", [addAuth, controller.create])

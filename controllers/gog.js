@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * THIS IS SPECIFICALLY FOR 'Gallery of Glosses'
@@ -24,6 +24,7 @@ import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentI
 const _gog_fragments_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
+    if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
     const limit = parseInt(req.query.limit ?? 50)
@@ -34,8 +35,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     // Must have a properly formed body with a usable value
     if(!manID || !manID.startsWith("http")){
@@ -43,8 +43,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
             message: `The body must be JSON like {"ManuscriptWitness":"witness_uri_here"}.`,
             status: 400
         }
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     try {
         let matches = []
@@ -137,7 +136,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     }
     catch (error) {
         console.error(error)
-        next(createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
@@ -155,13 +154,14 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
 const _gog_glosses_from_manuscript = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const agent = getAgentClaim(req, next)
+    if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
     const limit = parseInt(req.query.limit ?? 50)
     const skip = parseInt(req.query.skip ?? 0)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (!agentID === "61043ad4ffce846a83e700dd") {
+    if (agentID !== "61043ad4ffce846a83e700dd") {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
@@ -175,8 +175,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
         })
     }
     if (err.status) {
-        next(createExpressError(err))
-        return
+        return next(utils.createExpressError(err))
     }
     try {
         let matches = []
@@ -299,7 +298,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     }
     catch (error) {
         console.error(error)
-        next(createExpressError(error))
+        return next(utils.createExpressError(error))
     }
 }
 
