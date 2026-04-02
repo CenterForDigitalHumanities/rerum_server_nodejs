@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, createExpressError, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * Replace some existing object in MongoDB with the JSON object in the request body.
@@ -21,16 +21,15 @@ const overwrite = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let objectReceived = JSON.parse(JSON.stringify(req.body))
     let agentRequestingOverwrite = getAgentClaim(req, next)
+    if (!agentRequestingOverwrite) return
     const receivedID = objectReceived["@id"] ?? objectReceived.id
     if (receivedID) {
-        console.log("OVERWRITE")
         let id = parseDocumentID(receivedID)
         let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         } catch (error) {
-            next(createExpressError(error))
-            return
+            return next(utils.createExpressError(error))
         }
         if (null === originalObject) {
             err = Object.assign(err, {
@@ -85,8 +84,7 @@ const overwrite = async function (req, res, next) {
                 try {
                     result = await db.replaceOne({ "_id": id }, newObject)
                 } catch (error) {
-                    next(createExpressError(error))
-                    return
+                    return next(utils.createExpressError(error))
                 }
                 if (result.modifiedCount == 0) {
                     //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
@@ -109,7 +107,7 @@ const overwrite = async function (req, res, next) {
             status: 400
         })
     }
-    next(createExpressError(err))
+    return next(utils.createExpressError(err))
 }
 
 export { overwrite }

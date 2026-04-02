@@ -9,7 +9,7 @@
 
 /**
  * Add the __rerum properties object to a given JSONObject.If __rerum already exists, it will be overwritten because this method is only called on new objects. Properties for consideration are:
-APIversion        —1.0.0
+APIversion        —1.1.0
 history.prime     —if it has an @id, import from that, else "root"
 history.next      —always [] 
 history.previous  —if it has an @id, @id
@@ -221,7 +221,7 @@ const isLD = function(obj){
 const configureLastModifiedHeader = function(obj){
     let date = ""
     if(obj.__rerum){
-        if(!obj.__rerum.isOverwritten === ""){
+        if(obj.__rerum.isOverwritten !== ""){
             date = obj.__rerum.isOverwritten
         }
         else{
@@ -239,8 +239,28 @@ const configureLastModifiedHeader = function(obj){
     return {"Last-Modified":new Date(date).toUTCString()}
 }
 
+/**
+ * Create a standardized Express error object from an error or error-like input.
+ * Handles MongoDB duplicate key errors (code 11000) as 409 Conflict.
+ *
+ * @param {Object} err - An error or object with statusCode/status and statusMessage/message properties
+ * @return {Object} A normalized error object with statusCode and statusMessage
+ */
+function createExpressError(err) {
+    let error = {
+        statusCode: err.statusCode ?? err.status ?? 500,
+        statusMessage: err.statusMessage ?? err.message ?? "There was an error that prevented this request from completing successfully."
+    }
+    if (err.code === 11000) {
+        error.statusMessage = `The id provided already exists.  Please use a different _id or Slug.`
+        error.statusCode = 409
+    }
+    return error
+}
+
 export default {
     configureRerumOptions,
+    createExpressError,
     isDeleted,
     isReleased,
     isGenerator,
