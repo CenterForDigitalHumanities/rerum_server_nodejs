@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation } from './utils.js'
 
 /**
  * THIS IS SPECIFICALLY FOR 'Gallery of Glosses'
@@ -27,8 +27,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const limit = parseInt(req.query.limit ?? 50)
-    const skip = parseInt(req.query.skip ?? 0)
+    const { limit, skip } = getPagination(req.query, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== "61043ad4ffce846a83e700dd") {
@@ -159,8 +158,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const limit = parseInt(req.query.limit ?? 50)
-    const skip = parseInt(req.query.skip ?? 0)
+    const { limit, skip } = getPagination(req.query, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== "61043ad4ffce846a83e700dd") {
