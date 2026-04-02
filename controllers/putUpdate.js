@@ -22,7 +22,7 @@ import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, al
 const putUpdate = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
-    let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let objectReceived = utils.cloneObject(req.body)
     let generatorAgent = getAgentClaim(req, next)
     if (!generatorAgent) return
     const idReceived = objectReceived["@id"] ?? objectReceived.id
@@ -69,7 +69,7 @@ const putUpdate = async function (req, res, next) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
-                    newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                    newObject.new_obj_state = utils.cloneObject(newObject)
                     res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
                     res.status(200)
                     res.json(newObject)
@@ -107,7 +107,7 @@ const putUpdate = async function (req, res, next) {
 async function _import(req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
-    let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let objectReceived = utils.cloneObject(req.body)
     let generatorAgent = getAgentClaim(req, next)
     if (!generatorAgent) return
     const id = ObjectID()
@@ -125,7 +125,7 @@ async function _import(req, res, next) {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         newObject = idNegotiation(newObject)
-        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+        newObject.new_obj_state = utils.cloneObject(newObject)
         res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
         res.status(200)
         res.json(newObject)

@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, generateSlugId, ObjectID, getAgentClaim, parseDocumentID } from './utils.js'
+import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, parseDocumentID } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.
@@ -37,7 +37,7 @@ const create = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     if (!generatorAgent) return
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
-    let provided = JSON.parse(JSON.stringify(req.body))
+    let provided = utils.cloneObject(req.body)
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     if(slug){
         rerumProp.__rerum.slug = slug
@@ -55,7 +55,7 @@ const create = async function (req, res, next) {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         newObject = idNegotiation(newObject)
-        newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+        newObject.new_obj_state = utils.cloneObject(newObject)
         res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
         res.status(201)
         res.json(newObject)
@@ -74,8 +74,7 @@ const create = async function (req, res, next) {
 const query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    const limit = parseInt(req.query.limit ?? 100)
-    const skip = parseInt(req.query.skip ?? 0)
+    const { limit, skip } = getPagination(req.query, 100)
     if (!props || Object.keys(props).length === 0) {
         //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
         let err = {

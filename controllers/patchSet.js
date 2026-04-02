@@ -21,7 +21,7 @@ import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, al
 const patchSet = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
-    let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let objectReceived = utils.cloneObject(req.body)
     let originalContext
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
@@ -50,7 +50,7 @@ const patchSet = async function (req, res, next) {
             })
         }
         else {
-            patchedObject = JSON.parse(JSON.stringify(originalObject))
+            patchedObject = utils.cloneObject(originalObject)
             if(_contextid(originalObject["@context"])) {
                 // If the original object has a context that needs id protected, make sure you don't set it.
                 delete objectReceived.id
@@ -73,7 +73,7 @@ const patchSet = async function (req, res, next) {
                 //Just hand back the object.  The resulting of setting nothing is the object from the request body.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 originalObject = idNegotiation(originalObject)
-                originalObject.new_obj_state = JSON.parse(JSON.stringify(originalObject))
+                originalObject.new_obj_state = utils.cloneObject(originalObject)
                 res.location(originalObject[_contextid(originalObject["@context"]) ? "id":"@id"])
                 res.status(200)
                 res.json(originalObject)
@@ -93,7 +93,7 @@ const patchSet = async function (req, res, next) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
-                    newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                    newObject.new_obj_state = utils.cloneObject(newObject)
                     res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
                     res.status(200)
                     res.json(newObject)

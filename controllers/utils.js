@@ -9,6 +9,24 @@ import utils from '../utils.js'
 
 const ObjectID = newID
 
+const MAX_QUERY_LIMIT = Number.parseInt(process.env.RERUM_MAX_QUERY_LIMIT ?? 500, 10)
+const MAX_QUERY_SKIP = Number.parseInt(process.env.RERUM_MAX_QUERY_SKIP ?? 100000, 10)
+
+function clampNonNegativeInt(value, fallback, max) {
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isFinite(parsed) || parsed < 0) return fallback
+    return parsed > max ? max : parsed
+}
+
+function getPagination(query = {}, defaultLimit = 100) {
+    const limitMax = Number.isFinite(MAX_QUERY_LIMIT) && MAX_QUERY_LIMIT > 0 ? MAX_QUERY_LIMIT : 500
+    const skipMax = Number.isFinite(MAX_QUERY_SKIP) && MAX_QUERY_SKIP >= 0 ? MAX_QUERY_SKIP : 100000
+    const safeDefaultLimit = defaultLimit > 0 ? defaultLimit : 100
+    const limit = clampNonNegativeInt(query.limit, safeDefaultLimit, limitMax)
+    const skip = clampNonNegativeInt(query.skip, 0, skipMax)
+    return { limit, skip }
+}
+
 /**
  * Check if a @context value contains a known @id-id mapping context
  *
@@ -52,7 +70,7 @@ const idNegotiation = function (resBody) {
     const _id = resBody._id
     delete resBody._id
     if(!resBody["@context"]) return resBody
-    let modifiedResBody = JSON.parse(JSON.stringify(resBody))
+    let modifiedResBody = utils.cloneObject(resBody)
     const context = { "@context": resBody["@context"] }
     if(_contextid(resBody["@context"])) {
         delete resBody["@id"]
@@ -182,7 +200,7 @@ async function getAllVersions(obj) {
     let rootObj
     if (primeID === "root") {
         //The obj passed in is root.  So it is the rootObj we need.
-        rootObj = JSON.parse(JSON.stringify(obj))
+        rootObj = utils.cloneObject(obj)
     } else if (primeID) {
         //The obj passed in knows the ID of root, grab it from Mongo
         //Use _id for indexed query performance instead of @id
@@ -447,6 +465,7 @@ async function healReleasesTree(releasing) {
 export {
     _contextid,
     idNegotiation,
+    getPagination,
     generateSlugId,
     index,
     ObjectID,

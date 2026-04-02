@@ -25,9 +25,16 @@ isReleased        —always ""
  * @param update A trigger for special handling from update actions
  * @return configuredObject The same object that was recieved but with the proper __rerum options.  This object is intended to be saved as a new object (@see versioning)
  */
+const cloneObject = function(value){
+    if(typeof globalThis.structuredClone === "function"){
+        return globalThis.structuredClone(value)
+    }
+    return JSON.parse(JSON.stringify(value))
+}
+
 const configureRerumOptions = function(generator, received, update, extUpdate){
-    let configuredObject = JSON.parse(JSON.stringify(received))
-    let received_options = received.__rerum ? JSON.parse(JSON.stringify(received.__rerum)) : {}
+    let configuredObject = cloneObject(received)
+    let received_options = received.__rerum ? cloneObject(received.__rerum) : {}
     let history = {}
     let releases = {}
     let rerumOptions = {}
@@ -259,6 +266,7 @@ function createExpressError(err) {
 }
 
 export default {
+    cloneObject,
     configureRerumOptions,
     createExpressError,
     isDeleted,
