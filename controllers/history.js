@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
 
 /**
  * Public facing servlet to gather for all versions downstream from a provided `key object`.
@@ -112,8 +112,9 @@ const idHeadRequest = async function (req, res, next) {
 const queryHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
+    const { limit, skip } = getPagination(req.query, 100)
     try {
-        let matches = await db.find(props).toArray()
+        let matches = await db.find(props).limit(limit).skip(skip).toArray()
         if (matches.length) {
             const size = Buffer.byteLength(JSON.stringify(matches))
             res.set("Content-Length", size)
