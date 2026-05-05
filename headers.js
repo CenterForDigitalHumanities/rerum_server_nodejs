@@ -1,8 +1,9 @@
 import { isLD, isContainerType } from './predicates.js'
 
 /**
- * Mint the HTTP response headers required by REST best practices and/or Web Annotation standards.
- * return a JSON object.  keys are header names, values are header values.
+ * Configure HTTP response headers for Web Annotation compliant objects
+ * @param {object} obj - The object to configure headers for
+ * @returns {object} HTTP headers object with Content-Type, Link, and Allow headers
  */
 const configureWebAnnoHeadersFor = function(obj){
     let headers = {}
@@ -20,10 +21,16 @@ const configureWebAnnoHeadersFor = function(obj){
 }
 
 /**
- * Mint the HTTP response headers required by REST best practices and/or Linked Data standards.
- * This is specifically for responses that are not Web Annotation compliant (getByProperties, getAllDescendants, getAllAncestors)
- * They respond with Arrays (which have no @context), but they still need the JSON-LD support headers.
- * return a JSON object.  keys are header names, values are header values.
+ * Build HTTP response headers for responses that should expose
+ * Linked Data semantics but are not strictly Web Annotation-compliant.
+ *
+ * This is mainly used for endpoints that return arrays, such as
+ * query/history/since-style responses. Since arrays do not include
+ * an `@context`, this function explicitly provides JSON-LD-related
+ * headers so the response still advertises Linked Data support.
+ *
+ * @param {object|Array} obj - The response payload being evaluated. Typically an array of Linked Data objects.
+ * @returns {Object.<string, string>} An object containing HTTP response headers for Linked Data responses.
  */
 const configureLDHeadersFor = function(obj){
     //Note that the optimal situation would be to be able to detect the LD-ness of this object
@@ -47,10 +54,18 @@ const configureLDHeadersFor = function(obj){
 }
 
 /**
- * Mint the Last-Modified header for /v1/id/ responses.
- * It should be displayed like Mon, 14 Mar 2022 22:44:42 GMT
- * The data knows it like 2022-03-14T17:44:42.721
- * return a JSON object.  keys are header names, values are header values.
+ * Build the Last-Modified HTTP header for a RERUM resource response.
+ *
+ * The timestamp is derived from RERUM metadata:
+ * - `obj.__rerum.isOverwritten` if present
+ * - otherwise `obj.__rerum.createdAt`
+ * - or `obj.__deleted.time` for deleted resources
+ *
+ * Fractional seconds are removed before conversion because browser
+ * HTTP date headers are rounded to whole seconds.
+ *
+ * @param {object} obj - The resource object containing `__rerum` or `__deleted` metadata.
+ * @returns {Object.<string, string>} An object containing the Last-Modified header in UTC string format.
  */
 const configureLastModifiedHeader = function(obj){
     let date = ""

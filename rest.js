@@ -21,17 +21,23 @@
  */
 import config from './config/index.js'
 
+/**
+ * Check if request supports PATCH method override via X-HTTP-Method-Override header
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @returns {boolean} True if PATCH override is supported
+ */
 const checkPatchOverrideSupport = function (req, res) {
     const override = req.header("X-HTTP-Method-Override")
     return undefined !== override && override === "PATCH"
 }
 
 /**
- * Throughout the routes are certain warning, error, and hard fail scenarios.
- * REST is all about communication.  The response code and the textual body are particular.
- * RERUM is all about being clear.  It will build custom responses sometimes for certain scenarios, will remaining RESTful.
- * 
- * You have likely reached this with a next(createExpressError(err)) call.  End here and send the error.
+ * Express error handling middleware that formats and sends RESTful error responses
+ * @param {Error} err - Error object with status code and message
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next function
  */
 const messenger = function (err, req, res, next) {
     if (res.headersSent) {

@@ -1,23 +1,30 @@
 import config from './config/index.js'
 
 /**
- * Add the __rerum properties object to a given JSONObject. If __rerum already exists, it will be overwritten
- * because this method is only called on new objects. Properties for consideration are:
- * APIversion        —1.1.0
- * history.prime     —if it has an @id, import from that, else "root"
- * history.next      —always []
- * history.previous  —if it has an @id, @id
- * releases.previous —if it has an @id, import from that, else ""
- * releases.next     —always []
- * releases.replaces —always ""
- * generatedBy       —set to the @id of the public agent of the API Key.
- * createdAt         —DateTime of right now.
- * isOverwritten     —always ""
- * isReleased        —always ""
+ * Configure and attach the `__rerum` metadata object to a given JSON object.
  *
- * @param received A potentially optionless JSONObject from the Mongo Database (not the user).  This prevents tainted __rerum's
- * @param update A trigger for special handling from update actions
- * @return configuredObject The same object that was recieved but with the proper __rerum options.  This object is intended to be saved as a new object (@see versioning)
+ * This function prepares a standardized metadata structure required by RERUM
+ * for versioning, history tracking, and attribution. If an existing `__rerum`
+ * object is present, it will be ignored or overwritten depending on the context
+ * to prevent the use of untrusted or user-provided metadata.
+ *
+ * The metadata includes:
+ * - API version and context
+ * - Creation timestamp
+ * - History tracking (prime, previous, next)
+ * - Release tracking (previous, next, replaces)
+ * - Generator (agent responsible for creation/update)
+ * - Flags for overwrite and release status
+ *
+ * Special handling:
+ * - `update` indicates the object is being updated from an existing RERUM object
+ * - `extUpdate` indicates importing an external object into RERUM as a new root object
+ *
+ * @param {string} generator - The agent identifier (URI) responsible for creating or modifying the object.
+ * @param {object} received - The original object (typically from MongoDB) to be configured.
+ * @param {boolean} update - Flag indicating whether this operation is an update to an existing RERUM object.
+ * @param {boolean} extUpdate - Flag indicating whether this is an external import treated as a new root object.
+ * @returns {object} The cloned object with a fully configured `__rerum` metadata object attached.
  */
 const configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = JSON.parse(JSON.stringify(received))
