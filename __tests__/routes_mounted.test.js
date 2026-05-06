@@ -25,7 +25,8 @@ function routeExists(stack, testPath) {
     if (layer.matchers && layer.matchers.length > 0) {
       const matcher = layer.matchers[0]
       const match = matcher(testPath)
-      if (match && match.path) return true
+      // Express 5 matchers may return boolean true or an object with path metadata
+      if (match === true || (match && match.path)) return true
     }
     // Also check route.path directly if it exists
     if (layer.route && layer.route.path) {

@@ -20,6 +20,14 @@ const config = {
   //That is OK in the testing scenario.  In production, only one connection is made and it is closed when the app exits. 
   detectOpenHandles : false,
 
+    // Automatically clear mock call history before every test (preserves default implementations)
+    clearMocks: true,
+
+    // Redirect all database/index.js imports to the mock so tests never need a live DB
+    moduleNameMapper: {
+      '^.+/database/index\\.js$': '<rootDir>/database/__mocks__/index.js'
+    },
+
   displayName: {
     name: 'RERUM v1',
     color: 'cyan',
