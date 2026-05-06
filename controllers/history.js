@@ -118,7 +118,7 @@ const queryHeadRequest = async function (req, res, next) {
         if (matches.length) {
             const size = Buffer.byteLength(JSON.stringify(matches))
             res.set("Content-Length", size)
-            res.sendStatus(200)
+            res.status(200).end()
             return
         }
         let err = {

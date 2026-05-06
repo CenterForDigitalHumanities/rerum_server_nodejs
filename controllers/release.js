@@ -44,7 +44,7 @@ const release = async function (req, res, next) {
         catch (error) {
             return next(utils.createExpressError(error))
         }
-        let safe_original = JSON.parse(JSON.stringify(originalObject))
+        let safe_original = structuredClone(originalObject)
         let previousReleasedID = safe_original.__rerum.releases.previous
         let nextReleases = safe_original.__rerum.releases.next
         
@@ -108,7 +108,7 @@ const release = async function (req, res, next) {
                 res.set(utils.configureWebAnnoHeadersFor(releasedObject))
                 console.log(releasedObject._id+" has been released")
                 releasedObject = idNegotiation(releasedObject)
-                releasedObject.new_obj_state = JSON.parse(JSON.stringify(releasedObject))
+                releasedObject.new_obj_state = structuredClone(releasedObject)
                 res.location(releasedObject[_contextid(releasedObject["@context"]) ? "id":"@id"])
                 res.json(releasedObject)
                 return

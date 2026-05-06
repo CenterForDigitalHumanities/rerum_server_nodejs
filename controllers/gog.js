@@ -387,7 +387,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     })
 
     // Combine the Annotation bodies with the primitive object
-    let expandedEntity = JSON.parse(JSON.stringify(primitiveEntity))
+    let expandedEntity = structuredClone(primitiveEntity)
     for(const anno of matches){
         const body = anno.body
         let keys = Object.keys(body)

@@ -21,7 +21,7 @@ import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, al
 const patchUnset = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
-    let objectReceived = utils.cloneObject(req.body)
+    let objectReceived = structuredClone(req.body)
     let patchedObject = {}
     let generatorAgent = getAgentClaim(req, next)
     if (!generatorAgent) return
@@ -49,7 +49,7 @@ const patchUnset = async function (req, res, next) {
             })
         }
         else {
-            patchedObject = utils.cloneObject(originalObject)
+            patchedObject = structuredClone(originalObject)
             delete objectReceived._id //can't unset this
             delete objectReceived.__rerum //can't unset this
             delete objectReceived["@id"] //can't unset this
@@ -75,7 +75,7 @@ const patchUnset = async function (req, res, next) {
                 //Just hand back the object.  The resulting of unsetting nothing is the object.
                 res.set(utils.configureWebAnnoHeadersFor(originalObject))
                 originalObject = idNegotiation(originalObject)
-                originalObject.new_obj_state = utils.cloneObject(originalObject)
+                originalObject.new_obj_state = structuredClone(originalObject)
                 res.location(originalObject[_contextid(originalObject["@context"]) ? "id":"@id"])
                 res.status(200)
                 res.json(originalObject)
@@ -97,7 +97,7 @@ const patchUnset = async function (req, res, next) {
                     //Success, the original object has been updated.
                     res.set(utils.configureWebAnnoHeadersFor(newObject))
                     newObject = idNegotiation(newObject)
-                    newObject.new_obj_state = utils.cloneObject(newObject)
+                    newObject.new_obj_state = structuredClone(newObject)
                     res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
                     res.status(200)
                     res.json(newObject)

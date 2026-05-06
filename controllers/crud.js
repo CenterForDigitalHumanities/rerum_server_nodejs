@@ -37,7 +37,7 @@ const create = async function (req, res, next) {
     let generatorAgent = getAgentClaim(req, next)
     if (!generatorAgent) return
     let context = req.body["@context"] ? { "@context": req.body["@context"] } : {}
-    let provided = utils.cloneObject(req.body)
+    let provided = structuredClone(req.body)
     let rerumProp = { "__rerum": utils.configureRerumOptions(generatorAgent, provided, false, false)["__rerum"] }
     if(slug){
         rerumProp.__rerum.slug = slug
@@ -55,7 +55,7 @@ const create = async function (req, res, next) {
         let result = await db.insertOne(newObject)
         res.set(utils.configureWebAnnoHeadersFor(newObject))
         newObject = idNegotiation(newObject)
-        newObject.new_obj_state = utils.cloneObject(newObject)
+        newObject.new_obj_state = structuredClone(newObject)
         res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
         res.status(201)
         res.json(newObject)
