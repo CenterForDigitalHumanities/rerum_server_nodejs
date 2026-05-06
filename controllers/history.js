@@ -114,10 +114,9 @@ const queryHeadRequest = async function (req, res, next) {
     let props = req.body
     const { limit, skip } = getPagination(req.query, 100)
     try {
-        let matches = await db.find(props).limit(limit).skip(skip).toArray()
-        if (matches.length) {
-            const size = Buffer.byteLength(JSON.stringify(matches))
-            res.set("Content-Length", size)
+        const matchCount = await db.countDocuments(props, { limit, skip })
+        if (matchCount > 0) {
+            res.set("Content-Length", 0)
             res.status(200).end()
             return
         }
