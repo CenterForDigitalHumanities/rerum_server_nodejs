@@ -4,29 +4,25 @@
  * Delete operations for RERUM v1
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { db } from '../database/index.js'
 import utils from '../utils.js'
 import { getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
 /**
  * Mark an object as deleted in the database.
- * Support /v1/delete/{id}.  Note this is not v1/api/delete, that is not possible (XHR does not support DELETE with body)
- * Note /v1/delete/{blank} does not route here.  It routes to the generic 404.
- * Respond RESTfully
- * 
- * The user may be trying to call /delete and pass in the obj in the body.  XHR does not support bodies in delete.
- * If there is no id parameter, this is a 400
- * 
- * If there is an id parameter, we ignore body, and continue with that id
- * 
- * */
+ * Support DELETE /v1/api/delete/:_id.
+ * Also handles DELETE /v1/api/delete/ (no ID) with a 400 response.
+ * DELETE requests do not carry a body (XHR does not support DELETE with body),
+ * so the ID must come from the route parameter.
+ * Respond RESTfully.
+ */
 const deleteObj = async function(req, res, next) {
-    let id
+    const id = req.params["_id"]
     let err = { message: `` }
-    try {
-        id = req.params["_id"] ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["@id"]) ?? parseDocumentID(JSON.parse(JSON.stringify(req.body))["id"])
-    } catch(error){
-        return next(utils.createExpressError(error))
+    if (!id) {
+        err.message = "The object's id is required in the URL. DELETE does not support request bodies."
+        err.status = 400
+        return next(utils.createExpressError(err))
     }
     let agentRequestingDelete = getAgentClaim(req, next)
     if (!agentRequestingDelete) return
