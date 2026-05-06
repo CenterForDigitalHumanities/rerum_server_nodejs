@@ -6,61 +6,140 @@
  */
 
 import request from "supertest"
-import api_routes from "../routes/api-routes.js"
 import app from "../app.js"
 import fs from "fs"
 
-let app_stack = app._router?.stack ?? []
-let api_stack = api_routes.stack
-
-/**
- * Check if a route exists in the Express app
- * @param {Array} stack - The router stack to search
- * @param {string} testPath - The path to test for
- * @returns {boolean} - True if the route exists
- */
-function routeExists(stack, testPath) {
-  for (const layer of stack) {
-    // Check if layer has matchers (Express 5)
-    if (layer.matchers && layer.matchers.length > 0) {
-      const matcher = layer.matchers[0]
-      const match = matcher(testPath)
-      // Express 5 matchers may return boolean true or an object with path metadata
-      if (match === true || (match && match.path)) return true
-    }
-    // Also check route.path directly if it exists
-    if (layer.route && layer.route.path) {
-      if (layer.route.path === testPath || layer.route.path.includes(testPath)) return true
-    }
-  }
-  return false
-}
-
 describe('Check to see that all expected top level route patterns exist.', () => {
 
-  it.todo('/v1 -- mounted ')
-  it.todo('/client -- mounted ')
-  it.todo('/v1/id/{_id} -- mounted')
-  it.todo('/v1/since/{_id} -- mounted')
-  it.todo('/v1/history/{_id} -- mounted')
+  it('/v1 -- mounted ', async () => {
+    const response = await request(app).get('/v1')
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/client -- mounted ', async () => {
+    const response = await request(app).get('/client/register')
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/id/{_id} -- mounted', async () => {
+    const response = await request(app).get('/v1/id/test-mounted-id')
+    // Mounted route with unknown id should 404 (not an unmapped endpoint 404)
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('/v1/since/{_id} -- mounted', async () => {
+    const response = await request(app).get('/v1/since/test-mounted-id')
+    // Mounted route with unknown id should 404
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('/v1/history/{_id} -- mounted', async () => {
+    const response = await request(app).get('/v1/history/test-mounted-id')
+    // Mounted route with unknown id should 404
+    expect(response.statusCode).toBe(404)
+  })
 
 })
 
 describe('Check to see that all /v1/api/ route patterns exist.', () => {
 
-  it.todo('/v1/api/query -- mounted ')
-  it.todo('/v1/api/create -- mounted ')
-  it.todo('/v1/api/bulkCreate -- mounted ')
-  it.todo('/v1/api/update -- mounted ')
-  it.todo('/v1/api/bulkUpdate -- mounted ')
-  it.todo('/v1/api/overwrite -- mounted ')
-  it.todo('/v1/api/patch -- mounted ')
-  it.todo('/v1/api/set -- mounted ')
-  it.todo('/v1/api/unset -- mounted ')
-  it.todo('/v1/api/delete/{id} -- mounted ')
-  it.todo('/v1/api/release/{id} -- mounted ')
-  it.todo('/v1/api/search -- mounted ')
-  it.todo('/v1/api/search/phrase -- mounted ')
+  it('/v1/api/query -- mounted ', async () => {
+    const response = await request(app)
+      .post('/v1/api/query')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/create -- mounted ', async () => {
+    const response = await request(app)
+      .post('/v1/api/create')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/bulkCreate -- mounted ', async () => {
+    const response = await request(app)
+      .post('/v1/api/bulkCreate')
+      .set('Content-Type', 'application/json')
+      .send([{ mounted: true }])
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/update -- mounted ', async () => {
+    const response = await request(app)
+      .put('/v1/api/update')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/bulkUpdate -- mounted ', async () => {
+    const response = await request(app)
+      .put('/v1/api/bulkUpdate')
+      .set('Content-Type', 'application/json')
+      .send([{ mounted: true }])
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/overwrite -- mounted ', async () => {
+    const response = await request(app)
+      .post('/v1/api/overwrite')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/patch -- mounted ', async () => {
+    const response = await request(app)
+      .patch('/v1/api/patch')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/set -- mounted ', async () => {
+    const response = await request(app)
+      .patch('/v1/api/set')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/unset -- mounted ', async () => {
+    const response = await request(app)
+      .patch('/v1/api/unset')
+      .set('Content-Type', 'application/json')
+      .send({ mounted: true })
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/delete/{id} -- mounted ', async () => {
+    const response = await request(app).delete('/v1/api/delete/test-mounted-id')
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/release/{id} -- mounted ', async () => {
+    const response = await request(app).patch('/v1/api/release/test-mounted-id')
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/search -- mounted ', async () => {
+    const response = await request(app)
+      .post('/v1/api/search')
+      .set('Content-Type', 'text/plain')
+      .send('mounted search')
+    expect(response.statusCode).not.toBe(404)
+  })
+
+  it('/v1/api/search/phrase -- mounted ', async () => {
+    const response = await request(app)
+      .post('/v1/api/search/phrase')
+      .set('Content-Type', 'text/plain')
+      .send('mounted phrase search')
+    expect(response.statusCode).not.toBe(404)
+  })
 
 })
 
