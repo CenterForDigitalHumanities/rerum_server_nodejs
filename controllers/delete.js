@@ -4,20 +4,17 @@
  * Delete operations for RERUM v1
  * @author Claude Sonnet 4, cubap, thehabes
  */
-import { newID, isValidID, db } from '../database/index.js'
+import { db } from '../database/index.js'
 import utils from '../utils.js'
 import { getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } from './utils.js'
 
 /**
  * Mark an object as deleted in the database.
- * Support DELETE /v1/api/delete/:_id.
+ * Support DELETE /v1/api/delete/:\_id.
+ * Also handles DELETE /v1/api/delete/ (no ID) with a 400 response.
  * DELETE requests do not carry a body (XHR does not support DELETE with body),
  * so the ID must come from the route parameter.
  * Respond RESTfully.
- *
- * @param {import('express').Request} req - Express request with req.params._id
- * @param {import('express').Response} res - Express response
- * @param {import('express').NextFunction} next - Express next middleware
  */
 const deleteObj = async function(req, res, next) {
     const id = req.params["_id"]
