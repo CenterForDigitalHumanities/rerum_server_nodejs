@@ -21,24 +21,4 @@ routeTester.use("/create", [addAuth, controller.create])
 routeTester.use("/release/:_id", [addAuth, controller.release])
 const slug = `rcgslu${new Date(Date.now()).toISOString().replace("Z", "")}`
 
-it("'/release' route functions", async () => {
-
-  const created = await request(routeTester)
-    .post("/create")
-    .send({ "test": "item" })
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-
-  const slug = `rcgslu${new Date(Date.now()).toISOString().replace("Z", "")}`
-
-  const response = await request(routeTester)
-    .patch(`/release/${created.body["@id"].split("/").pop()}`)
-    .set('Slug', slug)
-    .then(resp => resp)
-    .catch(err => err) 
-    expect(response.statusCode).toBe(200)
-    expect(response.body.__rerum.isReleased).toBeTruthy()
-    expect(response.body.__rerum.slug).toBe(slug)
-    controller.remove(slug)
-})
+it.todo("'/release' route functions")

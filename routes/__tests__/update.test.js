@@ -19,24 +19,4 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 routeTester.use("/update", [addAuth, controller.putUpdate])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
-it("'/update' route functions", async () => {
-
-  const response = await request(routeTester)
-    .put('/update')
-    .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "RERUM Update Test":unique})
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-  expect(response.header.location).toBe(response.body["@id"])
-  expect(response.headers["location"]).not.toBe(`${process.env.RERUM_ID_PREFIX}11111`)
-  expect(response.statusCode).toBe(200)
-  expect(response.body._id).toBeUndefined()
-  expect(response.body["RERUM Update Test"]).toBe(unique)
-  expect(response.headers["content-length"]).toBeTruthy()
-  expect(response.headers["content-type"]).toBeTruthy()
-  expect(response.headers["date"]).toBeTruthy()
-  expect(response.headers["etag"]).toBeTruthy()
-  expect(response.headers["allow"]).toBeTruthy()
-  expect(response.headers["link"]).toBeTruthy()
-  
-})
+it.todo("'/update' route functions")

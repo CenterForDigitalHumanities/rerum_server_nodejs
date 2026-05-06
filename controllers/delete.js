@@ -19,18 +19,10 @@ import { getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } fro
 const deleteObj = async function(req, res, next) {
     const id = req.params["_id"]
     let err = { message: `` }
-<<<<<<< 251-memory-reins
-    const safeBody = structuredClone(req.body)
-    try {
-        id = req.params["_id"] ?? parseDocumentID(safeBody?.["@id"]) ?? parseDocumentID(safeBody?.["id"])
-    } catch(error){
-        return next(utils.createExpressError(error))
-=======
     if (!id) {
         err.message = "The object's id is required in the URL. DELETE does not support request bodies."
         err.status = 400
         return next(utils.createExpressError(err))
->>>>>>> main
     }
     let agentRequestingDelete = getAgentClaim(req, next)
     if (!agentRequestingDelete) return

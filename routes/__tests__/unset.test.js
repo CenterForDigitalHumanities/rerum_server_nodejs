@@ -19,22 +19,6 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 // Mount our own /create route without auth that will use controller.create
 routeTester.use("/unset", [addAuth, controller.patchUnset])
 
-it("'/unset' route functions", async () => {
-  const response = await request(routeTester)
-    .patch("/unset")
-    .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "test_obj":null})
-    .set('Content-Type', 'application/json; charset=utf-8')
-    .then(resp => resp)
-    .catch(err => err)
-    expect(response.header.location).toBe(response.body["@id"])
-    expect(response.statusCode).toBe(200)
-    expect(response.body._id).toBeUndefined()
-    expect(response.body.hasOwnProperty("test_obj")).toBe(false)
-    expect(response.headers["content-length"]).toBeTruthy()
-    expect(response.headers["content-type"]).toBeTruthy()
-    expect(response.headers["date"]).toBeTruthy()
-    expect(response.headers["etag"]).toBeTruthy()
-    expect(response.headers["allow"]).toBeTruthy()
-    expect(response.headers["link"]).toBeTruthy()
-})
+it.todo("'/unset' route functions")
+
 

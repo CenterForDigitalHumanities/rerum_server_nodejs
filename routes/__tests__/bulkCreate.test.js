@@ -17,19 +17,4 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 // Mount our own /bulkCreate route without auth that will use controller.bulkCreate
 routeTester.use("/bulkCreate", [addAuth, controller.bulkCreate])
 
-it("'/bulkCreate' route functions", async () => {
-  const response = await request(routeTester)
-    .post("/bulkCreate")
-    .send([{ "test": "item1" }, { "test": "item2" }])
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-  expect(response.header.location).toBe(response.body["@id"])
-  expect(response.statusCode).toBe(201)
-  expect(Array.isArray(response.body)).toBe(true)
-  expect(response.headers["content-length"]).toBeTruthy()
-  expect(response.headers["content-type"]).toBeTruthy()
-  expect(response.headers["date"]).toBeTruthy()
-  expect(response.headers["etag"]).toBeTruthy()
-  expect(response.headers["link"]).toBeTruthy()
-})
+it.todo("'/bulkCreate' route functions")

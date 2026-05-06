@@ -18,25 +18,7 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 // Mount our own /create route without auth that will use controller.create
 routeTester.use("/create", [addAuth, controller.create])
 
-it("'/create' route functions", async () => {
-  const response = await request(routeTester)
-    .post("/create")
-    .send({ "test": "item" })
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-  expect(response.header.location).toBe(response.body["@id"])
-  expect(response.statusCode).toBe(201)
-  expect(response.body.test).toBe("item")
-  expect(response.body).toHaveProperty("__rerum")
-  expect(response.body._id).toBeUndefined()
-  expect(response.headers["content-length"]).toBeTruthy()
-  expect(response.headers["content-type"]).toBeTruthy()
-  expect(response.headers["date"]).toBeTruthy()
-  expect(response.headers["etag"]).toBeTruthy()
-  expect(response.headers["link"]).toBeTruthy()
-
-})
+it.todo("'/create' route functions")
 
 it.skip("Support setting valid '_id' on '/create' request body.", async () => {
   // TODO

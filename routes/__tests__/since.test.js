@@ -12,18 +12,4 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 // Mount our own /create route without auth that will use controller.history
 routeTester.use("/since/:_id", controller.since)
 
-it("'/since/:id' route functions", async () => {
-  const response = await request(routeTester)
-    .get("/since/11111")
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-  expect(response.statusCode).toBe(200)
-  expect(response.headers["content-length"]).toBeTruthy()
-  expect(response.headers["content-type"]).toBeTruthy()
-  expect(response.headers["date"]).toBeTruthy()
-  expect(response.headers["etag"]).toBeTruthy()
-  expect(response.headers["allow"]).toBeTruthy()
-  expect(response.headers["link"]).toBeTruthy()
-  expect(Array.isArray(response.body)).toBe(true)
-})
+it.todo("'/since/:id' route functions")

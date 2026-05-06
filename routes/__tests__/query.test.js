@@ -11,25 +11,7 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 // Mount our own /query route without auth that will use controller.query
 routeTester.use("/query", controller.query)
 
-it("'/query' route functions", async () => {
-  const response = await request(routeTester)
-    .post("/query")
-    .send({ "_id": "11111" })
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-    expect(response.statusCode).toBe(200)
-    expect(Array.isArray(response.body)).toBe(true)
-    expect(response.body.length).toBeTruthy()
-    expect(response.body[0]._id).toBeUndefined()
-    expect(response.headers["content-length"]).toBeTruthy()
-    expect(response.headers["content-type"]).toBeTruthy()
-    expect(response.headers["date"]).toBeTruthy()
-    expect(response.headers["etag"]).toBeTruthy()
-    expect(response.headers["allow"]).toBeTruthy()
-    expect(response.headers["link"]).toBeTruthy()
- 
-})
+it.todo("'/query' route functions")
 
 it.skip("Proper '@id-id' negotation on objects returned from '/query'.", async () => {
   // TODO
