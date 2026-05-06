@@ -10,7 +10,7 @@ import { getAgentClaim, parseDocumentID, getAllVersions, getAllDescendants } fro
 
 /**
  * Mark an object as deleted in the database.
- * Support DELETE /v1/api/delete/:\_id.
+ * Support DELETE /v1/api/delete/:_id.
  * Also handles DELETE /v1/api/delete/ (no ID) with a 400 response.
  * DELETE requests do not carry a body (XHR does not support DELETE with body),
  * so the ID must come from the route parameter.
