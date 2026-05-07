@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Jest mock for the database/index.js module.
  * Replaces all MongoDB operations with jest.fn() stubs so tests

@@ -33,6 +33,7 @@ const bulkCreate = async function (req, res, next) {
         // Each item must be valid JSON, but can't be an array.
         if(Array.isArray(d) || typeof d !== "object") return d
         try {
+            // Validate that the entry is structured-cloneable; result is intentionally discarded.
             structuredClone(d)
         } catch (err) {
             return d
@@ -120,6 +121,7 @@ const bulkUpdate = async function (req, res, next) {
         // Each item must be valid JSON, but can't be an array.
         if(Array.isArray(d) || typeof d !== "object") return d
         try {
+            // Validate that the entry is structured-cloneable; result is intentionally discarded.
             structuredClone(d)
         } catch (err) {
             return d

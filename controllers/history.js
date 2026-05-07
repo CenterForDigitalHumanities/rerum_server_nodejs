@@ -90,9 +90,13 @@ const idHeadRequest = async function (req, res, next) {
     try {
         let match = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
         if (match) {
-            const size = Buffer.byteLength(JSON.stringify(match))
+            // Use res.end() instead of res.sendStatus(200) — sendStatus writes "OK" as the body
+            // and overwrites Content-Type and Content-Length. HEAD must preserve our manual headers.
+            // Mirror the GET pipeline (idNegotiation) so Content-Length matches the GET payload.
+            const negotiated = idNegotiation(match)
+            const size = Buffer.byteLength(JSON.stringify(negotiated))
             res.set("Content-Length", size)
-            res.sendStatus(200)
+            res.status(200).end()
             return
         }
         let err = {
@@ -114,9 +118,11 @@ const queryHeadRequest = async function (req, res, next) {
     let props = req.body
     const { limit, skip } = getPagination(req.query, 100)
     try {
-        const matchCount = await db.countDocuments(props, { limit, skip })
-        if (matchCount > 0) {
-            res.set("Content-Length", 0)
+        const matches = await db.find(props).limit(limit).skip(skip).toArray()
+        if (matches.length) {
+            const negotiated = matches.map(o => idNegotiation(o))
+            const size = Buffer.byteLength(JSON.stringify(negotiated))
+            res.set("Content-Length", size)
             res.status(200).end()
             return
         }
@@ -157,13 +163,15 @@ const sinceHeadRequest = async function (req, res, next) {
         })
     let descendants = getAllDescendants(all, obj, [])
     if (descendants.length) {
-        const size = Buffer.byteLength(JSON.stringify(descendants))
+        const negotiated = descendants.map(o => idNegotiation(o))
+        const size = Buffer.byteLength(JSON.stringify(negotiated))
         res.set("Content-Length", size)
-        res.sendStatus(200)
+        res.status(200).end()
         return
     }
-    res.set("Content-Length", 0)
-    res.sendStatus(200)
+    // GET returns "[]" for the empty case — match its byte length.
+    res.set("Content-Length", Buffer.byteLength("[]"))
+    res.status(200).end()
 }
 
 /**
@@ -193,13 +201,15 @@ const historyHeadRequest = async function (req, res, next) {
         })
     let ancestors = getAllAncestors(all, obj, [])
     if (ancestors.length) {
-        const size = Buffer.byteLength(JSON.stringify(ancestors))
+        const negotiated = ancestors.map(o => idNegotiation(o))
+        const size = Buffer.byteLength(JSON.stringify(negotiated))
         res.set("Content-Length", size)
-        res.sendStatus(200)
+        res.status(200).end()
         return
     }
-    res.set("Content-Length", 0)
-    res.sendStatus(200)
+    // GET returns "[]" for the empty case — match its byte length.
+    res.set("Content-Length", Buffer.byteLength("[]"))
+    res.status(200).end()
 }
 
 export { since, history, idHeadRequest, queryHeadRequest, sinceHeadRequest, historyHeadRequest }
