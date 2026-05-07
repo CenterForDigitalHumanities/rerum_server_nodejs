@@ -9,6 +9,24 @@ import utils from '../utils.js'
 
 const ObjectID = newID
 
+const MAX_QUERY_LIMIT = Number.parseInt(process.env.RERUM_MAX_QUERY_LIMIT ?? 500, 10)
+const MAX_QUERY_SKIP = Number.parseInt(process.env.RERUM_MAX_QUERY_SKIP ?? 100000, 10)
+
+function clampNonNegativeInt(value, fallback, max) {
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+    return parsed > max ? max : parsed
+}
+
+function getPagination(query = {}, defaultLimit = 100) {
+    const limitMax = Number.isFinite(MAX_QUERY_LIMIT) && MAX_QUERY_LIMIT > 0 ? MAX_QUERY_LIMIT : 500
+    const skipMax = Number.isFinite(MAX_QUERY_SKIP) && MAX_QUERY_SKIP >= 0 ? MAX_QUERY_SKIP : 100000
+    const safeDefaultLimit = defaultLimit > 0 ? defaultLimit : 100
+    const limit = clampNonNegativeInt(query.limit, safeDefaultLimit, limitMax)
+    const skip = clampNonNegativeInt(query.skip, 0, skipMax)
+    return { limit, skip }
+}
+
 /**
  * Check if a @context value contains a known @id-id mapping context
  *
@@ -52,7 +70,7 @@ const idNegotiation = function (resBody) {
     const _id = resBody._id
     delete resBody._id
     if(!resBody["@context"]) return resBody
-    let modifiedResBody = JSON.parse(JSON.stringify(resBody))
+    let modifiedResBody = structuredClone(resBody)
     const context = { "@context": resBody["@context"] }
     if(_contextid(resBody["@context"])) {
         delete resBody["@id"]
@@ -182,7 +200,7 @@ async function getAllVersions(obj) {
     let rootObj
     if (primeID === "root") {
         //The obj passed in is root.  So it is the rootObj we need.
-        rootObj = JSON.parse(JSON.stringify(obj))
+        rootObj = structuredClone(obj)
     } else if (primeID) {
         //The obj passed in knows the ID of root, grab it from Mongo
         //Use _id for indexed query performance instead of @id
@@ -299,7 +317,7 @@ async function establishReleasesTree(releasing) {
     const descendants = getAllDescendants(all, releasing, [])
     const ancestors = getAllAncestors(all, releasing, [])
     for(const d of descendants){
-        let safe_descendant = JSON.parse(JSON.stringify(d))
+        let safe_descendant = structuredClone(d)
         let d_id = safe_descendant._id
         safe_descendant.__rerum.releases.previous = releasing["@id"]
         let result
@@ -317,7 +335,7 @@ async function establishReleasesTree(releasing) {
         }  
     }
     for(const a of ancestors){
-        let safe_ancestor = JSON.parse(JSON.stringify(a))
+        let safe_ancestor = structuredClone(a)
         let a_id = safe_ancestor._id
         if(safe_ancestor.__rerum.releases.next.indexOf(releasing["@id"]) === -1){
             safe_ancestor.__rerum.releases.next.push(releasing["@id"])    
@@ -359,7 +377,7 @@ async function healReleasesTree(releasing) {
     const descendants = getAllDescendants(all, releasing, [])
     const ancestors = getAllAncestors(all, releasing, [])
     for(const d of descendants){
-        let safe_descendant = JSON.parse(JSON.stringify(d))
+        let safe_descendant = structuredClone(d)
         let d_id = safe_descendant._id
         if(d.__rerum.releases.previous === releasing.__rerum.releases.previous){
             // If the descendant's previous matches the node I am releasing's
@@ -387,7 +405,7 @@ async function healReleasesTree(releasing) {
     }
     let origNextArray = releasing.__rerum.releases.next
     for (const a of ancestors){
-        let safe_ancestor = JSON.parse(JSON.stringify(a))
+        let safe_ancestor = structuredClone(a)
         let a_id = safe_ancestor._id
         let ancestorNextArray = safe_ancestor.__rerum.releases.next
         if (ancestorNextArray.length == 0) {
@@ -447,6 +465,7 @@ async function healReleasesTree(releasing) {
 export {
     _contextid,
     idNegotiation,
+    getPagination,
     generateSlugId,
     index,
     ObjectID,

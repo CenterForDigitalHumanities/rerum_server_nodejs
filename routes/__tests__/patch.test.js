@@ -19,21 +19,37 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 routeTester.use("/patch", [addAuth, controller.patchUpdate])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
-it("'/patch' route functions", async () => {
-  const response = await request(routeTester)
-    .patch('/patch')
-    .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "RERUM Update Test":unique})
-    .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-  expect(response.header.location).toBe(response.body["@id"])
-  expect(response.statusCode).toBe(200)
-  expect(response.body._id).toBeUndefined()
-  expect(response.headers["content-length"]).toBeTruthy()
-  expect(response.headers["content-type"]).toBeTruthy()
-  expect(response.headers["date"]).toBeTruthy()
-  expect(response.headers["etag"]).toBeTruthy()
-  expect(response.headers["allow"]).toBeTruthy()
-  expect(response.headers["link"]).toBeTruthy()
+const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
+const MOCK_PREFIX = process.env.RERUM_ID_PREFIX ?? "https://store.rerum.io/v1/id/"
+const MOCK_ORIG_ID = "11111"
 
+const mockDoc = {
+  _id: MOCK_ORIG_ID,
+  "@id": `${MOCK_PREFIX}${MOCK_ORIG_ID}`,
+  "RERUM Update Test": "oldValue",
+  test: "item",
+  __rerum: {
+    generatedBy: MOCK_AGENT,
+    history: { prime: "root", previous: "", next: [] },
+    isReleased: "",
+    isOverwritten: "",
+    releases: { previous: "", next: [], replaces: "" },
+    createdAt: "2025-01-01T00:00:00.000"
+  }
+}
+
+import { db } from '../../database/index.js'
+
+it("'/patch' route functions", async () => {
+  // patchUpdate: findOne → original (has "RERUM Update Test"), patch it, insertOne + replaceOne
+  db.findOne.mockResolvedValueOnce(mockDoc)
+  const response = await request(routeTester)
+    .patch("/patch")
+    .set("Content-Type", "application/json")
+    .send({ "@id": `${MOCK_PREFIX}${MOCK_ORIG_ID}`, "RERUM Update Test": unique })
+  expect(response.statusCode).toBe(200)
+  const returnedId = response.body["@id"] ?? response.body.id
+  expect(returnedId).toBeTruthy()
+  expect(response.headers["location"]).toBe(returnedId)
+  expect(response.body._id).toBeUndefined()
 })

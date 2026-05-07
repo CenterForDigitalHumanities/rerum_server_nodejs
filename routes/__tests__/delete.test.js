@@ -23,17 +23,37 @@ routeTester.use("/create", [addAuth, controller.create])
 // Mount our own /delete route without auth that will use controller.delete
 routeTester.use("/delete/:_id", [addAuth, controller.deleteObj])
 
+const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
+const MOCK_PREFIX = process.env.RERUM_ID_PREFIX ?? "https://store.rerum.io/v1/id/"
+const MOCK_ID = "11111"
+
+const mockDoc = {
+  _id: MOCK_ID,
+  "@id": `${MOCK_PREFIX}${MOCK_ID}`,
+  test: "item",
+  __rerum: {
+    generatedBy: MOCK_AGENT,
+    history: { prime: "root", previous: "", next: [] },
+    isReleased: "",
+    isOverwritten: "",
+    releases: { previous: "", next: [], replaces: "" },
+    createdAt: "2025-01-01T00:00:00.000"
+  }
+}
+
+import { db } from '../../database/index.js'
+
 it("'/delete' route functions", async () => {
-  const created = await request(routeTester)
+  // create step (primarily validates route wiring)
+  const createResponse = await request(routeTester)
     .post("/create")
-    .send({ "test": "item"})
     .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-    
-  const response = await request(routeTester)
-    .delete(`/delete/${created.body["@id"].split("/").pop()}`)
-    .then(resp => resp)
-    .catch(err => err) 
-  expect(response.statusCode).toBe(204)
+    .send({ test: "item" })
+  expect(createResponse.statusCode).toBe(201)
+
+  // delete step uses findOne + replaceOne internally
+  db.findOne.mockResolvedValueOnce(mockDoc)
+  const deleteResponse = await request(routeTester).delete(`/delete/${MOCK_ID}`)
+  // deleteObj returns 204 No Content on success
+  expect(deleteResponse.statusCode).toBe(204)
 })

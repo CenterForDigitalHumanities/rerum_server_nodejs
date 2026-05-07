@@ -25,7 +25,7 @@
   },
   "scripts": {
     "start": "node ./bin/rerum_v1.js",
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "runtest": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {

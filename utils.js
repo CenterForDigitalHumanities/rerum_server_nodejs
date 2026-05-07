@@ -25,9 +25,10 @@ isReleased        —always ""
  * @param update A trigger for special handling from update actions
  * @return configuredObject The same object that was recieved but with the proper __rerum options.  This object is intended to be saved as a new object (@see versioning)
  */
+
 const configureRerumOptions = function(generator, received, update, extUpdate){
-    let configuredObject = JSON.parse(JSON.stringify(received))
-    let received_options = received.__rerum ? JSON.parse(JSON.stringify(received.__rerum)) : {}
+    let configuredObject = structuredClone(received)
+    let received_options = received.__rerum ? structuredClone(received.__rerum) : {}
     let history = {}
     let releases = {}
     let rerumOptions = {}

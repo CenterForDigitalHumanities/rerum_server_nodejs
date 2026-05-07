@@ -33,7 +33,7 @@ const deleteObj = async function(req, res, next) {
         return next(utils.createExpressError(error))
     }
     if (null !== originalObject) {
-        let safe_original = JSON.parse(JSON.stringify(originalObject))
+        let safe_original = structuredClone(originalObject)
         if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to delete is already deleted. ${err.message}`,
@@ -57,7 +57,7 @@ const deleteObj = async function(req, res, next) {
         }
         let preserveID = safe_original["@id"]
         let deletedFlag = {} //The __deleted flag is a JSONObject
-        deletedFlag["object"] = JSON.parse(JSON.stringify(originalObject))
+        deletedFlag["object"] = structuredClone(originalObject)
         deletedFlag["deletor"] = agentRequestingDelete
         deletedFlag["time"] = new Date(Date.now()).toISOString().replace("Z", "")
         let deletedObject = {
@@ -121,7 +121,7 @@ async function healHistoryTree(obj) {
             const nextIdForQuery = parseDocumentID(nextID)
             const objToUpdate = await db.findOne({"$or":[{"_id": nextIdForQuery}, {"__rerum.slug": nextIdForQuery}]})
             if (null !== objToUpdate) {
-                let fixHistory = JSON.parse(JSON.stringify(objToUpdate))
+                let fixHistory = structuredClone(objToUpdate)
                 if (objToDeleteisRoot) {
                     //This means this next object must become root. 
                     //Strictly, all history trees must have num(root) > 0.  
@@ -154,7 +154,7 @@ async function healHistoryTree(obj) {
             let previousIdForQuery = parseDocumentID(previous_id)
             const objToUpdate2 = await db.findOne({"$or":[{"_id": previousIdForQuery}, {"__rerum.slug": previousIdForQuery}]})
             if (null !== objToUpdate2) {
-                let fixHistory2 = JSON.parse(JSON.stringify(objToUpdate2))
+                let fixHistory2 = structuredClone(objToUpdate2)
                 let origNextArray = fixHistory2["__rerum"]["history"]["next"]
                 let newNextArray = [...origNextArray]
                 newNextArray = newNextArray.filter(id => id !== obj["@id"])
@@ -193,7 +193,7 @@ async function newTreePrime(obj) {
             // fail silently
         }
         for (const d of descendants) {
-            let objWithUpdate = JSON.parse(JSON.stringify(d))
+            let objWithUpdate = structuredClone(d)
             objWithUpdate["__rerum"]["history"]["prime"] = primeID
             let result = await db.replaceOne({ "_id": d["_id"] }, objWithUpdate)
             if (result.modifiedCount === 0) {

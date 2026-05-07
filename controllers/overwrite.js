@@ -19,7 +19,7 @@ import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation } f
 const overwrite = async function (req, res, next) {
     let err = { message: `` }
     res.set("Content-Type", "application/json; charset=utf-8")
-    let objectReceived = JSON.parse(JSON.stringify(req.body))
+    let objectReceived = structuredClone(req.body)
     let agentRequestingOverwrite = getAgentClaim(req, next)
     if (!agentRequestingOverwrite) return
     const receivedID = objectReceived["@id"] ?? objectReceived.id
@@ -93,7 +93,7 @@ const overwrite = async function (req, res, next) {
                 res.set('Current-Overwritten-Version', rerumProp["__rerum"].isOverwritten)
                 res.set(utils.configureWebAnnoHeadersFor(newObject))
                 newObject = idNegotiation(newObject)
-                newObject.new_obj_state = JSON.parse(JSON.stringify(newObject))
+                newObject.new_obj_state = structuredClone(newObject)
                 res.location(newObject[_contextid(newObject["@context"]) ? "id":"@id"])
                 res.json(newObject)
                 return

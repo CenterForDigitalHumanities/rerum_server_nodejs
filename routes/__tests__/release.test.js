@@ -21,24 +21,53 @@ routeTester.use("/create", [addAuth, controller.create])
 routeTester.use("/release/:_id", [addAuth, controller.release])
 const slug = `rcgslu${new Date(Date.now()).toISOString().replace("Z", "")}`
 
+const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
+const MOCK_PREFIX = process.env.RERUM_ID_PREFIX ?? "https://store.rerum.io/v1/id/"
+const MOCK_ID = "11111"
+
+const mockDoc = {
+  _id: MOCK_ID,
+  "@id": `${MOCK_PREFIX}${MOCK_ID}`,
+  test: "item",
+  __rerum: {
+    generatedBy: MOCK_AGENT,
+    history: { prime: "root", previous: "", next: [] },
+    isReleased: "",
+    isOverwritten: "",
+    releases: { previous: "", next: [], replaces: "" },
+    createdAt: "2025-01-01T00:00:00.000"
+  }
+}
+
+import { db } from '../../database/index.js'
+
 it("'/release' route functions", async () => {
-
-  const created = await request(routeTester)
+  // create something to release
+  const createResponse = await request(routeTester)
     .post("/create")
-    .send({ "test": "item" })
     .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
+    .send({ test: "item" })
+  expect(createResponse.statusCode).toBe(201)
 
-  const slug = `rcgslu${new Date(Date.now()).toISOString().replace("Z", "")}`
+  // release with slug:
+  // 1st findOne for slug uniqueness check -> null
+  // 2nd findOne to fetch object being released -> mockDoc
+  db.findOne
+    .mockResolvedValueOnce(null)
+    .mockResolvedValueOnce(mockDoc)
 
-  const response = await request(routeTester)
-    .patch(`/release/${created.body["@id"].split("/").pop()}`)
-    .set('Slug', slug)
-    .then(resp => resp)
-    .catch(err => err) 
-    expect(response.statusCode).toBe(200)
-    expect(response.body.__rerum.isReleased).toBeTruthy()
-    expect(response.body.__rerum.slug).toBe(slug)
-    controller.remove(slug)
+  const releaseResponse = await request(routeTester)
+    .post(`/release/${MOCK_ID}`)
+    .set("Slug", slug)
+    .set("Content-Type", "application/json")
+
+  expect(releaseResponse.statusCode).toBe(200)
+  expect(releaseResponse.body._id).toBeUndefined()
+  expect(releaseResponse.body.__rerum).toBeDefined()
+  expect(releaseResponse.body.__rerum.isReleased).toBeTruthy()
+  const returnedId = releaseResponse.body["@id"] ?? releaseResponse.body.id
+  expect(releaseResponse.headers["location"]).toBe(returnedId)
+
+  // cleanup slug object via internal helper path
+  await controller.remove(slug)
 })

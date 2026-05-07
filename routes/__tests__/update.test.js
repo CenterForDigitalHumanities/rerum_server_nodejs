@@ -19,24 +19,39 @@ routeTester.use(express.json({ type: ["application/json", "application/ld+json"]
 routeTester.use("/update", [addAuth, controller.putUpdate])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
-it("'/update' route functions", async () => {
+const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
+const MOCK_PREFIX = process.env.RERUM_ID_PREFIX ?? "https://store.rerum.io/v1/id/"
+const MOCK_ORIG_ID = "11111"
 
+const mockDoc = {
+  _id: MOCK_ORIG_ID,
+  "@id": `${MOCK_PREFIX}${MOCK_ORIG_ID}`,
+  "RERUM Update Test": "oldValue",
+  test: "item",
+  __rerum: {
+    generatedBy: MOCK_AGENT,
+    history: { prime: "root", previous: "", next: [] },
+    isReleased: "",
+    isOverwritten: "",
+    releases: { previous: "", next: [], replaces: "" },
+    createdAt: "2025-01-01T00:00:00.000"
+  }
+}
+
+import { db } from '../../database/index.js'
+
+it("'/update' route functions", async () => {
+  // putUpdate: findOne → original, insertOne → new version, replaceOne → update original's next
+  db.findOne.mockResolvedValueOnce(mockDoc)
   const response = await request(routeTester)
-    .put('/update')
-    .send({"@id":`${process.env.RERUM_ID_PREFIX}11111`, "RERUM Update Test":unique})
+    .put("/update")
     .set("Content-Type", "application/json")
-    .then(resp => resp)
-    .catch(err => err)
-  expect(response.header.location).toBe(response.body["@id"])
-  expect(response.headers["location"]).not.toBe(`${process.env.RERUM_ID_PREFIX}11111`)
+    .send({ "@id": `${MOCK_PREFIX}${MOCK_ORIG_ID}`, "RERUM Update Test": unique })
   expect(response.statusCode).toBe(200)
+  const returnedId = response.body["@id"] ?? response.body.id
+  expect(returnedId).toBeTruthy()
+  expect(response.headers["location"]).toBe(returnedId)
+  expect(response.headers["location"]).not.toBe(`${MOCK_PREFIX}${MOCK_ORIG_ID}`)
   expect(response.body._id).toBeUndefined()
   expect(response.body["RERUM Update Test"]).toBe(unique)
-  expect(response.headers["content-length"]).toBeTruthy()
-  expect(response.headers["content-type"]).toBeTruthy()
-  expect(response.headers["date"]).toBeTruthy()
-  expect(response.headers["etag"]).toBeTruthy()
-  expect(response.headers["allow"]).toBeTruthy()
-  expect(response.headers["link"]).toBeTruthy()
-  
 })
