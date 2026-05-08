@@ -1,0 +1,19 @@
+name: Provider Contract Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-tinynode-to-rerum:
+    uses: cubap/rerum_openapi/.github/workflows/seam-runtime-validation.yml@main
+    with:
+      contract_repo_ref: main
+      seam_manifest_path: seams/tinynode-to-rerum/manifest.yaml
+      target_base_url: https://store.rerum.io/v1
+      compare_paths: true
+      compare_operations: true
+      fixture_file: test/contract-fixtures/tinynode-to-rerum.yaml
+      timeout_ms: 10000
