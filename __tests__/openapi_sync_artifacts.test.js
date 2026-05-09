@@ -13,12 +13,13 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
     const providerArtifact = fs.readFileSync(providerArtifactPath, "utf8")
     const targetArtifact = fs.readFileSync(targetArtifactPath, "utf8")
 
-    expect(fs.existsSync(providerArtifactPath)).toBeTruthy()
-    expect(fs.existsSync(targetArtifactPath)).toBeTruthy()
-    expect(providerArtifact).toContain("openapi: 3.0.3")
-    expect(providerArtifact).toContain("version: 0.1.0")
-    expect(targetArtifact).toContain("openapi: 3.0.3")
-    expect(targetArtifact).toContain("version: 0.1.0")
+    for (const artifact of [providerArtifact, targetArtifact]) {
+      expect(artifact).toContain("openapi: 3.0.3")
+      expect(artifact).toContain("title: RERUM Shared Components")
+      expect(artifact).toContain("version: 0.1.0")
+      expect(artifact).toContain("components:")
+      expect(artifact).toContain("schemas: {}")
+    }
   })
 
   it("dispatches the shared artifact sync workflow for provider changes", () => {
