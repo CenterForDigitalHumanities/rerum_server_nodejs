@@ -21,11 +21,9 @@ interactions:
             previous: ""
             replaces: ""
 
-  - description: Query objects with a filter
+  - description: Query objects
     path: /api/query
     method: post
-    request:
-      "@type": "http://www.w3.org/ns/oa#Annotation"
     expectedStatus: "200"
     response:
       body:
