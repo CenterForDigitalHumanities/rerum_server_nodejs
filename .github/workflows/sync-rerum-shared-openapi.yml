@@ -1,0 +1,34 @@
+name: Sync shared RERUM OpenAPI artifact
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - openapi/components/rerum-shared-components.openapi.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch sync-provider-artifact workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.BRY_PAT }}
+          script: |
+            await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
+              owner: 'cubap',
+              repo: 'rerum_openapi',
+              workflow_id: 'sync-provider-artifact.yml',
+              ref: 'main',
+              inputs: {
+                provider_repository: '${{ github.repository }}',
+                provider_ref: '${{ github.sha }}',
+                provider_artifact_path: 'openapi/components/rerum-shared-components.openapi.yaml',
+                target_artifact_path: 'schemas/openapi/rerum-shared-components.openapi.yaml'
+              }
+            })
