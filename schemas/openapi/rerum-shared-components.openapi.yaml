@@ -1,4 +1,4 @@
-# Synced copy kept in-repo so provider-driven artifact updates target an existing file.
+# This file is automatically synced from openapi/components/rerum-shared-components.openapi.yaml. Do not edit manually.
 openapi: 3.0.3
 info:
   title: RERUM Shared Components

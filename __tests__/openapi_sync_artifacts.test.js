@@ -22,7 +22,7 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
     }
   })
 
-  it("dispatches the shared artifact sync workflow for provider changes", () => {
+  it("verifies the shared artifact sync workflow configuration", () => {
     const workflowPath = path.join(repoRoot, ".github/workflows/sync-rerum-shared-openapi.yml")
     const workflow = fs.readFileSync(workflowPath, "utf8")
 
