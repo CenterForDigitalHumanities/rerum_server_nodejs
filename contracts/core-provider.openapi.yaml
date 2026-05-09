@@ -1,0 +1,382 @@
+openapi: 3.0.3
+info:
+  title: RERUM Core Provider Contract
+  version: 1.0.0
+  description: Provider-maintained baseline for the core RERUM API surface.
+servers:
+  - url: https://store.rerum.io/v1
+paths:
+  /api:
+    get:
+      summary: Describe the core API endpoints
+      operationId: describeCoreApi
+      responses:
+        '200':
+          description: Available endpoint summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /id/{id}:
+    get:
+      summary: Read object by id
+      operationId: getObjectById
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Object payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+    head:
+      summary: Read object headers by id
+      operationId: headObjectById
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Object headers
+  /since/{id}:
+    get:
+      summary: Read updates since id
+      operationId: getSince
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Incremental updates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+    head:
+      summary: Read update headers since id
+      operationId: headSince
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Incremental update headers
+  /history/{id}:
+    get:
+      summary: Read object history by id
+      operationId: getHistory
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Version history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+    head:
+      summary: Read object history headers by id
+      operationId: headHistory
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Version history headers
+  /api/query:
+    post:
+      summary: Query objects
+      operationId: queryObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+    head:
+      summary: Query object headers
+      operationId: headQueryObjects
+      responses:
+        '200':
+          description: Query result headers
+  /api/search:
+    post:
+      summary: Search objects by keywords
+      operationId: searchObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+  /api/search/phrase:
+    post:
+      summary: Search objects by phrase
+      operationId: searchObjectsByPhrase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Phrase search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+  /api/create:
+    post:
+      summary: Create object
+      operationId: createObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Created object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/bulkCreate:
+    post:
+      summary: Create multiple objects
+      operationId: bulkCreateObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericArray'
+      responses:
+        '200':
+          description: Created objects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+  /api/update:
+    put:
+      summary: Update object
+      operationId: updateObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Updated object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/bulkUpdate:
+    put:
+      summary: Update multiple objects
+      operationId: bulkUpdateObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericArray'
+      responses:
+        '200':
+          description: Updated objects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericArray'
+  /api/overwrite:
+    put:
+      summary: Overwrite object
+      operationId: overwriteObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Overwritten object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/patch:
+    patch:
+      summary: Patch object
+      operationId: patchObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Patched object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+    post:
+      summary: Patch object via override-compatible POST
+      operationId: patchObjectViaPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Patched object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/set:
+    patch:
+      summary: Add properties to object
+      operationId: setObjectProperties
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Updated object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+    post:
+      summary: Add properties to object via override-compatible POST
+      operationId: setObjectPropertiesViaPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Updated object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/unset:
+    patch:
+      summary: Remove properties from object
+      operationId: unsetObjectProperties
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Updated object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+    post:
+      summary: Remove properties from object via override-compatible POST
+      operationId: unsetObjectPropertiesViaPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: Updated object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/delete:
+    delete:
+      summary: Delete object
+      operationId: deleteObject
+      responses:
+        '200':
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/delete/{id}:
+    delete:
+      summary: Delete object by id
+      operationId: deleteObjectById
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+  /api/release/{id}:
+    patch:
+      summary: Release object by id
+      operationId: releaseObject
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      responses:
+        '200':
+          description: Release result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+components:
+  parameters:
+    ObjectId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+  schemas:
+    GenericObject:
+      type: object
+      additionalProperties: true
+    GenericArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/GenericObject'
