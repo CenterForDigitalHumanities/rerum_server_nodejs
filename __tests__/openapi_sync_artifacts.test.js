@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename)
 const repoRoot = path.resolve(__dirname, "..")
 
 describe("Shared OpenAPI artifact sync scaffolding", () => {
-  it("keeps provider and target artifact files in place", () => {
+  it("verifies provider and target artifact files contain valid OpenAPI structure", () => {
     const providerArtifactPath = path.join(repoRoot, "openapi/components/rerum-shared-components.openapi.yaml")
     const targetArtifactPath = path.join(repoRoot, "schemas/openapi/rerum-shared-components.openapi.yaml")
     const providerArtifact = fs.readFileSync(providerArtifactPath, "utf8")

@@ -1,3 +1,4 @@
+# Synced copy kept in-repo so provider-driven artifact updates target an existing file.
 openapi: 3.0.3
 info:
   title: RERUM Shared Components
