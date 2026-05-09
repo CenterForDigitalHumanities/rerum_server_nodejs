@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: RERUM Shared Components
-  version: 0.0.0
+  version: 0.1.0
   description: Shared reusable OpenAPI components for RERUM v1 contracts.
 externalDocs:
   description: RERUM API reference
