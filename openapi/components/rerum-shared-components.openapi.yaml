@@ -1,0 +1,13 @@
+openapi: 3.0.3
+info:
+  title: RERUM Shared Components
+  version: 0.1.0
+  description: Shared reusable OpenAPI components for RERUM v1 contracts.
+externalDocs:
+  description: RERUM API reference
+  url: https://store.rerum.io/v1/API.html
+x-upstream-provider:
+  name: rerum_server_nodejs
+  baseUrl: https://store.rerum.io/v1
+components:
+  schemas: {}
