@@ -1,0 +1,44 @@
+interactions:
+  - description: Read an existing object by id
+    path: /id/{id}
+    method: get
+    expectedStatus: "200"
+    response:
+      body:
+        "@id": https://store.rerum.io/v1/id/test123
+        "@type": "http://www.w3.org/ns/oa#Annotation"
+        __rerum:
+          APIversion: "1.1.0"
+          generatedBy: https://store.rerum.io/agent
+          history:
+            prime: https://store.rerum.io/v1/id/test123
+            next: []
+            previous: ""
+          isReleased: ""
+          releaseDate: ""
+          releases:
+            next: []
+            previous: ""
+            replaces: ""
+
+  - description: Query objects
+    path: /api/query
+    method: post
+    expectedStatus: "200"
+    response:
+      body:
+        - "@id": https://store.rerum.io/v1/id/test123
+          "@type": "http://www.w3.org/ns/oa#Annotation"
+          __rerum:
+            APIversion: "1.1.0"
+            generatedBy: https://store.rerum.io/agent
+            history:
+              prime: https://store.rerum.io/v1/id/test123
+              next: []
+              previous: ""
+            isReleased: ""
+            releaseDate: ""
+            releases:
+              next: []
+              previous: ""
+              replaces: ""
