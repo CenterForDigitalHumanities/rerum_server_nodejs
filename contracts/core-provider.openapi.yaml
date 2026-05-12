@@ -327,17 +327,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
-  /api/delete:
-    delete:
-      summary: Delete object
-      operationId: deleteObject
-      responses:
-        '200':
-          description: Deletion result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericObject'
   /api/delete/{id}:
     delete:
       summary: Delete object by id
