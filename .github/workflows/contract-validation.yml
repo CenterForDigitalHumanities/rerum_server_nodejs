@@ -12,8 +12,10 @@ jobs:
     with:
       contract_repo_ref: main
       seam_manifest_path: seams/tinynode-to-rerum/manifest.yaml
-      target_base_url: https://store.rerum.io/v1
-      compare_paths: true
-      compare_operations: true
+      # Fixture-only validation for provider contract shape; runtime endpoint probes
+      # remain disabled until rerum_openapi supports optional test_endpoint_contract.
+      target_base_url: ''
+      compare_paths: false
+      compare_operations: false
       fixture_file: test/contract-fixtures/tinynode-to-rerum.yaml
       timeout_ms: 10000

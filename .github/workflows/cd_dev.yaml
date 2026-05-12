@@ -13,7 +13,7 @@ jobs:
           type: now
           from_branch: main
           target_branch: ${{ github.head_ref }}
-          github_token: ${{ secrets.BRY_PAT }}
+          github_token: ${{ secrets.OPENAPI }}
           message: Merge main into this branch to deploy to dev for testing.
   test:
     needs: merge-branch

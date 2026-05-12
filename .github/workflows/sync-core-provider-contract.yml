@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: cubap/rerum_openapi
-          token: ${{ secrets.BRY_PAT }}
+          token: ${{ secrets.OPENAPI }}
           path: rerum_openapi
 
       - name: Copy provider contract baseline
@@ -32,7 +32,7 @@ jobs:
       - name: Create sync pull request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.BRY_PAT }}
+          token: ${{ secrets.OPENAPI }}
           path: rerum_openapi
           branch: automation/sync-rerum-core-provider-contract
           delete-branch: true
