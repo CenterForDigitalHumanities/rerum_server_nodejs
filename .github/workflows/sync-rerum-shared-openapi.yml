@@ -12,23 +12,37 @@ permissions:
   contents: read
 
 jobs:
-  dispatch-sync:
+  sync-shared-openapi-artifact:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch sync-provider-artifact workflow
-        uses: actions/github-script@v7
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+
+      - name: Checkout rerum_openapi
+        uses: actions/checkout@v4
         with:
-          github-token: ${{ secrets.OPENAPI }}
-          script: |
-            await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
-              owner: 'cubap',
-              repo: 'rerum_openapi',
-              workflow_id: 'sync-provider-artifact.yml',
-              ref: 'main',
-              inputs: {
-                provider_repository: '${{ github.repository }}',
-                provider_ref: '${{ github.sha }}',
-                provider_artifact_path: 'openapi/components/rerum-shared-components.openapi.yaml',
-                target_artifact_path: 'schemas/openapi/rerum-shared-components.openapi.yaml'
-              }
-            })
+          repository: cubap/rerum_openapi
+          token: ${{ secrets.OPENAPI }}
+          path: rerum_openapi
+
+      - name: Copy shared artifact
+        run: |
+          cp openapi/components/rerum-shared-components.openapi.yaml rerum_openapi/schemas/openapi/rerum-shared-components.openapi.yaml
+
+      - name: Create sync pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.OPENAPI }}
+          path: rerum_openapi
+          branch: automation/sync-rerum-shared-openapi-artifact
+          delete-branch: true
+          commit-message: Sync shared RERUM OpenAPI artifact from rerum_server_nodejs
+          title: Sync shared RERUM OpenAPI artifact from rerum_server_nodejs
+          body: |
+            Automated sync from `${{ github.repository }}` at `${{ github.sha }}`.
+
+            Source:
+            - `openapi/components/rerum-shared-components.openapi.yaml`
+
+            Target:
+            - `schemas/openapi/rerum-shared-components.openapi.yaml`
