@@ -6,7 +6,7 @@ jobs:
   merge-branch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Merge with main
         uses: devmasx/merge-branch@master
         with:
@@ -19,15 +19,15 @@ jobs:
     needs: merge-branch
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Create .env from secrets
         run: echo "${{ secrets.DEV_FULL_ENV }}" > .env
       - name: Setup Node.js
-        uses: actions/setup-node@master
+        uses: actions/setup-node@main
         with:
           node-version: "24"
       - name: Cache node modules
-        uses: actions/cache@master
+        uses: actions/cache@main
         env:
           cache-name: cache-node-modules
         with:
@@ -55,7 +55,7 @@ jobs:
           - vlcdhp02
     runs-on: ${{ matrix.machines }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Deploy the app on the server
         run: |
           if [[ ! -e /srv/node/logs/rerumv1.txt ]]; then
