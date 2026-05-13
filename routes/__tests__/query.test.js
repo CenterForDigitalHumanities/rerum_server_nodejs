@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -29,25 +30,35 @@ const mockDoc = {
   }
 }
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/query' route functions", async () => {
-  // Override the find cursor for this test to return one result
   const queryCursor = {
-    limit: jest.fn().mockReturnThis(),
-    skip: jest.fn().mockReturnThis(),
-    toArray: jest.fn().mockResolvedValue([mockDoc])
+    limit() {
+      return this
+    },
+    skip() {
+      return this
+    },
+    async toArray() {
+      return [mockDoc]
+    }
   }
   db.find.mockReturnValueOnce(queryCursor)
   const response = await request(routeTester)
     .post("/query")
     .set("Content-Type", "application/json")
     .send({ test: "item" })
-  expect(response.statusCode).toBe(200)
-  expect(Array.isArray(response.body)).toBe(true)
-  expect(response.body.length).toBeGreaterThan(0)
-  expect(response.body[0]["@id"]).toBeTruthy()
-  expect(response.body[0]._id).toBeUndefined()
+
+  assert.strictEqual(response.statusCode, 200)
+  assert.ok(Array.isArray(response.body))
+  assert.ok(response.body.length > 0)
+  assert.ok(response.body[0]["@id"])
+  assert.strictEqual(response.body[0]._id, undefined)
 })
 
 it.skip("Proper '@id-id' negotation on objects returned from '/query'.", async () => {

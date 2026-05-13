@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -29,13 +30,15 @@ const mockDoc = {
 	}
 }
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/since/:id' route functions", async () => {
-	// since: findOne returns the root object; getAllVersions calls db.find().toArray() → []
-	// getAllDescendants on object with next:[] returns [] → response body is []
 	db.findOne.mockResolvedValueOnce(mockDoc)
 	const response = await request(routeTester).get(`/since/${MOCK_ID}`)
-	expect(response.statusCode).toBe(200)
-	expect(Array.isArray(response.body)).toBe(true)
+	assert.strictEqual(response.statusCode, 200)
+	assert.ok(Array.isArray(response.body))
 })

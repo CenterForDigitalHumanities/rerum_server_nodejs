@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -39,19 +40,19 @@ const mockDoc = {
   }
 }
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/release' route functions", async () => {
-  // create something to release
   const createResponse = await request(routeTester)
     .post("/create")
     .set("Content-Type", "application/json")
     .send({ test: "item" })
-  expect(createResponse.statusCode).toBe(201)
+  assert.strictEqual(createResponse.statusCode, 201)
 
-  // release with slug:
-  // 1st findOne for slug uniqueness check -> null
-  // 2nd findOne to fetch object being released -> mockDoc
   db.findOne
     .mockResolvedValueOnce(null)
     .mockResolvedValueOnce(mockDoc)
@@ -61,13 +62,12 @@ it("'/release' route functions", async () => {
     .set("Slug", slug)
     .set("Content-Type", "application/json")
 
-  expect(releaseResponse.statusCode).toBe(200)
-  expect(releaseResponse.body._id).toBeUndefined()
-  expect(releaseResponse.body.__rerum).toBeDefined()
-  expect(releaseResponse.body.__rerum.isReleased).toBeTruthy()
+  assert.strictEqual(releaseResponse.statusCode, 200)
+  assert.strictEqual(releaseResponse.body._id, undefined)
+  assert.ok(releaseResponse.body.__rerum)
+  assert.ok(releaseResponse.body.__rerum.isReleased)
   const returnedId = releaseResponse.body["@id"] ?? releaseResponse.body.id
-  expect(releaseResponse.headers["location"]).toBe(returnedId)
+  assert.strictEqual(releaseResponse.headers["location"], returnedId)
 
-  // cleanup slug object via internal helper path
   await controller.remove(slug)
 })
