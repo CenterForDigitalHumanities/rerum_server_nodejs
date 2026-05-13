@@ -38,10 +38,12 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
-      - name: Install dependencies and run the test
-        run: |
-          npm install
-          npm run runtest
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm run test:ci
+      - name: Generate coverage report
+        run: npm run coverage:ci
   deploy:
     if: github.event.pull_request.draft == false
     needs:

@@ -3,8 +3,6 @@
 import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
-import dotenv from 'dotenv'
-dotenv.config()
 import logger from 'morgan'
 import cors from 'cors'
 import indexRouter from './routes/index.js'

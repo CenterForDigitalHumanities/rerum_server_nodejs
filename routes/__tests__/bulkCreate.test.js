@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -21,10 +22,13 @@ routeTester.use("/bulkCreate", [addAuth, controller.bulkCreate])
 
 const MOCK_PREFIX = process.env.RERUM_ID_PREFIX ?? "https://store.rerum.io/v1/id/"
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/bulkCreate' route functions", async () => {
-  // bulkCreate expects dbResponse.result.insertedIds as an array of objects with _id
   db.bulkWrite.mockResolvedValueOnce({
     result: { insertedIds: [{ _id: 'id1' }, { _id: 'id2' }] },
     insertedIds: { 0: 'id1', 1: 'id2' },
@@ -39,14 +43,14 @@ it("'/bulkCreate' route functions", async () => {
       { test: 'data-2' }
     ])
 
-  expect(response.statusCode).toBe(201)
-  expect(Array.isArray(response.body)).toBe(true)
-  expect(response.body.length).toBe(2)
-  expect(response.body[0]._id).toBeUndefined()
-  expect(response.body[1]._id).toBeUndefined()
+  assert.strictEqual(response.statusCode, 201)
+  assert.ok(Array.isArray(response.body))
+  assert.strictEqual(response.body.length, 2)
+  assert.strictEqual(response.body[0]._id, undefined)
+  assert.strictEqual(response.body[1]._id, undefined)
 
   const linkHeader = response.headers['link']
-  expect(linkHeader).toBeDefined()
-  expect(String(linkHeader)).toContain(`${MOCK_PREFIX}id1`)
-  expect(String(linkHeader)).toContain(`${MOCK_PREFIX}id2`)
+  assert.ok(linkHeader)
+  assert.match(String(linkHeader), new RegExp(`${MOCK_PREFIX}id1`))
+  assert.match(String(linkHeader), new RegExp(`${MOCK_PREFIX}id2`))
 })

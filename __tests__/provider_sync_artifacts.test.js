@@ -1,3 +1,5 @@
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -11,6 +13,6 @@ describe("provider sync artifacts", () => {
     const workflowPath = path.join(repoRoot, ".github", "workflows", "sync-core-provider-contract.yml")
     const workflow = fs.readFileSync(workflowPath, "utf8")
 
-    expect(workflow).toContain("contracts/core-provider.openapi.yaml")
+    assert.match(workflow, /contracts\/core-provider\.openapi\.yaml/)
   })
 })

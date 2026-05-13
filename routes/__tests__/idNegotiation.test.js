@@ -1,5 +1,5 @@
-import { jest } from "@jest/globals"
-import dotenv from "dotenv"
+import { it } from 'node:test'
+import assert from 'node:assert/strict'
 import controller from '../../db-controller.js'
 
 it("Functional '@id-id' negotiation on objects returned.", async () => {
@@ -10,10 +10,10 @@ it("Functional '@id-id' negotiation on objects returned.", async () => {
     "test": "item"
   }
   negotiate = controller.idNegotiation(negotiate)
-  expect(negotiate._id).toBeUndefined()
-  expect(negotiate["@id"]).toBeUndefined()
-  expect(negotiate.id).toBe(`${process.env.RERUM_ID_PREFIX}example`)
-  expect(negotiate.test).toBe("item")
+  assert.strictEqual(negotiate._id, undefined)
+  assert.strictEqual(negotiate["@id"], undefined)
+  assert.strictEqual(negotiate.id, `${process.env.RERUM_ID_PREFIX}example`)
+  assert.strictEqual(negotiate.test, "item")
 
   let nonegotiate = {
     "@context":"http://example.org/context.json",
@@ -23,8 +23,8 @@ it("Functional '@id-id' negotiation on objects returned.", async () => {
     "test":"item"
   }
   nonegotiate = controller.idNegotiation(nonegotiate)
-  expect(nonegotiate._id).toBeUndefined()
-  expect(nonegotiate["@id"]).toBe(`${process.env.RERUM_ID_PREFIX}example`)
-  expect(nonegotiate.id).toBe("test_example")
-  expect(nonegotiate.test).toBe("item")
+  assert.strictEqual(nonegotiate._id, undefined)
+  assert.strictEqual(nonegotiate["@id"], `${process.env.RERUM_ID_PREFIX}example`)
+  assert.strictEqual(nonegotiate.id, "test_example")
+  assert.strictEqual(nonegotiate.test, "item")
 })

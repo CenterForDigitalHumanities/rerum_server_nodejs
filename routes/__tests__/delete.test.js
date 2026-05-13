@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -41,19 +42,20 @@ const mockDoc = {
   }
 }
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/delete' route functions", async () => {
-  // create step (primarily validates route wiring)
   const createResponse = await request(routeTester)
     .post("/create")
     .set("Content-Type", "application/json")
     .send({ test: "item" })
-  expect(createResponse.statusCode).toBe(201)
+  assert.strictEqual(createResponse.statusCode, 201)
 
-  // delete step uses findOne + replaceOne internally
   db.findOne.mockResolvedValueOnce(mockDoc)
   const deleteResponse = await request(routeTester).delete(`/delete/${MOCK_ID}`)
-  // deleteObj returns 204 No Content on success
-  expect(deleteResponse.statusCode).toBe(204)
+  assert.strictEqual(deleteResponse.statusCode, 204)
 })

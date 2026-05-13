@@ -1,3 +1,5 @@
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -14,11 +16,11 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
     const targetArtifact = fs.readFileSync(targetArtifactPath, "utf8")
 
     for (const artifact of [providerArtifact, targetArtifact]) {
-      expect(artifact).toContain("openapi: 3.0.3")
-      expect(artifact).toContain("title: RERUM Shared Components")
-      expect(artifact).toContain("version: 0.1.0")
-      expect(artifact).toContain("components:")
-      expect(artifact).toContain("schemas: {}")
+      assert.match(artifact, /openapi: 3\.0\.3/)
+      assert.match(artifact, /title: RERUM Shared Components/)
+      assert.match(artifact, /version: 0\.1\.0/)
+      assert.match(artifact, /components:/)
+      assert.match(artifact, /schemas: \{\}/)
     }
   })
 
@@ -26,9 +28,10 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
     const workflowPath = path.join(repoRoot, ".github/workflows/sync-rerum-shared-openapi.yml")
     const workflow = fs.readFileSync(workflowPath, "utf8")
 
-    expect(workflow).toContain("openapi/components/rerum-shared-components.openapi.yaml")
-    expect(workflow).toContain("sync-provider-artifact.yml")
-    expect(workflow).toContain("repo: 'rerum_openapi'")
-    expect(workflow).toContain("target_artifact_path: 'schemas/openapi/rerum-shared-components.openapi.yaml'")
+    assert.match(workflow, /openapi\/components\/rerum-shared-components\.openapi\.yaml/)
+    assert.match(workflow, /repository:\s*cubap\/rerum_openapi/)
+    assert.match(workflow, /path:\s*rerum_openapi/)
+    assert.match(workflow, /peter-evans\/create-pull-request@v7/)
+    assert.match(workflow, /schemas\/openapi\/rerum-shared-components\.openapi\.yaml/)
   })
 })

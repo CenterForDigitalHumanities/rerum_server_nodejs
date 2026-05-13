@@ -1,6 +1,5 @@
-import { jest } from "@jest/globals"
-import dotenv from "dotenv"
-dotenv.config()
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -38,7 +37,11 @@ const mockDoc = {
   }
 }
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/unset' route functions", async () => {
   db.findOne.mockResolvedValueOnce(mockDoc)
@@ -46,11 +49,12 @@ it("'/unset' route functions", async () => {
     .patch("/unset")
     .set("Content-Type", "application/json")
     .send({ "@id": `${MOCK_PREFIX}${MOCK_ORIG_ID}`, test_obj: null })
-  expect(response.statusCode).toBe(200)
-  expect(response.body["test_obj"]).toBeUndefined()
-  expect(response.body._id).toBeUndefined()
+
+  assert.strictEqual(response.statusCode, 200)
+  assert.strictEqual(response.body["test_obj"], undefined)
+  assert.strictEqual(response.body._id, undefined)
   const returnedId = response.body["@id"] ?? response.body.id
-  expect(response.headers["location"]).toBe(returnedId)
+  assert.strictEqual(response.headers["location"], returnedId)
 })
 
 
