@@ -8,8 +8,7 @@ router.route('/:_id')
     .head(controller.sinceHeadRequest)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

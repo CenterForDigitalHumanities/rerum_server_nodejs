@@ -7,17 +7,17 @@
   },
   "validation": {
     "suite": {
-      "tests": 97,
+      "tests": 108,
       "suites": 15,
-      "pass": 94,
+      "pass": 105,
       "fail": 0,
       "skip": 3
     },
     "coverage": {
-      "statements": 92.98,
+      "statements": 98.77,
       "branches": 100,
       "functions": 100,
-      "lines": 92.98
+      "lines": 98.77
     }
   },
   "rootSuites": [
@@ -85,24 +85,14 @@
   },
   "notableCoverageGaps": [
     {
-      "file": "routes/create.js",
-      "lines": "12-14",
-      "statements": 82.35
+      "file": "routes/_gog_fragments_from_manuscript.js",
+      "lines": "10-12",
+      "statements": 80
     },
     {
-      "file": "routes/putUpdate.js",
-      "lines": "12-14",
-      "statements": 82.35
-    },
-    {
-      "file": "routes/overwrite.js",
-      "lines": "12-14",
-      "statements": 82.35
-    },
-    {
-      "file": "routes/index.js",
-      "lines": "6",
-      "statements": 88.88
+      "file": "routes/_gog_glosses_from_manuscript.js",
+      "lines": "10-12",
+      "statements": 80
     }
   ]
 }

@@ -8,8 +8,7 @@ router.route('/:_id')
     .delete(auth.checkJwt, deleteObj)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for deleting, please use DELETE.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

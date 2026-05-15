@@ -11,8 +11,7 @@ router.route('/')
     .put(auth.checkJwt, rest.verifyJsonContentType, controller.bulkUpdate)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for creating, please use PUT.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

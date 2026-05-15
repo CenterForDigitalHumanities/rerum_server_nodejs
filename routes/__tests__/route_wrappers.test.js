@@ -7,6 +7,17 @@ import patchSetRouter from '../patchSet.js'
 import patchUnsetRouter from '../patchUnset.js'
 import patchUpdateRouter from '../patchUpdate.js'
 import clientRouter from '../client.js'
+import createRouter from '../create.js'
+import bulkCreateRouter from '../bulkCreate.js'
+import bulkUpdateRouter from '../bulkUpdate.js'
+import deleteRouter from '../delete.js'
+import historyRouter from '../history.js'
+import idRouter from '../id.js'
+import overwriteRouter from '../overwrite.js'
+import staticRouter from '../static.js'
+import sinceRouter from '../since.js'
+import updateRouter from '../putUpdate.js'
+import indexRouter from '../index.js'
 import searchRouter from '../search.js'
 import queryRouter from '../query.js'
 import releaseRouter from '../release.js'
@@ -39,6 +50,11 @@ function createResponse() {
     },
     send(value) {
       this.body = value
+      this.ended = true
+      return this
+    },
+    sendFile(filePath, options) {
+      this.body = { filePath, options }
       this.ended = true
       return this
     },
@@ -91,6 +107,18 @@ function assertValidOverride(router) {
 function assertUnsupportedMethod(router, expectedMessage) {
   const fallbackLayer = getRoute(router, '/').stack.at(-1)
   assert.ok(fallbackLayer, 'Expected fallback .all() layer')
+
+  const { res, nextCalls } = invokeLayer(fallbackLayer)
+
+  assert.strictEqual(res.statusCode, 405)
+  assert.strictEqual(res.statusMessage, expectedMessage)
+  assert.strictEqual(res.ended, true)
+  assert.deepStrictEqual(nextCalls, [])
+}
+
+function assertUnsupportedMethodOnPath(router, path, expectedMessage) {
+  const fallbackLayer = getRoute(router, path).stack.at(-1)
+  assert.ok(fallbackLayer, `Expected fallback .all() layer for '${path}'`)
 
   const { res, nextCalls } = invokeLayer(fallbackLayer)
 
@@ -207,6 +235,41 @@ describe('client route wrappers', () => {
 })
 
 describe('search, query, and release fallbacks', () => {
+  it('rejects unsupported methods for /bulkCreate', () => {
+    assertUnsupportedMethod(
+      bulkCreateRouter,
+      'Improper request method for creating, please use POST.'
+    )
+  })
+
+  it('rejects unsupported methods for /bulkUpdate', () => {
+    assertUnsupportedMethod(
+      bulkUpdateRouter,
+      'Improper request method for creating, please use PUT.'
+    )
+  })
+
+  it('rejects unsupported methods for /create', () => {
+    assertUnsupportedMethod(
+      createRouter,
+      'Improper request method for creating, please use POST.'
+    )
+  })
+
+  it('rejects unsupported methods for /update', () => {
+    assertUnsupportedMethod(
+      updateRouter,
+      'Improper request method for updating, please use PUT to update this object.'
+    )
+  })
+
+  it('rejects unsupported methods for /overwrite', () => {
+    assertUnsupportedMethod(
+      overwriteRouter,
+      'Improper request method for overwriting, please use PUT to overwrite this object.'
+    )
+  })
+
   it('rejects unsupported methods for /search', () => {
     assertUnsupportedMethod(
       searchRouter,
@@ -234,19 +297,69 @@ describe('search, query, and release fallbacks', () => {
   })
 
   it('rejects unsupported methods for /release/:id', () => {
-    const fallbackLayer = getRoute(releaseRouter, '/:_id').stack.at(-1)
-    assert.ok(fallbackLayer, 'Expected fallback .all() layer for /:_id')
+    assertUnsupportedMethodOnPath(
+      releaseRouter,
+      '/:_id',
+      'Improper request method for releasing, please use PATCH to release this object.'
+    )
+  })
 
-    const { res, nextCalls } = invokeLayer(fallbackLayer)
+  it('rejects unsupported methods for /delete/:id', () => {
+    assertUnsupportedMethodOnPath(
+      deleteRouter,
+      '/:_id',
+      'Improper request method for deleting, please use DELETE.'
+    )
+  })
 
-    assert.strictEqual(res.statusCode, 405)
-    assert.strictEqual(res.statusMessage, 'Improper request method for releasing, please use PATCH to release this object.')
-    assert.strictEqual(res.ended, true)
-    assert.deepStrictEqual(nextCalls, [])
+  it('rejects unsupported methods for /history/:id', () => {
+    assertUnsupportedMethodOnPath(
+      historyRouter,
+      '/:_id',
+      'Improper request method, please use GET.'
+    )
+  })
+
+  it('rejects unsupported methods for /id/:id', () => {
+    assertUnsupportedMethodOnPath(
+      idRouter,
+      '/:_id',
+      'Improper request method, please use GET.'
+    )
+  })
+
+  it('rejects unsupported methods for /since/:id', () => {
+    assertUnsupportedMethodOnPath(
+      sinceRouter,
+      '/:_id',
+      'Improper request method, please use GET.'
+    )
   })
 })
 
 describe('api routes discovery', () => {
+  it('directly serves the welcome page from the static route handler', () => {
+    const handler = getMethodLayers(staticRouter, '/', 'get').at(-1)
+    assert.ok(handler, 'Expected static router GET handler')
+
+    const { res, nextCalls } = invokeLayer(handler)
+
+    assert.deepStrictEqual(res.body, { filePath: 'index.html', options: undefined })
+    assert.strictEqual(res.ended, true)
+    assert.deepStrictEqual(nextCalls, [])
+  })
+
+  it('serves the public index page from GET /', async () => {
+    const app = express()
+    app.use(indexRouter)
+
+    const response = await request(app).get('/')
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.match(response.headers['content-type'], /^text\/html/)
+    assert.match(response.text, /RERUM/i)
+  })
+
   it('returns the advertised endpoint map for GET /api', async () => {
     const app = express()
     app.use(apiRoutesRouter)
