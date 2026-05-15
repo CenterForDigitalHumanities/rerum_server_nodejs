@@ -10,8 +10,7 @@ router.route('/')
     .post(auth.checkJwt, rest.verifyJsonContentType, controller.create)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for creating, please use POST.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

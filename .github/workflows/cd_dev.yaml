@@ -3,31 +3,18 @@ on:
   pull_request:
     branches: main
 jobs:
-  merge-branch:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Merge with main
-        uses: devmasx/merge-branch@master
-        with:
-          type: now
-          from_branch: main
-          target_branch: ${{ github.head_ref }}
-          github_token: ${{ secrets.OPENAPI }}
-          message: Merge main into this branch to deploy to dev for testing.
   test:
-    needs: merge-branch
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
       - name: Create .env from secrets
         run: echo "${{ secrets.DEV_FULL_ENV }}" > .env
       - name: Setup Node.js
-        uses: actions/setup-node@master
+        uses: actions/setup-node@v4
         with:
           node-version: "24"
       - name: Cache node modules
-        uses: actions/cache@master
+        uses: actions/cache@v4
         env:
           cache-name: cache-node-modules
         with:
@@ -38,14 +25,13 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
-      - name: Install dependencies and run the test
-        run: |
-          npm install
-          npm run runtest
+      - name: Install dependencies
+        run: npm install
+      - name: Generate coverage report
+        run: npm run coverage:ci
   deploy:
     if: github.event.pull_request.draft == false
     needs:
-      - merge-branch
       - test
     strategy:
       matrix:
@@ -55,7 +41,7 @@ jobs:
           - vlcdhp02
     runs-on: ${{ matrix.machines }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
       - name: Deploy the app on the server
         run: |
           if [[ ! -e /srv/node/logs/rerumv1.txt ]]; then

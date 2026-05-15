@@ -1,6 +1,4 @@
 import { auth } from 'express-oauth2-jwt-bearer'
-import dotenv from 'dotenv'
-dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
     if(!err.code || err.code !== "invalid_token"){ 

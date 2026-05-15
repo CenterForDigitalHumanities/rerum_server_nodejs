@@ -6,21 +6,14 @@ import controller from '../db-controller.js'
 import rest from '../rest.js'
 import auth from '../auth/index.js'
 
+const checkPatchOverride = rest.createPatchOverrideMiddleware('Improper request method for updating, please use PATCH to alter the existing keys this object.')
+
 router.route('/')
-    .patch(auth.checkJwt, rest.verifyJsonContentType, controller.patchUpdate) 
-    .post(auth.checkJwt, rest.verifyJsonContentType, (req, res, next) => {
-        if (!rest.checkPatchOverrideSupport(req, res)) {
-            res.statusMessage = 'Improper request method for updating, please use PATCH to alter the existing keys this object.'
-            res.status(405)
-            next(res)
-            return
-        }
-        controller.patchUpdate(req, res, next)
-    }) 
-    .all((req, res, next) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
-        res.status(405)
-        next(res)
-    })
+	.patch(auth.checkJwt, rest.verifyJsonContentType, controller.patchUpdate)
+	.post(auth.checkJwt, rest.verifyJsonContentType, checkPatchOverride, controller.patchUpdate)
+	.all((req, res, next) => {
+		res.statusMessage = 'Improper request method for updating, please use PATCH to alter existing keys on this object.'
+		res.status(405).end()
+	})
 
 export default router

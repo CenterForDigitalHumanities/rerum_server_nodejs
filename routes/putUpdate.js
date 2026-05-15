@@ -10,8 +10,7 @@ router.route('/')
     .put(auth.checkJwt, rest.verifyJsonContentType, controller.putUpdate)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for updating, please use PUT to update this object.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

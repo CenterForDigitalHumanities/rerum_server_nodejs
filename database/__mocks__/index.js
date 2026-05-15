@@ -1,45 +1,91 @@
 /**
- * Jest mock for the database/index.js module.
- * Replaces all MongoDB operations with jest.fn() stubs so tests
- * can run without a live database connection.
- *
- * Defaults (can be overridden per-test with mockResolvedValueOnce / mockReturnValueOnce):
- *   db.findOne   → resolves null
- *   db.find      → returns a chainable cursor whose toArray resolves []
- *   db.insertOne → resolves { insertedId: 'testid123' }
- *   db.replaceOne→ resolves { modifiedCount: 1 }
- *   db.bulkWrite → resolves { result: { insertedIds: [] }, insertedCount: 0 }
- *   db.deleteOne → resolves { deletedCount: 1 }
- *   newID        → returns 'testid123'
- *   isValidID    → returns false  (forces ObjectID() path in controllers)
- *   connected    → resolves true
- *
- * @author thehabes
+ * Native test mock for database/index.js.
+ * Exposes a small mock-function surface used by the node:test suites.
  */
 
-import { jest } from '@jest/globals'
+const registeredMocks = new Set()
 
-/** Chainable cursor stub returned by db.find() */
-const mockCursor = {
-  limit: jest.fn().mockReturnThis(),
-  skip: jest.fn().mockReturnThis(),
-  toArray: jest.fn().mockResolvedValue([])
+function createMockFunction(implementation = () => undefined) {
+  const onceQueue = []
+  let currentImplementation = implementation
+
+  function fn(...args) {
+    const activeImplementation = onceQueue.length > 0 ? onceQueue.shift() : currentImplementation
+    return activeImplementation.apply(this, args)
+  }
+
+  fn.mockImplementation = (nextImplementation) => {
+    currentImplementation = nextImplementation
+    return fn
+  }
+  fn.mockImplementationOnce = (nextImplementation) => {
+    onceQueue.push(nextImplementation)
+    return fn
+  }
+  fn.mockReturnValue = (value) => fn.mockImplementation(() => value)
+  fn.mockReturnValueOnce = (value) => fn.mockImplementationOnce(() => value)
+  fn.mockResolvedValue = (value) => fn.mockImplementation(() => Promise.resolve(value))
+  fn.mockResolvedValueOnce = (value) => fn.mockImplementationOnce(() => Promise.resolve(value))
+  fn.mockRejectedValue = (value) => fn.mockImplementation(() => Promise.reject(value))
+  fn.mockRejectedValueOnce = (value) => fn.mockImplementationOnce(() => Promise.reject(value))
+  fn.mockReturnThis = () => fn.mockImplementation(function () { return this })
+  fn.mockReset = () => {
+    onceQueue.length = 0
+    currentImplementation = () => undefined
+    return fn
+  }
+
+  registeredMocks.add(fn)
+  return fn
+}
+
+function createCursor() {
+  return {
+    limit: createMockFunction(function () { return this }),
+    skip: createMockFunction(function () { return this }),
+    toArray: createMockFunction(() => Promise.resolve([]))
+  }
+}
+
+const defaultBulkWriteResponse = () => ({
+  result: { insertedIds: [{ _id: 'bulkid1' }, { _id: 'bulkid2' }] },
+  insertedIds: {},
+  insertedCount: 0
+})
+
+export function resetMocks() {
+  for (const fn of registeredMocks) {
+    fn.mockReset()
+  }
+
+  db.findOne.mockResolvedValue(null)
+  db.find.mockReturnValue(createCursor())
+  db.insertOne.mockResolvedValue({ insertedId: 'testid123' })
+  db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
+  db.countDocuments.mockResolvedValue(0)
+  db.bulkWrite.mockResolvedValue(defaultBulkWriteResponse())
+  db.deleteOne.mockResolvedValue({ deletedCount: 1 })
+  db.updateOne.mockResolvedValue({ modifiedCount: 1 })
+  db.findOneAndUpdate.mockResolvedValue({ value: null })
+  newID.mockReturnValue('testid123')
+  isValidID.mockReturnValue(false)
+  connected.mockResolvedValue(true)
 }
 
 export const db = {
-  findOne: jest.fn().mockResolvedValue(null),
-  find: jest.fn().mockReturnValue(mockCursor),
-  insertOne: jest.fn().mockResolvedValue({ insertedId: 'testid123' }),
-  replaceOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
-  countDocuments: jest.fn().mockResolvedValue(0),
-  bulkWrite: jest.fn().mockResolvedValue({
-    result: { insertedIds: [{ _id: 'bulkid1' }, { _id: 'bulkid2' }] },
-    insertedIds: {},
-    insertedCount: 0
-  }),
-  deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 })
+  findOne: createMockFunction(() => Promise.resolve(null)),
+  find: createMockFunction(() => createCursor()),
+  insertOne: createMockFunction(() => Promise.resolve({ insertedId: 'testid123' })),
+  replaceOne: createMockFunction(() => Promise.resolve({ modifiedCount: 1 })),
+  countDocuments: createMockFunction(() => Promise.resolve(0)),
+  bulkWrite: createMockFunction(() => Promise.resolve(defaultBulkWriteResponse())),
+  deleteOne: createMockFunction(() => Promise.resolve({ deletedCount: 1 })),
+  updateOne: createMockFunction(() => Promise.resolve({ modifiedCount: 1 })),
+  findOneAndUpdate: createMockFunction(() => Promise.resolve({ value: null }))
 }
 
-export const newID = jest.fn().mockReturnValue('testid123')
-export const isValidID = jest.fn().mockReturnValue(false)
-export const connected = jest.fn().mockResolvedValue(true)
+export const newID = createMockFunction(() => 'testid123')
+export const isValidID = createMockFunction(() => false)
+export const connected = createMockFunction(() => Promise.resolve(true))
+
+resetMocks()

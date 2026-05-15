@@ -9,8 +9,7 @@ router.route('/')
     .head(controller.queryHeadRequest)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

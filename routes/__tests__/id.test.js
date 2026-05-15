@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -30,16 +31,20 @@ const mockDoc = {
 }
 
 // Import db mock so we can configure per-test behaviour
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/id/:id' route functions", async () => {
   db.findOne.mockResolvedValueOnce(mockDoc)
   const response = await request(routeTester).get(`/id/${MOCK_ID}`)
-  expect(response.statusCode).toBe(200)
-  // idNegotiation strips _id; @id present (or id for LD contexts)
-  expect(response.body["@id"] ?? response.body.id).toBeTruthy()
-  expect(response.body._id).toBeUndefined()
-  expect(response.body.__rerum).toBeDefined()
+
+  assert.strictEqual(response.statusCode, 200)
+  assert.ok(response.body["@id"] ?? response.body.id)
+  assert.strictEqual(response.body._id, undefined)
+  assert.ok(response.body.__rerum)
 })
 
 it.skip("Proper '@id-id' negotation on GET by URI.", async () => {
