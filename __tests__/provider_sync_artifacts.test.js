@@ -7,12 +7,27 @@ import { fileURLToPath } from "url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const repoRoot = path.resolve(__dirname, "..")
+const contractPath = path.join(repoRoot, "contracts", "core-provider.openapi.yaml")
+const workflowPath = path.join(repoRoot, ".github", "workflows", "sync-core-provider-contract.yml")
 
 describe("provider sync artifacts", () => {
-  it("syncs only the provider core contract baseline to rerum_openapi", () => {
-    const workflowPath = path.join(repoRoot, ".github", "workflows", "sync-core-provider-contract.yml")
-    const workflow = fs.readFileSync(workflowPath, "utf8")
+  it("the provider contract source file has valid OpenAPI structure", () => {
+    const contract = fs.readFileSync(contractPath, "utf8")
+    assert.match(contract, /^openapi: 3\.\d+\.\d+/m)
+    assert.match(contract, /^\s+title: \S/m)
+    assert.match(contract, /^\s+version: \d+\.\d+\.\d+/m)
+    assert.match(contract, /^paths:/m)
+  })
 
-    assert.match(workflow, /contracts\/core-provider\.openapi\.yaml/)
+  it("the sync workflow copies the contract to the correct downstream baseline path", () => {
+    const workflow = fs.readFileSync(workflowPath, "utf8")
+    // Asserting the literal cp command is what catches a retargeted copy. The target
+    // path appears in the PR body text too, so a substring match alone is too loose.
+    assert.match(
+      workflow,
+      /cp\s+contracts\/core-provider\.openapi\.yaml\s+\S*rerum_openapi\/seams\/tinynode-to-rerum\/openapi\/baseline\.openapi\.yaml/
+    )
+    assert.match(workflow, /repository:\s*cubap\/rerum_openapi/)
+    assert.match(workflow, /peter-evans\/create-pull-request@v7/)
   })
 })
