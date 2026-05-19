@@ -60,6 +60,7 @@ export function resetMocks() {
 
   db.findOne.mockResolvedValue(null)
   db.find.mockReturnValue(createCursor())
+  db.aggregate.mockReturnValue(createCursor())
   db.insertOne.mockResolvedValue({ insertedId: 'testid123' })
   db.replaceOne.mockResolvedValue({ modifiedCount: 1 })
   db.countDocuments.mockResolvedValue(0)
@@ -75,6 +76,7 @@ export function resetMocks() {
 export const db = {
   findOne: createMockFunction(() => Promise.resolve(null)),
   find: createMockFunction(() => createCursor()),
+  aggregate: createMockFunction(() => createCursor()),
   insertOne: createMockFunction(() => Promise.resolve({ insertedId: 'testid123' })),
   replaceOne: createMockFunction(() => Promise.resolve({ modifiedCount: 1 })),
   countDocuments: createMockFunction(() => Promise.resolve(0)),
