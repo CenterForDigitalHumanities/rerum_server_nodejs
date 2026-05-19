@@ -102,7 +102,6 @@ describe('auth middleware helpers', () => {
     assert.strictEqual(result, false)
   })
 
-  // Regression guard for the defensive check at auth/index.js:169. Without it,
   // an unset BOT_AGENT made `undefined === undefined` true and bypassed auth
   // for any invalid-token request whose payload was missing the agent claim.
   it('isBot returns false when BOT_AGENT is unset', () => {

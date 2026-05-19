@@ -37,17 +37,24 @@ const release = async function (req, res, next) {
         }
     }
     if (id){
-        let originalObject 
+        let originalObject
         try {
             originalObject = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
-        } 
+        }
         catch (error) {
             return next(utils.createExpressError(error))
+        }
+        if (null === originalObject) {
+            err = Object.assign(err, {
+                message: `No object with this id could be found in RERUM. Cannot release. ${err.message}`,
+                status: 404
+            })
+            return next(utils.createExpressError(err))
         }
         let safe_original = structuredClone(originalObject)
         let previousReleasedID = safe_original.__rerum.releases.previous
         let nextReleases = safe_original.__rerum.releases.next
-        
+
         if (utils.isDeleted(safe_original)) {
             err = Object.assign(err, {
                 message: `The object you are trying to release is deleted. ${err.message}`,

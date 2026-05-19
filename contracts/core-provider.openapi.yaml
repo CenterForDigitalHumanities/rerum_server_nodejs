@@ -17,6 +17,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /id/{id}:
     get:
       summary: Read object by id
@@ -30,6 +32,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
     head:
       summary: Read object headers by id
       operationId: headObjectById
@@ -38,6 +42,8 @@ paths:
       responses:
         '200':
           description: Object headers
+        '404':
+          $ref: '#/components/responses/NotFound'
   /since/{id}:
     get:
       summary: Read updates since id
@@ -51,6 +57,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '404':
+          $ref: '#/components/responses/NotFound'
     head:
       summary: Read update headers since id
       operationId: headSince
@@ -59,6 +67,8 @@ paths:
       responses:
         '200':
           description: Incremental update headers
+        '404':
+          $ref: '#/components/responses/NotFound'
   /history/{id}:
     get:
       summary: Read object history by id
@@ -72,6 +82,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '404':
+          $ref: '#/components/responses/NotFound'
     head:
       summary: Read object history headers by id
       operationId: headHistory
@@ -80,6 +92,8 @@ paths:
       responses:
         '200':
           description: Version history headers
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/query:
     post:
       summary: Query objects
@@ -97,6 +111,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
     head:
       summary: Query object headers
       operationId: headQueryObjects
@@ -123,6 +143,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/search/phrase:
     post:
       summary: Search objects by phrase
@@ -143,6 +169,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/create:
     post:
       summary: Create object
@@ -154,12 +186,22 @@ paths:
             schema:
               $ref: '#/components/schemas/GenericObject'
       responses:
-        '200':
+        '201':
           description: Created object
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/bulkCreate:
     post:
       summary: Create multiple objects
@@ -171,12 +213,20 @@ paths:
             schema:
               $ref: '#/components/schemas/GenericArray'
       responses:
-        '200':
+        '201':
           description: Created objects
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/update:
     put:
       summary: Update object
@@ -194,6 +244,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/bulkUpdate:
     put:
       summary: Update multiple objects
@@ -206,11 +268,19 @@ paths:
               $ref: '#/components/schemas/GenericArray'
       responses:
         '200':
-          description: Updated objects
+          description: Updated objects. Items that were not found or were already deleted are silently skipped.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/overwrite:
     put:
       summary: Overwrite object
@@ -228,6 +298,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /api/patch:
     patch:
       summary: Patch object
@@ -245,6 +329,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
     post:
       summary: Patch object via override-compatible POST
       operationId: patchObjectViaPost
@@ -261,6 +357,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          description: Method not allowed — POST is only permitted with X-HTTP-Method-Override.
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
   /api/set:
     patch:
       summary: Add properties to object
@@ -278,6 +388,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
     post:
       summary: Add properties to object via override-compatible POST
       operationId: setObjectPropertiesViaPost
@@ -294,6 +416,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          description: Method not allowed — POST is only permitted with X-HTTP-Method-Override.
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
   /api/unset:
     patch:
       summary: Remove properties from object
@@ -311,6 +447,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
     post:
       summary: Remove properties from object via override-compatible POST
       operationId: unsetObjectPropertiesViaPost
@@ -327,6 +475,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          description: Method not allowed — POST is only permitted with X-HTTP-Method-Override.
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
   /api/delete/{id}:
     delete:
       summary: Delete object by id
@@ -334,12 +496,14 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ObjectId'
       responses:
-        '200':
-          description: Deletion result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericObject'
+        '204':
+          description: Object marked deleted; no response body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/release/{id}:
     patch:
       summary: Release object by id
@@ -353,6 +517,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
 components:
   parameters:
     ObjectId:
@@ -369,3 +543,22 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/GenericObject'
+  responses:
+    BadRequest:
+      description: Bad request — the request body was missing, empty, or otherwise invalid.
+    Unauthorized:
+      description: Unauthorized — missing, malformed, or invalid bearer token.
+    Forbidden:
+      description: Forbidden — the target object is deleted, released, or not owned by the requesting agent.
+    NotFound:
+      description: Not found — no object exists for the supplied id.
+    Conflict:
+      description: Conflict — the supplied optimistic-lock version does not match the current object version.
+    PayloadTooLarge:
+      description: Payload too large — the request body exceeded the configured size limit.
+    UnsupportedMediaType:
+      description: Unsupported media type — the Content-Type header was not acceptable for this endpoint.
+    NotImplemented:
+      description: Not implemented — operating on a non-RERUM object via this endpoint is not yet supported.
+    ServiceUnavailable:
+      description: Service unavailable — the server is in maintenance or read-only mode.

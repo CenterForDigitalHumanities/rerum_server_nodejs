@@ -56,7 +56,11 @@ it("'/release' route functions", async () => {
   assert.strictEqual(releaseResponse.statusCode, 200)
   assert.strictEqual(releaseResponse.body._id, undefined)
   assert.ok(releaseResponse.body.__rerum)
-  assert.ok(releaseResponse.body.__rerum.isReleased)
+  assert.match(
+    releaseResponse.body.__rerum.isReleased,
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
+    "__rerum.isReleased should be an ISO-like timestamp"
+  )
   const returnedId = releaseResponse.body["@id"] ?? releaseResponse.body.id
   assert.strictEqual(releaseResponse.headers["location"], returnedId)
 })

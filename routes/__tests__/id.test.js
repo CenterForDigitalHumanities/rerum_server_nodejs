@@ -9,7 +9,10 @@ import controller from '../../db-controller.js'
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount our own /id route without auth that will use controller.id
+// Mount our own /id route without auth that will use controller.id (GET) and
+// controller.idHeadRequest (HEAD). `.use()` is method-agnostic, so the explicit
+// `.head()` entry must come first to intercept HEAD before the catch-all GET handler.
+routeTester.head("/id/:_id", controller.idHeadRequest)
 routeTester.use("/id/:_id", controller.id)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
@@ -45,6 +48,29 @@ it("'/id/:id' route functions", async () => {
   assert.ok(response.body["@id"] ?? response.body.id)
   assert.strictEqual(response.body._id, undefined)
   assert.ok(response.body.__rerum)
+})
+
+describe('HEAD /id/:id', () => {
+  it("returns 200 with Content-Length matching the GET body length", async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const getResp = await request(routeTester).get(`/id/${MOCK_ID}`)
+    const getLen = Number(getResp.headers['content-length'])
+
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const headResp = await request(routeTester).head(`/id/${MOCK_ID}`)
+
+    assert.strictEqual(headResp.statusCode, 200)
+    assert.ok(getLen > 0, 'GET must report a Content-Length')
+    assert.strictEqual(Number(headResp.headers['content-length']), getLen)
+    // HEAD must not carry a body.
+    assert.ok(!headResp.body || Object.keys(headResp.body).length === 0)
+  })
+
+  it("returns 404 when the object is not in RERUM", async () => {
+    db.findOne.mockResolvedValueOnce(null)
+    const response = await request(routeTester).head(`/id/${MOCK_ID}`)
+    assert.strictEqual(response.statusCode, 404)
+  })
 })
 
 describe('id route overwrite headers', () => {
