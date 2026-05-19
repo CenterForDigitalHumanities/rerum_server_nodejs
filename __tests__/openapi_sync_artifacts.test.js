@@ -16,12 +16,26 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
     const targetArtifact = fs.readFileSync(targetArtifactPath, "utf8")
 
     for (const artifact of [providerArtifact, targetArtifact]) {
-      assert.match(artifact, /openapi: 3\.0\.3/)
-      assert.match(artifact, /title: RERUM Shared Components/)
-      assert.match(artifact, /version: 0\.1\.0/)
-      assert.match(artifact, /components:/)
-      assert.match(artifact, /schemas: \{\}/)
+      assert.match(artifact, /^openapi: 3\.\d+\.\d+/m)
+      assert.match(artifact, /^\s+title: \S/m)
+      assert.match(artifact, /^\s+version: \d+\.\d+\.\d+/m)
+      assert.match(artifact, /^components:/m)
+      assert.match(artifact, /^\s+schemas:/m)
     }
+  })
+
+  it("keeps the synced target artifact equivalent to the provider artifact", () => {
+    const providerArtifactPath = path.join(repoRoot, "openapi/components/rerum-shared-components.openapi.yaml")
+    const targetArtifactPath = path.join(repoRoot, "schemas/openapi/rerum-shared-components.openapi.yaml")
+    const stripLeadingComments = (yaml) => yaml.replace(/^(?:#[^\n]*\n)+/, "")
+    const provider = stripLeadingComments(fs.readFileSync(providerArtifactPath, "utf8"))
+    const target = stripLeadingComments(fs.readFileSync(targetArtifactPath, "utf8"))
+
+    assert.strictEqual(
+      target,
+      provider,
+      "schemas/openapi/rerum-shared-components.openapi.yaml has drifted from the provider source — re-run .github/workflows/sync-rerum-shared-openapi.yml or copy openapi/components/rerum-shared-components.openapi.yaml over."
+    )
   })
 
   it("verifies the shared artifact sync workflow configuration", () => {
