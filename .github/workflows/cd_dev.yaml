@@ -70,4 +70,4 @@ jobs:
           git stash
           git pull
           npm install
-          pm2 start -i max bin/rerum_v1.js
+          pm2 start bin/rerum_v1.js -i max --name rerum_v1 --update-env --node-args="--env-file=.env"
