@@ -14,7 +14,6 @@ const addAuth = (req, res, next) => {
 const routeTester = express()
 routeTester.use(express.json({ type: ['application/json', 'application/ld+json'] }))
 routeTester.put('/overwrite', addAuth, controller.overwrite)
-routeTester.get('/id/:_id', controller.id)
 
 const baseObject = {
   _id: 'test-id',
@@ -96,27 +95,5 @@ describe('overwrite route', () => {
 
     assert.strictEqual(response.statusCode, 409)
     assert.strictEqual(response.body.currentVersion.__rerum.isOverwritten, '2025-06-24T10:30:00')
-  })
-})
-
-describe('id route overwrite headers', () => {
-  it('includes the current overwrite version header for existing objects', async () => {
-    const originalObject = structuredClone(baseObject)
-    originalObject.__rerum.isOverwritten = '2025-06-24T10:00:00'
-    db.findOne.mockResolvedValueOnce(originalObject)
-
-    const response = await request(routeTester).get('/id/test-id')
-
-    assert.strictEqual(response.statusCode, 200)
-    assert.strictEqual(response.headers['current-overwritten-version'], '2025-06-24T10:00:00')
-  })
-
-  it('uses an empty overwrite version header for never-overwritten objects', async () => {
-    db.findOne.mockResolvedValueOnce(structuredClone(baseObject))
-
-    const response = await request(routeTester).get('/id/test-id')
-
-    assert.strictEqual(response.statusCode, 200)
-    assert.strictEqual(response.headers['current-overwritten-version'], '')
   })
 })

@@ -1,4 +1,4 @@
-import { beforeEach, it } from 'node:test'
+import { beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
@@ -47,6 +47,24 @@ it("'/id/:id' route functions", async () => {
   assert.ok(response.body.__rerum)
 })
 
-it.skip("Proper '@id-id' negotation on GET by URI.", async () => {
-  // TODO
+describe('id route overwrite headers', () => {
+  it('includes the current overwrite version header for existing objects', async () => {
+    const overwritten = structuredClone(mockDoc)
+    overwritten.__rerum.isOverwritten = '2025-06-24T10:00:00'
+    db.findOne.mockResolvedValueOnce(overwritten)
+
+    const response = await request(routeTester).get(`/id/${MOCK_ID}`)
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['current-overwritten-version'], '2025-06-24T10:00:00')
+  })
+
+  it('uses an empty overwrite version header for never-overwritten objects', async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+
+    const response = await request(routeTester).get(`/id/${MOCK_ID}`)
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['current-overwritten-version'], '')
+  })
 })

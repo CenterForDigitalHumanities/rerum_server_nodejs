@@ -36,7 +36,3 @@ it("'/create' route functions", async () => {
   const returnedId = response.body["@id"] ?? response.body.id
   assert.strictEqual(response.headers["location"], returnedId)
 })
-
-it.skip("Support setting valid '_id' on '/create' request body.", async () => {
-  // TODO
-})

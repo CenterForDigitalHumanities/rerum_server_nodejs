@@ -15,9 +15,6 @@ const addAuth = (req, res, next) => {
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// TODO test the POST delete as well
-//routeTester.use("/delete", [addAuth, controller.delete])
-
 // Mount our own /delete route without auth that will use controller.delete
 routeTester.use("/delete/:_id", [addAuth, controller.deleteObj])
 

@@ -60,7 +60,3 @@ it("'/query' route functions", async () => {
   assert.ok(response.body[0]["@id"])
   assert.strictEqual(response.body[0]._id, undefined)
 })
-
-it.skip("Proper '@id-id' negotation on objects returned from '/query'.", async () => {
-  // TODO
-})

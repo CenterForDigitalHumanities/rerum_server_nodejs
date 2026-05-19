@@ -233,6 +233,33 @@ describe('controllers/utils.js idNegotiation edge cases', () => {
     assert.strictEqual(result._id, undefined)
     assert.strictEqual(result.foo, 'bar')
   })
+
+  it('strips @id and projects it onto `id` when @context is a known JSON-LD context', () => {
+    const result = idNegotiation({
+      '@context': 'http://iiif.io/api/presentation/3/context.json',
+      _id: 'example',
+      '@id': `${process.env.RERUM_ID_PREFIX}example`,
+      test: 'item'
+    })
+    assert.strictEqual(result._id, undefined)
+    assert.strictEqual(result['@id'], undefined)
+    assert.strictEqual(result.id, `${process.env.RERUM_ID_PREFIX}example`)
+    assert.strictEqual(result.test, 'item')
+  })
+
+  it('keeps @id and preserves an existing `id` field when @context is unknown', () => {
+    const result = idNegotiation({
+      '@context': 'http://example.org/context.json',
+      _id: 'example',
+      '@id': `${process.env.RERUM_ID_PREFIX}example`,
+      id: 'test_example',
+      test: 'item'
+    })
+    assert.strictEqual(result._id, undefined)
+    assert.strictEqual(result['@id'], `${process.env.RERUM_ID_PREFIX}example`)
+    assert.strictEqual(result.id, 'test_example')
+    assert.strictEqual(result.test, 'item')
+  })
 })
 
 describe('controllers/utils.js getPagination', () => {

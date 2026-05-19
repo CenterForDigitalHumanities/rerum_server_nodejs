@@ -59,6 +59,4 @@ it("'/release' route functions", async () => {
   assert.ok(releaseResponse.body.__rerum.isReleased)
   const returnedId = releaseResponse.body["@id"] ?? releaseResponse.body.id
   assert.strictEqual(releaseResponse.headers["location"], returnedId)
-
-  await controller.remove(slug)
 })
