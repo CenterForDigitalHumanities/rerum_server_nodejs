@@ -6,7 +6,7 @@ import express from "express"
 import request from "supertest"
 import controller from '../../db-controller.js'
 
-// Here is the auth mock so we get a req.user and the controller can function without a NPE.
+// Here is the auth mock so we get a req.user so controller.patchSet can function without a NPE.
 const addAuth = (req, res, next) => {
   req.user = {"http://store.rerum.io/agent": "https://store.rerum.io/v1/id/agent007"}
   next()
@@ -15,7 +15,7 @@ const addAuth = (req, res, next) => {
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount our own /create route without auth that will use controller.create
+// Mount our own /set route without auth that will use controller.patchSet
 routeTester.use("/set", [addAuth, controller.patchSet])
 const unique = new Date(Date.now()).toISOString().replace("Z", "")
 
@@ -55,4 +55,17 @@ it("'/set' route functions", async () => {
   assert.strictEqual(response.body._id, undefined)
   const returnedId = response.body["@id"] ?? response.body.id
   assert.strictEqual(response.headers["location"], returnedId)
+})
+
+// controllers/patchSet.js:43 returns 501 (not 404) when the @id is not in RERUM.
+// The contract declares 501 for this operation; without this test, removing the 501 guard
+// would silently break the documented behavior while leaving the contract test passing.
+it("'/set' returns 501 when the target object is not in RERUM", async () => {
+  db.findOne.mockResolvedValueOnce(null)
+  const response = await request(routeTester)
+    .patch("/set")
+    .set("Content-Type", "application/json")
+    .send({ "@id": `${MOCK_PREFIX}${MOCK_ORIG_ID}`, test_set: unique })
+
+  assert.strictEqual(response.statusCode, 501)
 })

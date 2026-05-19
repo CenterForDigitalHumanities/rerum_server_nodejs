@@ -2,7 +2,7 @@ import { beforeEach, it } from 'node:test'
 import assert from 'node:assert/strict'
 import express from "express"
 import request from "supertest"
-import { db, resetMocks } from '../../database/index.js'
+import { resetMocks } from '../../database/index.js'
 import controller from '../../db-controller.js'
 
 // Here is the auth mock so we get a req.user and the controller can function without a NPE.

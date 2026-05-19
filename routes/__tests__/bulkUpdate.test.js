@@ -16,7 +16,7 @@ const addAuth = (req, res, next) => {
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount our own /bulkCreate route without auth that will use controller.bulkCreate
+// Mount our own /bulkUpdate route without auth that will use controller.bulkUpdate
 routeTester.use("/bulkUpdate", [addAuth, controller.bulkUpdate])
 
 process.env.RERUM_ID_PREFIX ??= 'https://store.rerum.io/v1/id/'

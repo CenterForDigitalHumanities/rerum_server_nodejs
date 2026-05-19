@@ -123,6 +123,8 @@ paths:
       responses:
         '200':
           description: Query result headers
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/search:
     post:
       summary: Search objects by keywords
