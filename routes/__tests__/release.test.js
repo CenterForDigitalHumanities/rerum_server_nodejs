@@ -15,9 +15,6 @@ const addAuth = (req, res, next) => {
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// FIXME here we need to create something to release in order to test this route.
-routeTester.use("/create", [addAuth, controller.create])
-
 // Mount our own /release route without auth that will use controller.release
 routeTester.use("/release/:_id", [addAuth, controller.release])
 const slug = `rcgslu${new Date(Date.now()).toISOString().replace("Z", "")}`
@@ -47,12 +44,6 @@ beforeEach(() => {
 })
 
 it("'/release' route functions", async () => {
-  const createResponse = await request(routeTester)
-    .post("/create")
-    .set("Content-Type", "application/json")
-    .send({ test: "item" })
-  assert.strictEqual(createResponse.statusCode, 201)
-
   db.findOne
     .mockResolvedValueOnce(null)
     .mockResolvedValueOnce(mockDoc)

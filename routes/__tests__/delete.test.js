@@ -15,9 +15,6 @@ const addAuth = (req, res, next) => {
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// FIXME here we need to create something to delete in order to test this route.
-routeTester.use("/create", [addAuth, controller.create])
-
 // TODO test the POST delete as well
 //routeTester.use("/delete", [addAuth, controller.delete])
 
@@ -49,12 +46,6 @@ beforeEach(() => {
 })
 
 it("'/delete' route functions", async () => {
-  const createResponse = await request(routeTester)
-    .post("/create")
-    .set("Content-Type", "application/json")
-    .send({ test: "item" })
-  assert.strictEqual(createResponse.statusCode, 201)
-
   db.findOne.mockResolvedValueOnce(mockDoc)
   const deleteResponse = await request(routeTester).delete(`/delete/${MOCK_ID}`)
   assert.strictEqual(deleteResponse.statusCode, 204)
