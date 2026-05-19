@@ -77,6 +77,29 @@ describe('auth middleware helpers', () => {
     assert.strictEqual(result, true)
   })
 
+  it('isBot returns false for a non-bot agent claim', () => {
+    process.env.RERUM_AGENT_CLAIM = 'http://store.rerum.io/agent'
+    process.env.BOT_AGENT = 'https://store.rerum.io/v1/id/bot-agent'
+
+    const result = auth.isBot({
+      'http://store.rerum.io/agent': 'https://store.rerum.io/v1/id/some-other-user'
+    })
+
+    assert.strictEqual(result, false)
+  })
+
+  // Regression guard for the defensive check at auth/index.js:169. Without it,
+  // an unset BOT_AGENT made `undefined === undefined` true and bypassed auth
+  // for any invalid-token request whose payload was missing the agent claim.
+  it('isBot returns false when BOT_AGENT is unset', () => {
+    process.env.RERUM_AGENT_CLAIM = 'http://store.rerum.io/agent'
+    delete process.env.BOT_AGENT
+
+    assert.strictEqual(auth.isBot({}), false)
+    assert.strictEqual(auth.isBot({ unknownClaim: 'x' }), false)
+    assert.strictEqual(auth.isBot({ 'http://store.rerum.io/agent': 'anyone' }), false)
+  })
+
   it('isGenerator matches the generating agent claim', () => {
     process.env.RERUM_AGENT_CLAIM = 'http://store.rerum.io/agent'
 

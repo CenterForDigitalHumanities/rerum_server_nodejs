@@ -52,6 +52,49 @@ describe('Mounted route surface', () => {
   }
 })
 
+describe('Auth pipeline', () => {
+  // Build a structurally valid JWT with alg:HS256 and an agent claim. The downstream
+  // _extractUser would happily decode this; only the real auth() middleware rejects
+  // it for the wrong algorithm (default config is RS256-only). A no-op stand-in for
+  // auth() would let the request reach the controller and succeed.
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({
+    sub: 'auth-pipeline-test',
+    'http://store.rerum.io/agent': 'https://store.rerum.io/v1/id/non-bot-agent'
+  })).toString('base64url')
+  const fakeJwt = `${header}.${payload}.fakesignature`
+
+  it('rejects an HS256-signed token (auth() enforces RS256)', async () => {
+    const response = await request(app)
+      .post('/v1/api/create')
+      .set('Authorization', `Bearer ${fakeJwt}`)
+      .set('Content-Type', 'application/json')
+      .send({ test: 'value' })
+    assert.strictEqual(response.statusCode, 401)
+  })
+})
+
+describe('Body parser limits', () => {
+  it('returns 413 when a JSON body exceeds the 5 MB limit', async () => {
+    // 6 MB of payload + JSON framing pushes the request body well above the 5 MB limit set in app.js.
+    const oversizePayload = { content: 'a'.repeat(6 * 1024 * 1024) }
+    const response = await request(app)
+      .post('/v1/api/create')
+      .set('Content-Type', 'application/json')
+      .send(oversizePayload)
+    assert.strictEqual(response.statusCode, 413)
+  })
+
+  it('returns 413 when a text body exceeds the 4 KB limit on /api/search', async () => {
+    const oversizeText = 'a'.repeat(5000)
+    const response = await request(app)
+      .post('/v1/api/search')
+      .set('Content-Type', 'text/plain')
+      .send(oversizeText)
+    assert.strictEqual(response.statusCode, 413)
+  })
+})
+
 describe('Critical project assets', () => {
   it('keeps required public files in place', () => {
     const requiredPublicFiles = [

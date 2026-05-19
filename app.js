@@ -55,8 +55,8 @@ app.use(
   })
 )
 app.use(logger('dev'))
-app.use(express.json({ type: ["application/json", "application/ld+json"] }))
-app.use(express.text())
+app.use(express.json({ type: ["application/json", "application/ld+json"], limit: "5mb" }))
+app.use(express.text({ limit: "4kb" }))
 app.use(cookieParser())
 
 //Publicly available scripts, CSS, and HTML pages.

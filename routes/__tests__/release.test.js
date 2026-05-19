@@ -58,7 +58,7 @@ it("'/release' route functions", async () => {
     .mockResolvedValueOnce(mockDoc)
 
   const releaseResponse = await request(routeTester)
-    .post(`/release/${MOCK_ID}`)
+    .patch(`/release/${MOCK_ID}`)
     .set("Slug", slug)
     .set("Content-Type", "application/json")
 

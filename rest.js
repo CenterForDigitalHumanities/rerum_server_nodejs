@@ -189,6 +189,9 @@ The requested web page or resource could not be found.`
         case 409:
             // These are all handled in db-controller.js already.
             break
+        case 413:
+            // Payload Too Large.  Body exceeded the parser limit or document exceeded MongoDB's 16 MB BSON cap.
+            break
         case 415:
             // Unsupported Media Type.  The Content-Type header is not acceptable for this endpoint.
             break
