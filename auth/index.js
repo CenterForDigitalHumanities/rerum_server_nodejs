@@ -166,7 +166,7 @@ const isGenerator = (obj, userObj) => {
  * @returns Boolean for matching ID.
  */
 const isBot = (userObj) => {
-    if (!process.env.BOT_AGENT) return false
+    if (!process.env.BOT_AGENT || !process.env.RERUM_AGENT_CLAIM) return false
     return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM]
 }
 

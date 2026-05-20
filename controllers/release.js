@@ -76,51 +76,54 @@ const release = async function (req, res, next) {
         if (err.status) {
             return next(utils.createExpressError(err))
         }
-        if (null !== originalObject){
-            safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
-            safe_original["__rerum"].releases.replaces = previousReleasedID
-            if(slug){
-                safe_original["__rerum"].slug = slug
-            }
-            if (previousReleasedID !== "") {
-                // A releases tree exists and an ancestral object is being released.
-                treeHealed = await healReleasesTree(safe_original)
-            } 
-            else { 
-                // There was no releases previous value.
-                if (nextReleases.length > 0) { 
-                    // The release tree has been established and a descendant object is now being released.
-                    treeHealed = await healReleasesTree(safe_original)
-                } 
-                else { 
-                    // The release tree has not been established
-                    treeHealed = await establishReleasesTree(safe_original)
-                }
-            }
-            if (treeHealed) { 
-                // If the tree was established/healed
-                // perform the update to isReleased of the object being released. Its
-                // releases.next[] and releases.previous are already correct.
-                let releasedObject = safe_original
-                let result
-                try {
-                    result = await db.replaceOne({ "_id": id }, releasedObject)
-                } 
-                catch (error) {
-                    return next(utils.createExpressError(error))
-                }
-                if (result.modifiedCount == 0) {
-                    //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
-                }
-                res.set(utils.configureWebAnnoHeadersFor(releasedObject))
-                console.log(releasedObject._id+" has been released")
-                releasedObject = idNegotiation(releasedObject)
-                releasedObject.new_obj_state = structuredClone(releasedObject)
-                res.location(releasedObject[_contextid(releasedObject["@context"]) ? "id":"@id"])
-                res.json(releasedObject)
-                return
-            } 
+        safe_original["__rerum"].isReleased = new Date(Date.now()).toISOString().replace("Z", "")
+        safe_original["__rerum"].releases.replaces = previousReleasedID
+        if(slug){
+            safe_original["__rerum"].slug = slug
         }
+        if (previousReleasedID !== "") {
+            // A releases tree exists and an ancestral object is being released.
+            treeHealed = await healReleasesTree(safe_original)
+        }
+        else {
+            // There was no releases previous value.
+            if (nextReleases.length > 0) {
+                // The release tree has been established and a descendant object is now being released.
+                treeHealed = await healReleasesTree(safe_original)
+            }
+            else {
+                // The release tree has not been established
+                treeHealed = await establishReleasesTree(safe_original)
+            }
+        }
+        if (!treeHealed) {
+            err = Object.assign(err, {
+                message: `The releases tree could not be established or healed for this object. The release was not performed. ${err.message}`,
+                status: 500
+            })
+            return next(utils.createExpressError(err))
+        }
+        // The tree was established/healed.
+        // Perform the update to isReleased of the object being released. Its
+        // releases.next[] and releases.previous are already correct.
+        let releasedObject = safe_original
+        let result
+        try {
+            result = await db.replaceOne({ "_id": id }, releasedObject)
+        }
+        catch (error) {
+            return next(utils.createExpressError(error))
+        }
+        if (result.modifiedCount == 0) {
+            //result didn't error out, the action was not performed.  Sometimes, this is a neutral thing.  Sometimes it is indicative of an error.
+        }
+        res.set(utils.configureWebAnnoHeadersFor(releasedObject))
+        console.log(releasedObject._id+" has been released")
+        releasedObject = idNegotiation(releasedObject)
+        releasedObject.new_obj_state = structuredClone(releasedObject)
+        res.location(releasedObject[_contextid(releasedObject["@context"]) ? "id":"@id"])
+        res.json(releasedObject)
+        return
     }
     else{
         //This was a bad request
