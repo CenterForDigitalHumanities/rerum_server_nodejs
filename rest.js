@@ -27,6 +27,23 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
+ * Creates middleware to validate PATCH override support for POST requests.
+ * Returns 405 if the request does not have proper X-HTTP-Method-Override header.
+ * 
+ * @param {string} message - Error message to send if validation fails
+ * @returns {Function} Express middleware function
+ */
+const createPatchOverrideMiddleware = (message) => {
+    return (req, res, next) => {
+        if (!checkPatchOverrideSupport(req, res)) {
+            res.statusMessage = message
+            return res.status(405).end()
+        }
+        next()
+    }
+}
+
+/**
  * Detects multiple MIME types smuggled into a single Content-Type header.
  * The following are the cases that should result in a 415 (not a 500)
 
@@ -213,4 +230,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, verifyJsonContentType, verifyEitherContentType, messenger }
+export default { checkPatchOverrideSupport, createPatchOverrideMiddleware, verifyJsonContentType, verifyEitherContentType, messenger }

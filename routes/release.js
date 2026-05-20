@@ -9,8 +9,7 @@ router.route('/:_id')
     .patch(auth.checkJwt, controller.release)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method for releasing, please use PATCH to release this object.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router
