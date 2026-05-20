@@ -2,13 +2,23 @@
  * Environment Variable Loader
  *
  * Preloads variables from a `.env` file into `process.env` before any
- * application module is imported. Used via Node's `--import` flag so that
- * it runs synchronously at process startup — works identically under
- * `node`, `c8`, `npm test`, and PM2 cluster workers (via `node_args` in
- * `ecosystem.config.json`).
+ * application module reads them. Runs synchronously as a side-effect import.
+ *
+ * Two entry points use this loader, by design:
+ *   1. The app entry script `bin/rerum_v1.js` imports this file FIRST,
+ *      before any other module. Because ES module imports evaluate in
+ *      source order, this guarantees `process.env` is populated before
+ *      `app.js` (or anything it pulls in) reads it. This is the path used
+ *      under PM2 in development and production, and it is independent of
+ *      PM2's `node_args` / cluster-worker `execArgv` plumbing — which was
+ *      observed not to fire reliably on the RHEL servers
+ *      (vlcdhp02 / vlcdhprdp02).
+ *   2. The test/coverage scripts in `package.json` pass it via
+ *      `node --import ./env-loader.js`, because tests do not go through
+ *      `bin/rerum_v1.js`.
  *
  * Replaces the previous `--env-file-if-exists=.env` Node CLI flag, which
- * was unreliable on the RHEL servers (vlcdhp02 / vlcdhprdp02) under PM2.
+ * was unreliable on the RHEL servers under PM2.
  *
  * Behavior:
  *   - Resolves `.env` against this file's own directory (via
