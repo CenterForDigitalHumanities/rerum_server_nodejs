@@ -4,7 +4,6 @@
     {
       "name": "rerum_v1",
       "script": "./bin/rerum_v1.js",
-      "node_args": "--import ./env-loader.js",
       "instances": "max",
       "exec_mode": "cluster",
       "env_development": { "NODE_ENV": "development" },
@@ -12,7 +11,7 @@
       "listen_timeout": 10000,
       "kill_timeout": 5000,
       "wait_ready": false,
-      "max_memory_restart": "500M",
+      "max_memory_restart": "2G",
       "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
       "merge_logs": true,
       "autorestart": true,

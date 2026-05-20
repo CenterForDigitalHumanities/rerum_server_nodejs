@@ -21,6 +21,8 @@
  *   - Non-destructive: does NOT overwrite keys already set in
  *     `process.env`, so PM2-injected env, CI secrets, and shell exports
  *     still take precedence.
+ *   - Strips a leading UTF-8 BOM (U+FEFF) if present, so `.env` files
+ *     saved by Windows editors do not lose their first key.
  *   - No external dependency — uses only `node:fs`, `node:path`, and
  *     `node:url`.
  */
@@ -42,7 +44,8 @@ if (!existsSync(envPath)) {
 } else {
   let loaded = 0
   let skipped = 0
-  const contents = readFileSync(envPath, 'utf8')
+  let contents = readFileSync(envPath, 'utf8')
+  if (contents.charCodeAt(0) === 0xFEFF) contents = contents.slice(1)
   for (const raw of contents.split(/\r?\n/)) {
     const line = raw.trim()
     if (!line || line.startsWith('#')) continue
