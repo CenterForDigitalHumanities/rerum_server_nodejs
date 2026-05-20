@@ -64,13 +64,18 @@ describe('Auth pipeline', () => {
   })).toString('base64url')
   const fakeJwt = `${header}.${payload}.fakesignature`
 
-  it('rejects an HS256-signed token (auth() enforces RS256)', async () => {
+  it('rejects an HS256-signed token with an invalid_token / alg-rejection error', async () => {
     const response = await request(app)
       .post('/v1/api/create')
       .set('Authorization', `Bearer ${fakeJwt}`)
       .set('Content-Type', 'application/json')
       .send({ test: 'value' })
+    // 401 alone could come from any of several auth failures (missing JWKS, issuer mismatch,
+    // expired token...). Assert the body carries the JWKS library's specific invalid_token
+    // error and the "alg" rejection message so this test fails for the right reason.
     assert.strictEqual(response.statusCode, 401)
+    assert.match(response.text, /invalid_token/)
+    assert.match(response.text, /alg/i)
   })
 })
 

@@ -66,14 +66,17 @@ router.get('/api', (req, res) => {
         message: 'Welcome to v1 in nodeJS!  Below are the available endpoints, used like /v1/api/{endpoint}',
         endpoints: {
             "/create": "POST - Create a new object.",
+            "/bulkCreate": "POST - Create multiple new objects in one request.",
             "/update": "PUT - Update the body an existing object.",
+            "/bulkUpdate": "PUT - Update multiple existing objects in one request.",
             "/patch": "PATCH - Update the properties of an existing object.",
             "/set": "PATCH - Update the body an existing object by adding a new property.",
             "/unset": "PATCH - Update the body an existing object by removing an existing property.",
             "/delete": "DELETE - Mark an object as deleted.",
             "/query": "POST - Supply a JSON object to match on, and query the db for an array of matches.",
-            "/release": "POST - Lock a JSON object from changes and guarantee the content and URI.",
-            "/overwrite": "POST - Update a specific document in place, overwriting the existing body."
+            "/search": "POST - Full-text search across stored objects.",
+            "/release": "PATCH - Lock a JSON object from changes and guarantee the content and URI.",
+            "/overwrite": "PUT - Update a specific document in place, overwriting the existing body."
         }
     })
 })

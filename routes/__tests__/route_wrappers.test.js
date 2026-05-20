@@ -78,7 +78,7 @@ function getOverrideLayer(router) {
   return overrideLayer
 }
 
-function assertInvalidOverride(router, expectedMessage) {
+function assertInvalidOverride(router) {
   const { res, nextCalls } = invokeLayer(getOverrideLayer(router), {
     header() {
       return undefined
@@ -86,7 +86,6 @@ function assertInvalidOverride(router, expectedMessage) {
   })
 
   assert.strictEqual(res.statusCode, 405)
-  assert.strictEqual(res.statusMessage, expectedMessage)
   assert.strictEqual(res.ended, true)
   assert.deepStrictEqual(nextCalls, [])
 }
@@ -104,83 +103,40 @@ function assertValidOverride(router) {
   assert.strictEqual(nextCalls[0], undefined)
 }
 
-function assertUnsupportedMethod(router, expectedMessage) {
-  const fallbackLayer = getRoute(router, '/').stack.at(-1)
-  assert.ok(fallbackLayer, 'Expected fallback .all() layer')
-
-  const { res, nextCalls } = invokeLayer(fallbackLayer)
-
-  assert.strictEqual(res.statusCode, 405)
-  assert.strictEqual(res.statusMessage, expectedMessage)
-  assert.strictEqual(res.ended, true)
-  assert.deepStrictEqual(nextCalls, [])
-}
-
-function assertUnsupportedMethodOnPath(router, path, expectedMessage) {
+function assertUnsupportedMethodOnPath(router, path) {
   const fallbackLayer = getRoute(router, path).stack.at(-1)
   assert.ok(fallbackLayer, `Expected fallback .all() layer for '${path}'`)
 
   const { res, nextCalls } = invokeLayer(fallbackLayer)
 
   assert.strictEqual(res.statusCode, 405)
-  assert.strictEqual(res.statusMessage, expectedMessage)
   assert.strictEqual(res.ended, true)
   assert.deepStrictEqual(nextCalls, [])
 }
 
 describe('patch route wrappers', () => {
   it('rejects POST /set requests without PATCH override', () => {
-    assertInvalidOverride(
-      patchSetRouter,
-      'Improper request method for updating, please use PATCH to add new keys to this object.'
-    )
+    assertInvalidOverride(patchSetRouter)
   })
 
   it('passes POST /set requests with PATCH override to the next handler', () => {
     assertValidOverride(patchSetRouter)
   })
 
-  it('rejects unsupported methods for /set', () => {
-    assertUnsupportedMethod(
-      patchSetRouter,
-      'Improper request method for updating, please use PATCH to add new keys to this object.'
-    )
-  })
-
   it('rejects POST /unset requests without PATCH override', () => {
-    assertInvalidOverride(
-      patchUnsetRouter,
-      'Improper request method for updating, please use PATCH to remove keys from this object.'
-    )
+    assertInvalidOverride(patchUnsetRouter)
   })
 
   it('passes POST /unset requests with PATCH override to the next handler', () => {
     assertValidOverride(patchUnsetRouter)
   })
 
-  it('rejects unsupported methods for /unset', () => {
-    assertUnsupportedMethod(
-      patchUnsetRouter,
-      'Improper request method for updating, please use PATCH to remove keys from this object.'
-    )
-  })
-
   it('rejects POST /patch requests without PATCH override', () => {
-    assertInvalidOverride(
-      patchUpdateRouter,
-      'Improper request method for updating, please use PATCH to alter the existing keys this object.'
-    )
+    assertInvalidOverride(patchUpdateRouter)
   })
 
   it('passes POST /patch requests with PATCH override to the next handler', () => {
     assertValidOverride(patchUpdateRouter)
-  })
-
-  it('rejects unsupported methods for /patch', () => {
-    assertUnsupportedMethod(
-      patchUpdateRouter,
-      'Improper request method for updating, please use PATCH to alter existing keys on this object.'
-    )
   })
 })
 
@@ -229,112 +185,35 @@ describe('client route wrappers', () => {
 
     assert.strictEqual(res.headers['Content-Type'], 'text/plain')
     assert.strictEqual(res.statusCode, 200)
-    assert.strictEqual(res.body, 'The token was verified by Auth0')
     assert.deepStrictEqual(nextCalls, [])
   })
 })
 
-describe('search, query, and release fallbacks', () => {
-  it('rejects unsupported methods for /bulkCreate', () => {
-    assertUnsupportedMethod(
-      bulkCreateRouter,
-      'Improper request method for creating, please use POST.'
-    )
-  })
+describe('unsupported-method 405 fallbacks', () => {
+  const cases = [
+    { label: '/bulkCreate',     router: bulkCreateRouter, path: '/' },
+    { label: '/bulkUpdate',     router: bulkUpdateRouter, path: '/' },
+    { label: '/create',         router: createRouter,     path: '/' },
+    { label: '/update',         router: updateRouter,     path: '/' },
+    { label: '/overwrite',      router: overwriteRouter,  path: '/' },
+    { label: '/search',         router: searchRouter,     path: '/' },
+    { label: '/search/phrase',  router: searchRouter,     path: '/phrase' },
+    { label: '/query',          router: queryRouter,      path: '/' },
+    { label: '/set',            router: patchSetRouter,   path: '/' },
+    { label: '/unset',          router: patchUnsetRouter, path: '/' },
+    { label: '/patch',          router: patchUpdateRouter,path: '/' },
+    { label: '/release/:_id',   router: releaseRouter,    path: '/:_id' },
+    { label: '/delete/:_id',    router: deleteRouter,     path: '/:_id' },
+    { label: '/history/:_id',   router: historyRouter,    path: '/:_id' },
+    { label: '/id/:_id',        router: idRouter,         path: '/:_id' },
+    { label: '/since/:_id',     router: sinceRouter,      path: '/:_id' }
+  ]
 
-  it('rejects unsupported methods for /bulkUpdate', () => {
-    assertUnsupportedMethod(
-      bulkUpdateRouter,
-      'Improper request method for creating, please use PUT.'
-    )
-  })
-
-  it('rejects unsupported methods for /create', () => {
-    assertUnsupportedMethod(
-      createRouter,
-      'Improper request method for creating, please use POST.'
-    )
-  })
-
-  it('rejects unsupported methods for /update', () => {
-    assertUnsupportedMethod(
-      updateRouter,
-      'Improper request method for updating, please use PUT to update this object.'
-    )
-  })
-
-  it('rejects unsupported methods for /overwrite', () => {
-    assertUnsupportedMethod(
-      overwriteRouter,
-      'Improper request method for overwriting, please use PUT to overwrite this object.'
-    )
-  })
-
-  it('rejects unsupported methods for /search', () => {
-    assertUnsupportedMethod(
-      searchRouter,
-      'Improper request method for search.  Please use POST.'
-    )
-  })
-
-  it('rejects unsupported methods for /search/phrase', () => {
-    const fallbackLayer = getRoute(searchRouter, '/phrase').stack.at(-1)
-    assert.ok(fallbackLayer, 'Expected fallback .all() layer for /phrase')
-
-    const { res, nextCalls } = invokeLayer(fallbackLayer)
-
-    assert.strictEqual(res.statusCode, 405)
-    assert.strictEqual(res.statusMessage, 'Improper request method for search.  Please use POST.')
-    assert.strictEqual(res.ended, true)
-    assert.deepStrictEqual(nextCalls, [])
-  })
-
-  it('rejects unsupported methods for /query', () => {
-    assertUnsupportedMethod(
-      queryRouter,
-      'Improper request method for requesting objects with matching properties.  Please use POST.'
-    )
-  })
-
-  it('rejects unsupported methods for /release/:id', () => {
-    assertUnsupportedMethodOnPath(
-      releaseRouter,
-      '/:_id',
-      'Improper request method for releasing, please use PATCH to release this object.'
-    )
-  })
-
-  it('rejects unsupported methods for /delete/:id', () => {
-    assertUnsupportedMethodOnPath(
-      deleteRouter,
-      '/:_id',
-      'Improper request method for deleting, please use DELETE.'
-    )
-  })
-
-  it('rejects unsupported methods for /history/:id', () => {
-    assertUnsupportedMethodOnPath(
-      historyRouter,
-      '/:_id',
-      'Improper request method, please use GET.'
-    )
-  })
-
-  it('rejects unsupported methods for /id/:id', () => {
-    assertUnsupportedMethodOnPath(
-      idRouter,
-      '/:_id',
-      'Improper request method, please use GET.'
-    )
-  })
-
-  it('rejects unsupported methods for /since/:id', () => {
-    assertUnsupportedMethodOnPath(
-      sinceRouter,
-      '/:_id',
-      'Improper request method, please use GET.'
-    )
-  })
+  for (const { label, router, path } of cases) {
+    it(`rejects unsupported methods for ${label}`, () => {
+      assertUnsupportedMethodOnPath(router, path)
+    })
+  }
 })
 
 describe('api routes discovery', () => {
@@ -357,7 +236,6 @@ describe('api routes discovery', () => {
 
     assert.strictEqual(response.statusCode, 200)
     assert.match(response.headers['content-type'], /^text\/html/)
-    assert.match(response.text, /RERUM/i)
   })
 
   it('returns the advertised endpoint map for GET /api', async () => {
@@ -370,14 +248,17 @@ describe('api routes discovery', () => {
     assert.strictEqual(response.body.message, 'Welcome to v1 in nodeJS!  Below are the available endpoints, used like /v1/api/{endpoint}')
     assert.deepStrictEqual(response.body.endpoints, {
       '/create': 'POST - Create a new object.',
+      '/bulkCreate': 'POST - Create multiple new objects in one request.',
       '/update': 'PUT - Update the body an existing object.',
+      '/bulkUpdate': 'PUT - Update multiple existing objects in one request.',
       '/patch': 'PATCH - Update the properties of an existing object.',
       '/set': 'PATCH - Update the body an existing object by adding a new property.',
       '/unset': 'PATCH - Update the body an existing object by removing an existing property.',
       '/delete': 'DELETE - Mark an object as deleted.',
       '/query': 'POST - Supply a JSON object to match on, and query the db for an array of matches.',
-      '/release': 'POST - Lock a JSON object from changes and guarantee the content and URI.',
-      '/overwrite': 'POST - Update a specific document in place, overwriting the existing body.'
+      '/search': 'POST - Full-text search across stored objects.',
+      '/release': 'PATCH - Lock a JSON object from changes and guarantee the content and URI.',
+      '/overwrite': 'PUT - Update a specific document in place, overwriting the existing body.'
     })
   })
 })

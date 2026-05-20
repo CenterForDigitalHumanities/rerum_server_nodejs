@@ -82,6 +82,30 @@ describe('overwrite route', () => {
     assert.strictEqual(response.body.data, 'updated-data')
   })
 
+  it('persists the same isOverwritten value it returns in the response header', async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(baseObject))
+    let captured
+    db.replaceOne.mockImplementationOnce(async (filter, replacement) => {
+      captured = { filter, replacement }
+      return { modifiedCount: 1 }
+    })
+
+    const response = await request(routeTester)
+      .put('/overwrite')
+      .set('Content-Type', 'application/json')
+      .send({ '@id': baseObject['@id'], data: 'updated-data' })
+
+    assert.strictEqual(response.statusCode, 200)
+    const headerVersion = response.headers['current-overwritten-version']
+    assert.ok(headerVersion, 'response must carry a Current-Overwritten-Version header')
+    assert.ok(captured, 'db.replaceOne should have been called')
+    assert.strictEqual(
+      captured.replacement.__rerum.isOverwritten,
+      headerVersion,
+      'persisted __rerum.isOverwritten must match the value the response advertises'
+    )
+  })
+
   it('returns 409 when the optimistic-lock version mismatches', async () => {
     const originalObject = structuredClone(baseObject)
     originalObject.__rerum.isOverwritten = '2025-06-24T10:30:00'

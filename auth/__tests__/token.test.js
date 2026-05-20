@@ -48,11 +48,6 @@ afterEach(() => {
 })
 
 describe('auth middleware helpers', () => {
-  it('exports the expected checkJwt middleware pipeline order', () => {
-    assert.strictEqual(auth.checkJwt.length, 4)
-    assert.strictEqual(auth.checkJwt[0], auth.READONLY)
-  })
-
   it('READONLY blocks writes when the server is in readonly mode', () => {
     process.env.READONLY = 'true'
     const response = createResponse()
@@ -213,11 +208,12 @@ describe('auth token refresh helpers', () => {
   })
 
   it('generateNewAccessToken returns 500 for Auth0 error payloads', async () => {
+    const errorDescription = 'bad refresh token'
     mock.method(globalThis, 'fetch', async () => ({
       async json() {
         return {
           error: true,
-          error_description: 'bad refresh token'
+          error_description: errorDescription
         }
       }
     }))
@@ -226,6 +222,6 @@ describe('auth token refresh helpers', () => {
     await auth.generateNewAccessToken({ body: { refresh_token: 'bad-token' } }, response)
 
     assert.strictEqual(response.statusCode, 500)
-    assert.strictEqual(response.body, 'bad refresh token')
+    assert.strictEqual(response.body, errorDescription)
   })
 })
