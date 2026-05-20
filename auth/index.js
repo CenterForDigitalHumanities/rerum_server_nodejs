@@ -17,7 +17,7 @@ const _tokenError = function (err, req, res, next) {
         e.message = e.statusMessage = `This token did not contain a known RERUM agent.`
         e.status = 401
         e.statusCode = 401
-        next(e)
+        return next(e)
     }
     next(err)
 }
@@ -28,7 +28,7 @@ const _extractUser = (req, res, next) => {
         next()
     }
     catch(e){
-        e.message = e.statusMessage = `This token did not contain a known RERUM agent.}`
+        e.message = e.statusMessage = `This token did not contain a known RERUM agent.`
         e.status = 401
         e.statusCode = 401
         next(e)
