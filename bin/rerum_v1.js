@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+// Must be the first import: populates process.env from .env synchronously
+// before any other module reads it. See env-loader.js for why this lives
+// here instead of being injected via PM2 `node_args`.
+import '../env-loader.js'
+
 /**
  * Module dependencies.
  */

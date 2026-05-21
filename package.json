@@ -24,12 +24,12 @@
     "npm": ">=11.0.0"
   },
   "scripts": {
-    "start": "node --env-file-if-exists=.env ./bin/rerum_v1.js",
-    "test": "node --env-file-if-exists=.env --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
-    "test:ci": "node --env-file-if-exists=.env --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
-    "test:e2e": "node --env-file-if-exists=.env --import ./test/bootstrap.js --test --test-name-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
-    "coverage": "c8 --reporter=html --reporter=text --include='db-controller.js' --include='routes/**/*.js' --exclude='**/__tests__/**' node --env-file-if-exists=.env --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
-    "coverage:ci": "c8 --reporter=html --reporter=json --reporter=text --include='db-controller.js' --include='routes/**/*.js' --exclude='**/__tests__/**' node --env-file-if-exists=.env --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js"
+    "start": "node --import ./env-loader.js ./bin/rerum_v1.js",
+    "test": "node --import ./env-loader.js --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
+    "test:ci": "node --import ./env-loader.js --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
+    "test:e2e": "node --import ./env-loader.js --import ./test/bootstrap.js --test --test-name-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
+    "coverage": "c8 --reporter=html --reporter=text --include='db-controller.js' --include='routes/**/*.js' --exclude='**/__tests__/**' node --import ./env-loader.js --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
+    "coverage:ci": "c8 --reporter=html --reporter=json --reporter=text --include='db-controller.js' --include='routes/**/*.js' --exclude='**/__tests__/**' node --import ./env-loader.js --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js"
   },
   "dependencies": {
     "cookie-parser": "~1.4.7",
