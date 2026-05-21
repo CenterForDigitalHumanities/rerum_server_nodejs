@@ -1,4 +1,4 @@
-name: Sync shared RERUM OpenAPI artifact
+name: Sync RERUM shared OpenAPI artifact
 
 on:
   push:
@@ -12,37 +12,41 @@ permissions:
   contents: read
 
 jobs:
-  sync-shared-openapi-artifact:
+  sync:
+    name: Sync RERUM shared OpenAPI artifact
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source repository
+      - name: Checkout rerum_server_nodejs
         uses: actions/checkout@v4
 
-      - name: Checkout rerum_openapi
+      - name: Checkout receiver repository
         uses: actions/checkout@v4
         with:
           repository: cubap/rerum_openapi
+          ref: main
           token: ${{ secrets.OPENAPI }}
-          path: rerum_openapi
+          path: receiver
 
-      - name: Copy shared artifact
-        run: |
-          cp openapi/components/rerum-shared-components.openapi.yaml rerum_openapi/schemas/openapi/rerum-shared-components.openapi.yaml
+      - name: Verify receiver stub exists
+        run: test -f receiver/schemas/openapi/rerum-shared-components.openapi.yaml
 
-      - name: Create sync pull request
-        uses: peter-evans/create-pull-request@v7
+      - name: Copy canonical shared artifact
+        run: cp openapi/components/rerum-shared-components.openapi.yaml receiver/schemas/openapi/rerum-shared-components.openapi.yaml
+
+      - name: Create or update sync pull request
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.OPENAPI }}
-          path: rerum_openapi
-          branch: automation/sync-rerum-shared-openapi-artifact
+          path: receiver
+          add-paths: schemas/openapi/rerum-shared-components.openapi.yaml
+          commit-message: "chore: sync RERUM shared OpenAPI artifact"
+          branch: sync/rerum-shared-openapi
+          base: main
           delete-branch: true
-          commit-message: Sync shared RERUM OpenAPI artifact from rerum_server_nodejs
-          title: Sync shared RERUM OpenAPI artifact from rerum_server_nodejs
+          title: "chore: sync RERUM shared OpenAPI artifact"
           body: |
-            Automated sync from `${{ github.repository }}` at `${{ github.sha }}`.
+            Syncs the canonical RERUM shared OpenAPI artifact from CenterForDigitalHumanities/rerum_server_nodejs.
 
-            Source:
-            - `openapi/components/rerum-shared-components.openapi.yaml`
-
-            Target:
-            - `schemas/openapi/rerum-shared-components.openapi.yaml`
+            - Source commit: ${{ github.sha }}
+            - Source artifact: `openapi/components/rerum-shared-components.openapi.yaml`
+            - Target artifact: `schemas/openapi/rerum-shared-components.openapi.yaml`

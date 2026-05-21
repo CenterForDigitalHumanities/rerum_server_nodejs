@@ -44,12 +44,12 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
 
     assert.match(workflow, /openapi\/components\/rerum-shared-components\.openapi\.yaml/)
     assert.match(workflow, /repository:\s*cubap\/rerum_openapi/)
-    assert.match(workflow, /path:\s*rerum_openapi/)
-    assert.match(workflow, /peter-evans\/create-pull-request@v7/)
+    assert.match(workflow, /path:\s*receiver/)
+    assert.match(workflow, /peter-evans\/create-pull-request@v\d+/)
     assert.match(workflow, /schemas\/openapi\/rerum-shared-components\.openapi\.yaml/)
     assert.match(
       workflow,
-      /cp\s+openapi\/components\/rerum-shared-components\.openapi\.yaml\s+\S*rerum_openapi\/schemas\/openapi\/rerum-shared-components\.openapi\.yaml/,
+      /cp\s+openapi\/components\/rerum-shared-components\.openapi\.yaml\s+\S*receiver\/schemas\/openapi\/rerum-shared-components\.openapi\.yaml/,
       "workflow's cp command must copy from the canonical source to the receiver target — a retargeted copy would silently corrupt the receiver"
     )
     assert.match(

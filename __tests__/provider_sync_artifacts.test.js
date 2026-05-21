@@ -25,10 +25,10 @@ describe("provider sync artifacts", () => {
     // path appears in the PR body text too, so a substring match alone is too loose.
     assert.match(
       workflow,
-      /cp\s+contracts\/core-provider\.openapi\.yaml\s+\S*rerum_openapi\/seams\/tinynode-to-rerum\/openapi\/baseline\.openapi\.yaml/
+      /cp\s+contracts\/core-provider\.openapi\.yaml\s+\S*receiver\/seams\/tinynode-to-rerum\/openapi\/baseline\.openapi\.yaml/
     )
     assert.match(workflow, /repository:\s*cubap\/rerum_openapi/)
-    assert.match(workflow, /peter-evans\/create-pull-request@v7/)
+    assert.match(workflow, /peter-evans\/create-pull-request@v\d+/)
     assert.match(
       workflow,
       /secrets\.OPENAPI(?!\w)/,
