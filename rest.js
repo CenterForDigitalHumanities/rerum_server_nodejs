@@ -27,6 +27,23 @@ const checkPatchOverrideSupport = function (req, res) {
 }
 
 /**
+ * Creates middleware to validate PATCH override support for POST requests.
+ * Returns 405 if the request does not have proper X-HTTP-Method-Override header.
+ * 
+ * @param {string} message - Error message to send if validation fails
+ * @returns {Function} Express middleware function
+ */
+const createPatchOverrideMiddleware = (message) => {
+    return (req, res, next) => {
+        if (!checkPatchOverrideSupport(req, res)) {
+            res.statusMessage = message
+            return res.status(405).end()
+        }
+        next()
+    }
+}
+
+/**
  * Detects multiple MIME types smuggled into a single Content-Type header.
  * The following are the cases that should result in a 415 (not a 500)
 
@@ -189,6 +206,9 @@ The requested web page or resource could not be found.`
         case 409:
             // These are all handled in db-controller.js already.
             break
+        case 413:
+            // Payload Too Large.  Body exceeded the parser limit or document exceeded MongoDB's 16 MB BSON cap.
+            break
         case 415:
             // Unsupported Media Type.  The Content-Type header is not acceptable for this endpoint.
             break
@@ -210,4 +230,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, verifyJsonContentType, verifyEitherContentType, messenger }
+export default { checkPatchOverrideSupport, createPatchOverrideMiddleware, verifyJsonContentType, verifyEitherContentType, messenger }

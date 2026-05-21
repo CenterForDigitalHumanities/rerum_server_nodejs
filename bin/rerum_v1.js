@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+// Must be the first import: populates process.env from .env synchronously
+// before any other module reads it. See env-loader.js for why this lives
+// here instead of being injected via PM2 `node_args`.
+import '../env-loader.js'
+
 /**
  * Module dependencies.
  */
@@ -8,8 +13,6 @@ import app from '../app.js'
 import debug from 'debug'
 debug('rerum_server_nodejs:server')
 import http from "http"
-import dotenv from "dotenv"
-dotenv.config()
 
 /**
  * Get port from environment and store in Express.

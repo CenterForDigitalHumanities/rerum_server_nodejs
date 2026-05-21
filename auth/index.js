@@ -1,6 +1,4 @@
 import { auth } from 'express-oauth2-jwt-bearer'
-import dotenv from 'dotenv'
-dotenv.config()
 
 const _tokenError = function (err, req, res, next) {
     if(!err.code || err.code !== "invalid_token"){ 
@@ -19,7 +17,7 @@ const _tokenError = function (err, req, res, next) {
         e.message = e.statusMessage = `This token did not contain a known RERUM agent.`
         e.status = 401
         e.statusCode = 401
-        next(e)
+        return next(e)
     }
     next(err)
 }
@@ -30,7 +28,7 @@ const _extractUser = (req, res, next) => {
         next()
     }
     catch(e){
-        e.message = e.statusMessage = `This token did not contain a known RERUM agent.}`
+        e.message = e.statusMessage = `This token did not contain a known RERUM agent.`
         e.status = 401
         e.statusCode = 401
         next(e)
@@ -168,6 +166,7 @@ const isGenerator = (obj, userObj) => {
  * @returns Boolean for matching ID.
  */
 const isBot = (userObj) => {
+    if (!process.env.BOT_AGENT || !process.env.RERUM_AGENT_CLAIM) return false
     return process.env.BOT_AGENT === userObj[process.env.RERUM_AGENT_CLAIM]
 }
 

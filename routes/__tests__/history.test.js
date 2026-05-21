@@ -1,4 +1,5 @@
-import { jest } from "@jest/globals"
+import { beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 // Only real way to test an express route is to mount it and call it so that we can use the req, res, next.
 import express from "express"
@@ -8,7 +9,9 @@ import controller from '../../db-controller.js'
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount our own /history route without auth that will use controller.history
+// Mount /history for both GET (controller.history) and HEAD (controller.historyHeadRequest).
+// `.head()` must be registered before `.use()` to win over the method-agnostic mount.
+routeTester.head("/history/:_id", controller.historyHeadRequest)
 routeTester.use("/history/:_id", controller.history)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
@@ -29,13 +32,37 @@ const mockDoc = {
 	}
 }
 
-import { db } from '../../database/index.js'
+import { db, resetMocks } from '../../database/index.js'
+
+beforeEach(() => {
+  resetMocks()
+})
 
 it("'/history/:id' route functions", async () => {
-	// history: findOne returns the root object; getAllVersions calls db.find().toArray() → []
-	// getAllAncestors on a root object returns [] → response body is []
 	db.findOne.mockResolvedValueOnce(mockDoc)
 	const response = await request(routeTester).get(`/history/${MOCK_ID}`)
-	expect(response.statusCode).toBe(200)
-	expect(Array.isArray(response.body)).toBe(true)
+	assert.strictEqual(response.statusCode, 200)
+	assert.ok(Array.isArray(response.body))
+})
+
+describe('HEAD /history/:id', () => {
+  it("returns 200 with Content-Length matching the GET body length", async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const getResp = await request(routeTester).get(`/history/${MOCK_ID}`)
+    const getLen = Number(getResp.headers['content-length'])
+
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const headResp = await request(routeTester).head(`/history/${MOCK_ID}`)
+
+    assert.strictEqual(headResp.statusCode, 200)
+    assert.ok(getLen > 0, 'GET must report a Content-Length')
+    assert.strictEqual(Number(headResp.headers['content-length']), getLen)
+    assert.ok(!headResp.body || Object.keys(headResp.body).length === 0)
+  })
+
+  it("returns 404 when the object is not in RERUM", async () => {
+    db.findOne.mockResolvedValueOnce(null)
+    const response = await request(routeTester).head(`/history/${MOCK_ID}`)
+    assert.strictEqual(response.statusCode, 404)
+  })
 })

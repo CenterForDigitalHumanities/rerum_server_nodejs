@@ -3,8 +3,6 @@
 import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
-import dotenv from 'dotenv'
-dotenv.config()
 import logger from 'morgan'
 import cors from 'cors'
 import indexRouter from './routes/index.js'
@@ -57,8 +55,8 @@ app.use(
   })
 )
 app.use(logger('dev'))
-app.use(express.json({ type: ["application/json", "application/ld+json"] }))
-app.use(express.text())
+app.use(express.json({ type: ["application/json", "application/ld+json"], limit: "5mb" }))
+app.use(express.text({ limit: "4kb" }))
 app.use(cookieParser())
 
 //Publicly available scripts, CSS, and HTML pages.

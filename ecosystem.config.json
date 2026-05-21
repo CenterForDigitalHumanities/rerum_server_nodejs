@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/pm2-ecosystem.json",
+  "apps": [
+    {
+      "name": "rerum_v1",
+      "script": "./bin/rerum_v1.js",
+      "instances": "max",
+      "exec_mode": "cluster",
+      "env_development": { "NODE_ENV": "development" },
+      "env_production": { "NODE_ENV": "production" },
+      "listen_timeout": 10000,
+      "kill_timeout": 5000,
+      "wait_ready": false,
+      "max_memory_restart": "500M",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "merge_logs": true,
+      "autorestart": true,
+      "max_restarts": 10,
+      "min_uptime": "10s"
+    }
+  ]
+}

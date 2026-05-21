@@ -8,8 +8,7 @@ router.route('/')
     .post(auth.checkJwt, controller._gog_glosses_from_manuscript)
     .all((req, res, next) => {
         res.statusMessage = 'Improper request method.  Please use POST.'
-        res.status(405)
-        next(res)
+        res.status(405).end()
     })
 
 export default router

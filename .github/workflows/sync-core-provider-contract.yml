@@ -1,48 +1,53 @@
-name: Sync Core Provider Contract
+name: Sync RERUM core provider contract
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - contracts/core-provider.openapi.yaml
+      - openapi/contracts/core-provider.openapi.yaml
       - routes/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  sync-core-provider-contract:
+  sync:
+    name: Sync RERUM core provider contract
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Checkout source repository
+      - name: Checkout rerum_server_nodejs
         uses: actions/checkout@v4
 
-      - name: Checkout rerum_openapi
+      - name: Checkout receiver repository
         uses: actions/checkout@v4
         with:
           repository: cubap/rerum_openapi
+          ref: main
           token: ${{ secrets.OPENAPI }}
-          path: rerum_openapi
+          path: receiver
 
-      - name: Copy provider contract baseline
-        run: |
-          cp contracts/core-provider.openapi.yaml rerum_openapi/seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
+      - name: Verify receiver stub exists
+        run: test -f receiver/seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
 
-      - name: Create sync pull request
-        uses: peter-evans/create-pull-request@v7
+      - name: Copy canonical provider contract
+        run: cp openapi/contracts/core-provider.openapi.yaml receiver/seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
+
+      - name: Create or update sync pull request
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.OPENAPI }}
-          path: rerum_openapi
-          branch: automation/sync-rerum-core-provider-contract
+          path: receiver
+          add-paths: seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
+          commit-message: "chore: sync RERUM core provider contract"
+          branch: sync/rerum-core-provider-contract
+          base: main
           delete-branch: true
-          commit-message: Sync RERUM core provider contract from rerum_server_nodejs
-          title: Sync RERUM core provider contract from rerum_server_nodejs
+          title: "chore: sync RERUM core provider contract"
           body: |
-            Automated sync from `${{ github.repository }}` at `${{ github.sha }}`.
+            Syncs the canonical RERUM core provider contract from CenterForDigitalHumanities/rerum_server_nodejs.
 
-            Source:
-            - `contracts/core-provider.openapi.yaml`
-
-            Target:
-            - `seams/tinynode-to-rerum/openapi/baseline.openapi.yaml`
+            - Source commit: ${{ github.sha }}
+            - Source artifact: `openapi/contracts/core-provider.openapi.yaml`
+            - Target artifact: `seams/tinynode-to-rerum/openapi/baseline.openapi.yaml`

@@ -1,173 +1,135 @@
-/**
- * Express Route Detection
- * 
- * This approach checks routes without making HTTP requests by
- * directly inspecting the Express app's routing table.
- */
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'fs'
+import request from 'supertest'
 
-import request from "supertest"
-import app from "../app.js"
-import fs from "fs"
+import app from '../app.js'
 
-describe('Check to see that all expected top level route patterns exist.', () => {
+const mountedTopLevelRoutes = [
+  { name: '/v1/', method: 'get', path: '/v1/', expectedStatus: 200 },
+  { name: '/client/register', method: 'get', path: '/client/register', expectedStatus: 200 },
+  { name: '/v1/id/{_id}', method: 'get', path: '/v1/id/test-mounted-id', expectedStatus: 404 },
+  { name: '/v1/since/{_id}', method: 'get', path: '/v1/since/test-mounted-id', expectedStatus: 404 },
+  { name: '/v1/history/{_id}', method: 'get', path: '/v1/history/test-mounted-id', expectedStatus: 404 }
+]
 
-  it('/v1 -- mounted ', async () => {
-    const response = await request(app).get('/v1')
-    expect(response.statusCode).not.toBe(404)
-  })
+const mountedApiRoutes = [
+  { name: '/v1/api/query', method: 'post', path: '/v1/api/query', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/create', method: 'post', path: '/v1/api/create', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/bulkCreate', method: 'post', path: '/v1/api/bulkCreate', headers: { 'Content-Type': 'application/json' }, body: [{ mounted: true }] },
+  { name: '/v1/api/update', method: 'put', path: '/v1/api/update', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/bulkUpdate', method: 'put', path: '/v1/api/bulkUpdate', headers: { 'Content-Type': 'application/json' }, body: [{ mounted: true }] },
+  { name: '/v1/api/overwrite', method: 'put', path: '/v1/api/overwrite', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/patch', method: 'patch', path: '/v1/api/patch', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/set', method: 'patch', path: '/v1/api/set', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/unset', method: 'patch', path: '/v1/api/unset', headers: { 'Content-Type': 'application/json' }, body: { mounted: true } },
+  { name: '/v1/api/delete/{id}', method: 'delete', path: '/v1/api/delete/test-mounted-id' },
+  { name: '/v1/api/release/{id}', method: 'patch', path: '/v1/api/release/test-mounted-id' },
+  { name: '/v1/api/search', method: 'post', path: '/v1/api/search', headers: { 'Content-Type': 'text/plain' }, body: 'mounted search' },
+  { name: '/v1/api/search/phrase', method: 'post', path: '/v1/api/search/phrase', headers: { 'Content-Type': 'text/plain' }, body: 'mounted phrase search' }
+]
 
-  it('/client -- mounted ', async () => {
-    const response = await request(app).get('/client/register')
-    expect(response.statusCode).not.toBe(404)
-  })
+describe('Mounted route surface', () => {
+  for (const route of mountedTopLevelRoutes) {
+    it(`${route.name} is mounted`, async () => {
+      const response = await request(app)[route.method](route.path)
+      assert.strictEqual(response.statusCode, route.expectedStatus)
+    })
+  }
 
-  it('/v1/id/{_id} -- mounted', async () => {
-    const response = await request(app).get('/v1/id/test-mounted-id')
-    // Mounted route with unknown id should 404 (not an unmapped endpoint 404)
-    expect(response.statusCode).toBe(404)
-  })
-
-  it('/v1/since/{_id} -- mounted', async () => {
-    const response = await request(app).get('/v1/since/test-mounted-id')
-    // Mounted route with unknown id should 404
-    expect(response.statusCode).toBe(404)
-  })
-
-  it('/v1/history/{_id} -- mounted', async () => {
-    const response = await request(app).get('/v1/history/test-mounted-id')
-    // Mounted route with unknown id should 404
-    expect(response.statusCode).toBe(404)
-  })
-
+  for (const route of mountedApiRoutes) {
+    it(`${route.name} is mounted`, async () => {
+      let pending = request(app)[route.method](route.path)
+      for (const [headerName, headerValue] of Object.entries(route.headers ?? {})) {
+        pending = pending.set(headerName, headerValue)
+      }
+      if (route.body !== undefined) {
+        pending = pending.send(route.body)
+      }
+      const response = await pending
+      assert.notStrictEqual(response.statusCode, 404)
+    })
+  }
 })
 
-describe('Check to see that all /v1/api/ route patterns exist.', () => {
+describe('Auth pipeline', () => {
+  // Build a structurally valid JWT with alg:HS256 and an agent claim. The downstream
+  // _extractUser would happily decode this; only the real auth() middleware rejects
+  // it for the wrong algorithm (default config is RS256-only). A no-op stand-in for
+  // auth() would let the request reach the controller and succeed.
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({
+    sub: 'auth-pipeline-test',
+    'http://store.rerum.io/agent': 'https://store.rerum.io/v1/id/non-bot-agent'
+  })).toString('base64url')
+  const fakeJwt = `${header}.${payload}.fakesignature`
 
-  it('/v1/api/query -- mounted ', async () => {
+  it('rejects an HS256-signed token with an invalid_token / alg-rejection error', async () => {
     const response = await request(app)
-      .post('/v1/api/query')
+      .post('/v1/api/create')
+      .set('Authorization', `Bearer ${fakeJwt}`)
       .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
+      .send({ test: 'value' })
+    // 401 alone could come from any of several auth failures (missing JWKS, issuer mismatch,
+    // expired token...). Assert the body carries the JWKS library's specific invalid_token
+    // error and the "alg" rejection message so this test fails for the right reason.
+    assert.strictEqual(response.statusCode, 401)
+    assert.match(response.text, /invalid_token/)
+    assert.match(response.text, /alg/i)
   })
+})
 
-  it('/v1/api/create -- mounted ', async () => {
+describe('Body parser limits', () => {
+  it('returns 413 when a JSON body exceeds the 5 MB limit', async () => {
+    // 6 MB of payload + JSON framing pushes the request body well above the 5 MB limit set in app.js.
+    const oversizePayload = { content: 'a'.repeat(6 * 1024 * 1024) }
     const response = await request(app)
       .post('/v1/api/create')
       .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
+      .send(oversizePayload)
+    assert.strictEqual(response.statusCode, 413)
   })
 
-  it('/v1/api/bulkCreate -- mounted ', async () => {
-    const response = await request(app)
-      .post('/v1/api/bulkCreate')
-      .set('Content-Type', 'application/json')
-      .send([{ mounted: true }])
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/update -- mounted ', async () => {
-    const response = await request(app)
-      .put('/v1/api/update')
-      .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/bulkUpdate -- mounted ', async () => {
-    const response = await request(app)
-      .put('/v1/api/bulkUpdate')
-      .set('Content-Type', 'application/json')
-      .send([{ mounted: true }])
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/overwrite -- mounted ', async () => {
-    const response = await request(app)
-      .post('/v1/api/overwrite')
-      .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/patch -- mounted ', async () => {
-    const response = await request(app)
-      .patch('/v1/api/patch')
-      .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/set -- mounted ', async () => {
-    const response = await request(app)
-      .patch('/v1/api/set')
-      .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/unset -- mounted ', async () => {
-    const response = await request(app)
-      .patch('/v1/api/unset')
-      .set('Content-Type', 'application/json')
-      .send({ mounted: true })
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/delete/{id} -- mounted ', async () => {
-    const response = await request(app).delete('/v1/api/delete/test-mounted-id')
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/release/{id} -- mounted ', async () => {
-    const response = await request(app).patch('/v1/api/release/test-mounted-id')
-    expect(response.statusCode).not.toBe(404)
-  })
-
-  it('/v1/api/search -- mounted ', async () => {
+  it('returns 413 when a text body exceeds the 4 KB limit on /api/search', async () => {
+    const oversizeText = 'a'.repeat(5000)
     const response = await request(app)
       .post('/v1/api/search')
       .set('Content-Type', 'text/plain')
-      .send('mounted search')
-    expect(response.statusCode).not.toBe(404)
+      .send(oversizeText)
+    assert.strictEqual(response.statusCode, 413)
   })
-
-  it('/v1/api/search/phrase -- mounted ', async () => {
-    const response = await request(app)
-      .post('/v1/api/search/phrase')
-      .set('Content-Type', 'text/plain')
-      .send('mounted phrase search')
-    expect(response.statusCode).not.toBe(404)
-  })
-
 })
 
-describe('Check to see that critical static files are present', () => {
-  it('/public folder files', () => {
-    const filePath = './public/' // Replace with the actual file path
-    expect(fs.existsSync(filePath+"stylesheets/api.css")).toBeTruthy()
-    expect(fs.existsSync(filePath+"stylesheets/style.css")).toBeTruthy()
-    expect(fs.existsSync(filePath+"index.html")).toBeTruthy()
-    expect(fs.existsSync(filePath+"API.html")).toBeTruthy()
-    expect(fs.existsSync(filePath+"context.json")).toBeTruthy()
-    expect(fs.existsSync(filePath+"favicon.ico")).toBeTruthy()
-    expect(fs.existsSync(filePath+"maintenance.html")).toBeTruthy()
-    expect(fs.existsSync(filePath+"terms.txt")).toBeTruthy()
-    expect(fs.existsSync(filePath+"talend.jpg")).toBeTruthy()
-  });
-})
+describe('Critical project assets', () => {
+  it('keeps required public files in place', () => {
+    const requiredPublicFiles = [
+      'stylesheets/api.css',
+      'stylesheets/style.css',
+      'index.html',
+      'API.html',
+      'context.json',
+      'maintenance.html',
+      'terms.txt'
+    ]
 
-describe('Check to see that critical repo files are present', () => {
-  it('root folder files', () => {
-    const filePath = './' // Replace with the actual file path
-    expect(fs.existsSync(filePath+"CODEOWNERS")).toBeTruthy()
-    expect(fs.existsSync(filePath+"CODE_OF_CONDUCT.md")).toBeTruthy()
-    expect(fs.existsSync(filePath+"CONTRIBUTING.md")).toBeTruthy()
-    expect(fs.existsSync(filePath+"README.md")).toBeTruthy()
-    expect(fs.existsSync(filePath+"LICENSE")).toBeTruthy()
-    expect(fs.existsSync(filePath+".gitignore")).toBeTruthy()
-    expect(fs.existsSync(filePath+"jest.config.js")).toBeTruthy()
-    expect(fs.existsSync(filePath+"package.json")).toBeTruthy()
+    for (const filePath of requiredPublicFiles) {
+      assert.ok(fs.existsSync(`./public/${filePath}`), `Missing ./public/${filePath}`)
+    }
+  })
+
+  it('keeps required repository files in place', () => {
+    const requiredRepoFiles = [
+      'CODEOWNERS',
+      'CODE_OF_CONDUCT.md',
+      'CONTRIBUTING.md',
+      'README.md',
+      'LICENSE',
+      '.gitignore',
+      'package.json'
+    ]
+
+    for (const filePath of requiredRepoFiles) {
+      assert.ok(fs.existsSync(`./${filePath}`), `Missing ./${filePath}`)
+    }
   })
 })

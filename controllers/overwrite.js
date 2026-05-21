@@ -3,7 +3,7 @@
 /**
  * Overwrite controller for RERUM operations
  * Handles overwrite operations with optimistic locking
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
