@@ -47,5 +47,15 @@ describe("Shared OpenAPI artifact sync scaffolding", () => {
     assert.match(workflow, /path:\s*rerum_openapi/)
     assert.match(workflow, /peter-evans\/create-pull-request@v7/)
     assert.match(workflow, /schemas\/openapi\/rerum-shared-components\.openapi\.yaml/)
+    assert.match(
+      workflow,
+      /cp\s+openapi\/components\/rerum-shared-components\.openapi\.yaml\s+\S*rerum_openapi\/schemas\/openapi\/rerum-shared-components\.openapi\.yaml/,
+      "workflow's cp command must copy from the canonical source to the receiver target — a retargeted copy would silently corrupt the receiver"
+    )
+    assert.match(
+      workflow,
+      /secrets\.OPENAPI(?!\w)/,
+      "workflow must read the org-level secret named OPENAPI — a rename here breaks the sync silently at the receiver checkout step"
+    )
   })
 })

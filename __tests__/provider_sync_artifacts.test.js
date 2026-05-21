@@ -29,5 +29,10 @@ describe("provider sync artifacts", () => {
     )
     assert.match(workflow, /repository:\s*cubap\/rerum_openapi/)
     assert.match(workflow, /peter-evans\/create-pull-request@v7/)
+    assert.match(
+      workflow,
+      /secrets\.OPENAPI(?!\w)/,
+      "workflow must read the org-level secret named OPENAPI — a rename here breaks the sync silently at the receiver checkout step"
+    )
   })
 })
