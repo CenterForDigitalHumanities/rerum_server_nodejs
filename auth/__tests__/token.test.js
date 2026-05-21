@@ -7,6 +7,13 @@ const originalReadonly = process.env.READONLY
 const originalBotAgent = process.env.BOT_AGENT
 const originalAgentClaim = process.env.RERUM_AGENT_CLAIM
 
+// `process.env.X = undefined` writes the literal string "undefined" rather than
+// deleting the key. When the original value is unset, restore must delete.
+function restoreEnv(key, value) {
+  if (value === undefined) delete process.env[key]
+  else process.env[key] = value
+}
+
 function createResponse() {
   return {
     statusCode: 200,
@@ -41,9 +48,9 @@ function makeBearer(payload, header = { alg: 'RS256', typ: 'JWT' }) {
 }
 
 afterEach(() => {
-  process.env.READONLY = originalReadonly
-  process.env.BOT_AGENT = originalBotAgent
-  process.env.RERUM_AGENT_CLAIM = originalAgentClaim
+  restoreEnv('READONLY', originalReadonly)
+  restoreEnv('BOT_AGENT', originalBotAgent)
+  restoreEnv('RERUM_AGENT_CLAIM', originalAgentClaim)
   mock.restoreAll()
 })
 

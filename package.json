@@ -28,8 +28,8 @@
     "test": "node --import ./env-loader.js --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
     "test:ci": "node --import ./env-loader.js --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
     "test:e2e": "node --import ./env-loader.js --import ./test/bootstrap.js --test --test-name-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
-    "coverage": "c8 --reporter=html --reporter=text --include='db-controller.js' --include='routes/**/*.js' --exclude='**/__tests__/**' node --import ./env-loader.js --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
-    "coverage:ci": "c8 --reporter=html --reporter=json --reporter=text --include='db-controller.js' --include='routes/**/*.js' --exclude='**/__tests__/**' node --import ./env-loader.js --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js"
+    "coverage": "c8 --reporter=html --reporter=text --include='controllers/**/*.js' --include='routes/**/*.js' --include='auth/**/*.js' --include='db-controller.js' --include='rest.js' --include='utils.js' --exclude='**/__tests__/**' node --import ./env-loader.js --import ./test/bootstrap.js --test --test-skip-pattern='@e2e' __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js",
+    "coverage:ci": "c8 --reporter=html --reporter=json --reporter=text --include='controllers/**/*.js' --include='routes/**/*.js' --include='auth/**/*.js' --include='db-controller.js' --include='rest.js' --include='utils.js' --exclude='**/__tests__/**' node --import ./env-loader.js --import ./test/bootstrap.js --test __tests__/*.test.js routes/__tests__/*.test.js auth/__tests__/*.test.js"
   },
   "dependencies": {
     "cookie-parser": "~1.4.7",

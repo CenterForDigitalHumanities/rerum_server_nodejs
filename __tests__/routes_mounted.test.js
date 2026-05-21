@@ -6,7 +6,7 @@ import request from 'supertest'
 import app from '../app.js'
 
 const mountedTopLevelRoutes = [
-  { name: '/v1', method: 'get', path: '/v1', expectedStatus: 301 },
+  { name: '/v1/', method: 'get', path: '/v1/', expectedStatus: 200 },
   { name: '/client/register', method: 'get', path: '/client/register', expectedStatus: 200 },
   { name: '/v1/id/{_id}', method: 'get', path: '/v1/id/test-mounted-id', expectedStatus: 404 },
   { name: '/v1/since/{_id}', method: 'get', path: '/v1/since/test-mounted-id', expectedStatus: 404 },

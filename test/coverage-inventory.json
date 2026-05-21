@@ -76,8 +76,12 @@
   },
   "coverageScope": {
     "included": [
+      "controllers/**/*.js",
+      "routes/**/*.js",
+      "auth/**/*.js",
       "db-controller.js",
-      "routes/**/*.js"
+      "rest.js",
+      "utils.js"
     ],
     "excluded": [
       "**/__tests__/**"
