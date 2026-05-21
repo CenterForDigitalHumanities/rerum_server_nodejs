@@ -7,7 +7,7 @@ import { fileURLToPath } from "url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const repoRoot = path.resolve(__dirname, "..")
-const contractPath = path.join(repoRoot, "contracts", "core-provider.openapi.yaml")
+const contractPath = path.join(repoRoot, "openapi", "contracts", "core-provider.openapi.yaml")
 const workflowPath = path.join(repoRoot, ".github", "workflows", "sync-core-provider-contract.yml")
 
 describe("provider sync artifacts", () => {
@@ -25,7 +25,7 @@ describe("provider sync artifacts", () => {
     // path appears in the PR body text too, so a substring match alone is too loose.
     assert.match(
       workflow,
-      /cp\s+contracts\/core-provider\.openapi\.yaml\s+\S*receiver\/seams\/tinynode-to-rerum\/openapi\/baseline\.openapi\.yaml/
+      /cp\s+openapi\/contracts\/core-provider\.openapi\.yaml\s+\S*receiver\/seams\/tinynode-to-rerum\/openapi\/baseline\.openapi\.yaml/
     )
     assert.match(workflow, /repository:\s*cubap\/rerum_openapi/)
     assert.match(workflow, /peter-evans\/create-pull-request@v\d+/)

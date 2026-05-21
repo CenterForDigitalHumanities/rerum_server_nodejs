@@ -3,7 +3,7 @@
 /**
  * Release controller for RERUM operations
  * Handles release operations and associated tree management
- * @author Claude Sonnet 4, cubap, thehabes
+ * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'

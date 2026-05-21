@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - contracts/core-provider.openapi.yaml
+      - openapi/contracts/core-provider.openapi.yaml
       - routes/**
   workflow_dispatch:
 
@@ -32,7 +32,7 @@ jobs:
         run: test -f receiver/seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
 
       - name: Copy canonical provider contract
-        run: cp contracts/core-provider.openapi.yaml receiver/seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
+        run: cp openapi/contracts/core-provider.openapi.yaml receiver/seams/tinynode-to-rerum/openapi/baseline.openapi.yaml
 
       - name: Create or update sync pull request
         uses: peter-evans/create-pull-request@v8
@@ -49,5 +49,5 @@ jobs:
             Syncs the canonical RERUM core provider contract from CenterForDigitalHumanities/rerum_server_nodejs.
 
             - Source commit: ${{ github.sha }}
-            - Source artifact: `contracts/core-provider.openapi.yaml`
+            - Source artifact: `openapi/contracts/core-provider.openapi.yaml`
             - Target artifact: `seams/tinynode-to-rerum/openapi/baseline.openapi.yaml`

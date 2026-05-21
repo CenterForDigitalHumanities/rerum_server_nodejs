@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(here, '..')
 const apiRoutesPath = path.join(repoRoot, 'routes', 'api-routes.js')
-const contractPath = path.join(repoRoot, 'contracts', 'core-provider.openapi.yaml')
+const contractPath = path.join(repoRoot, 'openapi', 'contracts', 'core-provider.openapi.yaml')
 
 const skippedMountedRouters = new Set([
   './static.js',
