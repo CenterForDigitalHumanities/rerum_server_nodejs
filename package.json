@@ -1,7 +1,7 @@
 {
   "name": "rerum_server_nodejs",
   "type": "module",
-  "version": "0.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Rerum API server for database access.",
   "keywords": [
