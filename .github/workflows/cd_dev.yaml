@@ -33,6 +33,7 @@ jobs:
     if: github.event.pull_request.draft == false
     needs:
       - test
+    environment: development
     strategy:
       matrix:
         node-version:

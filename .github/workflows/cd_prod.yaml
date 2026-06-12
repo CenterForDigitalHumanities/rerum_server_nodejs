@@ -33,6 +33,7 @@ jobs:
         run: npm run coverage:ci
   deploy:
     needs: test
+    environment: production
     strategy:
       matrix:
         node-version:
