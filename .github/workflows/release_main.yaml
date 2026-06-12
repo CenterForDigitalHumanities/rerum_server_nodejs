@@ -1,0 +1,105 @@
+name: Release on push to main
+
+# Cuts a GitHub Release (and its tag) every time main advances. RERUM has no
+# development branch, so any push to main — a merged PR or a direct commit — is a
+# promotion to production and gets a release.
+#
+# The version is DERIVED, not stored: this reads the highest existing v* release
+# tag and bumps it. There is no version-bump commit pushed to any branch, so no
+# bot needs write access to a protected branch.
+#
+#   - First release ever (no v* tag yet): seed from package.json. With
+#     package.json at 1.1.0 this publishes v1.1.0 (matching RERUM_API_VERSION).
+#   - Every release after that: bump the latest tag. Default is a patch bump
+#     (v1.1.0 -> v1.1.1). The push/merge commit can opt into a larger bump via
+#     trigger words in its message:
+#       "BREAKING CHANGE" / "type!:" / "[major]"  -> major  (v1.1.0 -> v2.0.0)
+#       "feat:" / "feat(scope):" / "[minor]"      -> minor  (v1.1.0 -> v1.2.0)
+#       anything else (default)                   -> patch  (v1.1.0 -> v1.1.1)
+#
+# package.json's version is no longer the source of truth after the first
+# release — the release tags are. It is kept only to seed that first release.
+#
+# This is independent of cd_prod.yaml (test + deploy); it does not gate on tests
+# or the deploy. Idempotent: if the current commit already carries a v* tag, or
+# the computed tag already exists, the run is a no-op. Safe to re-run via
+# workflow_dispatch.
+
+on:
+  push:
+    branches: main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history + tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Derive next version and create the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Untrusted input — read from env, never inline into the script.
+          HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -e
+
+          # Never release the same commit twice (idempotent re-runs / manual dispatch).
+          EXISTING_TAG="$(git tag -l 'v*' --points-at HEAD | head -n1)"
+          if [ -n "$EXISTING_TAG" ]; then
+            echo "Commit already released as ${EXISTING_TAG} — nothing to do."
+            exit 0
+          fi
+
+          # Resolve the bump level from the commit message; default patch.
+          LEVEL="patch"
+          if printf '%s' "$HEAD_COMMIT_MSG" | grep -qiE 'BREAKING CHANGE|\[major\]|(^|[^a-z])[a-z]+(\([^)]*\))?!:'; then
+            LEVEL="major"
+          elif printf '%s' "$HEAD_COMMIT_MSG" | grep -qiE '\[minor\]|(^|[^a-z])feat(\([^)]*\))?:'; then
+            LEVEL="minor"
+          fi
+          echo "Bump level resolved from commit message: ${LEVEL}"
+
+          # Find the highest existing release tag (version-aware sort).
+          LATEST_TAG="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+
+          if [ -z "$LATEST_TAG" ]; then
+            # First release: seed from package.json (1.1.0 -> v1.1.0).
+            NEXT="$(node -p "require('./package.json').version")"
+            echo "No prior release tag — seeding first release from package.json: ${NEXT}"
+          else
+            # Derive the next version by bumping the latest tag with npm's semver engine.
+            BASE="${LATEST_TAG#v}"
+            TMP="$(mktemp -d)"
+            printf '{"name":"x","version":"%s"}\n' "$BASE" > "$TMP/package.json"
+            ( cd "$TMP" && npm version "$LEVEL" --no-git-tag-version >/dev/null )
+            NEXT="$(node -p "require('${TMP}/package.json').version")"
+            rm -rf "$TMP"
+            echo "Latest release ${LATEST_TAG} -> next version ${NEXT}"
+          fi
+
+          TAG="v${NEXT}"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — nothing to do."
+            exit 0
+          fi
+
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --generate-notes \
+            --latest
+          echo "Published release $TAG"
