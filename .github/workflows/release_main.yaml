@@ -33,6 +33,13 @@ on:
 permissions:
   contents: write
 
+# Serialize releases so two pushes landing close together can't both read the same
+# latest tag and race to create it. cancel-in-progress: false queues the later run
+# (every push is a distinct release to cut) rather than cancelling the in-flight one.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -63,11 +70,21 @@ jobs:
             exit 0
           fi
 
-          # Resolve the bump level from the commit message; default patch.
+          # Resolve the bump level. Conventional Commits puts the <type>/<type>!: prefix on
+          # the SUBJECT (first line); BREAKING CHANGE is an uppercase footer on its own line.
+          # We match accordingly so prose can't force a bump — e.g. "docs: mention a breaking
+          # change", or a squash-merge body that concatenates every PR bullet, no longer trips
+          # a major. The [major]/[minor] tags remain deliberate escape hatches and may appear
+          # anywhere in the message. Default is patch.
+          SUBJECT="$(printf '%s' "$HEAD_COMMIT_MSG" | head -n1)"
+
           LEVEL="patch"
-          if printf '%s' "$HEAD_COMMIT_MSG" | grep -qiE 'BREAKING CHANGE|\[major\]|(^|[^a-z])[a-z]+(\([^)]*\))?!:'; then
+          if printf '%s' "$SUBJECT"          | grep -qE '^[a-z]+(\([^)]*\))?!:' \
+          || printf '%s' "$HEAD_COMMIT_MSG"  | grep -qE '^BREAKING[ -]CHANGE:' \
+          || printf '%s' "$HEAD_COMMIT_MSG"  | grep -qiE '\[major\]'; then
             LEVEL="major"
-          elif printf '%s' "$HEAD_COMMIT_MSG" | grep -qiE '\[minor\]|(^|[^a-z])feat(\([^)]*\))?:'; then
+          elif printf '%s' "$SUBJECT"        | grep -qE '^feat(\([^)]*\))?:' \
+            || printf '%s' "$HEAD_COMMIT_MSG" | grep -qiE '\[minor\]'; then
             LEVEL="minor"
           fi
           echo "Bump level resolved from commit message: ${LEVEL}"
