@@ -327,7 +327,8 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 *
 */
 const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=undefined){
-    if(!primitiveEntity?.["@id"] || primitiveEntity?.id) return primitiveEntity
+    // An entity is expandable if it carries a URI under either '@id' or 'id'.
+    if(!primitiveEntity?.["@id"] && !primitiveEntity?.id) return primitiveEntity
     const targetId = primitiveEntity["@id"] ?? primitiveEntity.id ?? "unknown"
     let queryObj = {
         "__rerum.history.next": { $exists: true, $size: 0 }
@@ -386,18 +387,70 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
         return o
     })
 
-    // Combine the Annotation bodies with the primitive object
+    // Combine the Annotation bodies with the primitive object.
+    // Mirror DEER's client-side expand() (deer-utils.js buildValueObject): every asserted value
+    // becomes a { value, source, evidence } object so the front end reads the server-expanded
+    // object exactly as it read the old client-expanded one (e.g. gloss.text.value.textValue).
+    // When more than one current Annotation asserts the same key, collect the values into an Array.
     let expandedEntity = structuredClone(primitiveEntity)
     for(const anno of matches){
         const body = anno.body
-        let keys = Object.keys(body)
-        if(!keys || keys.length !== 1) return
-        let key = keys[0]
-        let val = body[key].value ?? body[key]
-        expandedEntity[key] = val
+        if(!body || typeof body !== "object") continue
+        const keys = Object.keys(body)
+        if(keys.length !== 1) continue
+        const key = keys[0]
+        const assertion = body[key]
+        const valueObject = {
+            value: assertion?.value ?? assertion,
+            source: assertion?.source ?? {
+                citationSource: anno["@id"] ?? anno.id,
+                citationNote: anno.label ?? anno.name ?? "Composed object from DEER",
+                comment: "Learn about the assembler for this object at https://github.com/CenterForDigitalHumanities/deer"
+            },
+            evidence: assertion?.evidence ?? anno.evidence ?? ""
+        }
+        if(expandedEntity.hasOwnProperty(key)){
+            expandedEntity[key] = Array.isArray(expandedEntity[key])
+                ? [...expandedEntity[key], valueObject]
+                : [expandedEntity[key], valueObject]
+        }
+        else{
+            expandedEntity[key] = valueObject
+        }
     }
 
     return expandedEntity
 }
 
-export { _gog_fragments_from_manuscript, _gog_glosses_from_manuscript, expand }
+/**
+ * GET /v1/id/:_id/expanded
+ * Return the RERUM object for :_id with the descriptive Annotations targeting it already merged in
+ * (a server-side expand()).  Because the URL is stable, the response is browser-cacheable, so the
+ * front end can fetch a finished object and does NOT need to expand() it client-side (issue #310).
+ * Mirrors the caching/negotiation behavior of the GET /v1/id/:_id handler in controllers/crud.js.
+ * */
+const expandedId = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    const id = req.params["_id"]
+    try {
+        let match = await db.findOne({ "$or": [{ "_id": id }, { "__rerum.slug": id }] })
+        if (!match) {
+            const err = { "message": `No RERUM object with id '${id}'`, "status": 404 }
+            return next(utils.createExpressError(err))
+        }
+        // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
+        res.set(utils.configureWebAnnoHeadersFor(match))
+        res.set("Cache-Control", "max-age=86400, must-revalidate")
+        res.set(utils.configureLastModifiedHeader(match))
+        // No GENERATOR/CREATOR filter: merge every current targeting Annotation, matching the
+        // client's historical expand() behavior (its checkMatch is short-circuited to true).
+        let expanded = await expand(match)
+        expanded = idNegotiation(expanded)
+        res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
+        res.json(expanded)
+    } catch (error) {
+        return next(utils.createExpressError(error))
+    }
+}
+
+export { _gog_fragments_from_manuscript, _gog_glosses_from_manuscript, expand, expandedId }
