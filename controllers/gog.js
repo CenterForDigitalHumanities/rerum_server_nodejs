@@ -381,8 +381,8 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     }
 
     // Get the Annotations targeting this Entity from the db.  Remove _id property.
-
-    let matches = await db.find(queryObj).limit(100).toArray()
+    // Assuming we do not need paged query here
+    let matches = await db.find(queryObj).toArray()
     matches = matches.map(o => {
         delete o._id
         return o
