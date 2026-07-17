@@ -381,8 +381,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     }
 
     // Get the Annotations targeting this Entity from the db.  Remove _id property.
-    // Cap the read for parity with the client's historical findByTargetId (limit=100), which
-    // also bounds the query for pathological high-fan-in objects.
+
     let matches = await db.find(queryObj).limit(100).toArray()
     matches = matches.map(o => {
         delete o._id
@@ -390,9 +389,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     })
 
     // Combine the Annotation bodies with the primitive object.
-    // Mirror DEER's client-side expand() (deer-utils.js buildValueObject): every asserted value
-    // becomes a { value, source, evidence } object so the front end reads the server-expanded
-    // object exactly as it read the old client-expanded one (e.g. gloss.text.value.textValue).
+    // Mirror DEER's client-side expand() (deer-utils.js buildValueObject)
     // When more than one current Annotation asserts the same key, collect the values into an Array.
     let expandedEntity = structuredClone(primitiveEntity)
     for(const anno of matches){
@@ -426,10 +423,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
 
 /**
  * GET /gog/id/:_id
- * Return the RERUM object for :_id with the descriptive Annotations targeting it already merged in
- * (a server-side expand()).  Because the URL is stable, the response is browser-cacheable, so the
- * front end can fetch a finished object and does NOT need to expand() it client-side (issue #310).
- * Namespaced under /gog rather than overloading the generic GET /v1/id/:_id object route.
+ * Return the RERUM object for :_id with the descriptive Annotations targeting it already merged in.
  * Mirrors the caching/negotiation behavior of the GET /v1/id/:_id handler in controllers/crud.js.
  * */
 const expandedId = async function (req, res, next) {
