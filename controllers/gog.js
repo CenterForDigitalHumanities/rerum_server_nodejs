@@ -423,10 +423,11 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
 }
 
 /**
- * GET /v1/id/:_id/expanded
+ * GET /gog/id/:_id
  * Return the RERUM object for :_id with the descriptive Annotations targeting it already merged in
  * (a server-side expand()).  Because the URL is stable, the response is browser-cacheable, so the
  * front end can fetch a finished object and does NOT need to expand() it client-side (issue #310).
+ * Namespaced under /gog rather than overloading the generic GET /v1/id/:_id object route.
  * Mirrors the caching/negotiation behavior of the GET /v1/id/:_id handler in controllers/crud.js.
  * */
 const expandedId = async function (req, res, next) {

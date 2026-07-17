@@ -10,6 +10,7 @@ import apiRouter from './routes/api-routes.js'
 import clientRouter from './routes/client.js'
 import _gog_fragmentsRouter from './routes/_gog_fragments_from_manuscript.js';
 import _gog_glossesRouter from './routes/_gog_glosses_from_manuscript.js';
+import _gog_idRouter from './routes/_gog_id.js';
 import rest from './rest.js'
 import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
@@ -83,6 +84,7 @@ app.use('/client', clientRouter)
 
 app.use('/gog/fragmentsInManuscript', _gog_fragmentsRouter)
 app.use('/gog/glossesInManuscript', _gog_glossesRouter)
+app.use('/gog/id', _gog_idRouter)
 
 /**
  * Handle API errors and warnings RESTfully.  All routes that don't end in res.send() will end up here.
