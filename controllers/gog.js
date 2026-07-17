@@ -381,7 +381,9 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     }
 
     // Get the Annotations targeting this Entity from the db.  Remove _id property.
-    let matches = await db.find(queryObj).toArray()
+    // Cap the read for parity with the client's historical findByTargetId (limit=100), which
+    // also bounds the query for pathological high-fan-in objects.
+    let matches = await db.find(queryObj).limit(100).toArray()
     matches = matches.map(o => {
         delete o._id
         return o
@@ -443,6 +445,8 @@ const expandedId = async function (req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(match))
         res.set("Cache-Control", "max-age=86400, must-revalidate")
         res.set(utils.configureLastModifiedHeader(match))
+        // Include current version for optimistic locking (parity with GET /v1/id/:_id)
+        res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         // No GENERATOR/CREATOR filter: merge every current targeting Annotation, matching the
         // client's historical expand() behavior (its checkMatch is short-circuited to true).
         let expanded = await expand(match)
