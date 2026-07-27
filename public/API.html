@@ -1368,26 +1368,25 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/delete</code></td>
-                    <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/delete/_id</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">empty</code></td>
                     <td>204</td>
                 </tr>
             </tbody>
         </table>
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record to delete.
-                Must contain <code class="language-plaintext highlighter-rouge">@id</code> or <code class="language-plaintext highlighter-rouge">id</code>.</li>
+            <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—The id of the record to delete, appended to the URL.
+                This is the trailing segment of the record's <code class="language-plaintext highlighter-rouge">@id</code> URI.</li>
         </ul>
         <p>
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample"> 
-                <span>fetch("https://devstore.rerum.io/v1/api/delete", {</span>
+                <span>fetch("https://devstore.rerum.io/v1/api/delete/abcdef1234567890", {</span>
                     <span class="ind1">method: "DELETE",</span>
                     <span class="ind1">headers:{</span>
                         <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
-                    <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify({"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890"})</span>
+                    <span class="ind1">}</span>
                 <span>})</span>
                 <span>.catch(err => {throw err})</span>
             </code></pre>
@@ -1421,39 +1420,6 @@
         <p class="alert">
             The <code class="language-plaintext highlighter-rouge">__deleted.deletor</code> is
             the URI of the agent that marked this record as deleted.
-        </p>
-        <h2>Alternate DELETE Pattern</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Pattern</th>
-                    <th>Payload</th>
-                    <th>Response</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/delete/_id</code></td>
-                    <td><code class="language-plaintext highlighter-rouge">empty</code></td>
-                    <td>204</td>
-                </tr>
-            </tbody>
-        </table>
-        <p>
-            <div class="exHeading">Javascript Example</div>
-            <pre><code class="jsExample"> 
-                <span>fetch("https://devstore.rerum.io/v1/api/delete/abcdef1234567890", {</span>
-                    <span class="ind1">method: "DELETE",</span>
-                    <span class="ind1">headers:{</span>
-                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
-                        <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
-                    <span class="ind1">}</span>
-                <span>})</span>
-                <span>.catch(err => {throw err})</span>
-            </code></pre>
-        </p>
-        <p class="alert">
-            This delete pattern behaves exactly the same as the DELETE described above.
         </p>
         <h2 id="__rerum"><code>__rerum</code> Property Explained</h2>
         <p>Each record carries a protected property named <code class="language-plaintext highlighter-rouge">__rerum</code> containing a metadata
