@@ -439,10 +439,7 @@ const expandedId = async function (req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(match))
         res.set("Cache-Control", "max-age=86400, must-revalidate")
         // No Last-Modified here, unlike GET /v1/id/:_id.  It would describe `match`, the root entity
-        // before expand() merges the targeting Annotations, so it does not move when an Annotation
-        // changes -- a wrong freshness signal for the composed body.  The ETag Express derives from
-        // that body does move, so it is the correct sole validator for this route.
-        // Include current version for optimistic locking (parity with GET /v1/id/:_id)
+        // before expand() merges the targeting Annotations.
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         // No GENERATOR/CREATOR filter: merge every current targeting Annotation, matching the
         // client's historical expand() behavior (its checkMatch is short-circuited to true).
