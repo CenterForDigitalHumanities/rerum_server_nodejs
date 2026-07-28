@@ -438,7 +438,7 @@ const expandedId = async function (req, res, next) {
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set(utils.configureWebAnnoHeadersFor(match))
         res.set("Cache-Control", "max-age=86400, must-revalidate")
-        // No Last-Modified here, unlike GET /v1/id/:_id.  It would `match`, the root entity
+        // No Last-Modified here, unlike GET /v1/id/:_id.  It would compare against the root entity
         // before expand() merges the targeting Annotations.
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         // No GENERATOR/CREATOR filter: merge every current targeting Annotation, matching the
