@@ -76,6 +76,12 @@ function parseRouteOperations(filePath, prefix) {
     for (const methodMatch of match[2].matchAll(/\.(get|post|put|patch|delete|head)\(/g)) {
       methods.add(methodMatch[1].toUpperCase())
     }
+    // Express serves HEAD from the GET handler when a route registers no HEAD handler of its
+    // own, so a GET route implements HEAD whether or not '.head(' appears in the source.  Routes
+    // rely on this deliberately: it is the only way HEAD can carry the ETag, which Express
+    // derives from the response body.  Counting only the literal '.head(' would report those
+    // routes as not implementing HEAD when they answer it.
+    if (methods.has('GET')) methods.add('HEAD')
     for (const method of methods) {
       operations.add(`${method} ${routePath}`)
     }

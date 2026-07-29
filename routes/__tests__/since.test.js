@@ -9,9 +9,8 @@ import controller from '../../db-controller.js'
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount /since for both GET (controller.since) and HEAD (controller.sinceHeadRequest).
-// `.head()` must be registered before `.use()` to win over the method-agnostic mount.
-routeTester.head("/since/:_id", controller.sinceHeadRequest)
+// Mount /since matching routes/since.js: GET only, no HEAD handler.  Express answers HEAD through
+// the GET handler and drops the body itself, which keeps HEAD's headers identical to GET's.
 routeTester.use("/since/:_id", controller.since)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
@@ -64,5 +63,21 @@ describe('HEAD /since/:id', () => {
     db.findOne.mockResolvedValueOnce(null)
     const response = await request(routeTester).head(`/since/${MOCK_ID}`)
     assert.strictEqual(response.statusCode, 404)
+  })
+
+  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.  Adding a .head() handler back to
+  // routes/since.js would drop the ETag and the LD headers, and this test would catch it.
+  it("sends the same headers as the GET, including the validators", async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const getResp = await request(routeTester).get(`/since/${MOCK_ID}`)
+
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const headResp = await request(routeTester).head(`/since/${MOCK_ID}`)
+
+    assert.ok(headResp.headers['etag'], 'HEAD must report an ETag to validate against')
+    for (const header of ['etag', 'content-type', 'link', 'allow']) {
+      assert.strictEqual(headResp.headers[header], getResp.headers[header],
+        `HEAD and GET must agree on ${header}`)
+    }
   })
 })

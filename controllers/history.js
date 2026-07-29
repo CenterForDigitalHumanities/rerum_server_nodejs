@@ -80,36 +80,6 @@ const history = async function (req, res, next) {
 }
 
 /**
- * Allow for HEAD requests by @id via the RERUM getByID pattern /v1/id/
- * No object is returned, but the Content-Length header is set. 
- * Note /v1/id/{blank} does not route here.  It routes to the generic 404
- * */
-const idHeadRequest = async function (req, res, next) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
-    try {
-        let match = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
-        if (match) {
-            // Use res.end() instead of res.sendStatus(200) — sendStatus writes "OK" as the body
-            // and overwrites Content-Type and Content-Length. HEAD must preserve our manual headers.
-            // Mirror the GET pipeline (idNegotiation) so Content-Length matches the GET payload.
-            const negotiated = idNegotiation(match)
-            const size = Buffer.byteLength(JSON.stringify(negotiated))
-            res.set("Content-Length", size)
-            res.status(200).end()
-            return
-        }
-        let err = {
-            "message": `No RERUM object with id '${id}'`,
-            "status": 404
-        }
-        return next(utils.createExpressError(err))
-    } catch (error) {
-        return next(utils.createExpressError(error))
-    }
-}
-
-/**
  * Allow for HEAD requests via the RERUM getByProperties pattern /v1/api/query
  * No objects are returned, but the Content-Length header is set. 
  */
@@ -136,80 +106,4 @@ const queryHeadRequest = async function (req, res, next) {
     }
 }
 
-/**
- * Allow for HEAD requests via the RERUM since pattern /v1/since/:_id
- * No objects are returned, but the Content-Length header is set. 
- * */
-const sinceHeadRequest = async function (req, res, next) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
-    let obj
-    try {
-        obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
-    } catch (error) {
-        return next(utils.createExpressError(error))
-    }
-    if (null === obj) {
-        let err = {
-            message: `Cannot produce a history. There is no object in the database with id '${id}'.  Check the URL.`,
-            status: 404
-        }
-        return next(utils.createExpressError(err))
-    }
-    let all = await getAllVersions(obj)
-        .catch(error => {
-            console.error(error)
-            return []
-        })
-    let descendants = getAllDescendants(all, obj, [])
-    if (descendants.length) {
-        const negotiated = descendants.map(o => idNegotiation(o))
-        const size = Buffer.byteLength(JSON.stringify(negotiated))
-        res.set("Content-Length", size)
-        res.status(200).end()
-        return
-    }
-    // GET returns "[]" for the empty case — match its byte length.
-    res.set("Content-Length", Buffer.byteLength("[]"))
-    res.status(200).end()
-}
-
-/**
- * Allow for HEAD requests via the RERUM since pattern /v1/history/:_id
- * No objects are returned, but the Content-Length header is set. 
- * */
-const historyHeadRequest = async function (req, res, next) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    let id = req.params["_id"]
-    let obj
-    try {
-        obj = await db.findOne({"$or":[{"_id": id}, {"__rerum.slug": id}]})
-    } catch (error) {
-        return next(utils.createExpressError(error))
-    }
-    if (null === obj) {
-        let err = {
-            message: "Cannot produce a history. There is no object in the database with this id. Check the URL.",
-            status: 404
-        }
-        return next(utils.createExpressError(err))
-    }
-    let all = await getAllVersions(obj)
-        .catch(error => {
-            console.error(error)
-            return []
-        })
-    let ancestors = getAllAncestors(all, obj, [])
-    if (ancestors.length) {
-        const negotiated = ancestors.map(o => idNegotiation(o))
-        const size = Buffer.byteLength(JSON.stringify(negotiated))
-        res.set("Content-Length", size)
-        res.status(200).end()
-        return
-    }
-    // GET returns "[]" for the empty case — match its byte length.
-    res.set("Content-Length", Buffer.byteLength("[]"))
-    res.status(200).end()
-}
-
-export { since, history, idHeadRequest, queryHeadRequest, sinceHeadRequest, historyHeadRequest }
+export { since, history, queryHeadRequest }
