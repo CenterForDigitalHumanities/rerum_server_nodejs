@@ -8,9 +8,6 @@ import controller from '../../db-controller.js'
 
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
-
-// Mount /history matching routes/history.js: GET only, no HEAD handler.  Express answers HEAD through
-// the GET handler and drops the body itself, which keeps HEAD's headers identical to GET's.
 routeTester.use("/history/:_id", controller.history)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"

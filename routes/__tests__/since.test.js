@@ -9,8 +9,7 @@ import controller from '../../db-controller.js'
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount /since matching routes/since.js: GET only, no HEAD handler.  Express answers HEAD through
-// the GET handler and drops the body itself, which keeps HEAD's headers identical to GET's.
+// Mount /since matching routes/since.js: GET only, no HEAD handler.
 routeTester.use("/since/:_id", controller.since)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"

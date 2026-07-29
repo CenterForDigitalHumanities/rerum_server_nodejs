@@ -10,8 +10,6 @@ const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
 // Mount our own /id route without auth, matching routes/id.js: GET only, no HEAD handler.
-// Express answers HEAD through the GET handler and drops the body itself, which is what keeps
-// HEAD's headers identical to GET's.
 routeTester.use("/id/:_id", controller.id)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
@@ -71,10 +69,8 @@ describe('HEAD /id/:id', () => {
     assert.strictEqual(response.statusCode, 404)
   })
 
-  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.  A HEAD missing these gives a
-  // client nothing to revalidate against, so it has to refetch the whole object.  This also
-  // guards the routing choice: adding a .head() handler to routes/id.js would drop the ETag,
-  // which only Express can derive (it hashes the response body), and this test would catch it.
+  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.  Adding a .head() handler back to
+  // routes/id.js would drop the ETag and the LD headers, and this test would catch it.
   it("sends the same headers as the GET, including the validators", async () => {
     db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
     const getResp = await request(routeTester).get(`/id/${MOCK_ID}`)
