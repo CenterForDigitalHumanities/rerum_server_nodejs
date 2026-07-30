@@ -445,9 +445,6 @@ const expandedId = async function (req, res, next) {
             err = Object.assign(err, { message: `No RERUM object with id '${id}'`, status: 404 })
             return next(utils.createExpressError(err))
         }
-        // Only expand data a Gallery of Glosses application generated, and only with Annotations from
-        // that same generator.  A foreign Annotation merged onto a GoG entity creates a duplicate key,
-        // which DEER surfaces as "multiple values" and which can make a form PUT another app's Annotation.
         const generator = match.__rerum?.generatedBy
         const agentID = generator?.split("/").pop()
         if (!GOG_AGENTS.includes(agentID)) {
