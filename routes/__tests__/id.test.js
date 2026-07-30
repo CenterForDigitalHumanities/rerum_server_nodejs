@@ -69,8 +69,7 @@ describe('HEAD /id/:id', () => {
     assert.strictEqual(response.statusCode, 404)
   })
 
-  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.  Adding a .head() handler back to
-  // routes/id.js would drop the ETag and the LD headers, and this test would catch it.
+  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.
   it("sends the same headers as the GET, including the validators", async () => {
     db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
     const getResp = await request(routeTester).get(`/id/${MOCK_ID}`)
