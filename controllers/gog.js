@@ -10,6 +10,12 @@ import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
 import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation } from './utils.js'
 
+// The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
+// agents; only the trailing id is compared, so either host spelling matches.
+const GOG_PROD_AGENT = "61043ad4ffce846a83e700dd"
+const GOG_DEV_AGENT = "5afeebf3e4b0b0d588705d90"
+const GOG_AGENTS = [GOG_PROD_AGENT, GOG_DEV_AGENT]
+
 /**
  * THIS IS SPECIFICALLY FOR 'Gallery of Glosses'
  * Starting from a ManuscriptWitness URI get all WitnessFragment entities that are a part of the Manuscript.
@@ -30,7 +36,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     const { limit, skip } = getPagination(req.query, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (agentID !== "61043ad4ffce846a83e700dd") {
+    if (agentID !== GOG_PROD_AGENT) {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
@@ -161,7 +167,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     const { limit, skip } = getPagination(req.query, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
-    if (agentID !== "61043ad4ffce846a83e700dd") {
+    if (agentID !== GOG_PROD_AGENT) {
         err = Object.assign(err, {
             message: `Only the Gallery of Glosses can make this request.`,
             status: 403
@@ -330,8 +336,11 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     // An entity is expandable if it carries a URI under either '@id' or 'id'.
     if(!primitiveEntity?.["@id"] && !primitiveEntity?.id) return primitiveEntity
     const targetId = primitiveEntity["@id"] ?? primitiveEntity.id ?? "unknown"
+    // '$and' is always present so the GENERATOR and CREATOR blocks below can push into it from
+    // either branch.  'annoTypeConditions' is always pushed, so it is never the empty Array Mongo rejects.
     let queryObj = {
-        "__rerum.history.next": { $exists: true, $size: 0 }
+        "__rerum.history.next": { $exists: true, $size: 0 },
+        "$and": []
     }
     let targetPatterns = ["target", "target.@id", "target.id"]
     let targetConditions = []
@@ -342,10 +351,10 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
         }
-        queryObj["$and"] = [{"$or": targetConditions}, {"$or": annoTypeConditions}]
-    } 
+        queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
+    }
     else{
-        queryObj["$or"] = annoTypeConditions
+        queryObj["$and"].push({"$or": annoTypeConditions})
         queryObj.target = targetId
     }
 
@@ -429,10 +438,23 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
 const expandedId = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const id = req.params["_id"]
+    let err = { message: `` }
     try {
         let match = await db.findOne({ "$or": [{ "_id": id }, { "__rerum.slug": id }] })
         if (!match) {
-            const err = { "message": `No RERUM object with id '${id}'`, "status": 404 }
+            err = Object.assign(err, { message: `No RERUM object with id '${id}'`, status: 404 })
+            return next(utils.createExpressError(err))
+        }
+        // Only expand data a Gallery of Glosses application generated, and only with Annotations from
+        // that same generator.  A foreign Annotation merged onto a GoG entity creates a duplicate key,
+        // which DEER surfaces as "multiple values" and which can make a form PUT another app's Annotation.
+        const generator = match.__rerum?.generatedBy
+        const agentID = generator?.split("/").pop()
+        if (!GOG_AGENTS.includes(agentID)) {
+            err = Object.assign(err, {
+                message: `This request can only be made for Gallery of Glosses generated data.`,
+                status: 403
+            })
             return next(utils.createExpressError(err))
         }
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
@@ -441,9 +463,7 @@ const expandedId = async function (req, res, next) {
         // No Last-Modified here, unlike GET /v1/id/:_id.  It would compare against the root entity
         // before expand() merges the targeting Annotations.
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
-        // No GENERATOR/CREATOR filter: merge every current targeting Annotation, matching the
-        // client's historical expand() behavior (its checkMatch is short-circuited to true).
-        let expanded = await expand(match)
+        let expanded = await expand(match, generator)
         expanded = idNegotiation(expanded)
         res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
         res.json(expanded)
