@@ -76,6 +76,8 @@ function parseRouteOperations(filePath, prefix) {
     for (const methodMatch of match[2].matchAll(/\.(get|post|put|patch|delete|head)\(/g)) {
       methods.add(methodMatch[1].toUpperCase())
     }
+    // Express serves HEAD from the GET handler natively.
+    if (methods.has('GET')) methods.add('HEAD')
     for (const method of methods) {
       operations.add(`${method} ${routePath}`)
     }

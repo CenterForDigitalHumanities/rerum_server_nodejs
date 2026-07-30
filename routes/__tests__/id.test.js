@@ -9,10 +9,7 @@ import controller from '../../db-controller.js'
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// Mount our own /id route without auth that will use controller.id (GET) and
-// controller.idHeadRequest (HEAD). `.use()` is method-agnostic, so the explicit
-// `.head()` entry must come first to intercept HEAD before the catch-all GET handler.
-routeTester.head("/id/:_id", controller.idHeadRequest)
+// Mount our own /id route without auth, matching routes/id.js: GET only, no HEAD handler.
 routeTester.use("/id/:_id", controller.id)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
@@ -70,6 +67,36 @@ describe('HEAD /id/:id', () => {
     db.findOne.mockResolvedValueOnce(null)
     const response = await request(routeTester).head(`/id/${MOCK_ID}`)
     assert.strictEqual(response.statusCode, 404)
+  })
+
+  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.
+  it("sends the same headers as the GET, including the validators", async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const getResp = await request(routeTester).get(`/id/${MOCK_ID}`)
+
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const headResp = await request(routeTester).head(`/id/${MOCK_ID}`)
+
+    assert.strictEqual(headResp.headers['cache-control'], 'max-age=86400, must-revalidate')
+    assert.ok(headResp.headers['last-modified'], 'HEAD must report Last-Modified')
+    assert.ok(headResp.headers['etag'], 'HEAD must report an ETag to validate against')
+    for (const header of ['cache-control', 'last-modified', 'etag', 'content-type',
+      'link', 'allow', 'current-overwritten-version', 'location']) {
+      assert.strictEqual(headResp.headers[header], getResp.headers[header],
+        `HEAD and GET must agree on ${header}`)
+    }
+  })
+
+  it("reports Last-Modified from the overwrite time once an object has been overwritten", async () => {
+    const overwritten = structuredClone(mockDoc)
+    overwritten.__rerum.isOverwritten = '2025-06-24T10:00:00'
+    db.findOne.mockResolvedValueOnce(overwritten)
+
+    const response = await request(routeTester).head(`/id/${MOCK_ID}`)
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['last-modified'], new Date('2025-06-24T10:00:00').toUTCString())
+    assert.strictEqual(response.headers['current-overwritten-version'], '2025-06-24T10:00:00')
   })
 })
 

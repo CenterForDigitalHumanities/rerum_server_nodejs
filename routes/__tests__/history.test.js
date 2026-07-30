@@ -8,10 +8,6 @@ import controller from '../../db-controller.js'
 
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
-
-// Mount /history for both GET (controller.history) and HEAD (controller.historyHeadRequest).
-// `.head()` must be registered before `.use()` to win over the method-agnostic mount.
-routeTester.head("/history/:_id", controller.historyHeadRequest)
 routeTester.use("/history/:_id", controller.history)
 
 const MOCK_AGENT = "https://store.rerum.io/v1/id/agent007"
@@ -64,5 +60,25 @@ describe('HEAD /history/:id', () => {
     db.findOne.mockResolvedValueOnce(null)
     const response = await request(routeTester).head(`/history/${MOCK_ID}`)
     assert.strictEqual(response.statusCode, 404)
+  })
+
+  // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.
+  it("sends the same headers as the GET, including the validators", async () => {
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const getResp = await request(routeTester).get(`/history/${MOCK_ID}`)
+
+    db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
+    const headResp = await request(routeTester).head(`/history/${MOCK_ID}`)
+
+    // Anchor to the success path.  A 404 pair also agrees on every header below, so without
+    // these the comparison would pass while proving nothing.
+    assert.strictEqual(getResp.statusCode, 200)
+    assert.strictEqual(headResp.statusCode, 200)
+    assert.ok(headResp.headers['link'], 'HEAD must carry the JSON-LD context Link header')
+    assert.ok(headResp.headers['etag'], 'HEAD must report an ETag to validate against')
+    for (const header of ['etag', 'content-type', 'link', 'allow']) {
+      assert.strictEqual(headResp.headers[header], getResp.headers[header],
+        `HEAD and GET must agree on ${header}`)
+    }
   })
 })
