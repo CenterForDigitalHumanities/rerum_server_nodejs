@@ -70,6 +70,11 @@ describe('HEAD /history/:id', () => {
     db.findOne.mockResolvedValueOnce(structuredClone(mockDoc))
     const headResp = await request(routeTester).head(`/history/${MOCK_ID}`)
 
+    // Anchor to the success path.  A 404 pair also agrees on every header below, so without
+    // these the comparison would pass while proving nothing.
+    assert.strictEqual(getResp.statusCode, 200)
+    assert.strictEqual(headResp.statusCode, 200)
+    assert.ok(headResp.headers['link'], 'HEAD must carry the JSON-LD context Link header')
     assert.ok(headResp.headers['etag'], 'HEAD must report an ETag to validate against')
     for (const header of ['etag', 'content-type', 'link', 'allow']) {
       assert.strictEqual(headResp.headers[header], getResp.headers[header],
