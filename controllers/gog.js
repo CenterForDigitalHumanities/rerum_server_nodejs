@@ -309,7 +309,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 }
 
 /**
-* Find relevant Annotations targeting a primitive RERUM entity.  This is a 'full' expand.  
+* Find relevant Annotations targeting a primitive RERUM entity.  This is a 'full' expand.
 * Add the descriptive information in the Annotation bodies to the primitive object.
 *
 * Anticipate likely Annotation body formats
@@ -328,7 +328,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 *
 * @param primitiveEntity - An existing RERUM object
 * @param GENERATOR - A registered RERUM app's User Agent
-* @param CREATOR - Some kind of string representing a specific user.  Often combined with GENERATOR. 
+* @param CREATOR - Some kind of string representing a specific user.  Often combined with GENERATOR.
 * @return the expanded entity object
 *
 */
@@ -367,7 +367,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
         ]
         if (GENERATOR.startsWith("http")) {
             queryObj["$and"].push({"$or": generatorConditions })
-        } 
+        }
         else{
             // It should be a URI, but this can be a fallback.
             queryObj["__rerum.generatedBy"] = GENERATOR
@@ -382,7 +382,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
         ]
         if (CREATOR.startsWith("http")) {
             queryObj["$and"].push({"$or": creatorConditions })
-        } 
+        }
         else{
             // It should be a URI, but this can be a fallback.
             queryObj["creator"] = CREATOR
