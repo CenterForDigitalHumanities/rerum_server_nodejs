@@ -109,6 +109,73 @@ const generateSlugId = async function(slug_id="", next){
     return slug_return
 }
 
+// RERUM has minted these two under both 'http' and 'https' over the years, so a filter on either
+// must match both spellings.  Every other supplied filter key is applied exactly as given.
+const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
+
+/**
+ * Find the current (leaf) Annotations targeting an entity, for expansion.
+ *
+ * Anticipates the likely Annotation target formats
+ *   - target: 'uri'
+ *   - target: {'id':'uri'}
+ *   - target: {'@id':'uri'}
+ *   - target: {'source':'uri', 'type':'SpecificResource'}       the W3C SpecificResource
+ *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
+ * and the likely Annotation type formats
+ *   - {"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}
+ *
+ * @param targetId The '@id' or 'id' URI of the entity being expanded.
+ * @param filters Literal MongoDB filter keys to AND into the query.  Already sanitized by the
+ *                caller -- the leaf, type, and target constraints here cannot be overruled.
+ * @param pagination A {limit, skip} pair from getPagination().  When supplied, the query is sorted
+ *                   by '_id' first -- Mongo's natural order is not stable across paged calls, so
+ *                   without a sort a client walking pages could miss or repeat Annotations.
+ *                   Omit it to fetch every match, which is the long standing expand() behavior.
+ * @return An Array of matching Annotation documents, with '_id' removed.
+ */
+const findLeafAnnotationsFor = async function (targetId, filters = {}, pagination = null) {
+    // '$and' is always present so the filter conditions below can push into it from either branch.
+    // 'annoTypeConditions' is always pushed, so it is never the empty Array Mongo rejects.
+    const queryObj = {
+        "__rerum.history.next": { $exists: true, $size: 0 },
+        "$and": []
+    }
+    const annoTypeConditions = [{"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}]
+    if (targetId.startsWith("http")) {
+        const targetConditions = []
+        // 'target.source' is the W3C SpecificResource, which is how an Annotation targets a
+        // fragment or a selected region of a resource rather than the whole of it.
+        for (const targetKey of ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]) {
+            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
+            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
+        }
+        queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
+    }
+    else {
+        queryObj["$and"].push({"$or": annoTypeConditions})
+        queryObj.target = targetId
+    }
+    for (const [key, value] of Object.entries(filters)) {
+        if (URI_DOUBLED_FILTER_KEYS.has(key) && typeof value === "string" && /^https?:\/\//.test(value)) {
+            queryObj["$and"].push({"$or": [
+                { [key]: value.replace(/^https?/, "http") },
+                { [key]: value.replace(/^https?/, "https") }
+            ]})
+            continue
+        }
+        queryObj["$and"].push({ [key]: value })
+    }
+    // Get the Annotations targeting this Entity from the db.  Remove _id property.
+    let cursor = db.find(queryObj)
+    if (pagination) cursor = cursor.sort({ "_id": 1 }).limit(pagination.limit).skip(pagination.skip)
+    const matches = await cursor.toArray()
+    return matches.map(o => {
+        delete o._id
+        return o
+    })
+}
+
 // Handle index actions
 const index = function (req, res, next) {
     res.json({
@@ -465,6 +532,7 @@ async function healReleasesTree(releasing) {
 export {
     _contextid,
     idNegotiation,
+    findLeafAnnotationsFor,
     getPagination,
     generateSlugId,
     index,

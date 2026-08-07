@@ -8,7 +8,7 @@
 
 // Import controller modules
 import { index, idNegotiation, generateSlugId, remove } from './controllers/utils.js'
-import { create, query, id } from './controllers/crud.js'
+import { create, query, id, idExpanded } from './controllers/crud.js'
 import { searchAsWords, searchAsPhrase } from './controllers/search.js'
 import { deleteObj } from './controllers/delete.js'
 import { putUpdate, patchUpdate, patchSet, patchUnset, overwrite } from './controllers/update.js'
@@ -32,6 +32,7 @@ export default {
     searchAsWords,
     searchAsPhrase,
     id,
+    idExpanded,
     bulkCreate,
     bulkUpdate,
     queryHeadRequest,

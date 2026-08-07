@@ -41,6 +41,7 @@ function createMockFunction(implementation = () => undefined) {
 
 function createCursor() {
   return {
+    sort: createMockFunction(function () { return this }),
     limit: createMockFunction(function () { return this }),
     skip: createMockFunction(function () { return this }),
     toArray: createMockFunction(() => Promise.resolve([]))
