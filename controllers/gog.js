@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, findLeafAnnotationsFor } from './utils.js'
 
 // The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
 // agents; only the trailing id is compared, so either host spelling matches.
@@ -336,66 +336,13 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     // An entity is expandable if it carries a URI under either '@id' or 'id'.
     if(!primitiveEntity?.["@id"] && !primitiveEntity?.id) return primitiveEntity
     const targetId = primitiveEntity["@id"] ?? primitiveEntity.id ?? "unknown"
-    // '$and' is always present so the GENERATOR and CREATOR blocks below can push into it from
-    // either branch.  'annoTypeConditions' is always pushed, so it is never the empty Array Mongo rejects.
-    let queryObj = {
-        "__rerum.history.next": { $exists: true, $size: 0 },
-        "$and": []
-    }
-    let targetPatterns = ["target", "target.@id", "target.id"]
-    let targetConditions = []
-    let annoTypeConditions = [{"type": "Annotation"}, {"@type":"Annotation"}, {"@type":"oa:Annotation"}]
-
-    if (targetId.startsWith("http")) {
-        for(const targetKey of targetPatterns){
-            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
-            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
-        }
-        queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
-    }
-    else{
-        queryObj["$and"].push({"$or": annoTypeConditions})
-        queryObj.target = targetId
-    }
-
-    // Only expand with data from a specific app
-    if(GENERATOR) {
-        // Need to check http:// and https://
-        const generatorConditions = [
-            {"__rerum.generatedBy":  GENERATOR.replace(/^https?/, "http")},
-            {"__rerum.generatedBy":  GENERATOR.replace(/^https?/, "https")}
-        ]
-        if (GENERATOR.startsWith("http")) {
-            queryObj["$and"].push({"$or": generatorConditions })
-        }
-        else{
-            // It should be a URI, but this can be a fallback.
-            queryObj["__rerum.generatedBy"] = GENERATOR
-        }
-    }
-    // Only expand with data from a specific creator
-    if(CREATOR) {
-        // Need to check http:// and https://
-        const creatorConditions = [
-            {"creator":  CREATOR.replace(/^https?/, "http")},
-            {"creator":  CREATOR.replace(/^https?/, "https")}
-        ]
-        if (CREATOR.startsWith("http")) {
-            queryObj["$and"].push({"$or": creatorConditions })
-        }
-        else{
-            // It should be a URI, but this can be a fallback.
-            queryObj["creator"] = CREATOR
-        }
-    }
-
-    // Get the Annotations targeting this Entity from the db.  Remove _id property.
-    // Assuming we do not need paged query here
-    let matches = await db.find(queryObj).toArray()
-    matches = matches.map(o => {
-        delete o._id
-        return o
-    })
+    // Only expand with data from a specific app and/or a specific creator.  The shared helper
+    // applies the leaf, target, and Annotation type constraints and doubles these two URIs
+    // across the http/https spellings.
+    const filters = {}
+    if(GENERATOR) filters["__rerum.generatedBy"] = GENERATOR
+    if(CREATOR) filters.creator = CREATOR
+    const matches = await findLeafAnnotationsFor(targetId, filters)
 
     // Combine the Annotation bodies with the primitive object.
     // Mirror DEER's client-side expand() (deer-utils.js buildValueObject)
