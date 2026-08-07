@@ -225,7 +225,10 @@
                 <code class="language-plaintext highlighter-rouge">_id</code>,
                 <code class="language-plaintext highlighter-rouge">__rerum</code>,
                 <code class="language-plaintext highlighter-rouge">__deleted</code>, and
-                <code class="language-plaintext highlighter-rouge">@context</code>.</li>
+                <code class="language-plaintext highlighter-rouge">@context</code>. An assertion naming
+                <code class="language-plaintext highlighter-rouge">__proto__</code> is dropped for the same reason—it
+                is not data, and emitting it would hand a prototype pollution vector to every client that parses the
+                response.</li>
             <li>Skipped for now, as future work: a <code class="language-plaintext highlighter-rouge">body</code> with
                 more than one property, an Annotation with multiple bodies, the
                 <code class="language-plaintext highlighter-rouge">Choice</code>,
@@ -904,9 +907,14 @@
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">target</code>,
                         <code class="language-plaintext highlighter-rouge">target.@id</code>,
-                        <code class="language-plaintext highlighter-rouge">target.id</code></td>
+                        <code class="language-plaintext highlighter-rouge">target.id</code>,
+                        <code class="language-plaintext highlighter-rouge">target.source</code>,
+                        <code class="language-plaintext highlighter-rouge">target.source.@id</code>,
+                        <code class="language-plaintext highlighter-rouge">target.source.id</code></td>
                     <td>Annotations targeting the record at
-                        <code class="language-plaintext highlighter-rouge">_id</code></td>
+                        <code class="language-plaintext highlighter-rouge">_id</code>, including those
+                        targeting it through a
+                        <code class="language-plaintext highlighter-rouge">SpecificResource</code></td>
                 </tr>
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">type</code>,

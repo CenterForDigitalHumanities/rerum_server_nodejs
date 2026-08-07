@@ -120,6 +120,8 @@ const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
  *   - target: 'uri'
  *   - target: {'id':'uri'}
  *   - target: {'@id':'uri'}
+ *   - target: {'source':'uri', 'type':'SpecificResource'}       the W3C SpecificResource
+ *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
  * and the likely Annotation type formats
  *   - {"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}
  *
@@ -142,7 +144,9 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}, paginatio
     const annoTypeConditions = [{"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}]
     if (targetId.startsWith("http")) {
         const targetConditions = []
-        for (const targetKey of ["target", "target.@id", "target.id"]) {
+        // 'target.source' is the W3C SpecificResource, which is how an Annotation targets a
+        // fragment or a selected region of a resource rather than the whole of it.
+        for (const targetKey of ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]) {
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
         }
