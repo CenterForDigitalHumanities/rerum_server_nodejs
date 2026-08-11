@@ -323,6 +323,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 *
 * Anticipate likely Annotation type formats
 *   - {"type": "Annotation"}
+*   - {"type": "oa:Annotation"}
 *   - {"@type": "Annotation"}
 *   - {"@type": "oa:Annotation"}
 *
@@ -350,7 +351,11 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     let expandedEntity = structuredClone(primitiveEntity)
     for(const anno of matches){
         const body = anno.body
-        if(!body || typeof body !== "object") continue
+        // Array.isArray() as well as the typeof check.  An Array is a typeof 'object', and
+        // Object.keys() on a one element Array is ["0"] -- a length of 1 that would pass the
+        // single assertion check below and merge the body onto the entity under the key "0".
+        // Annotations carrying multiple bodies are not expanded with.
+        if(!body || typeof body !== "object" || Array.isArray(body)) continue
         const keys = Object.keys(body)
         if(keys.length !== 1) continue
         const key = keys[0]

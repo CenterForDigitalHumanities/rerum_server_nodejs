@@ -137,7 +137,8 @@ function escapeRegex(literal) {
  *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
  *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
  * and the likely Annotation type formats
- *   - {"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}
+ *   - {"type": "Annotation"}, {"type": "oa:Annotation"}
+ *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}
  *
  * @param targetId The '@id' or 'id' URI of the entity being expanded.
  * @param filters Literal MongoDB filter keys to AND into the query.  Already sanitized by the
@@ -155,20 +156,26 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}, paginatio
         "__rerum.history.next": { $exists: true, $size: 0 },
         "$and": []
     }
-    const annoTypeConditions = [{"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}]
+    const annoTypeConditions = [
+        {"type": "Annotation"}, {"type": "oa:Annotation"},
+        {"@type": "Annotation"}, {"@type": "oa:Annotation"}
+    ]
     if (targetId.startsWith("http")) {
         const targetConditions = []
         // Hanging a fragment off the URI is the other W3C way to target part of a resource rather
-        // than the whole of it, and an exact match will not catch one.  Anchored at the front so
-        // the pattern can still use an index, and terminated by the '#' so it cannot spill onto a
-        // longer id.  One pattern covers both spellings, since only the scheme is left unescaped.
-        const fragmentPattern = new RegExp(`^https?${escapeRegex(targetId.replace(/^https?/, ""))}#`)
+        // than the whole of it, and an exact match will not catch one.  Anchored at the front and
+        // terminated by the '#' so the pattern cannot spill onto a longer id.  One pattern per
+        // scheme rather than a single '^https?' -- Mongo bounds an index scan by the pattern's
+        // literal prefix, and '^https?' leaves it only 'http', which is every target URI stored.
+        const fragmentPatterns = ["http", "https"].map(scheme =>
+            new RegExp(`^${escapeRegex(targetId.replace(/^https?/, scheme))}#`)
+        )
         // 'target.source' is the W3C SpecificResource, which is how an Annotation targets a
         // selected region of a resource rather than the whole of it.
         for (const targetKey of TARGET_KEYS) {
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
-            targetConditions.push({ [targetKey]: fragmentPattern })
+            for (const fragmentPattern of fragmentPatterns) targetConditions.push({ [targetKey]: fragmentPattern })
         }
         queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
     }
