@@ -160,6 +160,14 @@ function sanitizeExpansionFilters(supplied) {
 }
 
 /**
+ * The Annotation body types whose value is kept whole rather than read as a single assertion.
+ * The OA prefixed spelling is honored for the Annotation type in findLeafAnnotationsFor(), so it
+ * is honored here too.  Without it an 'oa:TextualBody' falls through to the single key check and
+ * is dropped, since a TextualBody always carries at least a type and a value.
+ */
+const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody"])
+
+/**
  * The [key, value] assertions an Annotation makes about the entity it targets.
  * Only 'body' and 'bodyValue' are read -- an Annotation carrying neither is ignored, and no other
  * property of the Annotation can leak onto the entity.
@@ -169,6 +177,7 @@ function sanitizeExpansionFilters(supplied) {
  *   - body: {'key': 'value'}                             a single assertion
  *   - body: {'key': {...}}                               a single assertion, value kept as-is
  *   - body: {'type':'TextualBody', 'value': 'text', ...} kept whole so 'format' and 'language' survive
+ *   - body: {'@type':'oa:TextualBody', ...}              the OA prefixed spelling of the same
  *
  * @param anno An Annotation document.
  * @return An Array of [key, value] pairs to merge onto the entity.
@@ -180,7 +189,7 @@ function assertionsFrom(anno) {
     // Skip Annotations carrying multiple bodies, and string bodies that are an IRI referencing an
     // external resource with no embedded value to expand with.
     if (!body || typeof body !== "object" || Array.isArray(body)) return assertions
-    if ((body.type ?? body["@type"]) === "TextualBody") {
+    if (TEXTUAL_BODY_TYPES.has(body.type ?? body["@type"])) {
         assertions.push(["bodyValue", body])
         return assertions
     }
@@ -280,9 +289,15 @@ const idExpanded = async function (req, res, next) {
         // Let clients detect a full page.  When this equals the limit there may be more to gather,
         // and the entity in hand is expanded from only part of its Annotations.
         res.set('Annotations-Merged', String(annos.length))
+        // This deployment's '/expanded' URI, not the entity URI.  The entity URI would hand back
+        // the unexpanded record, and it cannot be the base for this one either -- an entity minted
+        // by another RERUM carries that host in its stored '@id', and there is no guarantee the
+        // other host serves '/expanded' at all.  RERUM_ID_PREFIX is how idNegotiation() mints ids,
+        // so this stays on the host actually answering the request.
+        const expandedLocation = `${process.env.RERUM_ID_PREFIX}${match._id}/expanded`
         let expanded = applyRawExpansion(match, annos)
         expanded = idNegotiation(expanded)
-        res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
+        res.location(expandedLocation)
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))

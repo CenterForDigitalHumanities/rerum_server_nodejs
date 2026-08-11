@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, findLeafAnnotationsFor } from './utils.js'
+import { ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, findLeafAnnotationsFor } from './utils.js'
 
 // The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
 // agents; only the trailing id is compared, so either host spelling matches.
@@ -364,7 +364,9 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
             },
             evidence: assertion?.evidence ?? anno.evidence ?? ""
         }
-        if(expandedEntity.hasOwnProperty(key)){
+        // Object.hasOwn() rather than the method on the entity.  A merged assertion named
+        // 'hasOwnProperty' would shadow the method and throw a TypeError on the next iteration.
+        if(Object.hasOwn(expandedEntity, key)){
             expandedEntity[key] = Array.isArray(expandedEntity[key])
                 ? [...expandedEntity[key], valueObject]
                 : [expandedEntity[key], valueObject]
@@ -401,6 +403,11 @@ const expandedId = async function (req, res, next) {
             })
             return next(utils.createExpressError(err))
         }
+        // This '/gog/id' URI, not the entity URI.  This response is the expanded representation,
+        // and the entity URI would hand back the unexpanded record instead.  Built off
+        // RERUM_ID_PREFIX so the origin follows the deployment, and captured before expand() in
+        // case idNegotiation() reaches the match itself and drops '_id'.
+        const expandedLocation = new URL(`/gog/id/${match._id}`, process.env.RERUM_ID_PREFIX).href
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set(utils.configureWebAnnoHeadersFor(match))
         res.set("Cache-Control", "max-age=86400, must-revalidate")
@@ -409,7 +416,7 @@ const expandedId = async function (req, res, next) {
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         let expanded = await expand(match, generator)
         expanded = idNegotiation(expanded)
-        res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
+        res.location(expandedLocation)
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))

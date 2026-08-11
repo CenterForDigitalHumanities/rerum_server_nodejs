@@ -113,6 +113,19 @@ const generateSlugId = async function(slug_id="", next){
 // must match both spellings.  Every other supplied filter key is applied exactly as given.
 const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 
+// The properties an Annotation can carry the URI of its target under.
+const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
+
+/**
+ * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
+ * itself.  A RERUM URI has at least the dots of its host to escape.
+ * @param literal A string to be matched literally.
+ * @return The same string, safe to concatenate into a RegExp source.
+ */
+function escapeRegex(literal) {
+    return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 /**
  * Find the current (leaf) Annotations targeting an entity, for expansion.
  *
@@ -122,6 +135,7 @@ const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
  *   - target: {'@id':'uri'}
  *   - target: {'source':'uri', 'type':'SpecificResource'}       the W3C SpecificResource
  *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
+ *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
  * and the likely Annotation type formats
  *   - {"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}
  *
@@ -144,11 +158,17 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}, paginatio
     const annoTypeConditions = [{"type": "Annotation"}, {"@type": "Annotation"}, {"@type": "oa:Annotation"}]
     if (targetId.startsWith("http")) {
         const targetConditions = []
+        // Hanging a fragment off the URI is the other W3C way to target part of a resource rather
+        // than the whole of it, and an exact match will not catch one.  Anchored at the front so
+        // the pattern can still use an index, and terminated by the '#' so it cannot spill onto a
+        // longer id.  One pattern covers both spellings, since only the scheme is left unescaped.
+        const fragmentPattern = new RegExp(`^https?${escapeRegex(targetId.replace(/^https?/, ""))}#`)
         // 'target.source' is the W3C SpecificResource, which is how an Annotation targets a
-        // fragment or a selected region of a resource rather than the whole of it.
-        for (const targetKey of ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]) {
+        // selected region of a resource rather than the whole of it.
+        for (const targetKey of TARGET_KEYS) {
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
             targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
+            targetConditions.push({ [targetKey]: fragmentPattern })
         }
         queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
     }
