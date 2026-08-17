@@ -316,16 +316,8 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 *   - anno.body
 *   - anno.body.value
 *
-* Anticipate likely Annotation target formats
-*   - target: 'uri'
-*   - target: {'id':'uri'}
-*   - target: {'@id':'uri'}
-*
-* Anticipate likely Annotation type formats
-*   - {"type": "Annotation"}
-*   - {"type": "oa:Annotation"}
-*   - {"@type": "Annotation"}
-*   - {"@type": "oa:Annotation"}
+* Gathering the Annotations is findLeafAnnotationsFor() in ./utils.js -- see its docblock for the
+* target and Annotation type forms that are recognized.  This function only reads their bodies.
 *
 * @param primitiveEntity - An existing RERUM object
 * @param GENERATOR - A registered RERUM app's User Agent

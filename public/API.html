@@ -227,6 +227,9 @@
                 <code class="language-plaintext highlighter-rouge">language</code> survive.</li>
             <li>When several Annotations assert the same property, or the record already carries it, the values collect
                 into an Array. Array order is not guaranteed.</li>
+            <li>A property merged from a single Annotation is that value as-is; the same property merged from two or
+                more is an Array. Treat every merged property as possibly-an-Array—the shape depends on how many
+                Annotations exist, which changes over the record's life.</li>
             <li>Identity and system properties are never overwritten:
                 <code class="language-plaintext highlighter-rouge">@id</code>,
                 <code class="language-plaintext highlighter-rouge">id</code>,
