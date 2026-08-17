@@ -148,7 +148,7 @@
             </code></pre>
         </p>
         <p>
-            This can be used directly in the browser. Try it to see what the response <code>resp</code> looks like.</span>
+            This can be used directly in the browser. Try it to see what the response <code>resp</code> looks like.
             <a target="_blank" href="https://devstore.rerum.io/v1/id/11111">https://devstore.rerum.io/v1/id/11111</a>
         </p>
         <h3 id="expanded-record-by-id">Expanded record by id</h3>
@@ -190,13 +190,19 @@
                 properties.</li>
             <li><strong>Response header
                     <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code></strong>—how many
-                Annotations were gathered for this expansion. A gathered Annotation may still assert nothing
-                mergeable, so this is not a count of the properties you received. Annotations with multiple bodies
-                are not counted at all, as that form is not read yet. When it equals your
+                Annotations this expansion gathered, which is the size of the page you received. When it equals your
                 <code class="language-plaintext highlighter-rouge">limit</code> there may be more, and the record you
                 received was expanded from only part of its Annotations. Raise the
                 <code class="language-plaintext highlighter-rouge">limit</code> or walk pages with
                 <code class="language-plaintext highlighter-rouge">skip</code>.</li>
+            <li><strong>Response header
+                    <code class="language-plaintext highlighter-rouge">Annotations-Merged</code></strong>—how many of
+                those gathered Annotations could contribute to the record. It is always less than or equal to
+                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>, and Annotations with
+                multiple bodies are not counted, as that form is not read yet. A counted Annotation may still assert
+                nothing mergeable, so this is not a count of the properties you received either. Use
+                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>, not this one, to decide
+                whether to keep paging.</li>
         </ul>
         <p>
             Only the current (leaf) versions of Annotations are gathered. No token is required.
@@ -246,7 +252,7 @@
             </code></pre>
         </p>
         <p>
-            This can be used directly in the browser. Try it to see what the response <code>resp</code> looks like.</span>
+            This can be used directly in the browser. Try it to see what the response <code>resp</code> looks like.
             <a target="_blank" href="https://devstore.rerum.io/v1/id/11111/expanded">https://devstore.rerum.io/v1/id/11111/expanded</a>
         </p>
         <h3 id="history-tree-before-this-version">History tree before this version</h3>
@@ -285,7 +291,7 @@
             </code></pre>
         </p>
         <p>
-            This can be used directly in the browser. Try it to see what the response <code>resp</code> looks like.</span>
+            This can be used directly in the browser. Try it to see what the response <code>resp</code> looks like.
             <a target="_blank" href="https://devstore.rerum.io/v1/history/11111">https://devstore.rerum.io/v1/history/11111</a>
         </p>
         <h3 id="history-tree-since-this-version">History tree since this version</h3>
@@ -883,8 +889,9 @@
                 here—supply them in the body instead. Paging is not a filter, so
                 <code class="language-plaintext highlighter-rouge">?limit</code> and
                 <code class="language-plaintext highlighter-rouge">?skip</code> still work, and the
-                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code> response header is set
-                exactly as it is on the GET.</li>
+                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code> and
+                <code class="language-plaintext highlighter-rouge">Annotations-Merged</code> response headers are set
+                exactly as they are on the GET.</li>
             <li><code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code> and
                 <code class="language-plaintext highlighter-rouge">creator</code> are matched against both the
                 <code class="language-plaintext highlighter-rouge">http</code> and

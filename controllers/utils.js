@@ -114,6 +114,7 @@ const generateSlugId = async function(slug_id="", next){
 const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 
 // The properties an Annotation can carry the URI of its target under.
+// Choice, Composite, and List target constructs, whose members sit in an 'items' Array.  They are not supported here.
 const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
 
 // The JSON-LD expanded form of the Annotation type, alongside the compact 'Annotation' and the
