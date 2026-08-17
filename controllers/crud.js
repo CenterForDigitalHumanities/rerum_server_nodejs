@@ -168,6 +168,18 @@ function sanitizeExpansionFilters(supplied) {
 const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody"])
 
 /**
+ * Whether an Annotation carries the W3C multiple bodies form, which is an Array of bodies.
+ * That form is future work, so such an Annotation asserts nothing an expansion can use.  Both
+ * assertionsFrom() and the 'Annotations-Gathered' count read this, so the two cannot disagree
+ * about what does and does not contribute.
+ * @param anno An Annotation document.
+ * @return A boolean, true when the Annotation carries more than one body.
+ */
+function hasMultipleBodies(anno) {
+    return Array.isArray(anno.body)
+}
+
+/**
  * The [key, value] assertions an Annotation makes about the entity it targets.
  * Only 'body' and 'bodyValue' are read -- an Annotation carrying neither is ignored, and no other
  * property of the Annotation can leak onto the entity.
@@ -188,7 +200,7 @@ function assertionsFrom(anno) {
     const body = anno.body
     // Skip Annotations carrying multiple bodies, and string bodies that are an IRI referencing an
     // external resource with no embedded value to expand with.
-    if (!body || typeof body !== "object" || Array.isArray(body)) return assertions
+    if (hasMultipleBodies(anno) || !body || typeof body !== "object") return assertions
     if (TEXTUAL_BODY_TYPES.has(body.type ?? body["@type"])) {
         assertions.push(["bodyValue", body])
         return assertions
@@ -287,14 +299,20 @@ const idExpanded = async function (req, res, next) {
         const targetId = match["@id"] ?? match.id
         const annos = targetId ? await findLeafAnnotationsFor(targetId, filters, pagination) : []
         // Let clients detect a full page.  When this equals the limit there may be more to gather,
-        // and the entity in hand is expanded from only part of its Annotations.
-        res.set('Annotations-Merged', String(annos.length))
+        // and the entity in hand is expanded from only part of its Annotations.  This is the count
+        // gathered, not the count that changed the entity -- a gathered Annotation still asserts
+        // nothing when its body is protected or structural.  Annotations carrying multiple bodies
+        // are the exception and are left out, since that form is not read at all yet and counting
+        // them would claim work this endpoint has not been built to do.
+        const gathered = annos.filter(anno => !hasMultipleBodies(anno))
+        res.set('Annotations-Gathered', String(gathered.length))
         // This deployment's '/expanded' URI, not the entity URI.  The entity URI would hand back
         // the unexpanded record, and it cannot be the base for this one either -- an entity minted
         // by another RERUM carries that host in its stored '@id', and there is no guarantee the
         // other host serves '/expanded' at all.  RERUM_ID_PREFIX is how idNegotiation() mints ids,
-        // so this stays on the host actually answering the request.
-        const expandedLocation = `${process.env.RERUM_ID_PREFIX}${match._id}/expanded`
+        // so this stays on the host actually answering the request.  Resolved through 'new URL()',
+        // the same way gog.js builds its expanded Location.
+        const expandedLocation = new URL(`${match._id}/expanded`, process.env.RERUM_ID_PREFIX).href
         let expanded = applyRawExpansion(match, annos)
         expanded = idNegotiation(expanded)
         res.location(expandedLocation)

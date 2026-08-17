@@ -116,6 +116,10 @@ const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 // The properties an Annotation can carry the URI of its target under.
 const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
 
+// The JSON-LD expanded form of the Annotation type, alongside the compact 'Annotation' and the
+// 'oa:' prefixed spellings.
+const OA_ANNOTATION_IRI = "http://www.w3.org/ns/oa#Annotation"
+
 /**
  * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
  * itself.  A RERUM URI has at least the dots of its host to escape.
@@ -137,8 +141,8 @@ function escapeRegex(literal) {
  *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
  *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
  * and the likely Annotation type formats
- *   - {"type": "Annotation"}, {"type": "oa:Annotation"}
- *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}
+ *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
+ *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
  *
  * @param targetId The '@id' or 'id' URI of the entity being expanded.
  * @param filters Literal MongoDB filter keys to AND into the query.  Already sanitized by the
@@ -156,11 +160,15 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}, paginatio
         "__rerum.history.next": { $exists: true, $size: 0 },
         "$and": []
     }
+    // The compact, the 'oa:' prefixed, and the JSON-LD expanded IRI spellings of the Annotation
+    // type.  All three are valid ways to say the same thing, and RERUM stores whatever it is given.
     const annoTypeConditions = [
-        {"type": "Annotation"}, {"type": "oa:Annotation"},
-        {"@type": "Annotation"}, {"@type": "oa:Annotation"}
+        {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": OA_ANNOTATION_IRI},
+        {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": OA_ANNOTATION_IRI}
     ]
-    if (targetId.startsWith("http")) {
+    // The same scheme test the filter values below use.  'startsWith("http")' would also pass a URI
+    // like 'httpx://host/thing', which the scheme swap would then mangle into 'httpsx://host/thing'.
+    if (/^https?:\/\//.test(targetId)) {
         const targetConditions = []
         // Hanging a fragment off the URI is the other W3C way to target part of a resource rather
         // than the whole of it, and an exact match will not catch one.  Anchored at the front and
