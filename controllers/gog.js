@@ -351,9 +351,6 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     let expandedEntity = structuredClone(primitiveEntity)
     for(const anno of matches){
         const body = anno.body
-        // Array.isArray() as well as the typeof check.  An Array is a typeof 'object', and
-        // Object.keys() on a one element Array is ["0"] -- a length of 1 that would pass the
-        // single assertion check below and merge the body onto the entity under the key "0".
         // Annotations carrying multiple bodies are not expanded with.
         if(!body || typeof body !== "object" || Array.isArray(body)) continue
         const keys = Object.keys(body)
@@ -369,8 +366,6 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
             },
             evidence: assertion?.evidence ?? anno.evidence ?? ""
         }
-        // Object.hasOwn() rather than the method on the entity.  A merged assertion named
-        // 'hasOwnProperty' would shadow the method and throw a TypeError on the next iteration.
         if(Object.hasOwn(expandedEntity, key)){
             expandedEntity[key] = Array.isArray(expandedEntity[key])
                 ? [...expandedEntity[key], valueObject]
@@ -408,10 +403,6 @@ const expandedId = async function (req, res, next) {
             })
             return next(utils.createExpressError(err))
         }
-        // This '/gog/id' URI, not the entity URI.  This response is the expanded representation,
-        // and the entity URI would hand back the unexpanded record instead.  Built off
-        // RERUM_ID_PREFIX so the origin follows the deployment, and captured before expand() in
-        // case idNegotiation() reaches the match itself and drops '_id'.
         const expandedLocation = new URL(`/gog/id/${match._id}`, process.env.RERUM_ID_PREFIX).href
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set(utils.configureWebAnnoHeadersFor(match))
