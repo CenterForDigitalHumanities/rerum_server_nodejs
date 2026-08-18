@@ -152,26 +152,12 @@ function escapeRegex(literal) {
  *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
  *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
  *
- * All three spellings are the same class.  The W3C Web Annotation context defines the 'oa' prefix as
- * 'http://www.w3.org/ns/oa#' and the term 'Annotation' as 'oa:Annotation', so a compacted, a prefixed,
- * and a fully expanded JSON-LD Web Annotation all name 'http://www.w3.org/ns/oa#Annotation'.
+ * Only 'target' and 'body' are read, whatever the type spelling says.  
  *
- * Only 'target' and 'body' are read, whatever the type spelling says.  That is what keeps Open
- * Annotation era data out on its own -- IIIF Presentation 2.1 carries 'oa:Annotation' but names its
- * target under 'on' and its body under 'resource', neither of which is read here, so such a record
- * matches nothing and expands with nothing.
- *
- * An entity can answer to more than one URI.  A record minted with a Slug resolves at both
+ * Any entity can answer to more than one URI.  A record minted with a Slug resolves at both
  * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
- * either one, so a caller hands over every URI the entity is known by.  An Annotation matching any
- * of them targets this entity and is gathered.
- *
- * Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE 
- * until the database has no more to give.  An expansion of 1000 Annotations gathers 1000.
- *
- * Sorting on '_id' keeps the walk stable across the round trips, and each batch resumes from
- * the last '_id' seen rather than skipping past the ones already gathered.  Skipping makes the
- * db re-walk the whole prefix every round trip; resuming reads each Annotation exactly once.
+ * either one.  Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE 
+ * until the database has no more to give.
  *
  * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
  * is known by when it answers to more than one.

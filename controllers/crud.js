@@ -201,7 +201,6 @@ function assertionsFrom(anno) {
  */
 function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
     const expandedEntity = structuredClone(primitiveEntity)
-    // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
     const rerumProp = expandedEntity.__rerum
     delete expandedEntity.__rerum
     for (const assertions of annoAssertions) {

@@ -169,9 +169,7 @@
             </tbody>
         </table>
         <p>
-            Gather every current Annotation targeting the record and merge what those Annotations assert onto it.
-            This does the entity assembly that client applications otherwise perform with many
-            <code class="language-plaintext highlighter-rouge">/query</code> requests.
+            Gather every current Annotation targeting the record and merge what those Annotations assert onto it.  This does the entity assembly that client applications otherwise perform with many  <code class="language-plaintext highlighter-rouge">/query</code> requests.
         </p>
         <ul>
             <li><strong><code class="language-plaintext highlighter-rouge">_id</code></strong>—the id of the record in
@@ -186,21 +184,10 @@
                 with identifier <code class="language-plaintext highlighter-rouge">_id</code>, plus the merged
                 properties.</li>
         </ul>
+        <p class="alert">
+            Annotation objects must use <code class="language-plaintext highlighter-rouge">target</code> and <code class="language-plaintext highlighter-rouge">body</code> properties to be gathered.  See <a href="#entity-expansion">Entity Expansion</a> for more information.
+        </p>
         <p>
-            Only Annotations of the
-            <a target="_blank" href="https://www.w3.org/TR/annotation-model/">W3C Web Annotation Data Model</a> are
-            gathered, and only their current (leaf) versions. An Annotation is recognized by
-            <code class="language-plaintext highlighter-rouge">Annotation</code>,
-            <code class="language-plaintext highlighter-rouge">oa:Annotation</code>, or
-            <code class="language-plaintext highlighter-rouge">http://www.w3.org/ns/oa#Annotation</code> under either
-            <code class="language-plaintext highlighter-rouge">type</code> or
-            <code class="language-plaintext highlighter-rouge">@type</code>&mdash;the W3C context defines all three as
-            the same class. Only <code class="language-plaintext highlighter-rouge">target</code> and
-            <code class="language-plaintext highlighter-rouge">body</code> are read, so IIIF Presentation API
-            2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">&#9888;&#65039;</span>
-            data, which names its target under <code class="language-plaintext highlighter-rouge">on</code> and its body
-            under <code class="language-plaintext highlighter-rouge">resource</code>, is not expanded with. No token is
-            required.
             The response is a raw assembly—if your application needs the data in a particular shape, format the
             response for your own internal needs.
         </p>
@@ -1621,8 +1608,9 @@
             need to interpret this data if it is relevant.
         </p>
         <h3 id="entity-expansion">Entity Expansion</h3>
+
         <p>
-            Only the Annotation's <code class="language-plaintext highlighter-rouge">body</code> and <code class="language-plaintext highlighter-rouge">bodyValue</code> are read. Every other property of the Annotation is ignored, and an Annotation carrying neither is ignored entirely.
+            Only Annotations of the <a target="_blank" href="https://www.w3.org/TR/annotation-model/">W3C Web Annotation Data Model</a> are gathered, and only their latest (leaf) versions from history.  Only the Annotation's <code class="language-plaintext highlighter-rouge">body</code> and <code class="language-plaintext highlighter-rouge">bodyValue</code> are read. Every other property of the Annotation is ignored, and an Annotation carrying neither is ignored entirely.
         </p>
         <p>
             A <code class="language-plaintext highlighter-rouge">body</code> with exactly one property contributes that property. <strong>Values are passed through exactly as they appear</strong>—a body of

@@ -330,7 +330,6 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     // Combine the Annotation bodies with the primitive object.
     // When more than one current Annotation asserts the same key, collect the values into an Array.
     let expandedEntity = structuredClone(primitiveEntity)
-    // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
     const rerumProp = expandedEntity.__rerum
     delete expandedEntity.__rerum
     for(const anno of matches){
@@ -396,8 +395,7 @@ const expandedId = async function (req, res, next) {
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set("Cache-Control", "max-age=86400, must-revalidate")
-        // No Last-Modified here, unlike GET /v1/id/:_id.  It would compare against the root entity
-        // before expand() merges the targeting Annotations.
+        // Include current version for optimistic locking
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
         res.json(expanded)
