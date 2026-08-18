@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, findLeafAnnotationsFor } from './utils.js'
+import { ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 // The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
 // agents; only the trailing id is compared, so either host spelling matches.
@@ -345,12 +345,15 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     const rerumProp = expandedEntity.__rerum
     delete expandedEntity.__rerum
     for(const anno of matches){
-        const body = anno.body
+        // In JSON-LD a one-element Array and the bare value are the same body, so unwrap it first.
+        const body = Array.isArray(anno.body) && anno.body.length === 1 ? anno.body[0] : anno.body
         // Annotations carrying multiple bodies are not expanded with.
         if(!body || typeof body !== "object" || Array.isArray(body)) continue
         const keys = Object.keys(body)
         if(keys.length !== 1) continue
         const key = keys[0]
+        // An Annotation body cannot overwrite the entity's identity or its system properties.
+        if(PROTECTED_EXPANSION_KEYS.has(key)) continue
         const assertion = body[key]
         const valueObject = {
             value: assertion?.value ?? assertion,

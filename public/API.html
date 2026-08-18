@@ -212,7 +212,12 @@
                 that property. <strong>Values are passed through exactly as they appear</strong>—a body of
                 <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> puts
                 <code class="language-plaintext highlighter-rouge">{"value": "hello"}</code> on the entity, not
-                <code class="language-plaintext highlighter-rouge">"hello"</code>.</li>
+                <code class="language-plaintext highlighter-rouge">"hello"</code>. A
+                <code class="language-plaintext highlighter-rouge">body</code> serialized as a one-element Array is
+                the same single body in JSON-LD and is read the same way&mdash;
+                <code class="language-plaintext highlighter-rouge">[{"text": {"value": "hello"}}]</code> and
+                <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> are
+                equivalent.</li>
             <li>A <code class="language-plaintext highlighter-rouge">bodyValue</code> string, and a
                 <code class="language-plaintext highlighter-rouge">TextualBody</code> body, both land under the property
                 <code class="language-plaintext highlighter-rouge">bodyValue</code>. The

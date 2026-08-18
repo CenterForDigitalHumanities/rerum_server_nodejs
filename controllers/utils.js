@@ -122,6 +122,13 @@ const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
 
 /**
+ * Identity and system properties an Annotation body must never overwrite when its assertions are
+ * merged onto an entity.  '__proto__' is not data -- emitting it would hand a prototype pollution
+ * vector to every client that parses the response.
+ */
+const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "@context", "__proto__"])
+
+/**
  * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
  * itself.  A RERUM URI has at least the dots of its host to escape.
  * @param literal A string to be matched literally.
@@ -195,12 +202,17 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}) {
         queryObj["$and"].push({ [key]: value })
     }
     // Get every Annotation targeting this Entity from the db.  Remove _id property.
-    // Sorting on '_id' keeps the walk stable across the round trips, since a batch is skipped past
-    // by how many Annotations have already been gathered.
+    // Sorting on '_id' keeps the walk stable across the round trips, and each batch resumes from
+    // the last '_id' seen rather than skipping past the ones already gathered.  Skipping makes the
+    // db re-walk the whole prefix every round trip; resuming reads each Annotation exactly once.
     const matches = []
     let batch = []
+    let resumeAfter = null
     do {
-        batch = await db.find(queryObj).sort({ "_id": 1 }).limit(EXPANSION_BATCH_SIZE).skip(matches.length).toArray()
+        const batchQuery = resumeAfter === null ? queryObj : { ...queryObj, "_id": { $gt: resumeAfter } }
+        batch = await db.find(batchQuery).sort({ "_id": 1 }).limit(EXPANSION_BATCH_SIZE).toArray()
+        // Read the resume point before '_id' is dropped from the document.
+        if (batch.length > 0) resumeAfter = batch.at(-1)._id
         for (const anno of batch) {
             delete anno._id
             matches.push(anno)
@@ -566,6 +578,7 @@ export {
     _contextid,
     idNegotiation,
     findLeafAnnotationsFor,
+    PROTECTED_EXPANSION_KEYS,
     getPagination,
     generateSlugId,
     index,

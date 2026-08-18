@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, parseDocumentID, findLeafAnnotationsFor } from './utils.js'
+import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, parseDocumentID, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.
@@ -158,6 +158,7 @@ function sanitizeExpansionFilters(supplied) {
  *   - body: {'key': {...}}                               a single assertion, value kept as-is
  *   - body: {'type':'TextualBody', 'value': 'text', ...} kept whole so 'format' and 'language' survive
  *   - body: {'@type':'oa:TextualBody', ...}              the OA prefixed spelling of the same
+ *   - body: [{'key': 'value'}]                           one body, serialized as a JSON-LD Array
  *
  * @param anno An Annotation document.
  * @return An Array of [key, value] pairs to merge onto the entity.
@@ -169,7 +170,9 @@ function assertionsFrom(anno) {
     const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www.w3.org/ns/oa#TextualBody"])
     const assertions = []
     if (typeof anno.bodyValue === "string") assertions.push(["bodyValue", anno.bodyValue])
-    const body = anno.body
+    // In JSON-LD a one-element Array and the bare value are the same body, so unwrap it first.  The
+    // check below is about how many bodies an Annotation carries, not how they were serialized.
+    const body = Array.isArray(anno.body) && anno.body.length === 1 ? anno.body[0] : anno.body
     // Skip Annotations carrying multiple bodies, and string bodies that are an IRI referencing an
     // external resource with no embedded value to expand with.
     if (Array.isArray(body) || !body || typeof body !== "object") return assertions
@@ -190,18 +193,16 @@ function assertionsFrom(anno) {
  * When more than one current Annotation asserts the same key, or the entity already carries it, 
  * the values collect into an Array.
  * @param primitiveEntity The unexpanded entity.
- * @param annos The Annotations targeting it.
+ * @param annoAssertions An Array holding the [key, value] assertions read from each Annotation.
  * @return A new, expanded entity object.
  */
-function applyRawExpansion(primitiveEntity, annos) {
-    //Identity and system properties an Annotation body must never overwrite.  '@id' and '@context'
-    const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "@context", "__proto__"])
+function applyRawExpansion(primitiveEntity, annoAssertions) {
     const expandedEntity = structuredClone(primitiveEntity)
     // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
     const rerumProp = expandedEntity.__rerum
     delete expandedEntity.__rerum
-    for (const anno of annos) {
-        for (const [key, value] of assertionsFrom(anno)) {
+    for (const assertions of annoAssertions) {
+        for (const [key, value] of assertions) {
             if (PROTECTED_EXPANSION_KEYS.has(key)) continue
             if (!Object.hasOwn(expandedEntity, key)) {
                 expandedEntity[key] = value
@@ -264,8 +265,9 @@ const idExpanded = async function (req, res, next) {
         const annos = targetId ? await findLeafAnnotationsFor(targetId, filters) : []
         // Every leaf Annotation matching the filter is gathered.  This is the count.
         res.set('Annotations-Gathered', String(annos.length))
+        // Read each Annotation once.  These assertions are both the merged count and the merge itself.
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
-        const merged = annos.filter(anno => assertionsFrom(anno).length > 0)
+        const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
         let expanded = applyRawExpansion(match, merged)
         expanded = idNegotiation(expanded)
