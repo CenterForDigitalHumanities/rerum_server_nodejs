@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
+import { getAgentClaim, getPagination, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 // The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
 // agents; only the trailing id is compared, so either host spelling matches.

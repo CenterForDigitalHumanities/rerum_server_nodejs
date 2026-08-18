@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, parseDocumentID, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
+import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.
@@ -158,6 +158,7 @@ function sanitizeExpansionFilters(supplied) {
  *   - body: {'key': {...}}                               a single assertion, value kept as-is
  *   - body: {'type':'TextualBody', 'value': 'text', ...} kept whole so 'format' and 'language' survive
  *   - body: {'@type':'oa:TextualBody', ...}              the OA prefixed spelling of the same
+ *   - body: {'type':['TextualBody'], ...}                the same body, type serialized as a JSON-LD Array
  *   - body: [{'key': 'value'}]                           one body, serialized as a JSON-LD Array
  *
  * @param anno An Annotation document.
@@ -176,7 +177,11 @@ function assertionsFrom(anno) {
     // Skip Annotations carrying multiple bodies, and string bodies that are an IRI referencing an
     // external resource with no embedded value to expand with.
     if (Array.isArray(body) || !body || typeof body !== "object") return assertions
-    if (TEXTUAL_BODY_TYPES.has(body.type ?? body["@type"])) {
+    // In JSON-LD a type is either a single value or an Array of them.  The query in
+    // findLeafAnnotationsFor() matches both spellings, so both are read here too.
+    const bodyType = body.type ?? body["@type"]
+    const bodyTypes = Array.isArray(bodyType) ? bodyType : [bodyType]
+    if (bodyTypes.some(t => TEXTUAL_BODY_TYPES.has(t))) {
         assertions.push(["bodyValue", body])
         return assertions
     }
