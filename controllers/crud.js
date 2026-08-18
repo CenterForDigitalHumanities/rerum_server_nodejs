@@ -177,8 +177,6 @@ function assertionsFrom(anno) {
     // Skip Annotations carrying multiple bodies, and string bodies that are an IRI referencing an
     // external resource with no embedded value to expand with.
     if (Array.isArray(body) || !body || typeof body !== "object") return assertions
-    // In JSON-LD a type is either a single value or an Array of them.  The query in
-    // findLeafAnnotationsFor() matches both spellings, so both are read here too.
     const bodyType = body.type ?? body["@type"]
     const bodyTypes = Array.isArray(bodyType) ? bodyType : [bodyType]
     if (bodyTypes.some(t => TEXTUAL_BODY_TYPES.has(t))) {
@@ -261,10 +259,6 @@ const idExpanded = async function (req, res, next) {
             return next(utils.createExpressError(err))
         }
         res.set(utils.configureWebAnnoHeadersFor(match))
-        // Support built in browser caching.  A POST response is not cacheable.
-        if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
-        // Include current version for optimistic locking
-        res.set('Current-Overwritten-Version', match.__rerum?.isOverwritten ?? "")
         const targetId = match["@id"] ?? match.id
         const annos = targetId ? await findLeafAnnotationsFor(targetId, filters) : []
         // Every leaf Annotation matching the filter is gathered.  This is the count.
@@ -275,6 +269,10 @@ const idExpanded = async function (req, res, next) {
         res.set('Annotations-Merged', String(merged.length))
         let expanded = applyExpansionAnnotations(match, merged)
         expanded = idNegotiation(expanded)
+        // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
+        if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
+        // Include current version for optimistic locking
+        res.set('Current-Overwritten-Version', match.__rerum?.isOverwritten ?? "")
         res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
         res.json(expanded)
     } catch (error) {

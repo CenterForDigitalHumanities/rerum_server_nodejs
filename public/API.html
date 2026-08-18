@@ -185,68 +185,12 @@
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record
                 with identifier <code class="language-plaintext highlighter-rouge">_id</code>, plus the merged
                 properties.</li>
-            <li><strong>Response header
-                    <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code></strong>—how many
-                Annotations this expansion gathered. <strong>There is no paging on this endpoint.</strong> RERUM gathers
-                every current Annotation targeting the record before it assembles the response, however many that is, so
-                this is a complete count and never a partial one. It is informational—a client makes one request and
-                receives the fully expanded record.</li>
-            <li><strong>Response header
-                    <code class="language-plaintext highlighter-rouge">Annotations-Merged</code></strong>—how many of
-                those gathered Annotations could contribute to the record. It is always less than or equal to
-                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>, and Annotations with
-                multiple bodies are not counted, as that form is not read yet. A counted Annotation may still assert
-                nothing mergeable, so this is not a count of the properties you received either.</li>
         </ul>
         <p>
             Only the current (leaf) versions of Annotations are gathered. No token is required.
             The response is a raw assembly—if your application needs the data in a particular shape, format the
             response for your own internal needs.
         </p>
-        <div class="exHeading">What gets merged</div>
-        <ul>
-            <li>Only the Annotation's <code class="language-plaintext highlighter-rouge">body</code> and
-                <code class="language-plaintext highlighter-rouge">bodyValue</code> are read. Every other property of
-                the Annotation is ignored, and an Annotation carrying neither is ignored entirely.</li>
-            <li>A <code class="language-plaintext highlighter-rouge">body</code> with exactly one property contributes
-                that property. <strong>Values are passed through exactly as they appear</strong>—a body of
-                <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> puts
-                <code class="language-plaintext highlighter-rouge">{"value": "hello"}</code> on the entity, not
-                <code class="language-plaintext highlighter-rouge">"hello"</code>. A
-                <code class="language-plaintext highlighter-rouge">body</code> serialized as a one-element Array is
-                the same single body in JSON-LD and is read the same way&mdash;
-                <code class="language-plaintext highlighter-rouge">[{"text": {"value": "hello"}}]</code> and
-                <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> are
-                equivalent.</li>
-            <li>A <code class="language-plaintext highlighter-rouge">bodyValue</code> string, and a
-                <code class="language-plaintext highlighter-rouge">TextualBody</code> body, both land under the property
-                <code class="language-plaintext highlighter-rouge">bodyValue</code>. The
-                <code class="language-plaintext highlighter-rouge">TextualBody</code> is kept whole so its
-                <code class="language-plaintext highlighter-rouge">format</code> and
-                <code class="language-plaintext highlighter-rouge">language</code> survive.</li>
-            <li>When several Annotations assert the same property, or the record already carries it, the values collect
-                into an Array. Array order is not guaranteed.</li>
-            <li>A property merged from a single Annotation is that value as-is; the same property merged from two or
-                more is an Array. Treat every merged property as possibly-an-Array—the shape depends on how many
-                Annotations exist, which changes over the record's life.</li>
-            <li>Identity and system properties are never overwritten:
-                <code class="language-plaintext highlighter-rouge">@id</code>,
-                <code class="language-plaintext highlighter-rouge">id</code>,
-                <code class="language-plaintext highlighter-rouge">_id</code>,
-                <code class="language-plaintext highlighter-rouge">__rerum</code>,
-                <code class="language-plaintext highlighter-rouge">__deleted</code>, and
-                <code class="language-plaintext highlighter-rouge">@context</code>. An assertion naming
-                <code class="language-plaintext highlighter-rouge">__proto__</code> is dropped for the same reason—it
-                is not data, and emitting it would hand a prototype pollution vector to every client that parses the
-                response.</li>
-            <li>Skipped for now, as future work: a <code class="language-plaintext highlighter-rouge">body</code> with
-                more than one property, an Annotation with multiple bodies, the
-                <code class="language-plaintext highlighter-rouge">Choice</code>,
-                <code class="language-plaintext highlighter-rouge">Composite</code>, and
-                <code class="language-plaintext highlighter-rouge">List</code> constructs, and a
-                <code class="language-plaintext highlighter-rouge">body</code> that is a URI referencing an external
-                resource.</li>
-        </ul>
         <p>
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample">
@@ -885,62 +829,8 @@
                 the real ones stored on an Annotation, so filtering by generating application means supplying
                 <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code>. An empty or absent body
                 expands without any filter.</li>
-            <li><strong>URL parameters supply no filters.</strong> The
-                <code class="language-plaintext highlighter-rouge">?generator</code> and
-                <code class="language-plaintext highlighter-rouge">?creator</code> parameters of the GET have no effect
-                here—supply them in the body instead. Like the GET, this is not paged: every Annotation matching your
-                filters is gathered before the response is assembled, and the
-                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code> and
-                <code class="language-plaintext highlighter-rouge">Annotations-Merged</code> response headers are set
-                exactly as they are on the GET.</li>
-            <li><code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code> and
-                <code class="language-plaintext highlighter-rouge">creator</code> are matched against both the
-                <code class="language-plaintext highlighter-rouge">http</code> and
-                <code class="language-plaintext highlighter-rouge">https</code> spellings of the URI you provide. Every
-                other property is applied exactly as supplied.</li>
-            <li>The <code class="language-plaintext highlighter-rouge">Content-Type</code> header must be
-                <code class="language-plaintext highlighter-rouge">application/json</code>. A body that is not a JSON
-                object is a 400.</li>
+            <li>
         </ul>
-        <p>
-            Three constraints belong to the endpoint and cannot be overruled. Supplying them is not an error—they are
-            ignored, by exact name or as a dotted prefix.
-        </p>
-        <table>
-            <thead>
-                <tr>
-                    <th>Ignored</th>
-                    <th>Always applied instead</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><code class="language-plaintext highlighter-rouge">target</code>,
-                        <code class="language-plaintext highlighter-rouge">target.@id</code>,
-                        <code class="language-plaintext highlighter-rouge">target.id</code>,
-                        <code class="language-plaintext highlighter-rouge">target.source</code>,
-                        <code class="language-plaintext highlighter-rouge">target.source.@id</code>,
-                        <code class="language-plaintext highlighter-rouge">target.source.id</code></td>
-                    <td>Annotations targeting the record at
-                        <code class="language-plaintext highlighter-rouge">_id</code>, including those
-                        targeting it through a
-                        <code class="language-plaintext highlighter-rouge">SpecificResource</code> or through a
-                        fragment of its URI such as
-                        <code class="language-plaintext highlighter-rouge">#xywh=0,0,100,100</code></td>
-                </tr>
-                <tr>
-                    <td><code class="language-plaintext highlighter-rouge">type</code>,
-                        <code class="language-plaintext highlighter-rouge">@type</code></td>
-                    <td>Annotations only</td>
-                </tr>
-                <tr>
-                    <td><code class="language-plaintext highlighter-rouge">__rerum.history.next</code>,
-                        <code class="language-plaintext highlighter-rouge">__rerum.history.previous</code>,
-                        <code class="language-plaintext highlighter-rouge">__rerum.history.prime</code></td>
-                    <td>Current (leaf) versions only</td>
-                </tr>
-            </tbody>
-        </table>
         <p>
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample">
@@ -1715,6 +1605,30 @@
             existing vocabularies, but for now the applications accessing RERUM will
             need to interpret this data if it is relevant.
         </p>
+        <h3 id="history">Entity Expansion</h3>
+        <p>
+            Only the Annotation's <code class="language-plaintext highlighter-rouge">body</code> and <code class="language-plaintext highlighter-rouge">bodyValue</code> are read. Every other property of the Annotation is ignored, and an Annotation carrying neither is ignored entirely.
+        </p>
+        <p>
+            A <code class="language-plaintext highlighter-rouge">body</code> with exactly one property contributes that property. <strong>Values are passed through exactly as they appear</strong>—a body of
+            <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> puts
+            <code class="language-plaintext highlighter-rouge">{"value": "hello"}</code> on the entity, not
+            <code class="language-plaintext highlighter-rouge">"hello"</code>.
+            A <code class="language-plaintext highlighter-rouge">body</code> serialized as a one-element Array is the same single body in JSON-LD and is read the same way&mdash;
+            <code class="language-plaintext highlighter-rouge">[{"text": {"value": "hello"}}]</code> and
+            <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> are equivalent.
+        </p>
+        <p>
+            A <code class="language-plaintext highlighter-rouge">bodyValue</code> string, and a
+            <code class="language-plaintext highlighter-rouge">TextualBody</code> body, both land under the property
+            <code class="language-plaintext highlighter-rouge">bodyValue</code>. The
+            <code class="language-plaintext highlighter-rouge">TextualBody</code> is kept whole so its
+            <code class="language-plaintext highlighter-rouge">format</code> and
+            <code class="language-plaintext highlighter-rouge">language</code> survive.
+        </p>
+        <p>
+            When several Annotations assert the same property, or the record already carries it, the values collect into an Array. Array order is not guaranteed.
+        </p>    
         <h3 id="history">History</h3>
         <p>History is stored through pointers that create a B-Tree. All nodes in the B-tree know the root node, the
             previous node, and the next node(s).</p>
