@@ -182,27 +182,21 @@
                 <code class="language-plaintext highlighter-rouge">https</code> spellings of the URI are matched.</li>
             <li><strong><code class="language-plaintext highlighter-rouge">?creator</code></strong>—optional. Only
                 expand with Annotations attributed to this creator.</li>
-            <li><strong><code class="language-plaintext highlighter-rouge">?limit</code></strong> and
-                <strong><code class="language-plaintext highlighter-rouge">?skip</code></strong>—optional. Page the
-                Annotation search. <code class="language-plaintext highlighter-rouge">limit</code> defaults to 200.</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The record
                 with identifier <code class="language-plaintext highlighter-rouge">_id</code>, plus the merged
                 properties.</li>
             <li><strong>Response header
                     <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code></strong>—how many
-                Annotations this expansion gathered, which is the size of the page you received. When it equals your
-                <code class="language-plaintext highlighter-rouge">limit</code> there may be more, and the record you
-                received was expanded from only part of its Annotations. Raise the
-                <code class="language-plaintext highlighter-rouge">limit</code> or walk pages with
-                <code class="language-plaintext highlighter-rouge">skip</code>.</li>
+                Annotations this expansion gathered. <strong>There is no paging on this endpoint.</strong> RERUM gathers
+                every current Annotation targeting the record before it assembles the response, however many that is, so
+                this is a complete count and never a partial one. It is informational—a client makes one request and
+                receives the fully expanded record.</li>
             <li><strong>Response header
                     <code class="language-plaintext highlighter-rouge">Annotations-Merged</code></strong>—how many of
                 those gathered Annotations could contribute to the record. It is always less than or equal to
                 <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>, and Annotations with
                 multiple bodies are not counted, as that form is not read yet. A counted Annotation may still assert
-                nothing mergeable, so this is not a count of the properties you received either. Use
-                <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>, not this one, to decide
-                whether to keep paging.</li>
+                nothing mergeable, so this is not a count of the properties you received either.</li>
         </ul>
         <p>
             Only the current (leaf) versions of Annotations are gathered. No token is required.
@@ -889,9 +883,8 @@
             <li><strong>URL parameters supply no filters.</strong> The
                 <code class="language-plaintext highlighter-rouge">?generator</code> and
                 <code class="language-plaintext highlighter-rouge">?creator</code> parameters of the GET have no effect
-                here—supply them in the body instead. Paging is not a filter, so
-                <code class="language-plaintext highlighter-rouge">?limit</code> and
-                <code class="language-plaintext highlighter-rouge">?skip</code> still work, and the
+                here—supply them in the body instead. Like the GET, this is not paged: every Annotation matching your
+                filters is gathered before the response is assembled, and the
                 <code class="language-plaintext highlighter-rouge">Annotations-Gathered</code> and
                 <code class="language-plaintext highlighter-rouge">Annotations-Merged</code> response headers are set
                 exactly as they are on the GET.</li>

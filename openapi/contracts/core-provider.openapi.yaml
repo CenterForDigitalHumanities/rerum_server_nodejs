@@ -47,6 +47,10 @@ paths:
   /id/{id}/expanded:
     get:
       summary: Read object by id with its current Annotations merged in
+      description: >-
+        Not paged. Every current Annotation targeting the entity is gathered server side before the
+        expanded entity is assembled, so a client makes a single request. The 'Annotations-Gathered'
+        and 'Annotations-Merged' response headers report complete counts.
       operationId: getExpandedObjectById
       parameters:
         - $ref: '#/components/parameters/ObjectId'
@@ -62,18 +66,6 @@ paths:
           description: Only expand with Annotations attributed to this creator.
           schema:
             type: string
-        - in: query
-          name: limit
-          required: false
-          description: Maximum Annotations to gather. Defaults to 200.
-          schema:
-            type: integer
-        - in: query
-          name: skip
-          required: false
-          description: Annotations to skip before gathering. Defaults to 0.
-          schema:
-            type: integer
       responses:
         '200':
           description: Expanded object payload
@@ -98,24 +90,13 @@ paths:
       operationId: postExpandedObjectById
       description: >-
         The request body is an object of literal MongoDB filter properties ANDed into the search for
-        Annotations targeting the entity. URL query parameters supply no filters, though 'limit' and
-        'skip' still page the search. The leaf version, the Annotation type, and the target
+        Annotations targeting the entity. URL query parameters supply no filters. Like the GET, the
+        search is not paged -- every Annotation matching the filters is gathered server side before
+        the expanded entity is assembled. The leaf version, the Annotation type, and the target
         constraints are applied automatically and cannot be overruled, so 'target', 'type', '@type',
         and '__rerum.history' keys are ignored.
       parameters:
         - $ref: '#/components/parameters/ObjectId'
-        - in: query
-          name: limit
-          required: false
-          description: Maximum Annotations to gather. Defaults to 200.
-          schema:
-            type: integer
-        - in: query
-          name: skip
-          required: false
-          description: Annotations to skip before gathering. Defaults to 0.
-          schema:
-            type: integer
       requestBody:
         required: false
         content:

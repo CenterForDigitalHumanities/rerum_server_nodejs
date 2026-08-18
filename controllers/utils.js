@@ -12,6 +12,13 @@ const ObjectID = newID
 const MAX_QUERY_LIMIT = Number.parseInt(process.env.RERUM_MAX_QUERY_LIMIT ?? 500, 10)
 const MAX_QUERY_SKIP = Number.parseInt(process.env.RERUM_MAX_QUERY_SKIP ?? 100000, 10)
 
+/**
+ * How many Annotations findLeafAnnotationsFor() pulls per round trip while gathering.
+ * This is an internal batch size, not a client facing page size.  The gather does not stop until
+ * the database has no more matches, so this only decides how many round trips that takes.
+ */
+const EXPANSION_BATCH_SIZE = 500
+
 function clampNonNegativeInt(value, fallback, max) {
     const parsed = Number.parseInt(value, 10)
     if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -145,12 +152,15 @@ function escapeRegex(literal) {
  *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
  *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
  *
+ * Every match is gathered.  The caller expands with all of them, so this walks the result set in
+ * batches of EXPANSION_BATCH_SIZE until the database has no more to give.  There is no page for a
+ * client to ask for and no truncation to report -- an expansion of 1000 Annotations gathers 1000.
+ *
  * @param targetId The '@id' or 'id' URI of the entity being expanded.
  * @param filters Literal MongoDB filter keys to AND into the query.
- * @param pagination A {limit, skip} pair from getPagination().
- * @return An Array of matching Annotation documents, with '_id' removed.
+ * @return An Array of every matching Annotation document, with '_id' removed.
  */
-const findLeafAnnotationsFor = async function (targetId, filters = {}, pagination = null) {
+const findLeafAnnotationsFor = async function (targetId, filters = {}) {
     // '$and' is always present so the filter conditions below can push into it from either branch.
     const queryObj = {
         "__rerum.history.next": { $exists: true, $size: 0 },
@@ -190,14 +200,19 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}, paginatio
         }
         queryObj["$and"].push({ [key]: value })
     }
-    // Get the Annotations targeting this Entity from the db.  Remove _id property.
-    let cursor = db.find(queryObj)
-    if (pagination) cursor = cursor.sort({ "_id": 1 }).limit(pagination.limit).skip(pagination.skip)
-    const matches = await cursor.toArray()
-    return matches.map(o => {
-        delete o._id
-        return o
-    })
+    // Get every Annotation targeting this Entity from the db.  Remove _id property.
+    // Sorting on '_id' keeps the walk stable across the round trips, since a batch is skipped past
+    // by how many Annotations have already been gathered.
+    const matches = []
+    let batch = []
+    do {
+        batch = await db.find(queryObj).sort({ "_id": 1 }).limit(EXPANSION_BATCH_SIZE).skip(matches.length).toArray()
+        for (const anno of batch) {
+            delete anno._id
+            matches.push(anno)
+        }
+    } while (batch.length === EXPANSION_BATCH_SIZE)
+    return matches
 }
 
 // Handle index actions

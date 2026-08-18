@@ -9,7 +9,8 @@ import {
   parseDocumentID,
   _contextid,
   idNegotiation,
-  getPagination
+  getPagination,
+  findLeafAnnotationsFor
 } from '../controllers/utils.js'
 import { db, resetMocks } from '../database/index.js'
 
@@ -286,5 +287,85 @@ describe('controllers/utils.js getPagination', () => {
     const result = getPagination({ limit: String(huge) })
     assert.ok(result.limit > 0)
     assert.ok(result.limit < huge, `limit should be clamped below ${huge}`)
+  })
+})
+
+describe('controllers/utils.js findLeafAnnotationsFor', () => {
+  const targetURI = 'https://store.rerum.io/v1/id/entity'
+
+  const buildAnnotations = (total) => Array.from({ length: total }, (_, i) => ({
+    _id: `anno${String(i).padStart(5, '0')}`,
+    type: 'Annotation',
+    target: targetURI,
+    body: { position: i }
+  }))
+
+  /**
+   * Stand in for the driver cursor so the gather can be watched round trip by round trip.
+   * Returns the {limit, skip} of each trip the gather actually made.
+   */
+  const mockPagedFind = (stored) => {
+    const roundTrips = []
+    db.find.mockImplementation(() => {
+      const state = { limit: stored.length, skip: 0 }
+      const cursor = {
+        sort: () => cursor,
+        limit: (value) => { state.limit = value; return cursor },
+        skip: (value) => { state.skip = value; return cursor },
+        toArray: async () => {
+          roundTrips.push({ limit: state.limit, skip: state.skip })
+          return stored.slice(state.skip, state.skip + state.limit).map(anno => ({ ...anno }))
+        }
+      }
+      return cursor
+    })
+    return roundTrips
+  }
+
+  it('gathers every targeting Annotation, however many round trips that takes', async () => {
+    resetMocks()
+    const stored = buildAnnotations(1001)
+    const roundTrips = mockPagedFind(stored)
+
+    const annos = await findLeafAnnotationsFor(targetURI)
+
+    // The client asked once and is owed all 1001.  There is no page to hand back.
+    assert.strictEqual(annos.length, stored.length)
+    assert.deepStrictEqual(annos.map(anno => anno.body.position), stored.map((_, i) => i))
+    const batchSize = roundTrips[0].limit
+    assert.ok(batchSize < stored.length, 'this case must exceed one batch to exercise the walk')
+    assert.ok(roundTrips.length > 1, 'gathering more than a batch takes more than one round trip')
+    // Each trip skips past everything gathered so far, so nothing is read twice or missed.
+    const expectedSkips = roundTrips.map((_, i) => Math.min(i * batchSize, stored.length))
+    assert.deepStrictEqual(roundTrips.map(trip => trip.skip), expectedSkips)
+  })
+
+  it('strips the internal _id from every gathered Annotation', async () => {
+    resetMocks()
+    mockPagedFind(buildAnnotations(3))
+
+    const annos = await findLeafAnnotationsFor(targetURI)
+
+    assert.strictEqual(annos.length, 3)
+    assert.ok(annos.every(anno => !Object.hasOwn(anno, '_id')), '_id is internal and never returned')
+  })
+
+  it('makes a single round trip when the first batch is short', async () => {
+    resetMocks()
+    const roundTrips = mockPagedFind(buildAnnotations(3))
+
+    await findLeafAnnotationsFor(targetURI)
+
+    assert.strictEqual(roundTrips.length, 1)
+  })
+
+  it('returns an empty Array when nothing targets the entity', async () => {
+    resetMocks()
+    const roundTrips = mockPagedFind([])
+
+    const annos = await findLeafAnnotationsFor(targetURI)
+
+    assert.deepStrictEqual(annos, [])
+    assert.strictEqual(roundTrips.length, 1)
   })
 })

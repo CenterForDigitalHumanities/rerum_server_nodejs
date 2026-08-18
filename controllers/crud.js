@@ -227,13 +227,13 @@ function applyRawExpansion(primitiveEntity, annos) {
  *
  * GET recognizes the '?generator=' and '?creator=' convenience parameters only.
  * POST reads literal MongoDB filter keys from the JSON body and ignores URL parameters as filters.
- * Both methods page the Annotation search with the usual '?limit=' and '?skip=' parameters.
+ * Neither method pages.  A client asks once and receives the entity assembled from every current
+ * Annotation targeting it -- findLeafAnnotationsFor() does whatever gathering that takes.
  * */
 const idExpanded = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     const id = req.params["_id"]
     const isPost = req.method === "POST"
-    const pagination = getPagination(req.query, 200)
     let filters = {}
     if (isPost) {
         //Express leaves the body undefined when a POST supplies none.  That is an unfiltered expand.
@@ -267,8 +267,9 @@ const idExpanded = async function (req, res, next) {
         // Include current version for optimistic locking
         res.set('Current-Overwritten-Version', match.__rerum?.isOverwritten ?? "")
         const targetId = match["@id"] ?? match.id
-        const annos = targetId ? await findLeafAnnotationsFor(targetId, filters, pagination) : []
-        // Let clients detect a full page.  When this equals the limit there may be more to gather.
+        const annos = targetId ? await findLeafAnnotationsFor(targetId, filters) : []
+        // Informational only.  Every current Annotation targeting the entity is gathered, so this
+        // is the whole count and never a partial one.
         res.set('Annotations-Gathered', String(annos.length))
         // How many of the gathered Annotations could contribute, which is a different number.
         // Annotations carrying multiple bodies are left out here
