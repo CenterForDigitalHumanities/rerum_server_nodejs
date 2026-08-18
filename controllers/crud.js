@@ -274,10 +274,11 @@ const idExpanded = async function (req, res, next) {
         // Annotations carrying multiple bodies are left out here
         const merged = annos.filter(anno => !Array.isArray(anno.body))
         res.set('Annotations-Merged', String(merged.length))
-        const expandedLocation = new URL(`/v1/id/${match._id}/expanded`, process.env.RERUM_ID_PREFIX).href
         let expanded = applyRawExpansion(match, annos)
         expanded = idNegotiation(expanded)
-        res.location(expandedLocation)
+        //const expandedLocation = new URL(`${match._id}/expanded`, process.env.RERUM_ID_PREFIX).href
+        //res.location(expandedLocation)
+        res.location(expanded["@id"] ?? expanded.id)
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))

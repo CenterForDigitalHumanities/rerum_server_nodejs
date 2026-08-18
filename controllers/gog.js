@@ -395,7 +395,6 @@ const expandedId = async function (req, res, next) {
             })
             return next(utils.createExpressError(err))
         }
-        const expandedLocation = new URL(`/gog/id/${match._id}`, process.env.RERUM_ID_PREFIX).href
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set(utils.configureWebAnnoHeadersFor(match))
         res.set("Cache-Control", "max-age=86400, must-revalidate")
@@ -404,7 +403,9 @@ const expandedId = async function (req, res, next) {
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         let expanded = await expand(match, generator)
         expanded = idNegotiation(expanded)
-        res.location(expandedLocation)
+        //const expandedLocation = new URL(`/gog/id/${match._id}`, process.env.RERUM_PREFIX).href
+        //res.location(expandedLocation)
+        res.location(expanded["@id"] ?? expanded.id)
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))
