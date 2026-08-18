@@ -231,7 +231,7 @@ const idExpanded = async function (req, res, next) {
     const isPost = req.method === "POST"
     let filters = {}
     if (isPost) {
-        //Express leaves the body undefined when a POST supplies none.  That is an unfiltered expand.
+        // Express leaves the body undefined when a POST supplies none.  That is an unfiltered expand.
         const supplied = req.body ?? {}
         if (typeof supplied !== "object" || Array.isArray(supplied)) {
             const err = {
@@ -257,7 +257,7 @@ const idExpanded = async function (req, res, next) {
             return next(utils.createExpressError(err))
         }
         res.set(utils.configureWebAnnoHeadersFor(match))
-        //Support built in browser caching.  A POST response is not cacheable.
+        // Support built in browser caching.  A POST response is not cacheable.
         if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
         // Include current version for optimistic locking
         res.set('Current-Overwritten-Version', match.__rerum?.isOverwritten ?? "")
