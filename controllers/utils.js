@@ -149,14 +149,17 @@ function escapeRegex(literal) {
  *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
  *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
  * and the likely Annotation type formats
- *   - {"type": "Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
- *   - {"@type": "Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+ *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
+ *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
  *
- * Only Web Annotation Data Model era Annotations are expanded with.  'oa:Annotation' is the Open
- * Annotation era spelling carried by IIIF Presentation 2.1 data, which names its target under 'on'
- * and its body under 'resource', so there is nothing here that could read one.  The full
- * 'http://www.w3.org/ns/oa#Annotation' IRI is kept because that is the W3C class itself, what a
- * fully expanded JSON-LD Web Annotation carries.
+ * All three spellings are the same class.  The W3C Web Annotation context defines the 'oa' prefix as
+ * 'http://www.w3.org/ns/oa#' and the term 'Annotation' as 'oa:Annotation', so a compacted, a prefixed,
+ * and a fully expanded JSON-LD Web Annotation all name 'http://www.w3.org/ns/oa#Annotation'.
+ *
+ * Only 'target' and 'body' are read, whatever the type spelling says.  That is what keeps Open
+ * Annotation era data out on its own -- IIIF Presentation 2.1 carries 'oa:Annotation' but names its
+ * target under 'on' and its body under 'resource', neither of which is read here, so such a record
+ * matches nothing and expands with nothing.
  *
  * An entity can answer to more than one URI.  A record minted with a Slug resolves at both
  * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
@@ -186,8 +189,8 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
         "$and": []
     }
     const annoTypeConditions = [
-        {"type": "Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"},
-        {"@type": "Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+        {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"},
+        {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
     ]
     // Every URI the entity answers to contributes its conditions to the same '$or'.
     const targetConditions = []

@@ -189,11 +189,17 @@
         <p>
             Only Annotations of the
             <a target="_blank" href="https://www.w3.org/TR/annotation-model/">W3C Web Annotation Data Model</a> are
-            gathered, and only their current (leaf) versions. The Open Annotation era
-            <code class="language-plaintext highlighter-rouge">oa:Annotation</code> carried by IIIF Presentation API
+            gathered, and only their current (leaf) versions. An Annotation is recognized by
+            <code class="language-plaintext highlighter-rouge">Annotation</code>,
+            <code class="language-plaintext highlighter-rouge">oa:Annotation</code>, or
+            <code class="language-plaintext highlighter-rouge">http://www.w3.org/ns/oa#Annotation</code> under either
+            <code class="language-plaintext highlighter-rouge">type</code> or
+            <code class="language-plaintext highlighter-rouge">@type</code>&mdash;the W3C context defines all three as
+            the same class. Only <code class="language-plaintext highlighter-rouge">target</code> and
+            <code class="language-plaintext highlighter-rouge">body</code> are read, so IIIF Presentation API
             2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">&#9888;&#65039;</span>
-            data names its target under <code class="language-plaintext highlighter-rouge">on</code> and its body under
-            <code class="language-plaintext highlighter-rouge">resource</code>, so it is not expanded with. No token is
+            data, which names its target under <code class="language-plaintext highlighter-rouge">on</code> and its body
+            under <code class="language-plaintext highlighter-rouge">resource</code>, is not expanded with. No token is
             required.
             The response is a raw assembly—if your application needs the data in a particular shape, format the
             response for your own internal needs.
@@ -836,7 +842,9 @@
                 the real ones stored on an Annotation, so filtering by generating application means supplying
                 <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code>. An empty or absent body
                 expands without any filter.</li>
-            <li>
+            <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>&mdash;The
+                record with identifier <code class="language-plaintext highlighter-rouge">_id</code>, plus the merged
+                properties from the Annotations matching the supplied filters.</li>
         </ul>
         <p>
             <div class="exHeading">Javascript Example</div>
@@ -1612,7 +1620,7 @@
             existing vocabularies, but for now the applications accessing RERUM will
             need to interpret this data if it is relevant.
         </p>
-        <h3 id="history">Entity Expansion</h3>
+        <h3 id="entity-expansion">Entity Expansion</h3>
         <p>
             Only the Annotation's <code class="language-plaintext highlighter-rouge">body</code> and <code class="language-plaintext highlighter-rouge">bodyValue</code> are read. Every other property of the Annotation is ignored, and an Annotation carrying neither is ignored entirely.
         </p>
