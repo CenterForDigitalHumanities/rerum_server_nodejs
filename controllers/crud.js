@@ -128,24 +128,17 @@ const id = async function (req, res, next) {
 }
 
 /**
- * The expand job always constrains the Annotations it gathers to the leaf versions, to the
- * Annotation types, and to the entity in the request URI.  A client cannot influence those, so
- * these keys are dropped from a supplied filter body by exact name or dotted prefix.
- */
-const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
-
-/**
- * Identity and system properties an Annotation body must never overwrite.  '@id' and '@context'
- * are read by idNegotiation() and res.location()
- */
-const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "@context", "__proto__"])
-
-/**
  * Reduce a supplied POST body to the literal MongoDB filter keys the expand job will honor.
  * @param supplied The parsed JSON request body.
  * @return An object of filter keys, minus the ones this endpoint owns.
  */
 function sanitizeExpansionFilters(supplied) {
+    /**
+     * The expand job always constrains the Annotations it gathers to the leaf versions, to the
+     * Annotation types, and to the entity in the request URI.  A client cannot influence those, so
+     * these keys are dropped from a supplied filter body by exact name or dotted prefix.
+     */
+    const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
     const filters = {}
     for (const [key, value] of Object.entries(supplied)) {
         if (RESERVED_FILTER_KEYS.some(reserved => key === reserved || key.startsWith(`${reserved}.`))) continue
@@ -153,11 +146,6 @@ function sanitizeExpansionFilters(supplied) {
     }
     return filters
 }
-
-/**
- * The Annotation body types whose value is kept whole rather than read as a single assertion.
- */
-const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www.w3.org/ns/oa#TextualBody"])
 
 /**
  * The [key, value] assertions an Annotation makes about the entity it targets.
@@ -175,6 +163,10 @@ const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www
  * @return An Array of [key, value] pairs to merge onto the entity.
  */
 function assertionsFrom(anno) {
+    /**
+     * The Annotation body types whose value is kept whole rather than read as a single assertion.
+     */
+    const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www.w3.org/ns/oa#TextualBody"])
     const assertions = []
     if (typeof anno.bodyValue === "string") assertions.push(["bodyValue", anno.bodyValue])
     const body = anno.body
@@ -202,6 +194,8 @@ function assertionsFrom(anno) {
  * @return A new, expanded entity object.
  */
 function applyRawExpansion(primitiveEntity, annos) {
+    //Identity and system properties an Annotation body must never overwrite.  '@id' and '@context'
+    const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "@context", "__proto__"])
     const expandedEntity = structuredClone(primitiveEntity)
     // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
     const rerumProp = expandedEntity.__rerum
@@ -248,7 +242,7 @@ const idExpanded = async function (req, res, next) {
         filters = sanitizeExpansionFilters(supplied)
     }
     else {
-        //Repeated query parameters arrive as an Array, which is not a filter value we support.
+        // Repeated query parameters arrive as an Array, which is not a filter value we will apply.
         if (typeof req.query.generator === "string" && req.query.generator) filters["__rerum.generatedBy"] = req.query.generator
         if (typeof req.query.creator === "string" && req.query.creator) filters.creator = req.query.creator
     }
@@ -268,17 +262,13 @@ const idExpanded = async function (req, res, next) {
         res.set('Current-Overwritten-Version', match.__rerum?.isOverwritten ?? "")
         const targetId = match["@id"] ?? match.id
         const annos = targetId ? await findLeafAnnotationsFor(targetId, filters) : []
-        // Informational only.  Every current Annotation targeting the entity is gathered, so this
-        // is the whole count and never a partial one.
+        // Every leaf Annotation matching the filter is gathered.  This is the count.
         res.set('Annotations-Gathered', String(annos.length))
-        // How many of the gathered Annotations could contribute, which is a different number.
-        // Annotations carrying multiple bodies are left out here
-        const merged = annos.filter(anno => !Array.isArray(anno.body))
+        // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
+        const merged = annos.filter(anno => assertionsFrom(anno).length > 0)
         res.set('Annotations-Merged', String(merged.length))
-        let expanded = applyRawExpansion(match, annos)
+        let expanded = applyRawExpansion(match, merged)
         expanded = idNegotiation(expanded)
-        //const expandedLocation = new URL(`${match._id}/expanded`, process.env.RERUM_ID_PREFIX).href
-        //res.location(expandedLocation)
         res.location(expanded["@id"] ?? expanded.id)
         res.json(expanded)
     } catch (error) {

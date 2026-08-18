@@ -341,6 +341,9 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     // Mirror DEER's client-side expand() (deer-utils.js buildValueObject)
     // When more than one current Annotation asserts the same key, collect the values into an Array.
     let expandedEntity = structuredClone(primitiveEntity)
+    // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
+    const rerumProp = expandedEntity.__rerum
+    delete expandedEntity.__rerum
     for(const anno of matches){
         const body = anno.body
         // Annotations carrying multiple bodies are not expanded with.
@@ -367,6 +370,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
             expandedEntity[key] = valueObject
         }
     }
+    if(rerumProp !== undefined) expandedEntity.__rerum = rerumProp
 
     return expandedEntity
 }
@@ -403,8 +407,6 @@ const expandedId = async function (req, res, next) {
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         let expanded = await expand(match, generator)
         expanded = idNegotiation(expanded)
-        //const expandedLocation = new URL(`/gog/id/${match._id}`, process.env.RERUM_PREFIX).href
-        //res.location(expandedLocation)
         res.location(expanded["@id"] ?? expanded.id)
         res.json(expanded)
     } catch (error) {

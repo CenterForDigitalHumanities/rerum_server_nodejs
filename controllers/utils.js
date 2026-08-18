@@ -12,13 +12,6 @@ const ObjectID = newID
 const MAX_QUERY_LIMIT = Number.parseInt(process.env.RERUM_MAX_QUERY_LIMIT ?? 500, 10)
 const MAX_QUERY_SKIP = Number.parseInt(process.env.RERUM_MAX_QUERY_SKIP ?? 100000, 10)
 
-/**
- * How many Annotations findLeafAnnotationsFor() pulls per round trip while gathering.
- * This is an internal batch size, not a client facing page size.  The gather does not stop until
- * the database has no more matches, so this only decides how many round trips that takes.
- */
-const EXPANSION_BATCH_SIZE = 500
-
 function clampNonNegativeInt(value, fallback, max) {
     const parsed = Number.parseInt(value, 10)
     if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -161,6 +154,7 @@ function escapeRegex(literal) {
  * @return An Array of every matching Annotation document, with '_id' removed.
  */
 const findLeafAnnotationsFor = async function (targetId, filters = {}) {
+    const EXPANSION_BATCH_SIZE = 200
     // '$and' is always present so the filter conditions below can push into it from either branch.
     const queryObj = {
         "__rerum.history.next": { $exists: true, $size: 0 },
