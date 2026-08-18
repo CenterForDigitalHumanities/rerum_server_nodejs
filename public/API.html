@@ -187,7 +187,14 @@
                 properties.</li>
         </ul>
         <p>
-            Only the current (leaf) versions of Annotations are gathered. No token is required.
+            Only Annotations of the
+            <a target="_blank" href="https://www.w3.org/TR/annotation-model/">W3C Web Annotation Data Model</a> are
+            gathered, and only their current (leaf) versions. The Open Annotation era
+            <code class="language-plaintext highlighter-rouge">oa:Annotation</code> carried by IIIF Presentation API
+            2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">&#9888;&#65039;</span>
+            data names its target under <code class="language-plaintext highlighter-rouge">on</code> and its body under
+            <code class="language-plaintext highlighter-rouge">resource</code>, so it is not expanded with. No token is
+            required.
             The response is a raw assembly—if your application needs the data in a particular shape, format the
             response for your own internal needs.
         </p>

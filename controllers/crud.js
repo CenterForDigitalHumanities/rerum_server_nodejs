@@ -157,7 +157,7 @@ function sanitizeExpansionFilters(supplied) {
  *   - body: {'key': 'value'}                             a single assertion
  *   - body: {'key': {...}}                               a single assertion, value kept as-is
  *   - body: {'type':'TextualBody', 'value': 'text', ...} kept whole so 'format' and 'language' survive
- *   - body: {'@type':'oa:TextualBody', ...}              the OA prefixed spelling of the same
+ *   - body: {'@type':'oa:TextualBody', ...}              the 'oa:' prefixed spelling of the same W3C class
  *   - body: {'type':['TextualBody'], ...}                the same body, type serialized as a JSON-LD Array
  *   - body: [{'key': 'value'}]                           one body, serialized as a JSON-LD Array
  *
@@ -260,7 +260,13 @@ const idExpanded = async function (req, res, next) {
         }
         res.set(utils.configureWebAnnoHeadersFor(match))
         const targetId = match["@id"] ?? match.id
-        const annos = targetId ? await findLeafAnnotationsFor(targetId, filters) : []
+        // A record minted with a Slug also resolves at '<prefix>/id/<slug>', so an Annotation may
+        // target it by that URI instead of by its '@id'.  The slug URI is built off the entity's own
+        // URI rather than RERUM_ID_PREFIX so a record minted under a legacy host keeps that host.
+        const slug = match.__rerum?.slug
+        const lastSlash = targetId?.lastIndexOf("/") ?? -1
+        const slugTargetId = slug && lastSlash !== -1 ? targetId.slice(0, lastSlash + 1) + slug : undefined
+        const annos = await findLeafAnnotationsFor([targetId, slugTargetId], filters)
         // Every leaf Annotation matching the filter is gathered.  This is the count.
         res.set('Annotations-Gathered', String(annos.length))
         // Read each Annotation once.  These assertions are both the merged count and the merge itself.

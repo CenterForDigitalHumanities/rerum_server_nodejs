@@ -149,8 +149,19 @@ function escapeRegex(literal) {
  *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
  *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
  * and the likely Annotation type formats
- *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
- *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+ *   - {"type": "Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
+ *   - {"@type": "Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+ *
+ * Only Web Annotation Data Model era Annotations are expanded with.  'oa:Annotation' is the Open
+ * Annotation era spelling carried by IIIF Presentation 2.1 data, which names its target under 'on'
+ * and its body under 'resource', so there is nothing here that could read one.  The full
+ * 'http://www.w3.org/ns/oa#Annotation' IRI is kept because that is the W3C class itself, what a
+ * fully expanded JSON-LD Web Annotation carries.
+ *
+ * An entity can answer to more than one URI.  A record minted with a Slug resolves at both
+ * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
+ * either one, so a caller hands over every URI the entity is known by.  An Annotation matching any
+ * of them targets this entity and is gathered.
  *
  * Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE 
  * until the database has no more to give.  An expansion of 1000 Annotations gathers 1000.
@@ -159,41 +170,47 @@ function escapeRegex(literal) {
  * the last '_id' seen rather than skipping past the ones already gathered.  Skipping makes the
  * db re-walk the whole prefix every round trip; resuming reads each Annotation exactly once.
  *
- * @param targetId The '@id' or 'id' URI of the entity being expanded.
+ * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
+ * is known by when it answers to more than one.
  * @param filters Literal MongoDB filter keys to AND into the query.
  * @return An Array of every matching Annotation document, with '_id' removed.
  */
-const findLeafAnnotationsFor = async function (targetId, filters = {}) {
+const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     const EXPANSION_BATCH_SIZE = 200
-    // '$and' is always present so the filter conditions below can push into it from either branch.
+    const targetURIs = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(Boolean)
+    // Nothing to target is nothing to gather.  An empty '$or' is a MongoDB error, not an empty result.
+    if (targetURIs.length === 0) return []
+    // '$and' is always present so the target, type, and filter conditions can push into it.
     const queryObj = {
         "__rerum.history.next": { $exists: true, $size: 0 },
         "$and": []
     }
     const annoTypeConditions = [
-        {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"},
-        {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+        {"type": "Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"},
+        {"@type": "Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
     ]
-    if (/^https?:\/\//.test(targetId)) {
-        const targetConditions = []
+    // Every URI the entity answers to contributes its conditions to the same '$or'.
+    const targetConditions = []
+    for (const targetURI of targetURIs) {
+        if (!/^https?:\/\//.test(targetURI)) {
+            // Not a URI, so there is no http/https spelling or fragment of it to anticipate.
+            targetConditions.push({ "target": targetURI })
+            continue
+        }
         // Hanging a fragment off the URI is the other W3C way to target part of a resource rather
         // than the whole of it, and an exact match will not catch one.
         const fragmentPatterns = ["http", "https"].map(scheme =>
-            new RegExp(`^${escapeRegex(targetId.replace(/^https?/, scheme))}#`)
+            new RegExp(`^${escapeRegex(targetURI.replace(/^https?/, scheme))}#`)
         )
         // 'target.source' is the W3C SpecificResource, which is how an Annotation targets a
         // selected region of a resource rather than the whole of it.
         for (const targetKey of TARGET_KEYS) {
-            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
-            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
+            targetConditions.push({ [targetKey]: targetURI.replace(/^https?/, "http") })
+            targetConditions.push({ [targetKey]: targetURI.replace(/^https?/, "https") })
             for (const fragmentPattern of fragmentPatterns) targetConditions.push({ [targetKey]: fragmentPattern })
         }
-        queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
     }
-    else {
-        queryObj["$and"].push({"$or": annoTypeConditions})
-        queryObj.target = targetId
-    }
+    queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
     for (const [key, value] of Object.entries(filters)) {
         if (URI_DOUBLED_FILTER_KEYS.has(key) && typeof value === "string" && /^https?:\/\//.test(value)) {
             queryObj["$and"].push({"$or": [
