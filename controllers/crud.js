@@ -201,7 +201,7 @@ function assertionsFrom(anno) {
  * @param annoAssertions An Array holding the [key, value] assertions read from each Annotation.
  * @return A new, expanded entity object.
  */
-function applyRawExpansion(primitiveEntity, annoAssertions) {
+function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
     const expandedEntity = structuredClone(primitiveEntity)
     // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
     const rerumProp = expandedEntity.__rerum
@@ -227,8 +227,7 @@ function applyRawExpansion(primitiveEntity, annoAssertions) {
  *
  * GET recognizes the '?generator=' and '?creator=' convenience parameters only.
  * POST reads literal MongoDB filter keys from the JSON body and ignores URL parameters as filters.
- * Neither method pages.  A client asks once and receives the entity assembled from every current
- * Annotation targeting it -- findLeafAnnotationsFor() does whatever gathering that takes.
+ * Neither method pages.  A client asks once and receives the entity assembled.
  * */
 const idExpanded = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
@@ -274,9 +273,9 @@ const idExpanded = async function (req, res, next) {
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
         const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
-        let expanded = applyRawExpansion(match, merged)
+        let expanded = applyExpansionAnnotations(match, merged)
         expanded = idNegotiation(expanded)
-        res.location(expanded["@id"] ?? expanded.id)
+        res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))

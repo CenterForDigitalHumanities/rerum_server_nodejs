@@ -152,9 +152,12 @@ function escapeRegex(literal) {
  *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
  *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
  *
- * Every match is gathered.  The caller expands with all of them, so this walks the result set in
- * batches of EXPANSION_BATCH_SIZE until the database has no more to give.  There is no page for a
- * client to ask for and no truncation to report -- an expansion of 1000 Annotations gathers 1000.
+ * Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE 
+ * until the database has no more to give.  An expansion of 1000 Annotations gathers 1000.
+ *
+ * Sorting on '_id' keeps the walk stable across the round trips, and each batch resumes from
+ * the last '_id' seen rather than skipping past the ones already gathered.  Skipping makes the
+ * db re-walk the whole prefix every round trip; resuming reads each Annotation exactly once.
  *
  * @param targetId The '@id' or 'id' URI of the entity being expanded.
  * @param filters Literal MongoDB filter keys to AND into the query.
@@ -201,10 +204,6 @@ const findLeafAnnotationsFor = async function (targetId, filters = {}) {
         }
         queryObj["$and"].push({ [key]: value })
     }
-    // Get every Annotation targeting this Entity from the db.  Remove _id property.
-    // Sorting on '_id' keeps the walk stable across the round trips, and each batch resumes from
-    // the last '_id' seen rather than skipping past the ones already gathered.  Skipping makes the
-    // db re-walk the whole prefix every round trip; resuming reads each Annotation exactly once.
     const matches = []
     let batch = []
     let resumeAfter = null

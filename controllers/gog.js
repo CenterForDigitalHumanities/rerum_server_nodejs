@@ -8,7 +8,7 @@
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { getAgentClaim, getPagination, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
+import { _contextid, getAgentClaim, getPagination, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 // The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
 // agents; only the trailing id is compared, so either host spelling matches.
@@ -312,13 +312,6 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 * Find relevant Annotations targeting a primitive RERUM entity.  This is a 'full' expand.
 * Add the descriptive information in the Annotation bodies to the primitive object.
 *
-* Anticipate likely Annotation body formats
-*   - anno.body
-*   - anno.body.value
-*
-* Gathering the Annotations is findLeafAnnotationsFor() in ./utils.js -- see its docblock for the
-* target and Annotation type forms that are recognized.  This function only reads their bodies.
-*
 * @param primitiveEntity - An existing RERUM object
 * @param GENERATOR - A registered RERUM app's User Agent
 * @param CREATOR - Some kind of string representing a specific user.  Often combined with GENERATOR.
@@ -329,16 +322,12 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     // An entity is expandable if it carries a URI under either '@id' or 'id'.
     if(!primitiveEntity?.["@id"] && !primitiveEntity?.id) return primitiveEntity
     const targetId = primitiveEntity["@id"] ?? primitiveEntity.id ?? "unknown"
-    // Only expand with data from a specific app and/or a specific creator.  The shared helper
-    // applies the leaf, target, and Annotation type constraints and doubles these two URIs
-    // across the http/https spellings.
     const filters = {}
     if(GENERATOR) filters["__rerum.generatedBy"] = GENERATOR
     if(CREATOR) filters.creator = CREATOR
     const matches = await findLeafAnnotationsFor(targetId, filters)
 
     // Combine the Annotation bodies with the primitive object.
-    // Mirror DEER's client-side expand() (deer-utils.js buildValueObject)
     // When more than one current Annotation asserts the same key, collect the values into an Array.
     let expandedEntity = structuredClone(primitiveEntity)
     // Hold __rerum aside so it can be re-appended after the merged properties. It will be the last property.
@@ -410,7 +399,7 @@ const expandedId = async function (req, res, next) {
         res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         let expanded = await expand(match, generator)
         expanded = idNegotiation(expanded)
-        res.location(expanded["@id"] ?? expanded.id)
+        res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))
