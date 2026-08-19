@@ -196,7 +196,8 @@ function assertionsFrom(anno) {
 /**
  * Merge the assertions of the gathered Annotations onto a copy of the entity, as raw values.
  * When more than one current Annotation asserts the same key, or the entity already carries it,
- * the values collect into an Array.
+ * the values collect into an Array.  '@context' is the one key that collects in reverse, so the
+ * record's own context ends up last.
  * @param primitiveEntity The unexpanded entity.
  * @param annoAssertions An Array holding the [key, value] assertions read from each Annotation.
  * @return A new, expanded entity object.
@@ -213,7 +214,15 @@ function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
                 continue
             }
             const existing = Array.isArray(expandedEntity[key]) ? expandedEntity[key] : [expandedEntity[key]]
-            expandedEntity[key] = Array.isArray(value) ? [...existing, ...value] : [...existing, value]
+            const contributed = Array.isArray(value) ? value : [value]
+            // '@context' collects in the opposite order.  The record's own context is what the
+            // identity form was negotiated from, so a contributed one goes in front of it and the
+            // record's own stays last -- JSON-LD applies an '@context' Array in order and lets a
+            // later entry override an earlier one, so last is where the record keeps the final say
+            // over every term it defines.  An Annotation extends the record's context, never redefines it.
+            expandedEntity[key] = key === "@context"
+                ? [...contributed, ...existing]
+                : [...existing, ...contributed]
         }
     }
     if (rerumProp !== undefined) expandedEntity.__rerum = rerumProp
@@ -259,14 +268,9 @@ const idExpanded = async function (req, res, next) {
             }
             return next(utils.createExpressError(err))
         }
-        res.set(utils.configureWebAnnoHeadersFor(match))
-        // A deleted record is a tombstone -- whatever it used to assert now sits inside '__deleted'.
-        // There is nothing there for an Annotation to describe, so skip the gather and the merge
-        // and hand the record back exactly as it is stored.  Both counts report zero.
         const deleted = utils.isDeleted(match)
         const targetId = match["@id"] ?? match.id
-        // A record minted with a Slug also resolves at '<prefix>/id/<slug>', so an Annotation may
-        // target it by that URI instead of by its '@id'.
+        // an Annotation may target an entity by its Slug instead of by its '@id'.
         const slug = match.__rerum?.slug
         const lastSlash = targetId?.lastIndexOf("/") ?? -1
         const slugTargetId = slug && lastSlash !== -1 ? targetId.slice(0, lastSlash + 1) + slug : undefined
@@ -278,16 +282,13 @@ const idExpanded = async function (req, res, next) {
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
         const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
-        // Negotiate the identity form from the record's own '@context', before an Annotation can
-        // contribute one.  An Annotation may assert '@context' like any other property, but it must
-        // not be able to change which property the record answers to.  Reading it off the merged
-        // object would let a contributed '@context' delete the record's '@id' and mint an 'id'.
         const negotiated = idNegotiation(match)
         const identity = _contextid(negotiated["@context"]) ? negotiated.id : negotiated["@id"]
         const expanded = deleted ? negotiated : applyExpansionAnnotations(negotiated, merged)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
         // Include current version for optimistic locking
+        res.set(utils.configureWebAnnoHeadersFor(expanded))
         res.set('Current-Overwritten-Version', currentVersion)
         res.location(identity)
         res.json(expanded)

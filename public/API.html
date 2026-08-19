@@ -1726,9 +1726,11 @@
             Linked Data keywords that describe the record rather than identify it are not held back. An Annotation
             asserting <code class="language-plaintext highlighter-rouge">type</code>,
             <code class="language-plaintext highlighter-rouge">@type</code>, or
-            <code class="language-plaintext highlighter-rouge">@context</code> contributes it like any other property,
-            which collects the record's own value and the asserted one into an Array by the rule above. Saying what an
-            entity is, is the job of an Annotation.
+            <code class="language-plaintext highlighter-rouge">@context</code>
+            contributes it like any other property, which collects the record's own value and the asserted one
+            into an Array. For <code class="language-plaintext highlighter-rouge">@context</code> the entity's
+            own <code class="language-plaintext highlighter-rouge">@context</code> will always appear as the last
+            entry or entries in the Array.
         </p>
         <p class="alert">
             A deleted record is never expanded. Whatever it used to assert is inside its

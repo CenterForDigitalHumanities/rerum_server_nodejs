@@ -28,9 +28,6 @@ isReleased        —always ""
 
 const configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = structuredClone(received)
-    //'__rerum' is a system property.  The only caller that hands us a trustworthy one is the update
-    //path, where 'received' is a record the database just gave us.  Every other caller is passing a
-    //request body, so whatever it put under '__rerum' is ignored outright rather than read.
     let received_options = update && received.__rerum ? structuredClone(received.__rerum) : {}
     let history = {}
     let releases = {}
@@ -46,9 +43,6 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
     }
     else{
         //We are either updating an existing RERUM object or creating a new one.
-        //'history' and 'releases' are always the objects built here.  A received __rerum is read for
-        //the two values below and nothing else, so no other property a caller put inside them can
-        //ride along into the stored record.
         if(received_options.hasOwnProperty("history")){
             const received_history = received_options.history
             if(update){

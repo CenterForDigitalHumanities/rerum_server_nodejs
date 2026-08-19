@@ -30,9 +30,7 @@ function getPagination(query = {}, defaultLimit = 100) {
 /**
  * Check if a @context value contains a known @id-id mapping context
  *
- * @param contextInput A string URI, or an Array of them.  JSON-LD allows an '@context' Array to mix
- * URI strings with inline term definition objects, so a member that is not a string is skipped --
- * only a string can name one of the known contexts.
+ * @param contextInput A string URI, or an Array of them.
  * @return A boolean
  */
 function _contextid(contextInput) {
@@ -217,10 +215,7 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
         queryObj["$and"].push({ [key]: value })
     }
     const matches = []
-    // One cursor, paged server-side by the driver.  Resuming on '_id' instead would need a sort the
-    // target indexes cannot provide -- the plan is an index union across the target keys -- so every
-    // batch would re-scan the whole match set behind a blocking in-memory sort, making a full gather
-    // quadratic.  The cursor transfers in the same stride and reads each document once.
+    // One cursor, paged server-side by the driver. The cursor transfers in the same stride and reads each document once.
     for await (const anno of db.find(queryObj).batchSize(EXPANSION_BATCH_SIZE)) {
         delete anno._id
         matches.push(anno)

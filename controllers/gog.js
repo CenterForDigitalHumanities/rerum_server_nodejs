@@ -381,6 +381,14 @@ const expandedId = async function (req, res, next) {
             err = Object.assign(err, { message: `No RERUM object with id '${id}'`, status: 404 })
             return next(utils.createExpressError(err))
         }
+        if (utils.isDeleted(match)) {
+            res.set(utils.configureWebAnnoHeadersFor(match))
+            res.set("Cache-Control", "max-age=86400, must-revalidate")
+            res.set("Current-Overwritten-Version", "")
+            const tombstone = idNegotiation(match)
+            res.location(_contextid(tombstone["@context"]) ? tombstone.id : tombstone["@id"])
+            return res.json(tombstone)
+        }
         const generator = match.__rerum?.generatedBy
         const agentID = generator?.split("/").pop()
         if (!GOG_AGENTS.includes(agentID)) {
@@ -390,8 +398,8 @@ const expandedId = async function (req, res, next) {
             })
             return next(utils.createExpressError(err))
         }
-        res.set(utils.configureWebAnnoHeadersFor(match))
-        let expanded = utils.isDeleted(match) ? match : await expand(match, generator)
+        let expanded = await expand(match, generator)
+        res.set(utils.configureWebAnnoHeadersFor(expanded))
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set("Cache-Control", "max-age=86400, must-revalidate")
