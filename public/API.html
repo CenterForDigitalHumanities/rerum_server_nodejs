@@ -41,7 +41,7 @@
         <!-- TOC -->
         <h1 id="api-100">API (1.1.0)</h1>
         <ul>
-            <li><a href="#api-10">API (1.1.0)</a>
+            <li><a href="#api-100">API (1.1.0)</a>
                 <ul>
                     <li><a href="#registration"><b>Registration Prerequisite</b></a></li>
                     <li><a href="#authorization"><b>Access Token Requirement</b></a></li>
@@ -185,7 +185,7 @@
                 properties.</li>
         </ul>
         <p class="alert">
-            Annotation objects must use <code class="language-plaintext highlighter-rouge">target</code> and <code class="language-plaintext highlighter-rouge">body</code> properties to be gathered.  See <a href="#entity-expansion">Entity Expansion</a> for more information.
+            Annotation objects must use a <code class="language-plaintext highlighter-rouge">target</code> property to be gathered, and a <code class="language-plaintext highlighter-rouge">body</code> or <code class="language-plaintext highlighter-rouge">bodyValue</code> property to contribute.  See <a href="#entity-expansion">Entity Expansion</a> for more information.
         </p>
         <p>
             The response is a raw assembly—if your application needs the data in a particular shape, format the
@@ -362,9 +362,9 @@
         <p>
             Add a completely new object to RERUM and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI
             as a response header and the complete RERUM record as the response body. Accepts only single JSON objects in the request body.
-            <p class="alert">
-                The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code class="language-plaintext highlighter-rouge">@id</code> and <code class="language-plaintext highlighter-rouge">_id</code> properties are ignored.  In cases where the Linked Data <code class="language-plaintext highlighter-rouge">@context</code> property maps '@id' to 'id', the <code class="language-plaintext highlighter-rouge">id</code> property is also ignored.</p>
         </p>
+        <p class="alert">
+            The <code class="language-plaintext highlighter-rouge">__rerum</code>, <code class="language-plaintext highlighter-rouge">@id</code> and <code class="language-plaintext highlighter-rouge">_id</code> properties are ignored.  In cases where the Linked Data <code class="language-plaintext highlighter-rouge">@context</code> property maps '@id' to 'id', the <code class="language-plaintext highlighter-rouge">id</code> property is also ignored.
         </p>
         <p>
             <div class="exHeading">Javascript Example</div>
@@ -372,7 +372,7 @@
                 <span>const saved_obj = await fetch("https://devstore.rerum.io/v1/api/create", {</span>
                     <span class="ind1">method: "POST",</span>
                     <span class="ind1">headers:{</span>
-                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2"> "Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
                     <span class="ind1">body: JSON.stringify({</span>
@@ -380,7 +380,7 @@
                     <span class="ind1">})</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
-                <span>.catch(err => {throw err})
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
         <p>
@@ -407,8 +407,7 @@
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">/bulkCreate</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
-                    <td>201 <code>
-                            <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
+                    <td>201 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
             </tbody>
         </table>
@@ -432,16 +431,16 @@
                 <span>const saved_objs = await fetch("https://devstore.rerum.io/v1/api/bulkCreate", {</span>
                     <span class="ind1">method: "POST",</span>
                     <span class="ind1">headers:{</span>
-                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
                     <span class="ind1">},</span>
-                    <span class="ind1">body: JSON.stringify([
+                    <span class="ind1">body: JSON.stringify([</span>
                         <span class="ind2">{"hello": "sun"},</span>
                         <span class="ind2">{"goodbye": "moon"} </span>
                     <span class="ind1">])</span>
                 <span>})</span>
                 <span>.then(resp => resp.json())</span>
-                <span>.catch(err => {throw err})
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
         <p>
@@ -998,8 +997,7 @@
                 <tr>
                     <td><code class="language-plaintext highlighter-rouge">/bulkUpdate</code></td>
                     <td><code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
-                    <td>200 <code>
-                            <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
+                    <td>200 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
             </tbody>
         </table>
@@ -1022,9 +1020,10 @@
                 <span>const updated_objs = await fetch("https://devstore.rerum.io/v1/api/bulkUpdate", {</span>
                     <span class="ind1">method: "PUT",</span>
                     <span class="ind1">headers:{</span>
-                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw" </span>
+                        <span class="ind2">"Authorization": "Bearer eyJz93a...k4laUWw",</span>
                         <span class="ind2">"Content-Type": "application/json; charset=utf-8"</span>
-                    <span class="ind1">body: JSON.stringify([{
+                    <span class="ind1">},</span>
+                    <span class="ind1">body: JSON.stringify([{</span>
                         <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/abcdef1234567890",</span>
                         <span class="ind2">"hello": "new world"</span>
                     <span class="ind1">},</span>
@@ -1032,8 +1031,9 @@
                         <span class="ind2">"@id": "https://devstore.rerum.io/v1/id/1234567890abcdef",</span>
                         <span class="ind2">"goodbye": "old planet"</span>
                     <span class="ind1">}])</span>
+                <span>})</span>
                 <span>.then(resp => resp.json())</span>
-                <span>.catch(err => {throw err})
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
         <p>
@@ -1055,7 +1055,7 @@
         </p>
         <h3 id="overwrite">Overwrite</h3>
         <p>
-            RERUM allows the Generator of a record to overwrite that record. An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. </span>
+            RERUM allows the Generator of a record to overwrite that record. An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code> agent of the existing record.
             Replace a record using a reference to its internal RERUM id and receive the <code class="language-plaintext highlighter-rouge">Location</code> URI for the resulting record as a response header and the complete record as the response body.
             This will have the effects of update, set, and unset actions. New keys will be created and keys not present in the request will not be present in the resulting record.
             The record is replaced in place, or overwritten, and so the <code class="language-plaintext highlighter-rouge">@id</code> or <code class="language-plaintext highlighter-rouge">id</code> will not change and the history connected with this record will not be altered. The <code>__rerum.isOverwritten</code> property will be set to the date and time of the overwrite.
@@ -1220,10 +1220,10 @@
                 <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"
             </p>
             <p class="alert">
-                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has
                 <code>
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"]
                 </code>
@@ -1299,10 +1299,10 @@
                 <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"
             </p>
             <p class="alert">
-                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has
                 <code>
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"]
                 </code>
@@ -1378,10 +1378,10 @@
                 <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"</span>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/1234567890abcdef"
             </p>
             <p class="alert">
-                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has</span>
+                Note that the original record "https://devstore.rerum.io/v1/id/abcdef1234567890" now has
                 <code>
                     __rerum.history.next : ["https://devstore.rerum.io/v1/id/1234567890abcdef"]
                 </code>
@@ -1444,13 +1444,13 @@
                 <span>}</span>
             </code></pre>
             <p class="alert">
-                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"</span>
+                Note that resp.headers.get("location") will return "https://devstore.rerum.io/v1/id/abcdef1234567890"
             </p>
         </p>
         <h2 id="delete">DELETE</h2>
         <p>
-            RERUM allows the Generator of a record to delete that record. An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code __rerum.generatedBy></code> agent of the existing record. </span>
-            RERUM DELETE does not remove anything from the server. Deleted records are only marked as deleted. </span>
+            RERUM allows the Generator of a record to delete that record. An error will be returned if the agent encoded in the request "Authorization" access token does not match the <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code> agent of the existing record.
+            RERUM DELETE does not remove anything from the server. Deleted records are only marked as deleted.
             Records marked as deleted do not return in query results and may only be directly retrieved by <code class="language-plaintext highlighter-rouge">@id</code> or <code class="language-plaintext highlighter-rouge">id</code>.
             <p class="warning">
                 Deleted records are removed from history trees. RERUM will do this automatically when a record is deleted. This cannot be undone.
@@ -1631,11 +1631,11 @@
         </p>
         <p>
             When several Annotations assert the same property, or the record already carries it, the values collect into an Array. Array order is not guaranteed.
-        </p>    
+        </p>
         <h3 id="history">History</h3>
         <p>History is stored through pointers that create a B-Tree. All nodes in the B-tree know the root node, the
             previous node, and the next node(s).</p>
-        <p>You can ask for all descendants or all ancestors from any given node so long as you know the node’s <code class="language-plaintext highlighter-rouge">@id</code> or <code class="language-plaintext highlighter-rouge">id</code> and the node has not been deleted. See <a href="#history-tree-before-id">history parents</a> and <a href="#history-tree-since-id">history
+        <p>You can ask for all descendants or all ancestors from any given node so long as you know the node’s <code class="language-plaintext highlighter-rouge">@id</code> or <code class="language-plaintext highlighter-rouge">id</code> and the node has not been deleted. See <a href="#history-tree-before-this-version">history parents</a> and <a href="#history-tree-since-this-version">history
                 children</a> for more details about this process.</p>
         <p>Deleted records are not present in any B-Tree, but do exist as separate nodes that can be requested by the
             URI directly. A snapshot of their position at the time of deletion persists in these deleted nodes.</p>
@@ -1678,12 +1678,12 @@
         <h2 id="rerum-responses">RERUM Responses</h2>
         <p>The intention of the API is to follow RESTful practices. These practices drive what requests we accept and
             what responses we have to the various scenarios around those requests. What it means to be RESTful varies
-            wildly, but our efforts follow the guidelines at https://www.restapitutorial.com/resources.html</p>
+            wildly, but our efforts follow the guidelines at <a target="_blank" href="https://www.restapitutorial.com/resources.html">REST API Tutorial</a>.</p>
         <p>RERUM follows REST, IIIF and Web Annotation standards to form its responses to users. For more information
             about why RERUM chose a certain HTTP status code see the graph below.</p>
         <p><img src="https://user-images.githubusercontent.com/3287006/32914301-b2fbf798-cada-11e7-9541-a2bee8454c2c.png" alt="alt text" /></p>
         <p>If you are confused as to what type of requests give what response, review the <a href="#web-annotation">Web
-                Annotation</a> and <a href="#rest">RESTful</a> standards.</p>
+                Annotation</a> and <a target="_blank" href="https://www.restapitutorial.com/resources.html">RESTful</a> standards.</p>
         <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
             This site is open source. <a href="https://github.com/CenterForDigitalHumanities/rerum_server_nodejs/blob/main/public/API.html">Improve this
                 page</a>.
