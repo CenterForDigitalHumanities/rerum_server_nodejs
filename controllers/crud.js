@@ -278,13 +278,14 @@ const idExpanded = async function (req, res, next) {
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
         const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
+        // Negotiate before the merge, so a contributed '@context' cannot change which property the record answers to.
         const negotiated = idNegotiation(match)
         const identity = _contextid(negotiated["@context"]) ? negotiated.id : negotiated["@id"]
         const expanded = deleted ? negotiated : applyExpansionAnnotations(negotiated, merged)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
-        // Include current version for optimistic locking
         res.set(utils.configureWebAnnoHeadersFor(expanded))
+        // Include current version for optimistic locking
         res.set('Current-Overwritten-Version', currentVersion)
         res.location(identity)
         res.json(expanded)

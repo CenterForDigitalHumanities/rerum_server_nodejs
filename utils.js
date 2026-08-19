@@ -178,7 +178,8 @@ const configureLDHeadersFor = function(obj){
  */ 
 const isContainerType = function(obj){
     let answer = false
-    let typestring = obj["@type"] ?? obj.type ?? ""
+    const typeValue = obj["@type"] ?? obj.type ?? ""
+    const typestrings = (Array.isArray(typeValue) ? typeValue : [typeValue]).filter(t => typeof t === "string")
     const knownContainerTypes = [
         "ItemList",
         "AnnotationPage",
@@ -191,9 +192,9 @@ const isContainerType = function(obj){
         "Set",
         "Collection"
     ]
-    for(const t of knownContainerTypes){
+    for(const typestring of typestrings){
         //Dang those pesky prefixes...circumventing exact match for now
-        if(typestring.includes(t)){
+        if(knownContainerTypes.some(t => typestring.includes(t))){
             answer = true
             break
         }

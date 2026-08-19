@@ -381,6 +381,7 @@ const expandedId = async function (req, res, next) {
             err = Object.assign(err, { message: `No RERUM object with id '${id}'`, status: 404 })
             return next(utils.createExpressError(err))
         }
+        // Deleted objects don't have a generator to match on, just return the tombstone no matter what.
         if (utils.isDeleted(match)) {
             res.set(utils.configureWebAnnoHeadersFor(match))
             res.set("Cache-Control", "max-age=86400, must-revalidate")
@@ -400,6 +401,8 @@ const expandedId = async function (req, res, next) {
         }
         let expanded = await expand(match, generator)
         res.set(utils.configureWebAnnoHeadersFor(expanded))
+        // Safe to negotiate after the merge here.  expand() wraps every assertion in a
+        // valueObject, so a contributed '@context' is a non-string that _contextid() skips.
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set("Cache-Control", "max-age=86400, must-revalidate")
