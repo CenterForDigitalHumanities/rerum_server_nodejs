@@ -899,14 +899,16 @@
         <p>
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample">
-                const expanded = await fetch("https://devstore.rerum.io/v1/id/11111/expanded", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        "__rerum.generatedBy": "https://devstore.rerum.io/v1/id/agent7",
-                        "motivation": "describing"
-                    })
-                }).then(resp => resp.json()).catch(err => {throw err})
+                <span>const expanded = await fetch("https://devstore.rerum.io/v1/id/11111/expanded", {</span>
+                    <span class="ind1">method: "POST",</span>
+                    <span class="ind1">headers: { "Content-Type": "application/json" },</span>
+                    <span class="ind1">body: JSON.stringify({</span>
+                        <span class="ind2">"__rerum.generatedBy": "https://devstore.rerum.io/v1/id/agent7",</span>
+                        <span class="ind2">"motivation": "describing"</span>
+                    <span class="ind1">})</span>
+                <span>})</span>
+                <span>.then(resp => resp.json())</span>
+                <span>.catch(err => {throw err})</span>
             </code></pre>
         </p>
         <h3 id="http-post-method-override">HTTP POST Method Override</h3>
