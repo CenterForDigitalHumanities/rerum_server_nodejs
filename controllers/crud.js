@@ -270,19 +270,26 @@ const idExpanded = async function (req, res, next) {
         const slug = match.__rerum?.slug
         const lastSlash = targetId?.lastIndexOf("/") ?? -1
         const slugTargetId = slug && lastSlash !== -1 ? targetId.slice(0, lastSlash + 1) + slug : undefined
+        // Read off the record while it is still whole.  idNegotiation() below alters it in place.
+        const currentVersion = match.__rerum?.isOverwritten ?? ""
         const annos = deleted ? [] : await findLeafAnnotationsFor([targetId, slugTargetId], filters)
         // Every leaf Annotation matching the filter is gathered.  This is the count.
         res.set('Annotations-Gathered', String(annos.length))
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
         const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
-        let expanded = deleted ? match : applyExpansionAnnotations(match, merged)
-        expanded = idNegotiation(expanded)
+        // Negotiate the identity form from the record's own '@context', before an Annotation can
+        // contribute one.  An Annotation may assert '@context' like any other property, but it must
+        // not be able to change which property the record answers to.  Reading it off the merged
+        // object would let a contributed '@context' delete the record's '@id' and mint an 'id'.
+        const negotiated = idNegotiation(match)
+        const identity = _contextid(negotiated["@context"]) ? negotiated.id : negotiated["@id"]
+        const expanded = deleted ? negotiated : applyExpansionAnnotations(negotiated, merged)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
         // Include current version for optimistic locking
-        res.set('Current-Overwritten-Version', match.__rerum?.isOverwritten ?? "")
-        res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
+        res.set('Current-Overwritten-Version', currentVersion)
+        res.location(identity)
         res.json(expanded)
     } catch (error) {
         return next(utils.createExpressError(error))

@@ -73,8 +73,9 @@ const idNegotiation = function (resBody) {
     if(!resBody) return
     const _id = resBody._id
     delete resBody._id
+    // A record with no '@context' needs no negotiation, so it is handed straight back.  The two
+    // paths below both produce a new object rather than the one they were given.
     if(!resBody["@context"]) return resBody
-    // Only this path hands back the body it was given, so it is the only one that needs a copy of it.
     if(!_contextid(resBody["@context"])) return structuredClone(resBody)
     const context = { "@context": resBody["@context"] }
     delete resBody["@id"]
@@ -150,15 +151,15 @@ function escapeRegex(literal) {
  *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
  *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
  * and the likely Annotation type formats
- *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
- *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+ *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http(s)://www.w3.org/ns/oa#Annotation"}
+ *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http(s)://www.w3.org/ns/oa#Annotation"}
  *
  * Only 'target' and 'body' are read, whatever the type spelling says.
  *
  * Any entity can answer to more than one URI.  A record minted with a Slug resolves at both
  * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
- * either one.  Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE
- * until the database has no more to give.
+ * either one.  Every match is gathered, in a single cursor the driver pages in strides of
+ * EXPANSION_BATCH_SIZE.  Result order is whatever the query plan yields and is not guaranteed.
  *
  * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
  * is known by when it answers to more than one.
@@ -171,15 +172,17 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     // Nothing to target is nothing to gather.  An empty '$or' is a MongoDB error, not an empty result.
     if (targetURIs.length === 0) return []
     // '$and' is always present so the target, type, and filter conditions can push into it.
-    // RERUM mints every '_id' as a hex string.  The batch resume below pages on '_id'.
     const queryObj = {
         "__rerum.history.next": { $exists: true, $size: 0 },
-        "_id": { $type: "string" },
         "$and": []
     }
+    // 'http://www.w3.org/ns/oa#' is the canonical namespace, but a serializer may spell it 'https'
+    // the same way RERUM has minted its own URIs under both.  Both spellings are matched.
     const annoTypeConditions = [
-        {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"},
-        {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
+        {"type": "Annotation"}, {"type": "oa:Annotation"},
+        {"type": "http://www.w3.org/ns/oa#Annotation"}, {"type": "https://www.w3.org/ns/oa#Annotation"},
+        {"@type": "Annotation"}, {"@type": "oa:Annotation"},
+        {"@type": "http://www.w3.org/ns/oa#Annotation"}, {"@type": "https://www.w3.org/ns/oa#Annotation"}
     ]
     // Every URI the entity answers to contributes its conditions to the same '$or'.
     const targetConditions = []
@@ -214,22 +217,14 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
         queryObj["$and"].push({ [key]: value })
     }
     const matches = []
-    let batch = []
-    let resumeAfter = null
-    do {
-        // The resume point joins the '_id' conditions rather than replacing them, so the '$type'
-        // constraint survives into every batch after the first.
-        const batchQuery = resumeAfter === null
-            ? queryObj
-            : { ...queryObj, "_id": { ...queryObj["_id"], $gt: resumeAfter } }
-        batch = await db.find(batchQuery).sort({ "_id": 1 }).limit(EXPANSION_BATCH_SIZE).toArray()
-        // Read the resume point before '_id' is dropped from the document.
-        if (batch.length > 0) resumeAfter = batch.at(-1)._id
-        for (const anno of batch) {
-            delete anno._id
-            matches.push(anno)
-        }
-    } while (batch.length === EXPANSION_BATCH_SIZE)
+    // One cursor, paged server-side by the driver.  Resuming on '_id' instead would need a sort the
+    // target indexes cannot provide -- the plan is an index union across the target keys -- so every
+    // batch would re-scan the whole match set behind a blocking in-memory sort, making a full gather
+    // quadratic.  The cursor transfers in the same stride and reads each document once.
+    for await (const anno of db.find(queryObj).batchSize(EXPANSION_BATCH_SIZE)) {
+        delete anno._id
+        matches.push(anno)
+    }
     return matches
 }
 
