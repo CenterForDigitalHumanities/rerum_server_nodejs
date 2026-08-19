@@ -643,17 +643,13 @@ components:
   headers:
     AnnotationsGathered:
       description: >-
-        How many current Annotations targeting the entity were gathered for this expansion. The
-        search is not paged, so this is a complete count rather than the size of a page.
+        How many current Annotations targeting the entity were gathered for this expansion.
       schema:
         type: integer
         minimum: 0
     AnnotationsMerged:
       description: >-
-        How many of the gathered Annotations could contribute an assertion. An Annotation carrying
-        multiple bodies, or a body with more than one property, is gathered but not counted here. A
-        counted Annotation may still assert only a protected property, so this is not a count of the
-        properties present on the expanded entity either.
+        How many of the gathered Annotations could contribute an assertion.
       schema:
         type: integer
         minimum: 0
@@ -674,8 +670,7 @@ components:
     RecordLastModified:
       description: >-
         The record's '__rerum.isOverwritten' time, or its '__rerum.createdAt' time when it has never
-        been overwritten, so a client can revalidate with 'If-Modified-Since'. Not sent by the
-        '/expanded' forms, where it would describe the record ahead of the Annotations merged into it.
+        been overwritten, so a client can revalidate with 'If-Modified-Since'.
       schema:
         type: string
         format: date-time
@@ -688,8 +683,7 @@ components:
     CurrentOverwrittenVersion:
       description: >-
         The record's '__rerum.isOverwritten' value, for optimistic locking. Empty when the record has
-        never been overwritten. On the '/expanded' forms this describes the record itself, not the
-        Annotations merged into it.
+        never been overwritten.
       schema:
         type: string
   parameters:
