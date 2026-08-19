@@ -258,20 +258,23 @@ const idExpanded = async function (req, res, next) {
             return next(utils.createExpressError(err))
         }
         res.set(utils.configureWebAnnoHeadersFor(match))
+        // A deleted record is a tombstone -- whatever it used to assert now sits inside '__deleted'.
+        // There is nothing there for an Annotation to describe, so skip the gather and the merge
+        // and hand the record back exactly as it is stored.  Both counts report zero.
+        const deleted = utils.isDeleted(match)
         const targetId = match["@id"] ?? match.id
         // A record minted with a Slug also resolves at '<prefix>/id/<slug>', so an Annotation may
         // target it by that URI instead of by its '@id'.
         const slug = match.__rerum?.slug
         const lastSlash = targetId?.lastIndexOf("/") ?? -1
         const slugTargetId = slug && lastSlash !== -1 ? targetId.slice(0, lastSlash + 1) + slug : undefined
-        const annos = await findLeafAnnotationsFor([targetId, slugTargetId], filters)
+        const annos = deleted ? [] : await findLeafAnnotationsFor([targetId, slugTargetId], filters)
         // Every leaf Annotation matching the filter is gathered.  This is the count.
         res.set('Annotations-Gathered', String(annos.length))
-        // Read each Annotation once.  These assertions are both the merged count and the merge itself.
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
         const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
-        let expanded = applyExpansionAnnotations(match, merged)
+        let expanded = deleted ? match : applyExpansionAnnotations(match, merged)
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")

@@ -72,7 +72,8 @@ paths:
         - $ref: '#/components/parameters/ExpansionCreator'
       responses:
         '200':
-          description: Expanded object payload
+          description: >-
+            Expanded object payload. A deleted record is returned as stored, with no expansion.
           headers:
             Annotations-Gathered:
               $ref: '#/components/headers/AnnotationsGathered'
@@ -101,7 +102,8 @@ paths:
         - $ref: '#/components/parameters/ExpansionCreator'
       responses:
         '200':
-          description: Expanded object headers
+          description: >-
+            Expanded object headers. A deleted record is returned as stored, with no expansion.
           headers:
             Annotations-Gathered:
               $ref: '#/components/headers/AnnotationsGathered'
@@ -130,7 +132,8 @@ paths:
               $ref: '#/components/schemas/GenericObject'
       responses:
         '200':
-          description: Expanded object payload
+          description: >-
+            Expanded object payload. A deleted record is returned as stored, with no expansion.
           headers:
             Annotations-Gathered:
               $ref: '#/components/headers/AnnotationsGathered'

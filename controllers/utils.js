@@ -76,7 +76,6 @@ const idNegotiation = function (resBody) {
     if(!resBody["@context"]) return resBody
     // Only this path hands back the body it was given, so it is the only one that needs a copy of it.
     if(!_contextid(resBody["@context"])) return structuredClone(resBody)
-    // The '@id' to 'id' path builds its result from scratch instead, and never reads a copy.
     const context = { "@context": resBody["@context"] }
     delete resBody["@id"]
     delete resBody["@context"]

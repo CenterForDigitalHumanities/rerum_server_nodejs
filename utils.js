@@ -28,7 +28,10 @@ isReleased        —always ""
 
 const configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = structuredClone(received)
-    let received_options = received.__rerum ? structuredClone(received.__rerum) : {}
+    //'__rerum' is a system property.  The only caller that hands us a trustworthy one is the update
+    //path, where 'received' is a record the database just gave us.  Every other caller is passing a
+    //request body, so whatever it put under '__rerum' is ignored outright rather than read.
+    let received_options = update && received.__rerum ? structuredClone(received.__rerum) : {}
     let history = {}
     let releases = {}
     let rerumOptions = {}
@@ -43,17 +46,20 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
     }
     else{
         //We are either updating an existing RERUM object or creating a new one.
+        //'history' and 'releases' are always the objects built here.  A received __rerum is read for
+        //the two values below and nothing else, so no other property a caller put inside them can
+        //ride along into the stored record.
         if(received_options.hasOwnProperty("history")){
-            history = received_options.history
+            const received_history = received_options.history
             if(update){
                 //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
-                if(history.prime === "root"){
+                if(received_history.prime === "root"){
                     //Hitting this case means we are updating from the prime object, so we can't pass "root" on as the prime value
                     history_prime = received["@id"] ?? received.id ?? ""
                 }
                 else{
                     //Hitting this means we are updating an object that already knows its prime, so we can pass on the prime value
-                    history_prime = history.prime
+                    history_prime = received_history.prime
                 }
                 //Either way, we know the previous value shold be the @id of the object received here. 
                 history_previous = received["@id"] ?? received.id ?? ""
@@ -70,8 +76,7 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
             history_previous = ""
         }
         if(received_options.hasOwnProperty("releases")){
-            releases = received_options.releases
-            releases_previous = releases.previous
+            releases_previous = received_options.releases.previous
         }
         else{
             releases_previous = ""         

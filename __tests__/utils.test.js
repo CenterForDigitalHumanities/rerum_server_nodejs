@@ -49,6 +49,60 @@ describe('utils.js configureRerumOptions', () => {
     )
     assert.strictEqual(result.__rerum.generatedBy, 'https://store.rerum.io/v1/id/legitimate-agent')
   })
+
+  it('drops caller-supplied properties inside __rerum.history and __rerum.releases', () => {
+    const result = utils.configureRerumOptions(
+      'agent-uri',
+      {
+        a: 'b',
+        __rerum: {
+          history: { t: 'h', prime: 'forged', next: ['forged'] },
+          releases: { evil: true, previous: 'p', replaces: 'forged' }
+        }
+      },
+      false,
+      false
+    )
+    assert.deepStrictEqual(Object.keys(result.__rerum.history).sort(), ['next', 'previous', 'prime'])
+    assert.deepStrictEqual(Object.keys(result.__rerum.releases).sort(), ['next', 'previous', 'replaces'])
+    assert.deepStrictEqual(result.__rerum.history, { next: [], previous: '', prime: 'root' })
+    // A create reads nothing out of a supplied __rerum, so the release pointer is not seeded either.
+    assert.deepStrictEqual(result.__rerum.releases, { next: [], previous: '', replaces: '' })
+  })
+
+  it('does not mutate the __rerum it was handed', () => {
+    const received = { __rerum: { history: { t: 'h' }, releases: { evil: true } } }
+    utils.configureRerumOptions('agent-uri', received, false, false)
+    assert.deepStrictEqual(received.__rerum.history, { t: 'h' })
+    assert.deepStrictEqual(received.__rerum.releases, { evil: true })
+  })
+
+  it('still carries prime and releases.previous forward on an update', () => {
+    const fromPrime = utils.configureRerumOptions(
+      'agent-uri',
+      { '@id': 'https://store.rerum.io/v1/id/AAA', __rerum: { history: { prime: 'root', previous: '', next: [] } } },
+      true,
+      false
+    )
+    assert.strictEqual(fromPrime.__rerum.history.prime, 'https://store.rerum.io/v1/id/AAA')
+    assert.strictEqual(fromPrime.__rerum.history.previous, 'https://store.rerum.io/v1/id/AAA')
+
+    const fromChild = utils.configureRerumOptions(
+      'agent-uri',
+      {
+        '@id': 'https://store.rerum.io/v1/id/BBB',
+        __rerum: {
+          history: { prime: 'https://store.rerum.io/v1/id/AAA', previous: '', next: [] },
+          releases: { previous: 'https://store.rerum.io/v1/id/REL', next: [], replaces: '' }
+        }
+      },
+      true,
+      false
+    )
+    assert.strictEqual(fromChild.__rerum.history.prime, 'https://store.rerum.io/v1/id/AAA')
+    assert.strictEqual(fromChild.__rerum.history.previous, 'https://store.rerum.io/v1/id/BBB')
+    assert.strictEqual(fromChild.__rerum.releases.previous, 'https://store.rerum.io/v1/id/REL')
+  })
 })
 
 describe('controllers/utils.js generateSlugId', () => {

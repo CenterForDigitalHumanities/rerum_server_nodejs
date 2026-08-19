@@ -1721,6 +1721,15 @@
             <code class="language-plaintext highlighter-rouge">__proto__</code> contributes nothing. The expanded record
             answers to the same URI as the record you asked for.
         </p>
+        <p class="alert">
+            A deleted record is never expanded. Whatever it used to assert is inside its
+            <code class="language-plaintext highlighter-rouge">__deleted</code> snapshot, so there is nothing for an
+            Annotation to describe. The record comes back exactly as
+            <a href="#single-record-by-id">GET <code class="language-plaintext highlighter-rouge">/id/_id</code></a>
+            returns it, and both count headers report
+            <code class="language-plaintext highlighter-rouge">0</code>. Annotations targeting the record are left
+            alone and are still retrievable on their own.
+        </p>
         <h4 id="expansion-response-headers">Expansion response headers</h4>
         <p>
             Neither form of the request is paged. Every Annotation matching the filters is gathered before the record is
