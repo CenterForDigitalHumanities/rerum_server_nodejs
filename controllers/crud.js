@@ -193,7 +193,7 @@ function assertionsFrom(anno) {
 
 /**
  * Merge the assertions of the gathered Annotations onto a copy of the entity, as raw values.
- * When more than one current Annotation asserts the same key, or the entity already carries it, 
+ * When more than one current Annotation asserts the same key, or the entity already carries it,
  * the values collect into an Array.
  * @param primitiveEntity The unexpanded entity.
  * @param annoAssertions An Array holding the [key, value] assertions read from each Annotation.

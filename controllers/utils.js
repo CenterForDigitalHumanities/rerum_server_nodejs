@@ -112,13 +112,13 @@ const generateSlugId = async function(slug_id="", next){
 /**
  * RERUM has minted these two under both 'http' and 'https' over the years, so a filter on either
  * must match both spellings.  Every other supplied filter key is applied exactly as given.
- */ 
+ */
 const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 
 /**
  * The properties an Annotation can carry the URI of its target under.
  * Choice, Composite, and List target constructs, whose members sit in an 'items' Array.  They are not supported here.
- */ 
+ */
 const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
 
 /**
@@ -152,11 +152,11 @@ function escapeRegex(literal) {
  *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http://www.w3.org/ns/oa#Annotation"}
  *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http://www.w3.org/ns/oa#Annotation"}
  *
- * Only 'target' and 'body' are read, whatever the type spelling says.  
+ * Only 'target' and 'body' are read, whatever the type spelling says.
  *
  * Any entity can answer to more than one URI.  A record minted with a Slug resolves at both
  * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
- * either one.  Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE 
+ * either one.  Every match is gathered.  This walks the result set in batches of EXPANSION_BATCH_SIZE
  * until the database has no more to give.
  *
  * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
@@ -166,7 +166,8 @@ function escapeRegex(literal) {
  */
 const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     const EXPANSION_BATCH_SIZE = 200
-    const targetURIs = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(Boolean)
+    // Deduped -- a record whose slug equals its _id would otherwise push every condition twice.
+    const targetURIs = [...new Set((Array.isArray(targetIds) ? targetIds : [targetIds]).filter(Boolean))]
     // Nothing to target is nothing to gather.  An empty '$or' is a MongoDB error, not an empty result.
     if (targetURIs.length === 0) return []
     // '$and' is always present so the target, type, and filter conditions can push into it.
