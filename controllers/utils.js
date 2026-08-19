@@ -125,10 +125,9 @@ const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "targ
 
 /**
  * Identity and system properties an Annotation body must never overwrite when its assertions are
- * merged onto an entity.  '__proto__' is not data -- emitting it would hand a prototype pollution
- * vector to every client that parses the response.
+ * merged onto an entity.
  */
-const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "@context", "__proto__"])
+const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__"])
 
 /**
  * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only

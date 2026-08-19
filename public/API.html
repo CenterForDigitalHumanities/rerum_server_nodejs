@@ -186,12 +186,14 @@
                 properties.</li>
         </ul>
         <p class="alert">
-            Annotation objects must use a <code class="language-plaintext highlighter-rouge">target</code> property to be gathered, and a <code class="language-plaintext highlighter-rouge">body</code> or <code class="language-plaintext highlighter-rouge">bodyValue</code> property to contribute.  See <a href="#entity-expansion">Entity Expansion</a> for more information.
+            Annotation objects must carry a <code class="language-plaintext highlighter-rouge">type</code> or <code class="language-plaintext highlighter-rouge">@type</code> naming them an Annotation and a <code class="language-plaintext highlighter-rouge">target</code> property to be gathered, and a <code class="language-plaintext highlighter-rouge">body</code> or <code class="language-plaintext highlighter-rouge">bodyValue</code> property to contribute.  An object that targets the record but is not typed as an Annotation is not gathered.  See <a href="#entity-expansion">Entity Expansion</a> for more information.
         </p>
         <p class="alert">
             Supply <code class="language-plaintext highlighter-rouge">?generator</code> and
-            <code class="language-plaintext highlighter-rouge">?creator</code> at most once each. A parameter supplied
-            more than once is not applied, and the response is the same unfiltered expansion.
+            <code class="language-plaintext highlighter-rouge">?creator</code> at most once each, as a plain string. A
+            parameter supplied more than once, or supplied in a bracketed object form such as
+            <code class="language-plaintext highlighter-rouge">?generator[key]=value</code>, is dropped rather than
+            applied. The other parameter still applies if it was supplied correctly.
         </p>
         <p>
             The response reports how much of the record's Annotation set went into it through the
@@ -1715,11 +1717,18 @@
             asserting <code class="language-plaintext highlighter-rouge">@id</code>,
             <code class="language-plaintext highlighter-rouge">id</code>,
             <code class="language-plaintext highlighter-rouge">_id</code>,
-            <code class="language-plaintext highlighter-rouge">@context</code>,
             <code class="language-plaintext highlighter-rouge">__rerum</code>,
             <code class="language-plaintext highlighter-rouge">__deleted</code>, or
             <code class="language-plaintext highlighter-rouge">__proto__</code> contributes nothing. The expanded record
             answers to the same URI as the record you asked for.
+        </p>
+        <p>
+            Linked Data keywords that describe the record rather than identify it are not held back. An Annotation
+            asserting <code class="language-plaintext highlighter-rouge">type</code>,
+            <code class="language-plaintext highlighter-rouge">@type</code>, or
+            <code class="language-plaintext highlighter-rouge">@context</code> contributes it like any other property,
+            which collects the record's own value and the asserted one into an Array by the rule above. Saying what an
+            entity is, is the job of an Annotation.
         </p>
         <p class="alert">
             A deleted record is never expanded. Whatever it used to assert is inside its

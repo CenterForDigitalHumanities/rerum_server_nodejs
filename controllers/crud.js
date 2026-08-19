@@ -128,17 +128,23 @@ const id = async function (req, res, next) {
 }
 
 /**
+ * The expand job always constrains the Annotations it gathers to the leaf versions, to the
+ * Annotation types, and to the entity in the request URI.  A client cannot influence those, so
+ * these keys are dropped from a supplied filter body by exact name or dotted prefix.
+ */
+const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
+
+/**
+ * The Annotation body types whose value is kept whole rather than read as a single assertion.
+ */
+const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www.w3.org/ns/oa#TextualBody"])
+
+/**
  * Reduce a supplied POST body to the literal MongoDB filter keys the expand job will honor.
  * @param supplied The parsed JSON request body.
  * @return An object of filter keys, minus the ones this endpoint owns.
  */
 function sanitizeExpansionFilters(supplied) {
-    /**
-     * The expand job always constrains the Annotations it gathers to the leaf versions, to the
-     * Annotation types, and to the entity in the request URI.  A client cannot influence those, so
-     * these keys are dropped from a supplied filter body by exact name or dotted prefix.
-     */
-    const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
     const filters = {}
     for (const [key, value] of Object.entries(supplied)) {
         if (RESERVED_FILTER_KEYS.some(reserved => key === reserved || key.startsWith(`${reserved}.`))) continue
@@ -165,10 +171,6 @@ function sanitizeExpansionFilters(supplied) {
  * @return An Array of [key, value] pairs to merge onto the entity.
  */
 function assertionsFrom(anno) {
-    /**
-     * The Annotation body types whose value is kept whole rather than read as a single assertion.
-     */
-    const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www.w3.org/ns/oa#TextualBody"])
     const assertions = []
     if (typeof anno.bodyValue === "string") assertions.push(["bodyValue", anno.bodyValue])
     // In JSON-LD a one-element Array and the bare value are the same body, so unwrap it first.  The
@@ -228,7 +230,7 @@ function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
  * */
 const idExpanded = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
-    const id = req.params["_id"]
+    const requestedId = req.params["_id"]
     const isPost = req.method === "POST"
     let filters = {}
     if (isPost) {
@@ -249,10 +251,10 @@ const idExpanded = async function (req, res, next) {
         if (typeof req.query.creator === "string" && req.query.creator) filters.creator = req.query.creator
     }
     try {
-        const match = await db.findOne({"$or": [{"_id": id}, {"__rerum.slug": id}]})
+        const match = await db.findOne({"$or": [{"_id": requestedId}, {"__rerum.slug": requestedId}]})
         if (!match) {
             const err = {
-                "message": `No RERUM object with id '${id}'`,
+                "message": `No RERUM object with id '${requestedId}'`,
                 "status": 404
             }
             return next(utils.createExpressError(err))
