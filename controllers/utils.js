@@ -71,8 +71,6 @@ const idNegotiation = function (resBody) {
     if(!resBody) return
     const _id = resBody._id
     delete resBody._id
-    // A record with no '@context' needs no negotiation, so it is handed straight back.  The two
-    // paths below both produce a new object rather than the one they were given.
     if(!resBody["@context"]) return resBody
     if(!_contextid(resBody["@context"])) return structuredClone(resBody)
     const context = { "@context": resBody["@context"] }

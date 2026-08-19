@@ -215,11 +215,7 @@ function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
             }
             const existing = Array.isArray(expandedEntity[key]) ? expandedEntity[key] : [expandedEntity[key]]
             const contributed = Array.isArray(value) ? value : [value]
-            // '@context' collects in the opposite order.  The record's own context is what the
-            // identity form was negotiated from, so a contributed one goes in front of it and the
-            // record's own stays last -- JSON-LD applies an '@context' Array in order and lets a
-            // later entry override an earlier one, so last is where the record keeps the final say
-            // over every term it defines.  An Annotation extends the record's context, never redefines it.
+            // '@context' collects in the opposite order.  The record's own context is last.
             expandedEntity[key] = key === "@context"
                 ? [...contributed, ...existing]
                 : [...existing, ...contributed]
