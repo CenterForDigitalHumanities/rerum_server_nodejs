@@ -47,11 +47,6 @@ paths:
   /id/{id}/expanded:
     get:
       summary: Read object by id with its current Annotations merged in
-      description: >-
-        Not paged. Every current Annotation targeting the entity is gathered server side before the
-        expanded entity is assembled, so a client makes a single request. The 'Annotations-Gathered'
-        and 'Annotations-Merged' response headers report complete counts.
-      operationId: getExpandedObjectById
       parameters:
         - $ref: '#/components/parameters/ObjectId'
         - $ref: '#/components/parameters/ExpansionGenerator'
@@ -59,6 +54,13 @@ paths:
       responses:
         '200':
           description: Expanded object payload
+          headers:
+            Annotations-Gathered:
+              $ref: '#/components/headers/AnnotationsGathered'
+            Annotations-Merged:
+              $ref: '#/components/headers/AnnotationsMerged'
+            Cache-Control:
+              $ref: '#/components/headers/ExpansionCacheControl'
           content:
             application/json:
               schema:
@@ -75,18 +77,18 @@ paths:
       responses:
         '200':
           description: Expanded object headers
+          headers:
+            Annotations-Gathered:
+              $ref: '#/components/headers/AnnotationsGathered'
+            Annotations-Merged:
+              $ref: '#/components/headers/AnnotationsMerged'
+            Cache-Control:
+              $ref: '#/components/headers/ExpansionCacheControl'
         '404':
           $ref: '#/components/responses/NotFound'
     post:
       summary: Read object by id with its current Annotations merged in, filtered by the request body
       operationId: postExpandedObjectById
-      description: >-
-        The request body is an object of literal MongoDB filter properties ANDed into the search for
-        Annotations targeting the entity. URL query parameters supply no filters. Like the GET, the
-        search is not paged -- every Annotation matching the filters is gathered server side before
-        the expanded entity is assembled. The leaf version, the Annotation type, and the target
-        constraints are applied automatically and cannot be overruled, so 'target', 'type', '@type',
-        and '__rerum.history' keys are ignored.
       parameters:
         - $ref: '#/components/parameters/ObjectId'
       requestBody:
@@ -98,6 +100,11 @@ paths:
       responses:
         '200':
           description: Expanded object payload
+          headers:
+            Annotations-Gathered:
+              $ref: '#/components/headers/AnnotationsGathered'
+            Annotations-Merged:
+              $ref: '#/components/headers/AnnotationsMerged'
           content:
             application/json:
               schema:
@@ -596,6 +603,30 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 components:
+  headers:
+    AnnotationsGathered:
+      description: >-
+        How many current Annotations targeting the entity were gathered for this expansion. The
+        search is not paged, so this is a complete count rather than the size of a page.
+      schema:
+        type: integer
+        minimum: 0
+    AnnotationsMerged:
+      description: >-
+        How many of the gathered Annotations could contribute an assertion. An Annotation carrying
+        multiple bodies, or a body with more than one property, is gathered but not counted here. A
+        counted Annotation may still assert only a protected property, so this is not a count of the
+        properties present on the expanded entity either.
+      schema:
+        type: integer
+        minimum: 0
+    ExpansionCacheControl:
+      description: >-
+        Browser caching policy for the expanded entity. An entity's Annotations are volatile while it
+        is first created and stable afterward, so the expansion is cacheable for 24 hours.
+      schema:
+        type: string
+        example: max-age=86400, must-revalidate
   parameters:
     ObjectId:
       in: path

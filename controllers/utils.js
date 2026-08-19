@@ -30,7 +30,9 @@ function getPagination(query = {}, defaultLimit = 100) {
 /**
  * Check if a @context value contains a known @id-id mapping context
  *
- * @param contextInput An Array of string URIs or a string URI.
+ * @param contextInput A string URI, or an Array of them.  JSON-LD allows an '@context' Array to mix
+ * URI strings with inline term definition objects, so a member that is not a string is skipped --
+ * only a string can name one of the known contexts.
  * @return A boolean
  */
 function _contextid(contextInput) {
@@ -46,6 +48,8 @@ function _contextid(contextInput) {
     ]
     if(Array.isArray(contextInput)) {
         for(const c of contextInput) {
+            // An inline term definition object, or any other non-string member, names no context.
+            if(typeof c !== "string") continue
             contextURI = c
             bool = knownContexts.some(contextCheck)
             if(bool) break
@@ -70,14 +74,13 @@ const idNegotiation = function (resBody) {
     const _id = resBody._id
     delete resBody._id
     if(!resBody["@context"]) return resBody
-    let modifiedResBody = structuredClone(resBody)
+    // Only this path hands back the body it was given, so it is the only one that needs a copy of it.
+    if(!_contextid(resBody["@context"])) return structuredClone(resBody)
+    // The '@id' to 'id' path builds its result from scratch instead, and never reads a copy.
     const context = { "@context": resBody["@context"] }
-    if(_contextid(resBody["@context"])) {
-        delete resBody["@id"]
-        delete resBody["@context"]
-        modifiedResBody = Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
-    }
-    return modifiedResBody
+    delete resBody["@id"]
+    delete resBody["@context"]
+    return Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
 }
 
 /**
@@ -166,13 +169,14 @@ function escapeRegex(literal) {
  */
 const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     const EXPANSION_BATCH_SIZE = 200
-    // Deduped -- a record whose slug equals its _id would otherwise push every condition twice.
     const targetURIs = [...new Set((Array.isArray(targetIds) ? targetIds : [targetIds]).filter(Boolean))]
     // Nothing to target is nothing to gather.  An empty '$or' is a MongoDB error, not an empty result.
     if (targetURIs.length === 0) return []
     // '$and' is always present so the target, type, and filter conditions can push into it.
+    // RERUM mints every '_id' as a hex string.  The batch resume below pages on '_id'.
     const queryObj = {
         "__rerum.history.next": { $exists: true, $size: 0 },
+        "_id": { $type: "string" },
         "$and": []
     }
     const annoTypeConditions = [
@@ -215,7 +219,11 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     let batch = []
     let resumeAfter = null
     do {
-        const batchQuery = resumeAfter === null ? queryObj : { ...queryObj, "_id": { $gt: resumeAfter } }
+        // The resume point joins the '_id' conditions rather than replacing them, so the '$type'
+        // constraint survives into every batch after the first.
+        const batchQuery = resumeAfter === null
+            ? queryObj
+            : { ...queryObj, "_id": { ...queryObj["_id"], $gt: resumeAfter } }
         batch = await db.find(batchQuery).sort({ "_id": 1 }).limit(EXPANSION_BATCH_SIZE).toArray()
         // Read the resume point before '_id' is dropped from the document.
         if (batch.length > 0) resumeAfter = batch.at(-1)._id

@@ -84,6 +84,7 @@
                     <li><a href="#delete">DELETE</a></li>
                     <li><a href="#__rerum">__rerum</a>
                         <ul>
+                            <li><a href="#entity-expansion">Entity Expansion</a></li>
                             <li><a href="#history">History</a></li>
                             <li><a href="#generator-attribution">Attribution</a></li>
                         </ul>
@@ -186,6 +187,21 @@
         </ul>
         <p class="alert">
             Annotation objects must use a <code class="language-plaintext highlighter-rouge">target</code> property to be gathered, and a <code class="language-plaintext highlighter-rouge">body</code> or <code class="language-plaintext highlighter-rouge">bodyValue</code> property to contribute.  See <a href="#entity-expansion">Entity Expansion</a> for more information.
+        </p>
+        <p class="alert">
+            Supply <code class="language-plaintext highlighter-rouge">?generator</code> and
+            <code class="language-plaintext highlighter-rouge">?creator</code> at most once each. A parameter supplied
+            more than once is not applied, and the response is the same unfiltered expansion.
+        </p>
+        <p>
+            The response reports how much of the record's Annotation set went into it through the
+            <a href="#expansion-response-headers"><code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>
+            and <code class="language-plaintext highlighter-rouge">Annotations-Merged</code></a> headers.
+        </p>
+        <p>
+            This response is browser cacheable for 24 hours—<code class="language-plaintext highlighter-rouge">Cache-Control: max-age=86400, must-revalidate</code>.
+            A record's Annotations are volatile while it is first being created and stable afterward, so this trades a
+            hard reload in the uncommon stale case for not re-running the expansion on every visit.
         </p>
         <p>
             The response is a raw assembly—if your application needs the data in a particular shape, format the
@@ -828,10 +844,58 @@
                 the real ones stored on an Annotation, so filtering by generating application means supplying
                 <code class="language-plaintext highlighter-rouge">__rerum.generatedBy</code>. An empty or absent body
                 expands without any filter.</li>
-            <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>&mdash;The
+            <li><strong>Response: <code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—The
                 record with identifier <code class="language-plaintext highlighter-rouge">_id</code>, plus the merged
                 properties from the Annotations matching the supplied filters.</li>
         </ul>
+        <p>
+            Every supplied filter is combined with <code class="language-plaintext highlighter-rouge">AND</code>, so a
+            filter can only narrow the set of Annotations. There is no way to widen it past the record named in the
+            request URI.
+        </p>
+        <p class="alert">
+            The expansion always constrains itself to the leaf Annotation versions, to the Annotation types, and to the
+            record in the request URI. A client cannot influence those, so the following keys are dropped from the
+            request body rather than applied. Sending one is not an error, but it will not filter anything.
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Ignored key</th>
+                    <th>Why</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">target</code></td>
+                    <td>The record in the request URI is the target.</td>
+                </tr>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">type</code></td>
+                    <td>Only Web Annotations are gathered.</td>
+                </tr>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">@type</code></td>
+                    <td>Only Web Annotations are gathered.</td>
+                </tr>
+                <tr>
+                    <td><code class="language-plaintext highlighter-rouge">__rerum.history</code></td>
+                    <td>Only the latest (leaf) version of an Annotation is gathered.</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+            Each is dropped by exact name or by dotted prefix, so
+            <code class="language-plaintext highlighter-rouge">target.source</code> and
+            <code class="language-plaintext highlighter-rouge">__rerum.history.next</code> are dropped along with
+            <code class="language-plaintext highlighter-rouge">target</code> and
+            <code class="language-plaintext highlighter-rouge">__rerum.history</code>.
+        </p>
+        <p>
+            This response carries the same
+            <a href="#expansion-response-headers"><code class="language-plaintext highlighter-rouge">Annotations-Gathered</code>
+            and <code class="language-plaintext highlighter-rouge">Annotations-Merged</code></a> headers as the GET.
+        </p>
         <p>
             <div class="exHeading">Javascript Example</div>
             <pre><code class="jsExample">
@@ -1617,7 +1681,7 @@
             <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> puts
             <code class="language-plaintext highlighter-rouge">{"value": "hello"}</code> on the entity, not
             <code class="language-plaintext highlighter-rouge">"hello"</code>.
-            A <code class="language-plaintext highlighter-rouge">body</code> serialized as a one-element Array is the same single body in JSON-LD and is read the same way&mdash;
+            A <code class="language-plaintext highlighter-rouge">body</code> serialized as a one-element Array is the same single body in JSON-LD and is read the same way—
             <code class="language-plaintext highlighter-rouge">[{"text": {"value": "hello"}}]</code> and
             <code class="language-plaintext highlighter-rouge">{"text": {"value": "hello"}}</code> are equivalent.
         </p>
@@ -1630,8 +1694,45 @@
             <code class="language-plaintext highlighter-rouge">language</code> survive.
         </p>
         <p>
-            When several Annotations assert the same property, or the record already carries it, the values collect into an Array. Array order is not guaranteed.
+            When several Annotations assert the same property, or the record already carries it, the values collect into
+            an Array. Two Annotations asserting
+            <code class="language-plaintext highlighter-rouge">["red", "blue"]</code> and
+            <code class="language-plaintext highlighter-rouge">["black", "white"]</code> produce
+            <code class="language-plaintext highlighter-rouge">["red", "blue", "black", "white"]</code>. 
+            Array order is not guaranteed.
         </p>
+        <p class="alert">
+            This holds for a property the record already carries as an Array too, so an Annotation asserting something
+            like a IIIF <code class="language-plaintext highlighter-rouge">items</code> or
+            <code class="language-plaintext highlighter-rouge">behavior</code> appends into the record's own Array rather
+            than sitting beside it. The expansion is a raw assembly and does not preserve the boundary between what the
+            record said and what each Annotation added.
+        </p>
+        <p>
+            A record's identity and system properties are never overwritten by an Annotation. An Annotation body
+            asserting <code class="language-plaintext highlighter-rouge">@id</code>,
+            <code class="language-plaintext highlighter-rouge">id</code>,
+            <code class="language-plaintext highlighter-rouge">_id</code>,
+            <code class="language-plaintext highlighter-rouge">@context</code>,
+            <code class="language-plaintext highlighter-rouge">__rerum</code>,
+            <code class="language-plaintext highlighter-rouge">__deleted</code>, or
+            <code class="language-plaintext highlighter-rouge">__proto__</code> contributes nothing. The expanded record
+            answers to the same URI as the record you asked for.
+        </p>
+        <h4 id="expansion-response-headers">Expansion response headers</h4>
+        <p>
+            Neither form of the request is paged. Every Annotation matching the filters is gathered before the record is
+            assembled, so both counts below are complete rather than the size of a page.
+        </p>
+        <ul>
+            <li><strong><code class="language-plaintext highlighter-rouge">Annotations-Gathered</code></strong>—how
+                many current Annotations targeting the record were gathered for this expansion.</li>
+            <li><strong><code class="language-plaintext highlighter-rouge">Annotations-Merged</code></strong>—how
+                many of those could contribute an assertion. An Annotation may carry an unprocessable 
+                <code class="language-plaintext highlighter-rouge">body</code>.  Though it is gathered
+                it is not counted here. A counted Annotation may still assert a protected property, so this is not a
+                count of the properties you received either.</li>
+        </ul>
         <h3 id="history">History</h3>
         <p>History is stored through pointers that create a B-Tree. All nodes in the B-tree know the root node, the
             previous node, and the next node(s).</p>

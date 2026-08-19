@@ -260,8 +260,7 @@ const idExpanded = async function (req, res, next) {
         res.set(utils.configureWebAnnoHeadersFor(match))
         const targetId = match["@id"] ?? match.id
         // A record minted with a Slug also resolves at '<prefix>/id/<slug>', so an Annotation may
-        // target it by that URI instead of by its '@id'.  The slug URI is built off the entity's own
-        // URI rather than RERUM_ID_PREFIX so a record minted under a legacy host keeps that host.
+        // target it by that URI instead of by its '@id'.
         const slug = match.__rerum?.slug
         const lastSlash = targetId?.lastIndexOf("/") ?? -1
         const slugTargetId = slug && lastSlash !== -1 ? targetId.slice(0, lastSlash + 1) + slug : undefined

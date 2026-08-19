@@ -6,7 +6,7 @@
  * @author cubap, thehabes
  */
 
-import { newID, isValidID, db } from '../database/index.js'
+import { db } from '../database/index.js'
 import utils from '../utils.js'
 import { _contextid, getAgentClaim, getPagination, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
