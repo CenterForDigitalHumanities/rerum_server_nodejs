@@ -136,8 +136,13 @@ const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
 
 /**
  * The Annotation body types whose value is kept whole rather than read as a single assertion.
+ * 'http://www.w3.org/ns/oa#' is the canonical namespace, but a serializer may spell it 'https', so
+ * both are matched here the same way they are in the Annotation type conditions.
  */
-const TEXTUAL_BODY_TYPES = new Set(["TextualBody", "oa:TextualBody", "http://www.w3.org/ns/oa#TextualBody"])
+const TEXTUAL_BODY_TYPES = new Set([
+    "TextualBody", "oa:TextualBody",
+    "http://www.w3.org/ns/oa#TextualBody", "https://www.w3.org/ns/oa#TextualBody"
+])
 
 /**
  * Reduce a supplied POST body to the literal MongoDB filter keys the expand job will honor.
@@ -196,8 +201,7 @@ function assertionsFrom(anno) {
 /**
  * Merge the assertions of the gathered Annotations onto a copy of the entity, as raw values.
  * When more than one current Annotation asserts the same key, or the entity already carries it,
- * the values collect into an Array.  '@context' is the one key that collects in reverse, so the
- * record's own context ends up last.
+ * the values collect into an Array, the record's own value first.
  * @param primitiveEntity The unexpanded entity.
  * @param annoAssertions An Array holding the [key, value] assertions read from each Annotation.
  * @return A new, expanded entity object.
@@ -215,10 +219,7 @@ function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
             }
             const existing = Array.isArray(expandedEntity[key]) ? expandedEntity[key] : [expandedEntity[key]]
             const contributed = Array.isArray(value) ? value : [value]
-            // '@context' collects in the opposite order.  The record's own context is last.
-            expandedEntity[key] = key === "@context"
-                ? [...contributed, ...existing]
-                : [...existing, ...contributed]
+            expandedEntity[key] = [...existing, ...contributed]
         }
     }
     if (rerumProp !== undefined) expandedEntity.__rerum = rerumProp
@@ -278,7 +279,7 @@ const idExpanded = async function (req, res, next) {
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
         const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
-        // Negotiate before the merge, so a contributed '@context' cannot change which property the record answers to.
+        // Negotiate first, so identity is settled from the record's own '@context' before anything is merged.
         const negotiated = idNegotiation(match)
         const identity = _contextid(negotiated["@context"]) ? negotiated.id : negotiated["@id"]
         const expanded = deleted ? negotiated : applyExpansionAnnotations(negotiated, merged)

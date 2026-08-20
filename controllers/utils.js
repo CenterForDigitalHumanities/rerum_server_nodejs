@@ -121,10 +121,15 @@ const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
 
 /**
- * Identity and system properties an Annotation body must never overwrite when its assertions are
- * merged onto an entity.
+ * Identity, system, and processing properties an Annotation body must never overwrite when its
+ * assertions are merged onto an entity.
+ * '@context' is here because it is a processing directive rather than an assertion about the
+ * entity.  A merged-in context is cumulative in JSON-LD -- a term, '@vocab', or '@base' that the
+ * record's own context does not redefine still applies no matter where it sits in the Array -- and
+ * it can flip _contextid(), which answers true for a known context anywhere in an Array.  A body
+ * whose only key is '@context' asserts nothing, so holding it back costs no expressiveness.
  */
-const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__"])
+const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context"])
 
 /**
  * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
@@ -184,8 +189,9 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     const targetConditions = []
     for (const targetURI of targetURIs) {
         if (!/^https?:\/\//.test(targetURI)) {
-            // Not a URI, so there is no http/https spelling or fragment of it to anticipate.
-            targetConditions.push({ "target": targetURI })
+            // Not a URI, so there is no http/https spelling or fragment of it to anticipate, but it
+            // can still sit under any of the target keys.
+            for (const targetKey of TARGET_KEYS) targetConditions.push({ [targetKey]: targetURI })
             continue
         }
         // Hanging a fragment off the URI is the other W3C way to target part of a resource rather

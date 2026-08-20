@@ -401,8 +401,8 @@ const expandedId = async function (req, res, next) {
         }
         let expanded = await expand(match, generator)
         res.set(utils.configureWebAnnoHeadersFor(expanded))
-        // Safe to negotiate after the merge here.  expand() wraps every assertion in a
-        // valueObject, so a contributed '@context' is a non-string that _contextid() skips.
+        // Safe to negotiate after the merge here.  '@context' is a protected key, so no Annotation
+        // can contribute one, and expand() wraps every assertion it does merge in a valueObject.
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set("Cache-Control", "max-age=86400, must-revalidate")
