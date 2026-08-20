@@ -197,18 +197,25 @@ describe('GET /id/:id/expanded', () => {
     assert.strictEqual(response.headers['annotations-merged'], '1')
     assert.strictEqual(response.headers['cache-control'], 'max-age=86400, must-revalidate')
     assert.strictEqual(response.headers['current-overwritten-version'], '')
+  })
 
-    // A container-typed record gets the Web Annotation Link header, including when its type is
-    // serialized as a JSON-LD Array.
+  it('sends the Web Annotation Link header for a container-typed record', async () => {
+    // The type may be serialized as a JSON-LD Array, which still names a container.
     const container = structuredClone(expandableDoc)
     container["@type"] = ["Manifest", "AnnotationPage"]
     armExpansion(container, [])
-    const containerResp = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
-    assert.match(containerResp.headers.link, /anno\.jsonld/)
 
+    const response = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
+
+    assert.match(response.headers.link, /anno\.jsonld/)
+  })
+
+  it('returns 404 when the object is not in RERUM', async () => {
     db.findOne.mockResolvedValueOnce(null)
-    const missResp = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
-    assert.strictEqual(missResp.statusCode, 404, 'a record that is not in RERUM has no expansion')
+
+    const response = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
+
+    assert.strictEqual(response.statusCode, 404, 'a record that is not in RERUM has no expansion')
   })
 
   it('merges the anticipated body formats, collecting collisions into an Array', async () => {
@@ -365,7 +372,11 @@ describe('POST /id/:id/expanded', () => {
   it('expands unfiltered when no body is supplied', async () => {
     armExpansion(expandableDoc, [anno({ body: { subject: "history" } })])
 
-    const response = await request(routeTester).post(`/id/${EXPAND_ID}/expanded`)
+    // routes/id.js gates POST behind rest.verifyJsonContentType, so a client reaches the
+    // unfiltered expansion by declaring JSON and sending nothing, not by omitting Content-Type.
+    const response = await request(routeTester)
+      .post(`/id/${EXPAND_ID}/expanded`)
+      .set('Content-Type', 'application/json')
 
     assert.strictEqual(response.statusCode, 200)
     assert.strictEqual(response.body.subject, "history")
@@ -373,7 +384,8 @@ describe('POST /id/:id/expanded', () => {
   })
 
   it('returns 400 when the body is not a filter object', async () => {
-    db.findOne.mockResolvedValueOnce(structuredClone(expandableDoc))
+    // Nothing is armed.  A rejected body must not reach the record read or the Annotation query.
+    capturedQuery = undefined
 
     const response = await request(routeTester)
       .post(`/id/${EXPAND_ID}/expanded`)
@@ -381,11 +393,20 @@ describe('POST /id/:id/expanded', () => {
       .send([{ motivation: "describing" }])
 
     assert.strictEqual(response.statusCode, 400)
+    assert.strictEqual(capturedQuery, undefined, 'a malformed filter body is rejected before any read')
   })
 })
 
 // RFC 9110 s9.3.2: HEAD sends the same headers a GET would.
 describe('HEAD /id/:id/expanded', () => {
+  it('returns 404 when the object is not in RERUM', async () => {
+    db.findOne.mockResolvedValueOnce(null)
+
+    const response = await request(routeTester).head(`/id/${EXPAND_ID}/expanded`)
+
+    assert.strictEqual(response.statusCode, 404)
+  })
+
   it('sends the same headers and Content-Length as the GET, with no body', async () => {
     armExpansion(expandableDoc, [anno({ body: { subject: "history" } })])
     const getResp = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
@@ -397,8 +418,13 @@ describe('HEAD /id/:id/expanded', () => {
     assert.ok(Number(getResp.headers['content-length']) > 0, 'GET must report a Content-Length')
     assert.strictEqual(headResp.headers['content-length'], getResp.headers['content-length'])
     assert.ok(headResp.headers['etag'], 'HEAD must report an ETag to validate against')
+    // Unlike GET /id/:_id, the expansion sends no Last-Modified.  It is assembled from the record
+    // and its Annotations, which have no single modification time, so revalidate on the ETag.
+    assert.strictEqual(getResp.headers['last-modified'], undefined,
+      'an assembled entity has no single modification time to report')
     for (const header of ['cache-control', 'etag', 'content-type', 'link', 'allow',
-      'current-overwritten-version', 'location', 'annotations-gathered', 'annotations-merged']) {
+      'current-overwritten-version', 'location', 'annotations-gathered', 'annotations-merged',
+      'last-modified']) {
       assert.strictEqual(headResp.headers[header], getResp.headers[header],
         `HEAD and GET must agree on ${header}`)
     }

@@ -54,6 +54,9 @@ describe('utils.js configureRerumOptions', () => {
   const AGENT = 'https://store.rerum.io/v1/id/legitimate-agent'
   const RECEIVED_ID = 'https://store.rerum.io/v1/id/received-id'
   const FORGED = {
+    generatedBy: 'https://attacker.example/forged',
+    isReleased: '2020-01-01T00:00:00.000',
+    isOverwritten: '2020-01-01T00:00:00.000',
     history: { prime: 'https://store.rerum.io/v1/id/forged-prime', previous: 'https://store.rerum.io/v1/id/forged-previous', next: ['https://store.rerum.io/v1/id/forged-next'] },
     releases: { previous: 'https://store.rerum.io/v1/id/forged-release', next: [], replaces: '' }
   }
@@ -64,6 +67,10 @@ describe('utils.js configureRerumOptions', () => {
     assert.strictEqual(created.__rerum.history.previous, '')
     assert.deepStrictEqual(created.__rerum.history.next, [])
     assert.strictEqual(created.__rerum.releases.previous, '')
+    // isReleased gates release and overwrite, isOverwritten is the optimistic locking token.
+    assert.strictEqual(created.__rerum.generatedBy, AGENT, 'attribution cannot be forged')
+    assert.strictEqual(created.__rerum.isReleased, '', 'a client cannot mint a pre-released object')
+    assert.strictEqual(created.__rerum.isOverwritten, '', 'a client cannot mint a locking token')
 
     // An external object imported through an update is also a root, but it remembers its external self.
     const imported = utils.configureRerumOptions(AGENT, { '@id': 'https://elsewhere.example.org/thing', __rerum: structuredClone(FORGED) }, false, true)
@@ -361,7 +368,7 @@ describe('controllers/utils.js findLeafAnnotationsFor', () => {
   function armFind(docs = []) {
     resetMocks()
     capturedQuery = undefined
-    db.find.mockImplementation(query => {
+    db.find.mockImplementationOnce(query => {
       capturedQuery = query
       return createCursor(docs)
     })
@@ -406,4 +413,12 @@ describe('controllers/utils.js findLeafAnnotationsFor', () => {
     assert.strictEqual(targetConditions().length, TARGET_KEYS.length, 'a non-URI target has no scheme or fragment to anticipate')
   })
 
+  it('gathers nothing rather than querying on an empty $or when there is no target', async () => {
+    // An empty '$or' is a MongoDB error, not an empty result, so the query is never sent.
+    armFind([{ _id: 'anno001', type: 'Annotation' }])
+
+    assert.deepStrictEqual(await findLeafAnnotationsFor([undefined, '', null]), [])
+    assert.deepStrictEqual(await findLeafAnnotationsFor(undefined), [])
+    assert.strictEqual(capturedQuery, undefined, 'nothing to target is nothing to gather')
+  })
 })
