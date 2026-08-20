@@ -45,24 +45,17 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
         //We are either updating an existing RERUM object or creating a new one.
         if(received_options.hasOwnProperty("history")){
             const received_history = received_options.history
-            if(update){
-                //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
-                if(received_history.prime === "root"){
-                    //Hitting this case means we are updating from the prime object, so we can't pass "root" on as the prime value
-                    history_prime = received["@id"] ?? received.id ?? ""
-                }
-                else{
-                    //Hitting this means we are updating an object that already knows its prime, so we can pass on the prime value
-                    history_prime = received_history.prime
-                }
-                //Either way, we know the previous value shold be the @id of the object received here. 
-                history_previous = received["@id"] ?? received.id ?? ""
+            //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
+            if(received_history.prime === "root"){
+                //Hitting this case means we are updating from the prime object, so we can't pass "root" on as the prime value
+                history_prime = received["@id"] ?? received.id ?? ""
             }
             else{
-                //Hitting this means we are saving a new object and found that __rerum.history existed.  We don't trust it, act like it doesn't have it.
-                history_prime = "root"
-                history_previous = ""
+                //Hitting this means we are updating an object that already knows its prime, so we can pass on the prime value
+                history_prime = received_history.prime
             }
+            //Either way, we know the previous value shold be the @id of the object received here. 
+            history_previous = received["@id"] ?? received.id ?? ""
         }
         else{
             //Hitting this means we are are saving an object that did not have __rerum history.  This is normal   

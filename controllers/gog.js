@@ -400,7 +400,8 @@ const expandedId = async function (req, res, next) {
             return next(utils.createExpressError(err))
         }
         let expanded = await expand(match, generator)
-        res.set(utils.configureWebAnnoHeadersFor(expanded))
+        // Headers describe the stored record, so they match GET /v1/id/:_id for the same record.
+        res.set(utils.configureWebAnnoHeadersFor(match))
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set("Cache-Control", "max-age=86400, must-revalidate")
