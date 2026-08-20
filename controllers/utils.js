@@ -152,11 +152,9 @@ function escapeRegex(literal) {
  *
  * Only 'target' and 'body' are read, whatever the type spelling says.
  *
- * Any entity can answer to more than one URI.  A record minted with a Slug resolves at both
- * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
- * either one.  Every match is gathered, in a single cursor the driver pages in strides of
- * EXPANSION_BATCH_SIZE.  The query plan yields no order, so the result is sorted by '_id' before it
- * is returned.  That is roughly Annotation creation order, and it makes the expansion reproducible.
+ * Any entity can answer to more than one URI because of Slugs  Every match is gathered, in a single cursor.
+ * The result is sorted by '_id' before it is returned.  That is roughly Annotation creation order, and it makes
+ * the expansion reproducible.
  *
  * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
  * is known by when it answers to more than one.
