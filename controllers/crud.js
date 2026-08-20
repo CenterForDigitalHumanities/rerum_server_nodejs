@@ -275,7 +275,11 @@ const idExpanded = async function (req, res, next) {
         // Every leaf Annotation matching the filter is gathered.  This is the count.
         res.set('Annotations-Gathered', String(annos.length))
         // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
-        const merged = annos.map(anno => assertionsFrom(anno)).filter(assertions => assertions.length > 0)
+        // The count reports the Annotations that actually alter the entity.
+        const merged = annos
+            .map(anno => assertionsFrom(anno)
+            .filter(([key]) => !PROTECTED_EXPANSION_KEYS.has(key)))
+            .filter(assertions => assertions.length > 0)
         res.set('Annotations-Merged', String(merged.length))
         // Negotiate first, so identity is settled from the record's own '@context' before anything is merged.
         const negotiated = idNegotiation(match)
