@@ -208,6 +208,7 @@ describe('unsupported-method 405 fallbacks', () => {
     { label: '/delete/:_id',    router: deleteRouter,     path: '/:_id' },
     { label: '/history/:_id',   router: historyRouter,    path: '/:_id' },
     { label: '/id/:_id',        router: idRouter,         path: '/:_id' },
+    { label: '/id/:_id/expanded', router: idRouter,       path: '/:_id/expanded' },
     { label: '/since/:_id',     router: sinceRouter,      path: '/:_id' },
     { label: '/_gog_fragments_from_manuscript', router: gogFragmentsRouter, path: '/' },
     { label: '/_gog_glosses_from_manuscript',   router: gogGlossesRouter,   path: '/' }
