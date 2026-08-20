@@ -27,8 +27,6 @@ const mountedApiRoutes = [
   { name: '/v1/api/release/{id}', method: 'patch', path: '/v1/api/release/test-mounted-id' },
   { name: '/v1/api/search', method: 'post', path: '/v1/api/search', headers: { 'Content-Type': 'text/plain' }, body: 'mounted search' },
   { name: '/v1/api/search/phrase', method: 'post', path: '/v1/api/search/phrase', headers: { 'Content-Type': 'text/plain' }, body: 'mounted phrase search' },
-  // A missing record answers 404 here, which an unmounted path would too.  PUT is the
-  // method this route rejects, so a non-404 proves the router is wired up.
   { name: '/v1/id/{_id}/expanded', method: 'put', path: '/v1/id/test-mounted-id/expanded' }
 ]
 

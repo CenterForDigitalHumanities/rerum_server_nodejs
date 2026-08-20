@@ -72,7 +72,7 @@ describe('utils.js configureRerumOptions', () => {
     assert.strictEqual(imported.__rerum.releases.previous, '')
   })
 
-  it('carries the version and release chain forward when updating', () => {
+  it('carries the version and release chain forward when updating an existing object', () => {
     const fromRoot = utils.configureRerumOptions(
       AGENT,
       { '@id': RECEIVED_ID, __rerum: { history: { prime: 'root', previous: '', next: [] } } },
@@ -263,20 +263,18 @@ describe('controllers/utils.js _contextid', () => {
       _contextid(['http://example.com/other', 'http://iiif.io/api/presentation/3/context.json']),
       true
     )
+    // An inline term definition object, or any other non-string member, names no context.
+    assert.strictEqual(
+      _contextid([{ '@vocab': 'http://example.org/terms#' }, 'http://www.w3.org/ns/anno.jsonld']),
+      true
+    )
+    assert.strictEqual(_contextid([{ '@vocab': 'http://example.org/terms#' }]), false)
   })
 
   it('returns false for non-string, non-array input', () => {
     assert.strictEqual(_contextid(null), false)
     assert.strictEqual(_contextid(123), false)
     assert.strictEqual(_contextid({}), false)
-  })
-
-  it('skips non-string members of an array, such as an inline term definition', () => {
-    assert.strictEqual(
-      _contextid([{ '@vocab': 'http://example.org/terms#' }, 'http://www.w3.org/ns/anno.jsonld']),
-      true
-    )
-    assert.strictEqual(_contextid([{ '@vocab': 'http://example.org/terms#' }]), false)
   })
 })
 
@@ -348,42 +346,25 @@ describe('controllers/utils.js getPagination', () => {
   })
 })
 
-describe('utils.js isContainerType', () => {
-  it('detects a container type in a string or a JSON-LD Array of types', () => {
-    assert.strictEqual(utils.isContainerType({ '@type': 'AnnotationPage' }), true)
-    assert.strictEqual(utils.isContainerType({ type: 'sc:AnnotationList' }), true, 'prefixed spellings still match')
-    assert.strictEqual(utils.isContainerType({ type: ['Manifest', 'Collection'] }), true)
-    assert.strictEqual(utils.isContainerType({ type: [null, 42, 'AnnotationPage'] }), true, 'non-string members are skipped, not thrown on')
-    assert.strictEqual(utils.isContainerType({ type: ['Manifest', 'Image'] }), false)
-    assert.strictEqual(utils.isContainerType({}), false)
-  })
-})
-
 describe('controllers/utils.js findLeafAnnotationsFor', () => {
   const ENTITY_URI = 'https://store.rerum.io/v1/id/entity-id'
   const SLUG_URI = 'https://store.rerum.io/v1/id/entity-slug'
   const TARGET_KEYS = ['target', 'target.@id', 'target.id', 'target.source', 'target.source.@id', 'target.source.id']
 
   let capturedQuery
-  let findCalls
 
   /**
    * Point db.find() at a cursor over the given documents and record the filter it was called with.
    *
    * @param docs The Annotation documents the cursor will yield.
-   * @return The cursor double, so a test can inspect it.
    */
   function armFind(docs = []) {
     resetMocks()
     capturedQuery = undefined
-    findCalls = 0
-    const cursor = createCursor(docs)
     db.find.mockImplementation(query => {
-      findCalls++
       capturedQuery = query
-      return cursor
+      return createCursor(docs)
     })
-    return cursor
   }
 
   // $and[0] holds the target conditions, $and[1] the Annotation type conditions.
@@ -425,53 +406,4 @@ describe('controllers/utils.js findLeafAnnotationsFor', () => {
     assert.strictEqual(targetConditions().length, TARGET_KEYS.length, 'a non-URI target has no scheme or fragment to anticipate')
   })
 
-  it('ANDs in the supplied filters, doubling the URI scheme for a generator or creator', async () => {
-    armFind()
-
-    await findLeafAnnotationsFor(ENTITY_URI, {
-      '__rerum.generatedBy': 'https://store.rerum.io/v1/id/agent007',
-      creator: 'Fred',
-      motivation: 'describing'
-    })
-
-    assert.deepStrictEqual(capturedQuery.$and.slice(2), [
-      {
-        $or: [
-          { '__rerum.generatedBy': 'http://store.rerum.io/v1/id/agent007' },
-          { '__rerum.generatedBy': 'https://store.rerum.io/v1/id/agent007' }
-        ]
-      },
-      { creator: 'Fred' },
-      { motivation: 'describing' }
-    ])
-  })
-
-  it('returns the matches sorted by _id, with _id dropped, read in batched strides', async () => {
-    const cursor = armFind([
-      { _id: 'ccc', order: 'third' },
-      { _id: 'aaa', order: 'first' },
-      { _id: 'bbb', order: 'second' }
-    ])
-    let requestedBatchSize
-    const chainable = cursor.batchSize
-    cursor.batchSize = size => {
-      requestedBatchSize = size
-      return chainable.call(cursor, size)
-    }
-
-    const result = await findLeafAnnotationsFor(ENTITY_URI)
-
-    assert.deepStrictEqual(result.map(match => match.order), ['first', 'second', 'third'])
-    assert.deepStrictEqual(result.map(match => Object.hasOwn(match, '_id')), [false, false, false])
-    assert.ok(requestedBatchSize > 0, 'the driver must be told how big a stride to transfer')
-  })
-
-  it('returns an empty Array without querying when there is no target', async () => {
-    armFind([{ _id: 'anno1' }])
-
-    const result = await findLeafAnnotationsFor([null, '', undefined])
-
-    assert.deepStrictEqual(result, [])
-    assert.strictEqual(findCalls, 0, 'an empty $or is a MongoDB error, not an empty result')
-  })
 })

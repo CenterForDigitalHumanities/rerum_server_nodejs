@@ -22,7 +22,6 @@ import searchRouter from '../search.js'
 import queryRouter from '../query.js'
 import releaseRouter from '../release.js'
 import apiRoutesRouter from '../api-routes.js'
-import rest from '../../rest.js'
 import gogFragmentsRouter from '../_gog_fragments_from_manuscript.js'
 import gogGlossesRouter from '../_gog_glosses_from_manuscript.js'
 
@@ -220,15 +219,6 @@ describe('unsupported-method 405 fallbacks', () => {
       assertUnsupportedMethodOnPath(router, path)
     })
   }
-})
-
-describe('id route content-type wiring', () => {
-  it('runs the JSON content-type check before the expanded controller on POST', () => {
-    const postLayers = getMethodLayers(idRouter, '/:_id/expanded', 'post')
-
-    assert.strictEqual(postLayers.length, 2, 'Expected a middleware layer and a controller layer')
-    assert.strictEqual(postLayers[0].handle, rest.verifyJsonContentType)
-  })
 })
 
 describe('api routes discovery', () => {

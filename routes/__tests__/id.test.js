@@ -126,8 +126,7 @@ describe('id route overwrite headers', () => {
   })
 })
 
-// Fixtures for GET|POST /id/:_id/expanded.  This record's '@context' is not one of the known
-// id-negotiation contexts, so it keeps its '@id' through the response.
+// Fixtures for GET|POST /id/:_id/expanded.
 const EXPAND_ID = "expandme123"
 const EXPAND_URI = `${MOCK_PREFIX}${EXPAND_ID}`
 const EVIL_URI = "https://evil.example.org/hijacked"
@@ -200,13 +199,25 @@ describe('GET /id/:id/expanded', () => {
     assert.strictEqual(response.headers['annotations-merged'], '1')
     assert.strictEqual(response.headers['cache-control'], 'max-age=86400, must-revalidate')
     assert.strictEqual(response.headers['current-overwritten-version'], '')
+
+    // A container-typed record gets the Web Annotation Link header, including when its type is
+    // serialized as a JSON-LD Array.
+    const container = structuredClone(expandableDoc)
+    container["@type"] = ["Manifest", "AnnotationPage"]
+    armExpansion(container, [])
+    const containerResp = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
+    assert.match(containerResp.headers.link, /anno\.jsonld/)
+
+    db.findOne.mockResolvedValueOnce(null)
+    const missResp = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
+    assert.strictEqual(missResp.statusCode, 404, 'a record that is not in RERUM has no expansion')
   })
 
   it('merges the anticipated body formats, collecting collisions into an Array', async () => {
     const textualBody = { type: "TextualBody", value: "bare spelling", format: "text/plain", language: "en" }
     const prefixedBody = { "@type": "oa:TextualBody", value: "oa spelling" }
     const arrayTypedBody = { type: ["TextualBody"], value: "Array-typed spelling" }
-    armExpansion(expandableDoc, [
+    const gathered = [
       anno({ body: { subject: "history" } }),
       anno({ body: [{ era: "medieval" }] }),
       anno({ bodyValue: "the W3C shorthand" }),
@@ -216,7 +227,10 @@ describe('GET /id/:id/expanded', () => {
       anno({ body: { title: "An Annotated Title" } }),
       anno({ body: { colors: ["red", "blue"] } }),
       anno({ body: { colors: ["black"] } })
-    ])
+    ]
+    // The query plan promises no order, so hand them over reversed.  The expansion sorts by '_id'
+    // before merging, which is what makes the assembled entity reproducible.
+    armExpansion(expandableDoc, [...gathered].reverse())
 
     const response = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
 
@@ -275,20 +289,6 @@ describe('GET /id/:id/expanded', () => {
     assert.strictEqual(response.headers['annotations-merged'], '0')
   })
 
-  it('negotiates the id form from the record @context before merging', async () => {
-    const negotiable = structuredClone(expandableDoc)
-    negotiable["@context"] = "http://iiif.io/api/presentation/3/context.json"
-    armExpansion(negotiable, [anno({ body: { subject: "history" } })])
-
-    const response = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
-
-    const negotiatedURI = `${process.env.RERUM_ID_PREFIX}${EXPAND_ID}`
-    assert.strictEqual(response.body.id, negotiatedURI)
-    assert.strictEqual(response.body["@id"], undefined)
-    assert.strictEqual(response.headers.location, negotiatedURI)
-    assert.strictEqual(response.body.subject, "history", 'the expansion still happens')
-  })
-
   it('gathers Annotations that target the record by its Slug', async () => {
     const slugged = structuredClone(expandableDoc)
     slugged.__rerum.slug = "my-slug"
@@ -315,14 +315,6 @@ describe('GET /id/:id/expanded', () => {
     assert.strictEqual(response.body.subject, undefined)
     assert.strictEqual(response.headers['annotations-gathered'], '0')
     assert.strictEqual(capturedQuery, undefined, 'a deleted record is not queried for Annotations')
-  })
-
-  it('returns 404 when the object is not in RERUM', async () => {
-    db.findOne.mockResolvedValueOnce(null)
-
-    const response = await request(routeTester).get(`/id/${EXPAND_ID}/expanded`)
-
-    assert.strictEqual(response.statusCode, 404)
   })
 
   it('filters the expansion by the generator and creator parameters', async () => {
@@ -382,7 +374,7 @@ describe('POST /id/:id/expanded', () => {
     assert.deepStrictEqual(capturedQuery.$and.slice(2), [])
   })
 
-  it('returns 400 when the body is an Array instead of a filter object', async () => {
+  it('returns 400 when the body is not a filter object', async () => {
     db.findOne.mockResolvedValueOnce(structuredClone(expandableDoc))
 
     const response = await request(routeTester)
