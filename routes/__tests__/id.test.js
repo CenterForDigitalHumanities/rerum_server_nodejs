@@ -9,8 +9,6 @@ import controller from '../../db-controller.js'
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
 
-// The /expanded sub-path is mounted first because the prefix-matching /id/:_id mount below would
-// otherwise swallow it.  This mirrors the route order in routes/id.js.
 routeTester.use("/id/:_id/expanded", controller.idExpanded)
 
 // Mount our own /id route without auth, matching routes/id.js: GET only, no HEAD handler.
