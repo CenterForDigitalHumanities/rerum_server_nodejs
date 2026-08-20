@@ -37,6 +37,8 @@ import { db, resetMocks, createCursor } from '../../database/index.js'
 
 beforeEach(() => {
   resetMocks()
+  // Restart the anno() sequence below, so each test's merge order is its own call order.
+  annoCount = 0
 })
 
 it("'/id/:id' route functions", async () => {
@@ -325,7 +327,7 @@ describe('GET /id/:id/expanded', () => {
   it('filters the expansion by the generator and creator parameters', async () => {
     armExpansion(expandableDoc, [])
 
-    await request(routeTester).get(`/id/${EXPAND_ID}/expanded?generator=${MOCK_AGENT}&creator=Fred`)
+    await request(routeTester).get(`/id/${EXPAND_ID}/expanded?generator=${encodeURIComponent(MOCK_AGENT)}&creator=Fred`)
 
     // $and[0] is the target condition and $and[1] the Annotation type condition.
     assert.deepStrictEqual(capturedQuery.$and.slice(2), [
@@ -350,7 +352,7 @@ describe('POST /id/:id/expanded', () => {
     armExpansion(expandableDoc, [])
 
     const response = await request(routeTester)
-      .post(`/id/${EXPAND_ID}/expanded?generator=${MOCK_AGENT}`)
+      .post(`/id/${EXPAND_ID}/expanded?generator=${encodeURIComponent(MOCK_AGENT)}`)
       .set('Content-Type', 'application/json')
       .send({
         target: EVIL_URI,

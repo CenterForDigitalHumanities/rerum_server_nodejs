@@ -199,8 +199,9 @@ const requiredResponseCodes = {
   // 409 is reachable via slug conflict (utils.createExpressError maps code 11000 → 409).
   'PATCH /api/release/{id}': ['200', '400', '401', '403', '404', '409'],
   'GET /id/{id}': ['200', '404'],
-  // The expanded reads are covered in routes/__tests__/id.test.js: 404 on a miss, and a
-  // POST that reads filters from its body, so it also answers the body-related codes.
+  // 200/400/404 are asserted in routes/__tests__/id.test.js.  413 comes from the global 5mb
+  // express.json limit in app.js and 415 from rest.verifyJsonContentType, both covered
+  // generically in routes/__tests__/{routes_mounted,contentType}.test.js as for the /api routes.
   'GET /id/{id}/expanded': ['200', '404'],
   'POST /id/{id}/expanded': ['200', '400', '404', '413', '415'],
   'GET /since/{id}': ['200', '404'],
