@@ -394,15 +394,13 @@ const expandedId = async function (req, res, next) {
         const agentID = generator?.split("/").pop()
         if (!GOG_AGENTS.includes(agentID)) {
             err = Object.assign(err, {
-                message: `This request can only be made for Gallery of Glosses generated data.`,
-                status: 403
+                message: `No Gallery of Glosses record with id '${id}'.  This URI serves GoG generated data only.`,
+                status: 404
             })
             return next(utils.createExpressError(err))
         }
         let expanded = await expand(match, generator)
         res.set(utils.configureWebAnnoHeadersFor(expanded))
-        // Safe to negotiate after the merge here.  '@context' is a protected key, so no Annotation
-        // can contribute one, and expand() wraps every assertion it does merge in a valueObject.
         expanded = idNegotiation(expanded)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         res.set("Cache-Control", "max-age=86400, must-revalidate")

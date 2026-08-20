@@ -283,7 +283,10 @@ const idExpanded = async function (req, res, next) {
         const expanded = deleted ? negotiated : applyExpansionAnnotations(negotiated, merged)
         // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
         if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
-        res.set(utils.configureWebAnnoHeadersFor(expanded))
+        // Headers describe the stored record, so they match GET /v1/id/:_id for the same record.
+        // 'type' and '@type' are not protected keys, so an Annotation can contribute one to the
+        // payload.  It does not get to change what this URI advertises itself as.
+        res.set(utils.configureWebAnnoHeadersFor(negotiated))
         // Include current version for optimistic locking
         res.set('Current-Overwritten-Version', currentVersion)
         res.location(identity)

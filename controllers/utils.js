@@ -155,12 +155,13 @@ function escapeRegex(literal) {
  * Any entity can answer to more than one URI.  A record minted with a Slug resolves at both
  * '<prefix>/id/<_id>' and '<prefix>/id/<slug>', and an Annotation may legitimately target it by
  * either one.  Every match is gathered, in a single cursor the driver pages in strides of
- * EXPANSION_BATCH_SIZE.  Result order is whatever the query plan yields and is not guaranteed.
+ * EXPANSION_BATCH_SIZE.  The query plan yields no order, so the result is sorted by '_id' before it
+ * is returned.  That is roughly Annotation creation order, and it makes the expansion reproducible.
  *
  * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
  * is known by when it answers to more than one.
  * @param filters Literal MongoDB filter keys to AND into the query.
- * @return An Array of every matching Annotation document, with '_id' removed.
+ * @return An Array of every matching Annotation document sorted by '_id', with '_id' removed.
  */
 const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     const EXPANSION_BATCH_SIZE = 200
@@ -214,9 +215,17 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
     const matches = []
     // One cursor, paged server-side by the driver. The cursor transfers in the same stride and reads each document once.
     for await (const anno of db.find(queryObj).batchSize(EXPANSION_BATCH_SIZE)) {
-        delete anno._id
         matches.push(anno)
     }
+    // The query plan promises no order, so sort before '_id' is dropped.  The same data then always
+    // assembles into the same entity, which keeps the ETag stable and lets a revalidation answer 304.
+    matches.sort((a, b) => {
+        const left = String(a._id)
+        const right = String(b._id)
+        if (left < right) return -1
+        return left > right ? 1 : 0
+    })
+    for (const anno of matches) delete anno._id
     return matches
 }
 

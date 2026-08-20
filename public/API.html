@@ -1702,8 +1702,9 @@
             an Array. Two Annotations asserting
             <code class="language-plaintext highlighter-rouge">["red", "blue"]</code> and
             <code class="language-plaintext highlighter-rouge">["black", "white"]</code> produce
-            <code class="language-plaintext highlighter-rouge">["red", "blue", "black", "white"]</code>. 
-            Array order is not guaranteed.
+            <code class="language-plaintext highlighter-rouge">["red", "blue", "black", "white"]</code>.
+            The record's own value comes first, then the Annotations in the order they were created. Asking twice for a
+            record whose Annotations have not changed returns the same assembly both times.
         </p>
         <p class="alert">
             This holds for a property the record already carries as an Array too, so an Annotation asserting something
