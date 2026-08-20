@@ -136,8 +136,6 @@ const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
 
 /**
  * The Annotation body types whose value is kept whole rather than read as a single assertion.
- * 'http://www.w3.org/ns/oa#' is the canonical namespace, but a serializer may spell it 'https', so
- * both are matched here the same way they are in the Annotation type conditions.
  */
 const TEXTUAL_BODY_TYPES = new Set([
     "TextualBody", "oa:TextualBody",

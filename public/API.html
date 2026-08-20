@@ -1724,14 +1724,6 @@
             answers to the same URI as the record you asked for, and reads under the same
             <code class="language-plaintext highlighter-rouge">@context</code>.
         </p>
-        <p class="alert">
-            <code class="language-plaintext highlighter-rouge">@context</code> is held back because it is a processing
-            directive rather than something an Annotation asserts about the record. A body whose only key is
-            <code class="language-plaintext highlighter-rouge">@context</code> asserts nothing, and a merged-in context
-            would be cumulative&mdash;a term, <code class="language-plaintext highlighter-rouge">@vocab</code>, or
-            <code class="language-plaintext highlighter-rouge">@base</code> that the record's own
-            <code class="language-plaintext highlighter-rouge">@context</code> does not redefine would still apply.
-        </p>
         <p>
             Linked Data keywords that describe the record rather than identify it are not held back. An Annotation
             asserting <code class="language-plaintext highlighter-rouge">type</code> or

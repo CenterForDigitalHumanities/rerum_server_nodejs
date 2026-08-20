@@ -123,11 +123,6 @@ const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "targ
 /**
  * Identity, system, and processing properties an Annotation body must never overwrite when its
  * assertions are merged onto an entity.
- * '@context' is here because it is a processing directive rather than an assertion about the
- * entity.  A merged-in context is cumulative in JSON-LD -- a term, '@vocab', or '@base' that the
- * record's own context does not redefine still applies no matter where it sits in the Array -- and
- * it can flip _contextid(), which answers true for a known context anywhere in an Array.  A body
- * whose only key is '@context' asserts nothing, so holding it back costs no expressiveness.
  */
 const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context"])
 
@@ -177,8 +172,6 @@ const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
         "__rerum.history.next": { $exists: true, $size: 0 },
         "$and": []
     }
-    // 'http://www.w3.org/ns/oa#' is the canonical namespace, but a serializer may spell it 'https'
-    // the same way RERUM has minted its own URIs under both.  Both spellings are matched.
     const annoTypeConditions = [
         {"type": "Annotation"}, {"type": "oa:Annotation"},
         {"type": "http://www.w3.org/ns/oa#Annotation"}, {"type": "https://www.w3.org/ns/oa#Annotation"},
