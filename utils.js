@@ -28,7 +28,7 @@ isReleased        —always ""
 
 const configureRerumOptions = function(generator, received, update, extUpdate){
     let configuredObject = structuredClone(received)
-    let received_options = received.__rerum ? structuredClone(received.__rerum) : {}
+    let received_options = update && received.__rerum ? structuredClone(received.__rerum) : {}
     let history = {}
     let releases = {}
     let rerumOptions = {}
@@ -44,25 +44,18 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
     else{
         //We are either updating an existing RERUM object or creating a new one.
         if(received_options.hasOwnProperty("history")){
-            history = received_options.history
-            if(update){
-                //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
-                if(history.prime === "root"){
-                    //Hitting this case means we are updating from the prime object, so we can't pass "root" on as the prime value
-                    history_prime = received["@id"] ?? received.id ?? ""
-                }
-                else{
-                    //Hitting this means we are updating an object that already knows its prime, so we can pass on the prime value
-                    history_prime = history.prime
-                }
-                //Either way, we know the previous value shold be the @id of the object received here. 
-                history_previous = received["@id"] ?? received.id ?? ""
+            const received_history = received_options.history
+            //This means we are configuring from the update action and we have passed in a clone of the originating object (with its @id) that contained a __rerum.history
+            if(received_history.prime === "root"){
+                //Hitting this case means we are updating from the prime object, so we can't pass "root" on as the prime value
+                history_prime = received["@id"] ?? received.id ?? ""
             }
             else{
-                //Hitting this means we are saving a new object and found that __rerum.history existed.  We don't trust it, act like it doesn't have it.
-                history_prime = "root"
-                history_previous = ""
+                //Hitting this means we are updating an object that already knows its prime, so we can pass on the prime value
+                history_prime = received_history.prime
             }
+            //Either way, we know the previous value shold be the @id of the object received here. 
+            history_previous = received["@id"] ?? received.id ?? ""
         }
         else{
             //Hitting this means we are are saving an object that did not have __rerum history.  This is normal   
@@ -70,8 +63,7 @@ const configureRerumOptions = function(generator, received, update, extUpdate){
             history_previous = ""
         }
         if(received_options.hasOwnProperty("releases")){
-            releases = received_options.releases
-            releases_previous = releases.previous
+            releases_previous = received_options.releases.previous
         }
         else{
             releases_previous = ""         
@@ -179,7 +171,8 @@ const configureLDHeadersFor = function(obj){
  */ 
 const isContainerType = function(obj){
     let answer = false
-    let typestring = obj["@type"] ?? obj.type ?? ""
+    const typeValue = obj["@type"] ?? obj.type ?? ""
+    const typestrings = (Array.isArray(typeValue) ? typeValue : [typeValue]).filter(t => typeof t === "string")
     const knownContainerTypes = [
         "ItemList",
         "AnnotationPage",
@@ -192,9 +185,9 @@ const isContainerType = function(obj){
         "Set",
         "Collection"
     ]
-    for(const t of knownContainerTypes){
+    for(const typestring of typestrings){
         //Dang those pesky prefixes...circumventing exact match for now
-        if(typestring.includes(t)){
+        if(knownContainerTypes.some(t => typestring.includes(t))){
             answer = true
             break
         }

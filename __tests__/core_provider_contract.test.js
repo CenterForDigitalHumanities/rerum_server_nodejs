@@ -199,11 +199,15 @@ const requiredResponseCodes = {
   // 409 is reachable via slug conflict (utils.createExpressError maps code 11000 → 409).
   'PATCH /api/release/{id}': ['200', '400', '401', '403', '404', '409'],
   'GET /id/{id}': ['200', '404'],
+  // 200/400/404 are asserted in routes/__tests__/id.test.js.  413 and 415 come from Express handlers.
+  'GET /id/{id}/expanded': ['200', '404'],
+  'POST /id/{id}/expanded': ['200', '400', '404', '413', '415'],
   'GET /since/{id}': ['200', '404'],
   'GET /history/{id}': ['200', '404'],
   // HEAD parity tests in routes/__tests__/{id,since,history,query}.test.js assert 404 on miss;
   // enforce that the contract declares the same so drift on either side is caught.
   'HEAD /id/{id}': ['200', '404'],
+  'HEAD /id/{id}/expanded': ['200', '404'],
   'HEAD /since/{id}': ['200', '404'],
   'HEAD /history/{id}': ['200', '404'],
   'HEAD /api/query': ['200', '404'],

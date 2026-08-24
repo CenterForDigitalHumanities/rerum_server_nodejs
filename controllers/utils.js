@@ -30,7 +30,7 @@ function getPagination(query = {}, defaultLimit = 100) {
 /**
  * Check if a @context value contains a known @id-id mapping context
  *
- * @param contextInput An Array of string URIs or a string URI.
+ * @param contextInput A string URI, or an Array of them.
  * @return A boolean
  */
 function _contextid(contextInput) {
@@ -46,6 +46,8 @@ function _contextid(contextInput) {
     ]
     if(Array.isArray(contextInput)) {
         for(const c of contextInput) {
+            // An inline term definition object, or any other non-string member, names no context.
+            if(typeof c !== "string") continue
             contextURI = c
             bool = knownContexts.some(contextCheck)
             if(bool) break
@@ -70,14 +72,11 @@ const idNegotiation = function (resBody) {
     const _id = resBody._id
     delete resBody._id
     if(!resBody["@context"]) return resBody
-    let modifiedResBody = structuredClone(resBody)
+    if(!_contextid(resBody["@context"])) return structuredClone(resBody)
     const context = { "@context": resBody["@context"] }
-    if(_contextid(resBody["@context"])) {
-        delete resBody["@id"]
-        delete resBody["@context"]
-        modifiedResBody = Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
-    }
-    return modifiedResBody
+    delete resBody["@id"]
+    delete resBody["@context"]
+    return Object.assign(context, { "id": process.env.RERUM_ID_PREFIX + _id }, resBody)
 }
 
 /**
@@ -107,6 +106,125 @@ const generateSlugId = async function(slug_id="", next){
         }
     } 
     return slug_return
+}
+
+/**
+ * RERUM has minted these two under both 'http' and 'https' over the years, so a filter on either
+ * must match both spellings.  Every other supplied filter key is applied exactly as given.
+ */
+const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
+
+/**
+ * The properties an Annotation can carry the URI of its target under.
+ * Choice, Composite, and List target constructs, whose members sit in an 'items' Array.  They are not supported here.
+ */
+const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
+
+/**
+ * Identity, system, and processing properties an Annotation body must never overwrite when its
+ * assertions are merged onto an entity.
+ */
+const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context"])
+
+/**
+ * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
+ * itself.  A RERUM URI has at least the dots of its host to escape.
+ * @param literal A string to be matched literally.
+ * @return The same string, safe to concatenate into a RegExp source.
+ */
+function escapeRegex(literal) {
+    return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/**
+ * Find the current (leaf) Annotations targeting an entity, for expansion.
+ *
+ * Anticipates the likely Annotation target formats
+ *   - target: 'uri'
+ *   - target: {'id':'uri'}
+ *   - target: {'@id':'uri'}
+ *   - target: {'source':'uri', 'type':'SpecificResource'}       the W3C SpecificResource
+ *   - target: {'source':{'id':'uri'}}                           a SpecificResource with an embedded source
+ *   - target: 'uri#xywh=0,0,100,100'                            a fragment of the resource
+ * and the likely Annotation type formats
+ *   - {"type": "Annotation"}, {"type": "oa:Annotation"}, {"type": "http(s)://www.w3.org/ns/oa#Annotation"}
+ *   - {"@type": "Annotation"}, {"@type": "oa:Annotation"}, {"@type": "http(s)://www.w3.org/ns/oa#Annotation"}
+ *
+ * Only 'target' and 'body' are read, whatever the type spelling says.
+ *
+ * Any entity can answer to more than one URI because of Slugs  Every match is gathered, in a single cursor.
+ * The result is sorted by '_id' before it is returned.  That is roughly Annotation creation order, and it makes
+ * the expansion reproducible.
+ *
+ * @param targetIds The '@id' or 'id' URI of the entity being expanded, or an Array of the URIs it
+ * is known by when it answers to more than one.
+ * @param filters Literal MongoDB filter keys to AND into the query.
+ * @return An Array of every matching Annotation document sorted by '_id', with '_id' removed.
+ */
+const findLeafAnnotationsFor = async function (targetIds, filters = {}) {
+    const EXPANSION_BATCH_SIZE = 200
+    const targetURIs = [...new Set((Array.isArray(targetIds) ? targetIds : [targetIds]).filter(Boolean))]
+    // Nothing to target is nothing to gather.  An empty '$or' is a MongoDB error, not an empty result.
+    if (targetURIs.length === 0) return []
+    // '$and' is always present so the target, type, and filter conditions can push into it.
+    const queryObj = {
+        "__rerum.history.next": { $exists: true, $size: 0 },
+        "$and": []
+    }
+    const annoTypeConditions = [
+        {"type": "Annotation"}, {"type": "oa:Annotation"},
+        {"type": "http://www.w3.org/ns/oa#Annotation"}, {"type": "https://www.w3.org/ns/oa#Annotation"},
+        {"@type": "Annotation"}, {"@type": "oa:Annotation"},
+        {"@type": "http://www.w3.org/ns/oa#Annotation"}, {"@type": "https://www.w3.org/ns/oa#Annotation"}
+    ]
+    // Every URI the entity answers to contributes its conditions to the same '$or'.
+    const targetConditions = []
+    for (const targetURI of targetURIs) {
+        if (!/^https?:\/\//.test(targetURI)) {
+            // Not a URI, so there is no http/https spelling or fragment of it to anticipate, but it
+            // can still sit under any of the target keys.
+            for (const targetKey of TARGET_KEYS) targetConditions.push({ [targetKey]: targetURI })
+            continue
+        }
+        // Hanging a fragment off the URI is the other W3C way to target part of a resource rather
+        // than the whole of it, and an exact match will not catch one.
+        const fragmentPatterns = ["http", "https"].map(scheme =>
+            new RegExp(`^${escapeRegex(targetURI.replace(/^https?/, scheme))}#`)
+        )
+        // 'target.source' is the W3C SpecificResource, which is how an Annotation targets a
+        // selected region of a resource rather than the whole of it.
+        for (const targetKey of TARGET_KEYS) {
+            targetConditions.push({ [targetKey]: targetURI.replace(/^https?/, "http") })
+            targetConditions.push({ [targetKey]: targetURI.replace(/^https?/, "https") })
+            for (const fragmentPattern of fragmentPatterns) targetConditions.push({ [targetKey]: fragmentPattern })
+        }
+    }
+    queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
+    for (const [key, value] of Object.entries(filters)) {
+        if (URI_DOUBLED_FILTER_KEYS.has(key) && typeof value === "string" && /^https?:\/\//.test(value)) {
+            queryObj["$and"].push({"$or": [
+                { [key]: value.replace(/^https?/, "http") },
+                { [key]: value.replace(/^https?/, "https") }
+            ]})
+            continue
+        }
+        queryObj["$and"].push({ [key]: value })
+    }
+    const matches = []
+    // One cursor, paged server-side by the driver. The cursor transfers in the same stride and reads each document once.
+    for await (const anno of db.find(queryObj).batchSize(EXPANSION_BATCH_SIZE)) {
+        matches.push(anno)
+    }
+    // The query plan promises no order, so sort before '_id' is dropped.  The same data then always
+    // assembles into the same entity, which keeps the ETag stable and lets a revalidation answer 304.
+    matches.sort((a, b) => {
+        const left = String(a._id)
+        const right = String(b._id)
+        if (left < right) return -1
+        return left > right ? 1 : 0
+    })
+    for (const anno of matches) delete anno._id
+    return matches
 }
 
 // Handle index actions
@@ -465,6 +583,8 @@ async function healReleasesTree(releasing) {
 export {
     _contextid,
     idNegotiation,
+    findLeafAnnotationsFor,
+    PROTECTED_EXPANSION_KEYS,
     getPagination,
     generateSlugId,
     index,

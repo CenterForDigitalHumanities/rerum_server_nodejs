@@ -26,7 +26,8 @@ const mountedApiRoutes = [
   { name: '/v1/api/delete/{id}', method: 'delete', path: '/v1/api/delete/test-mounted-id' },
   { name: '/v1/api/release/{id}', method: 'patch', path: '/v1/api/release/test-mounted-id' },
   { name: '/v1/api/search', method: 'post', path: '/v1/api/search', headers: { 'Content-Type': 'text/plain' }, body: 'mounted search' },
-  { name: '/v1/api/search/phrase', method: 'post', path: '/v1/api/search/phrase', headers: { 'Content-Type': 'text/plain' }, body: 'mounted phrase search' }
+  { name: '/v1/api/search/phrase', method: 'post', path: '/v1/api/search/phrase', headers: { 'Content-Type': 'text/plain' }, body: 'mounted phrase search' },
+  { name: '/v1/id/{_id}/expanded', method: 'put', path: '/v1/id/test-mounted-id/expanded' }
 ]
 
 describe('Mounted route surface', () => {

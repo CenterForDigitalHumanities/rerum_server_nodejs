@@ -28,6 +28,15 @@ paths:
       responses:
         '200':
           description: Object payload
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/RecordCacheControl'
+            Last-Modified:
+              $ref: '#/components/headers/RecordLastModified'
+            Location:
+              $ref: '#/components/headers/CanonicalLocation'
+            Current-Overwritten-Version:
+              $ref: '#/components/headers/CurrentOverwrittenVersion'
           content:
             application/json:
               schema:
@@ -42,8 +51,112 @@ paths:
       responses:
         '200':
           description: Object headers
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/RecordCacheControl'
+            Last-Modified:
+              $ref: '#/components/headers/RecordLastModified'
+            Location:
+              $ref: '#/components/headers/CanonicalLocation'
+            Current-Overwritten-Version:
+              $ref: '#/components/headers/CurrentOverwrittenVersion'
         '404':
           $ref: '#/components/responses/NotFound'
+  /id/{id}/expanded:
+    get:
+      summary: Read object by id with its current Annotations merged in
+      operationId: getExpandedObjectById
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+        - $ref: '#/components/parameters/ExpansionGenerator'
+        - $ref: '#/components/parameters/ExpansionCreator'
+      responses:
+        '200':
+          description: >-
+            Expanded object payload. A deleted record is returned as stored, with no expansion.
+          headers:
+            Annotations-Gathered:
+              $ref: '#/components/headers/AnnotationsGathered'
+            Annotations-Merged:
+              $ref: '#/components/headers/AnnotationsMerged'
+            Cache-Control:
+              $ref: '#/components/headers/ExpansionCacheControl'
+            Location:
+              $ref: '#/components/headers/CanonicalLocation'
+            Current-Overwritten-Version:
+              $ref: '#/components/headers/CurrentOverwrittenVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          description: Method not allowed — this endpoint only permits GET, HEAD, and POST.
+    head:
+      summary: Read expanded object headers by id
+      operationId: headExpandedObjectById
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+        - $ref: '#/components/parameters/ExpansionGenerator'
+        - $ref: '#/components/parameters/ExpansionCreator'
+      responses:
+        '200':
+          description: >-
+            Expanded object headers. A deleted record is returned as stored, with no expansion.
+          headers:
+            Annotations-Gathered:
+              $ref: '#/components/headers/AnnotationsGathered'
+            Annotations-Merged:
+              $ref: '#/components/headers/AnnotationsMerged'
+            Cache-Control:
+              $ref: '#/components/headers/ExpansionCacheControl'
+            Location:
+              $ref: '#/components/headers/CanonicalLocation'
+            Current-Overwritten-Version:
+              $ref: '#/components/headers/CurrentOverwrittenVersion'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          description: Method not allowed — this endpoint only permits GET, HEAD, and POST.
+    post:
+      summary: Read object by id with its current Annotations merged in, filtered by the request body
+      operationId: postExpandedObjectById
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericObject'
+      responses:
+        '200':
+          description: >-
+            Expanded object payload. A deleted record is returned as stored, with no expansion.
+          headers:
+            Annotations-Gathered:
+              $ref: '#/components/headers/AnnotationsGathered'
+            Annotations-Merged:
+              $ref: '#/components/headers/AnnotationsMerged'
+            Location:
+              $ref: '#/components/headers/CanonicalLocation'
+            Current-Overwritten-Version:
+              $ref: '#/components/headers/CurrentOverwrittenVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          description: Method not allowed — this endpoint only permits GET, HEAD, and POST.
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
   /since/{id}:
     get:
       summary: Read updates since id
@@ -530,11 +643,71 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 components:
+  headers:
+    AnnotationsGathered:
+      description: >-
+        How many current Annotations targeting the entity were gathered for this expansion.
+      schema:
+        type: integer
+        minimum: 0
+    AnnotationsMerged:
+      description: >-
+        How many of the gathered Annotations could contribute an assertion.
+      schema:
+        type: integer
+        minimum: 0
+    ExpansionCacheControl:
+      description: >-
+        Browser caching policy for the expanded entity. An entity's Annotations are volatile while it
+        is first created and stable afterward, so the expansion is cacheable for 24 hours.
+      schema:
+        type: string
+        example: max-age=86400, must-revalidate
+    RecordCacheControl:
+      description: >-
+        Browser caching policy for the record. A record is only replaced by an update, which mints a
+        new URI, so the response at this URI is cacheable for 24 hours.
+      schema:
+        type: string
+        example: max-age=86400, must-revalidate
+    RecordLastModified:
+      description: >-
+        The record's '__rerum.isOverwritten' time, or its '__rerum.createdAt' time when it has never
+        been overwritten, so a client can revalidate with 'If-Modified-Since'.
+      schema:
+        type: string
+        format: date-time
+    CanonicalLocation:
+      description: >-
+        The canonical URI of the record, in its '_id' form. A request made by Slug is answered with
+        the stable '_id' URI here rather than the Slug it was asked for.
+      schema:
+        type: string
+    CurrentOverwrittenVersion:
+      description: >-
+        The record's '__rerum.isOverwritten' value, for optimistic locking. Empty when the record has
+        never been overwritten.
+      schema:
+        type: string
   parameters:
     ObjectId:
       in: path
       name: id
       required: true
+      schema:
+        type: string
+    ExpansionGenerator:
+      in: query
+      name: generator
+      required: false
+      description: Only expand with Annotations generated by this registered app agent.
+      schema:
+        type: string
+    ExpansionCreator:
+      in: query
+      name: creator
+      required: false
+      description: Only expand with Annotations attributed to this creator.
       schema:
         type: string
   schemas:

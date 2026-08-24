@@ -6,9 +6,9 @@
  * @author cubap, thehabes
  */
 
-import { newID, isValidID, db } from '../database/index.js'
+import { db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation } from './utils.js'
+import { _contextid, getAgentClaim, getPagination, idNegotiation, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 // The Gallery of Glosses agents, by RERUM ObjectId.  Prod (store) and dev (devstore) mint different
 // agents; only the trailing id is compared, so either host spelling matches.
@@ -312,20 +312,6 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
 * Find relevant Annotations targeting a primitive RERUM entity.  This is a 'full' expand.
 * Add the descriptive information in the Annotation bodies to the primitive object.
 *
-* Anticipate likely Annotation body formats
-*   - anno.body
-*   - anno.body.value
-*
-* Anticipate likely Annotation target formats
-*   - target: 'uri'
-*   - target: {'id':'uri'}
-*   - target: {'@id':'uri'}
-*
-* Anticipate likely Annotation type formats
-*   - {"type": "Annotation"}
-*   - {"@type": "Annotation"}
-*   - {"@type": "oa:Annotation"}
-*
 * @param primitiveEntity - An existing RERUM object
 * @param GENERATOR - A registered RERUM app's User Agent
 * @param CREATOR - Some kind of string representing a specific user.  Often combined with GENERATOR.
@@ -336,77 +322,26 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
     // An entity is expandable if it carries a URI under either '@id' or 'id'.
     if(!primitiveEntity?.["@id"] && !primitiveEntity?.id) return primitiveEntity
     const targetId = primitiveEntity["@id"] ?? primitiveEntity.id ?? "unknown"
-    // '$and' is always present so the GENERATOR and CREATOR blocks below can push into it from
-    // either branch.  'annoTypeConditions' is always pushed, so it is never the empty Array Mongo rejects.
-    let queryObj = {
-        "__rerum.history.next": { $exists: true, $size: 0 },
-        "$and": []
-    }
-    let targetPatterns = ["target", "target.@id", "target.id"]
-    let targetConditions = []
-    let annoTypeConditions = [{"type": "Annotation"}, {"@type":"Annotation"}, {"@type":"oa:Annotation"}]
-
-    if (targetId.startsWith("http")) {
-        for(const targetKey of targetPatterns){
-            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "http") })
-            targetConditions.push({ [targetKey]: targetId.replace(/^https?/, "https") })
-        }
-        queryObj["$and"].push({"$or": targetConditions}, {"$or": annoTypeConditions})
-    }
-    else{
-        queryObj["$and"].push({"$or": annoTypeConditions})
-        queryObj.target = targetId
-    }
-
-    // Only expand with data from a specific app
-    if(GENERATOR) {
-        // Need to check http:// and https://
-        const generatorConditions = [
-            {"__rerum.generatedBy":  GENERATOR.replace(/^https?/, "http")},
-            {"__rerum.generatedBy":  GENERATOR.replace(/^https?/, "https")}
-        ]
-        if (GENERATOR.startsWith("http")) {
-            queryObj["$and"].push({"$or": generatorConditions })
-        }
-        else{
-            // It should be a URI, but this can be a fallback.
-            queryObj["__rerum.generatedBy"] = GENERATOR
-        }
-    }
-    // Only expand with data from a specific creator
-    if(CREATOR) {
-        // Need to check http:// and https://
-        const creatorConditions = [
-            {"creator":  CREATOR.replace(/^https?/, "http")},
-            {"creator":  CREATOR.replace(/^https?/, "https")}
-        ]
-        if (CREATOR.startsWith("http")) {
-            queryObj["$and"].push({"$or": creatorConditions })
-        }
-        else{
-            // It should be a URI, but this can be a fallback.
-            queryObj["creator"] = CREATOR
-        }
-    }
-
-    // Get the Annotations targeting this Entity from the db.  Remove _id property.
-    // Assuming we do not need paged query here
-    let matches = await db.find(queryObj).toArray()
-    matches = matches.map(o => {
-        delete o._id
-        return o
-    })
+    const filters = {}
+    if(GENERATOR) filters["__rerum.generatedBy"] = GENERATOR
+    if(CREATOR) filters.creator = CREATOR
+    const matches = await findLeafAnnotationsFor(targetId, filters)
 
     // Combine the Annotation bodies with the primitive object.
-    // Mirror DEER's client-side expand() (deer-utils.js buildValueObject)
     // When more than one current Annotation asserts the same key, collect the values into an Array.
     let expandedEntity = structuredClone(primitiveEntity)
+    const rerumProp = expandedEntity.__rerum
+    delete expandedEntity.__rerum
     for(const anno of matches){
-        const body = anno.body
-        if(!body || typeof body !== "object") continue
+        // In JSON-LD a one-element Array and the bare value are the same body, so unwrap it first.
+        const body = Array.isArray(anno.body) && anno.body.length === 1 ? anno.body[0] : anno.body
+        // Annotations carrying multiple bodies are not expanded with.
+        if(!body || typeof body !== "object" || Array.isArray(body)) continue
         const keys = Object.keys(body)
         if(keys.length !== 1) continue
         const key = keys[0]
+        // An Annotation body cannot overwrite the entity's identity or its system properties.
+        if(PROTECTED_EXPANSION_KEYS.has(key)) continue
         const assertion = body[key]
         const valueObject = {
             value: assertion?.value ?? assertion,
@@ -417,7 +352,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
             },
             evidence: assertion?.evidence ?? anno.evidence ?? ""
         }
-        if(expandedEntity.hasOwnProperty(key)){
+        if(Object.hasOwn(expandedEntity, key)){
             expandedEntity[key] = Array.isArray(expandedEntity[key])
                 ? [...expandedEntity[key], valueObject]
                 : [expandedEntity[key], valueObject]
@@ -426,6 +361,7 @@ const expand = async function(primitiveEntity, GENERATOR=undefined, CREATOR=unde
             expandedEntity[key] = valueObject
         }
     }
+    if(rerumProp !== undefined) expandedEntity.__rerum = rerumProp
 
     return expandedEntity
 }
@@ -445,23 +381,32 @@ const expandedId = async function (req, res, next) {
             err = Object.assign(err, { message: `No RERUM object with id '${id}'`, status: 404 })
             return next(utils.createExpressError(err))
         }
+        // Deleted objects don't have a generator to match on, just return the tombstone no matter what.
+        if (utils.isDeleted(match)) {
+            res.set(utils.configureWebAnnoHeadersFor(match))
+            res.set("Cache-Control", "max-age=86400, must-revalidate")
+            res.set("Current-Overwritten-Version", "")
+            const tombstone = idNegotiation(match)
+            res.location(_contextid(tombstone["@context"]) ? tombstone.id : tombstone["@id"])
+            return res.json(tombstone)
+        }
         const generator = match.__rerum?.generatedBy
         const agentID = generator?.split("/").pop()
         if (!GOG_AGENTS.includes(agentID)) {
             err = Object.assign(err, {
-                message: `This request can only be made for Gallery of Glosses generated data.`,
-                status: 403
+                message: `No Gallery of Glosses record with id '${id}'.  This URI serves GoG generated data only.`,
+                status: 404
             })
             return next(utils.createExpressError(err))
         }
-        // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
-        res.set(utils.configureWebAnnoHeadersFor(match))
-        res.set("Cache-Control", "max-age=86400, must-revalidate")
-        // No Last-Modified here, unlike GET /v1/id/:_id.  It would compare against the root entity
-        // before expand() merges the targeting Annotations.
-        res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         let expanded = await expand(match, generator)
         expanded = idNegotiation(expanded)
+        // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
+        res.set("Cache-Control", "max-age=86400, must-revalidate")
+        // Headers describe the stored record, so they match GET /v1/id/:_id for the same record.
+        res.set(utils.configureWebAnnoHeadersFor(match))
+        // Include current version for optimistic locking
+        res.set("Current-Overwritten-Version", match.__rerum?.isOverwritten ?? "")
         res.location(_contextid(expanded["@context"]) ? expanded.id : expanded["@id"])
         res.json(expanded)
     } catch (error) {

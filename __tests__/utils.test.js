@@ -9,9 +9,10 @@ import {
   parseDocumentID,
   _contextid,
   idNegotiation,
-  getPagination
+  getPagination,
+  findLeafAnnotationsFor
 } from '../controllers/utils.js'
-import { db, resetMocks } from '../database/index.js'
+import { db, resetMocks, createCursor } from '../database/index.js'
 
 describe('utils.js auth gates', () => {
   it('isDeleted returns true only for objects with __deleted', () => {
@@ -48,6 +49,63 @@ describe('utils.js configureRerumOptions', () => {
       false
     )
     assert.strictEqual(result.__rerum.generatedBy, 'https://store.rerum.io/v1/id/legitimate-agent')
+  })
+
+  const AGENT = 'https://store.rerum.io/v1/id/legitimate-agent'
+  const RECEIVED_ID = 'https://store.rerum.io/v1/id/received-id'
+  const FORGED = {
+    generatedBy: 'https://attacker.example/forged',
+    isReleased: '2020-01-01T00:00:00.000',
+    isOverwritten: '2020-01-01T00:00:00.000',
+    history: { prime: 'https://store.rerum.io/v1/id/forged-prime', previous: 'https://store.rerum.io/v1/id/forged-previous', next: ['https://store.rerum.io/v1/id/forged-next'] },
+    releases: { previous: 'https://store.rerum.io/v1/id/forged-release', next: [], replaces: '' }
+  }
+
+  it('ignores a client-supplied __rerum when minting a new object', () => {
+    const created = utils.configureRerumOptions(AGENT, { '@id': RECEIVED_ID, __rerum: structuredClone(FORGED) }, false, false)
+    assert.strictEqual(created.__rerum.history.prime, 'root')
+    assert.strictEqual(created.__rerum.history.previous, '')
+    assert.deepStrictEqual(created.__rerum.history.next, [])
+    assert.strictEqual(created.__rerum.releases.previous, '')
+    // isReleased gates release and overwrite, isOverwritten is the optimistic locking token.
+    assert.strictEqual(created.__rerum.generatedBy, AGENT, 'attribution cannot be forged')
+    assert.strictEqual(created.__rerum.isReleased, '', 'a client cannot mint a pre-released object')
+    assert.strictEqual(created.__rerum.isOverwritten, '', 'a client cannot mint a locking token')
+
+    // An external object imported through an update is also a root, but it remembers its external self.
+    const imported = utils.configureRerumOptions(AGENT, { '@id': 'https://elsewhere.example.org/thing', __rerum: structuredClone(FORGED) }, false, true)
+    assert.strictEqual(imported.__rerum.history.prime, 'root')
+    assert.strictEqual(imported.__rerum.history.previous, 'https://elsewhere.example.org/thing')
+    assert.strictEqual(imported.__rerum.releases.previous, '')
+  })
+
+  it('carries the version and release chain forward when updating an existing object', () => {
+    const fromRoot = utils.configureRerumOptions(
+      AGENT,
+      { '@id': RECEIVED_ID, __rerum: { history: { prime: 'root', previous: '', next: [] } } },
+      true,
+      false
+    )
+    assert.strictEqual(fromRoot.__rerum.history.prime, RECEIVED_ID, 'the root object cannot pass "root" on as the prime')
+    assert.strictEqual(fromRoot.__rerum.history.previous, RECEIVED_ID)
+
+    const PRIME = 'https://store.rerum.io/v1/id/prime-id'
+    const RELEASE = 'https://store.rerum.io/v1/id/released-id'
+    const fromDescendant = utils.configureRerumOptions(
+      AGENT,
+      {
+        '@id': RECEIVED_ID,
+        __rerum: {
+          history: { prime: PRIME, previous: 'https://store.rerum.io/v1/id/older-id', next: [] },
+          releases: { previous: RELEASE, next: [], replaces: '' }
+        }
+      },
+      true,
+      false
+    )
+    assert.strictEqual(fromDescendant.__rerum.history.prime, PRIME, 'an object that knows its prime passes it on')
+    assert.strictEqual(fromDescendant.__rerum.history.previous, RECEIVED_ID)
+    assert.strictEqual(fromDescendant.__rerum.releases.previous, RELEASE)
   })
 })
 
@@ -212,6 +270,12 @@ describe('controllers/utils.js _contextid', () => {
       _contextid(['http://example.com/other', 'http://iiif.io/api/presentation/3/context.json']),
       true
     )
+    // An inline term definition object, or any other non-string member, names no context.
+    assert.strictEqual(
+      _contextid([{ '@vocab': 'http://example.org/terms#' }, 'http://www.w3.org/ns/anno.jsonld']),
+      true
+    )
+    assert.strictEqual(_contextid([{ '@vocab': 'http://example.org/terms#' }]), false)
   })
 
   it('returns false for non-string, non-array input', () => {
@@ -286,5 +350,75 @@ describe('controllers/utils.js getPagination', () => {
     const result = getPagination({ limit: String(huge) })
     assert.ok(result.limit > 0)
     assert.ok(result.limit < huge, `limit should be clamped below ${huge}`)
+  })
+})
+
+describe('controllers/utils.js findLeafAnnotationsFor', () => {
+  const ENTITY_URI = 'https://store.rerum.io/v1/id/entity-id'
+  const SLUG_URI = 'https://store.rerum.io/v1/id/entity-slug'
+  const TARGET_KEYS = ['target', 'target.@id', 'target.id', 'target.source', 'target.source.@id', 'target.source.id']
+
+  let capturedQuery
+
+  /**
+   * Point db.find() at a cursor over the given documents and record the filter it was called with.
+   *
+   * @param docs The Annotation documents the cursor will yield.
+   */
+  function armFind(docs = []) {
+    resetMocks()
+    capturedQuery = undefined
+    db.find.mockImplementationOnce(query => {
+      capturedQuery = query
+      return createCursor(docs)
+    })
+  }
+
+  // $and[0] holds the target conditions, $and[1] the Annotation type conditions.
+  const targetConditions = () => capturedQuery.$and[0].$or
+
+  it('constrains the query to the leaf versions, every target key, and every type spelling', async () => {
+    armFind()
+
+    await findLeafAnnotationsFor([ENTITY_URI, SLUG_URI, ENTITY_URI, undefined, ''])
+
+    assert.deepStrictEqual(capturedQuery['__rerum.history.next'], { $exists: true, $size: 0 })
+    for (const targetKey of TARGET_KEYS) {
+      const values = targetConditions()
+        .filter(condition => Object.hasOwn(condition, targetKey))
+        .map(condition => condition[targetKey])
+      assert.strictEqual(values.length, 8, `${targetKey}: two URIs, each in two schemes and as a fragment`)
+      assert.ok(values.includes(ENTITY_URI) && values.includes(ENTITY_URI.replace(/^https/, 'http')))
+      assert.ok(values.includes(SLUG_URI), 'every URI the entity answers to is targeted')
+      const patterns = values.filter(value => value instanceof RegExp)
+      assert.ok(patterns.some(pattern => pattern.test(`${ENTITY_URI}#xywh=0,0,100,100`)), 'a fragment of the URI is a match')
+      assert.ok(
+        patterns.every(pattern => !pattern.test('https://storeXrerum.io/v1/id/entity-id#xywh=0,0,100,100')),
+        'the URI is escaped, so its dots are not wildcards'
+      )
+    }
+    assert.deepStrictEqual(capturedQuery.$and[1].$or, [
+      { type: 'Annotation' },
+      { type: 'oa:Annotation' },
+      { type: 'http://www.w3.org/ns/oa#Annotation' },
+      { type: 'https://www.w3.org/ns/oa#Annotation' },
+      { '@type': 'Annotation' },
+      { '@type': 'oa:Annotation' },
+      { '@type': 'http://www.w3.org/ns/oa#Annotation' },
+      { '@type': 'https://www.w3.org/ns/oa#Annotation' }
+    ])
+
+    armFind()
+    await findLeafAnnotationsFor('bare-slug')
+    assert.strictEqual(targetConditions().length, TARGET_KEYS.length, 'a non-URI target has no scheme or fragment to anticipate')
+  })
+
+  it('gathers nothing rather than querying on an empty $or when there is no target', async () => {
+    // An empty '$or' is a MongoDB error, not an empty result, so the query is never sent.
+    armFind([{ _id: 'anno001', type: 'Annotation' }])
+
+    assert.deepStrictEqual(await findLeafAnnotationsFor([undefined, '', null]), [])
+    assert.deepStrictEqual(await findLeafAnnotationsFor(undefined), [])
+    assert.strictEqual(capturedQuery, undefined, 'nothing to target is nothing to gather')
   })
 })

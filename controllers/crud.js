@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, parseDocumentID } from './utils.js'
+import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.
@@ -127,8 +127,179 @@ const id = async function (req, res, next) {
     }
 }
 
+/**
+ * The expand job always constrains the Annotations it gathers to the leaf versions, to the
+ * Annotation types, and to the entity in the request URI.  A client cannot influence those, so
+ * these keys are dropped from a supplied filter body by exact name or dotted prefix.
+ */
+const RESERVED_FILTER_KEYS = ["target", "type", "@type", "__rerum.history"]
+
+/**
+ * The Annotation body types whose value is kept whole rather than read as a single assertion.
+ */
+const TEXTUAL_BODY_TYPES = new Set([
+    "TextualBody", "oa:TextualBody",
+    "http://www.w3.org/ns/oa#TextualBody", "https://www.w3.org/ns/oa#TextualBody"
+])
+
+/**
+ * Reduce a supplied POST body to the literal MongoDB filter keys the expand job will honor.
+ * @param supplied The parsed JSON request body.
+ * @return An object of filter keys, minus the ones this endpoint owns.
+ */
+function sanitizeExpansionFilters(supplied) {
+    const filters = {}
+    for (const [key, value] of Object.entries(supplied)) {
+        if (RESERVED_FILTER_KEYS.some(reserved => key === reserved || key.startsWith(`${reserved}.`))) continue
+        filters[key] = value
+    }
+    return filters
+}
+
+/**
+ * The [key, value] assertions an Annotation makes about the entity it targets.
+ * Only 'body' and 'bodyValue' are read -- an Annotation carrying neither is ignored, and no other
+ * property of the Annotation can leak onto the entity.
+ *
+ * Anticipates the likely Annotation body formats
+ *   - bodyValue: 'text'                                  the W3C shorthand, which has no key of its own
+ *   - body: {'key': 'value'}                             a single assertion
+ *   - body: {'key': {...}}                               a single assertion, value kept as-is
+ *   - body: {'type':'TextualBody', 'value': 'text', ...} kept whole so 'format' and 'language' survive
+ *   - body: {'@type':'oa:TextualBody', ...}              the 'oa:' prefixed spelling of the same W3C class
+ *   - body: {'type':['TextualBody'], ...}                the same body, type serialized as a JSON-LD Array
+ *   - body: [{'key': 'value'}]                           one body, serialized as a JSON-LD Array
+ *
+ * @param anno An Annotation document.
+ * @return An Array of [key, value] pairs to merge onto the entity.
+ */
+function assertionsFrom(anno) {
+    const assertions = []
+    if (typeof anno.bodyValue === "string") assertions.push(["bodyValue", anno.bodyValue])
+    // In JSON-LD a one-element Array and the bare value are the same body, so unwrap it first.  The
+    // check below is about how many bodies an Annotation carries, not how they were serialized.
+    const body = Array.isArray(anno.body) && anno.body.length === 1 ? anno.body[0] : anno.body
+    // Skip Annotations carrying multiple bodies, and string bodies that are an IRI referencing an
+    // external resource with no embedded value to expand with.
+    if (Array.isArray(body) || !body || typeof body !== "object") return assertions
+    const bodyType = body.type ?? body["@type"]
+    const bodyTypes = Array.isArray(bodyType) ? bodyType : [bodyType]
+    if (bodyTypes.some(t => TEXTUAL_BODY_TYPES.has(t))) {
+        assertions.push(["bodyValue", body])
+        return assertions
+    }
+    const keys = Object.keys(body)
+    // Any other multi-key body is structural rather than assertional and cannot be attributed to a
+    // single entity property.  This is what skips the Choice, Composite, and List multiplicity constructs.
+    if (keys.length !== 1) return assertions
+    assertions.push([keys[0], body[keys[0]]])
+    return assertions
+}
+
+/**
+ * Merge the assertions of the gathered Annotations onto a copy of the entity, as raw values.
+ * When more than one current Annotation asserts the same key, or the entity already carries it,
+ * the values collect into an Array, the record's own value first.
+ * @param primitiveEntity The unexpanded entity.
+ * @param annoAssertions An Array holding the [key, value] assertions read from each Annotation.
+ * @return A new, expanded entity object.
+ */
+function applyExpansionAnnotations(primitiveEntity, annoAssertions) {
+    const expandedEntity = structuredClone(primitiveEntity)
+    const rerumProp = expandedEntity.__rerum
+    delete expandedEntity.__rerum
+    for (const assertions of annoAssertions) {
+        for (const [key, value] of assertions) {
+            if (PROTECTED_EXPANSION_KEYS.has(key)) continue
+            if (!Object.hasOwn(expandedEntity, key)) {
+                expandedEntity[key] = value
+                continue
+            }
+            const existing = Array.isArray(expandedEntity[key]) ? expandedEntity[key] : [expandedEntity[key]]
+            const contributed = Array.isArray(value) ? value : [value]
+            expandedEntity[key] = [...existing, ...contributed]
+        }
+    }
+    if (rerumProp !== undefined) expandedEntity.__rerum = rerumProp
+    return expandedEntity
+}
+
+/**
+ * Query the MongoDB for the object with the _id or __rerum.slug provided in the request URL, then
+ * merge in the assertions of all the current leaf Annotations targeting it.
+ *
+ * GET recognizes the '?generator=' and '?creator=' convenience parameters only.
+ * POST reads literal MongoDB filter keys from the JSON body and ignores URL parameters as filters.
+ * Neither method pages.  A client asks once and receives the entity assembled.
+ * */
+const idExpanded = async function (req, res, next) {
+    res.set("Content-Type", "application/json; charset=utf-8")
+    const requestedId = req.params["_id"]
+    const isPost = req.method === "POST"
+    let filters = {}
+    if (isPost) {
+        // Express leaves the body undefined when a POST supplies none.  That is an unfiltered expand.
+        const supplied = req.body ?? {}
+        if (typeof supplied !== "object" || Array.isArray(supplied)) {
+            const err = {
+                "message": "The /expanded request body must be a JSON object of filter properties.",
+                "status": 400
+            }
+            return next(utils.createExpressError(err))
+        }
+        filters = sanitizeExpansionFilters(supplied)
+    }
+    else {
+        // Repeated query parameters arrive as an Array, which is not a filter value we will apply.
+        if (typeof req.query.generator === "string" && req.query.generator) filters["__rerum.generatedBy"] = req.query.generator
+        if (typeof req.query.creator === "string" && req.query.creator) filters.creator = req.query.creator
+    }
+    try {
+        const match = await db.findOne({"$or": [{"_id": requestedId}, {"__rerum.slug": requestedId}]})
+        if (!match) {
+            const err = {
+                "message": `No RERUM object with id '${requestedId}'`,
+                "status": 404
+            }
+            return next(utils.createExpressError(err))
+        }
+        const deleted = utils.isDeleted(match)
+        const targetId = match["@id"] ?? match.id
+        // an Annotation may target an entity by its Slug instead of by its '@id'.
+        const slug = match.__rerum?.slug
+        const lastSlash = targetId?.lastIndexOf("/") ?? -1
+        const slugTargetId = slug && lastSlash !== -1 ? targetId.slice(0, lastSlash + 1) + slug : undefined
+        // Read off the record while it is still whole.  idNegotiation() below alters it in place.
+        const currentVersion = match.__rerum?.isOverwritten ?? ""
+        const annos = deleted ? [] : await findLeafAnnotationsFor([targetId, slugTargetId], filters)
+        // Every leaf Annotation matching the filter is gathered.  This is the count.
+        res.set('Annotations-Gathered', String(annos.length))
+        // How many of the Annotations contribute an assertion.  May be less than annotations gathered.
+        // The count reports the Annotations that actually alter the entity.
+        const merged = annos
+            .map(anno => assertionsFrom(anno).filter(([key]) => !PROTECTED_EXPANSION_KEYS.has(key)))
+            .filter(assertions => assertions.length > 0)
+        res.set('Annotations-Merged', String(merged.length))
+        // Negotiate first, so identity is settled from the record's own '@context' before anything is merged.
+        const negotiated = idNegotiation(match)
+        const identity = _contextid(negotiated["@context"]) ? negotiated.id : negotiated["@id"]
+        const expanded = deleted ? negotiated : applyExpansionAnnotations(negotiated, merged)
+        // Same browser-caching policy as GET /v1/id/:_id so this stable URI is cached (24h).
+        if (!isPost) res.set("Cache-Control", "max-age=86400, must-revalidate")
+        // Headers describe the stored record, so they match GET /v1/id/:_id for the same record.
+        res.set(utils.configureWebAnnoHeadersFor(negotiated))
+        // Include current version for optimistic locking
+        res.set('Current-Overwritten-Version', currentVersion)
+        res.location(identity)
+        res.json(expanded)
+    } catch (error) {
+        return next(utils.createExpressError(error))
+    }
+}
+
 export {
     create,
     query,
-    id
+    id,
+    idExpanded
 }

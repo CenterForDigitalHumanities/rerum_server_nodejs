@@ -39,12 +39,26 @@ function createMockFunction(implementation = () => undefined) {
   return fn
 }
 
-function createCursor() {
-  return {
+/**
+ * A stand-in for the driver's FindCursor.  The chainable methods return the cursor the way the
+ * driver's do, and the cursor is async-iterable over whatever toArray() resolves to so a caller
+ * can read it either way.
+ *
+ * @param docs The documents this cursor yields.
+ * @return A cursor double.
+ */
+export function createCursor(docs = []) {
+  const cursor = {
     limit: createMockFunction(function () { return this }),
     skip: createMockFunction(function () { return this }),
-    toArray: createMockFunction(() => Promise.resolve([]))
+    batchSize: createMockFunction(function () { return this }),
+    toArray: createMockFunction(() => Promise.resolve(docs)),
+    async *[Symbol.asyncIterator]() {
+      // A cursor whose toArray was reset has no implementation left, so it iterates as empty.
+      for (const doc of await cursor.toArray() ?? []) yield doc
+    }
   }
+  return cursor
 }
 
 const defaultBulkWriteResponse = () => ({
