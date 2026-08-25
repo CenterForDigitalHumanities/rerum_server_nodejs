@@ -11,8 +11,7 @@ router.route('/')
     .patch(auth.checkJwt, rest.verifyJsonContentType, controller.patchSet)
     .post(auth.checkJwt, rest.verifyJsonContentType, checkPatchOverride, controller.patchSet)
     .all((req, res, next) => {
-        res.statusMessage = 'Improper request method for updating, please use PATCH to add new keys to this object.'
-        res.status(405).end()
+        rest.sendMethodNotAllowed(res, 'Improper request method for updating, please use PATCH to add new keys to this object.', 'PATCH,POST')
     })
 
 export default router
