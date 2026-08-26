@@ -121,10 +121,11 @@ const URI_DOUBLED_FILTER_KEYS = new Set(["__rerum.generatedBy", "creator"])
 const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "target.source.@id", "target.source.id"]
 
 /**
- * Identity, system, and processing properties an Annotation body must never overwrite when its
- * assertions are merged onto an entity.
+ * Identity, classification, system, and processing properties an Annotation body must never overwrite when its
+ * assertions are merged onto an entity.  The entity stays the authority on its own '@context' and
+ * on the class it declares under 'type' or '@type'.
  */
-const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context"])
+const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context", "type", "@type"])
 
 /**
  * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
