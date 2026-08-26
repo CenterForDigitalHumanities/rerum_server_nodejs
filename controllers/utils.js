@@ -123,8 +123,14 @@ const TARGET_KEYS = ["target", "target.@id", "target.id", "target.source", "targ
 /**
  * Identity, system, and processing properties an Annotation body must never overwrite when its
  * assertions are merged onto an entity.
+ *
+ * 'type' and '@type' are here because class is identity.  The record declares what it is; an
+ * Annotation targeting it describes it and has no standing to say it is also something else.
+ * Without them a body carrying a 'type' appended to the entity's own class, so the expanded
+ * entity answered to a type the stored record never claimed and clients had to re-read the
+ * unexpanded record to recover the real one.
  */
-const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context"])
+const PROTECTED_EXPANSION_KEYS = new Set(["@id", "id", "_id", "__rerum", "__deleted", "__proto__", "@context", "type", "@type"])
 
 /**
  * Escape the RegExp metacharacters in a literal so it can be embedded in a pattern and match only
