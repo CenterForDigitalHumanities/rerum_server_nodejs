@@ -277,8 +277,6 @@ describe('GET /id/:id/expanded', () => {
       anno({ body: { __rerum: { evil: true } } }),
       anno({ body: { __deleted: { time: "2025-01-01T00:00:00.000" } } }),
       anno({ body: { "@context": "https://evil.example.org/context.json" } }),
-      // Class is identity.  An Annotation describes the record; it does not get to say the record
-      // is also something else, under either spelling of the key.
       anno({ body: { "@type": "Hijacked" } }),
       anno({ body: { type: "Hijacked" } }),
       // An object literal with a __proto__ key sets the prototype instead of creating an own
