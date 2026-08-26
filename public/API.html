@@ -1714,23 +1714,21 @@
             record said and what each Annotation added.
         </p>
         <p>
-            A record's identity, system, and processing properties are never overwritten by an Annotation. An
-            Annotation body asserting <code class="language-plaintext highlighter-rouge">@id</code>,
+            A record's identity, classification, system, and processing properties
+            are never overwritten by an Annotation. An Annotation body asserting
+            <code class="language-plaintext highlighter-rouge">@id</code>,
             <code class="language-plaintext highlighter-rouge">id</code>,
             <code class="language-plaintext highlighter-rouge">_id</code>,
+            <code class="language-plaintext highlighter-rouge">@context</code>,
+            <code class="language-plaintext highlighter-rouge">@type</code>,
+            <code class="language-plaintext highlighter-rouge">type</code>,
             <code class="language-plaintext highlighter-rouge">__rerum</code>,
-            <code class="language-plaintext highlighter-rouge">__deleted</code>,
-            <code class="language-plaintext highlighter-rouge">__proto__</code>, or
-            <code class="language-plaintext highlighter-rouge">@context</code> contributes nothing. The expanded record
-            answers to the same URI as the record you asked for, and reads under the same
-            <code class="language-plaintext highlighter-rouge">@context</code>.
-        </p>
-        <p>
-            Linked Data keywords that describe the record rather than identify it are not held back. An Annotation
-            asserting <code class="language-plaintext highlighter-rouge">type</code> or
-            <code class="language-plaintext highlighter-rouge">@type</code>
-            contributes it like any other property, which collects the record's own value and the asserted one
-            into an Array.
+            <code class="language-plaintext highlighter-rouge">__deleted</code>, or
+            <code class="language-plaintext highlighter-rouge">__proto__</code>
+            contributes nothing. The expanded record answers to the same URI as the
+            record you asked for, and reads under the same
+            <code class="language-plaintext highlighter-rouge">@context</code>
+            as the same class of thing it declared itself to be.
         </p>
         <p class="alert">
             A deleted record is never expanded. Whatever it used to assert is inside its
