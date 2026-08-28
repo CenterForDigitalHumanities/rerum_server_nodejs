@@ -8,15 +8,13 @@ router.route('/:_id/expanded')
     .get(controller.idExpanded)
     .post(rest.verifyJsonContentType, controller.idExpanded)
     .all((req, res, next) => {
-        res.statusMessage = 'Improper request method, please use GET or POST.'
-        res.status(405).end()
+        rest.sendMethodNotAllowed(res, 'Improper request method, please use GET or POST.', 'GET,POST,HEAD')
     })
 
 router.route('/:_id')
     .get(controller.id)
     .all((req, res, next) => {
-        res.statusMessage = 'Improper request method, please use GET.'
-        res.status(405).end()
+        rest.sendMethodNotAllowed(res, 'Improper request method, please use GET.', 'GET,HEAD')
     })
 
 export default router
