@@ -102,3 +102,36 @@ describe('search controllers', () => {
     assert.strictEqual(response.body.length, 1, 'duplicate _id across indexes should be deduped')
   })
 })
+
+describe('search pagination parameters', () => {
+  // getPagination is shared with /query, so this proves the search endpoints are covered by the
+  // same contract rather than re-testing every rejected form here.
+  const searchFor = (path, queryString) => {
+    mockAggregateResults([])
+    return request(routeTester)
+      .post(`${path}${queryString}`)
+      .set('Content-Type', 'text/plain')
+      .send('manuscript')
+  }
+
+  it("searchAsWords rejects a limit or skip it cannot read exactly", async () => {
+    for (const queryString of ["?limit=abc", "?limit=1e3", "?limit=0", "?skip=-5", "?limit=100&limit=200"]) {
+      const response = await searchFor('/search', queryString)
+      assert.strictEqual(response.statusCode, 400, `${queryString} should be a 400`)
+    }
+  })
+
+  it("searchAsPhrase rejects them too", async () => {
+    const response = await searchFor('/search/phrase', '?skip=2.9')
+    assert.strictEqual(response.statusCode, 400)
+  })
+
+  it("reports the applied limit and skip on a search response", async () => {
+    const response = await searchFor('/search', '?limit=25&skip=10')
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['pagination-limit'], '25')
+    assert.strictEqual(response.headers['pagination-skip'], '10')
+    assert.ok(Number(response.headers['pagination-limit-max']) > 0)
+    assert.ok(Number(response.headers['pagination-skip-max']) > 0)
+  })
+})

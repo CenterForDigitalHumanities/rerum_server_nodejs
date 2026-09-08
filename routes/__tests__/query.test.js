@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import express from "express"
 import request from "supertest"
 import controller from '../../db-controller.js'
+import rest from '../../rest.js'
 
 const routeTester = new express()
 routeTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
@@ -97,5 +98,94 @@ describe('HEAD /query', () => {
     db.find.mockReturnValueOnce(buildCursor([]))
     const response = await request(routeTester).head("/query")
     assert.strictEqual(response.statusCode, 404)
+  })
+})
+
+describe('pagination parameters on /query', () => {
+  // rest.messenger renders the 400s that getPagination throws.  The routeTester above deliberately
+  // mounts no error handler, so these get their own app rather than changing how it behaves.
+  const pagedTester = express()
+  pagedTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
+  pagedTester.head("/query", controller.queryHeadRequest)
+  pagedTester.use("/query", controller.query)
+  pagedTester.use(rest.messenger)
+
+  /** A cursor that records the limit and skip the controller actually applied. */
+  const recordingCursor = (docs, applied) => ({
+    limit(n) {
+      applied.limit = n
+      return this
+    },
+    skip(n) {
+      applied.skip = n
+      return this
+    },
+    async toArray() { return docs }
+  })
+
+  const post = (queryString) => {
+    db.find.mockReturnValueOnce(recordingCursor([mockDoc], {}))
+    return request(pagedTester)
+      .post(`/query${queryString}`)
+      .set("Content-Type", "application/json")
+      .send({ test: "item" })
+  }
+
+  it("rejects a limit or skip it cannot read exactly", async () => {
+    for (const queryString of ["?limit=abc", "?limit=1e3", "?limit=0", "?limit=-5", "?limit=250.7", "?limit=", "?skip=abc", "?skip=2.9", "?skip=-5"]) {
+      const response = await post(queryString)
+      assert.strictEqual(response.statusCode, 400, `${queryString} should be a 400`)
+    }
+  })
+
+  it("rejects a repeated limit rather than taking one of the two values", async () => {
+    assert.strictEqual((await post("?limit=100&limit=200")).statusCode, 400)
+    assert.strictEqual((await post("?limit=200&limit=100")).statusCode, 400)
+  })
+
+  it("reports the applied limit and skip, and the maximums, on a paged response", async () => {
+    const response = await post("?limit=25&skip=10")
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['pagination-limit'], '25')
+    assert.strictEqual(response.headers['pagination-skip'], '10')
+    assert.ok(Number(response.headers['pagination-limit-max']) > 0)
+    assert.ok(Number(response.headers['pagination-skip-max']) > 0)
+  })
+
+  it("reports the clamp when the limit asked for is above the maximum", async () => {
+    const response = await post("?limit=999999")
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['pagination-limit'], response.headers['pagination-limit-max'])
+  })
+
+  it("applies the reported limit and skip to the database cursor", async () => {
+    const applied = {}
+    db.find.mockReturnValueOnce(recordingCursor([mockDoc], applied))
+    const response = await request(pagedTester)
+      .post("/query?limit=7&skip=3")
+      .set("Content-Type", "application/json")
+      .send({ test: "item" })
+
+    assert.strictEqual(applied.limit, 7)
+    assert.strictEqual(applied.skip, 3)
+    assert.strictEqual(response.headers['pagination-limit'], '7')
+    assert.strictEqual(response.headers['pagination-skip'], '3')
+  })
+
+  it("rejects a skip beyond the maximum instead of repeating the last page", async () => {
+    const paged = await post("?limit=2&skip=0")
+    const skipMax = Number(paged.headers['pagination-skip-max'])
+
+    assert.strictEqual((await post(`?skip=${skipMax}`)).statusCode, 200, 'the maximum itself is still readable')
+
+    const response = await post(`?skip=${skipMax + 1}`)
+    assert.strictEqual(response.statusCode, 400)
+    assert.match(response.text, new RegExp(`beyond the maximum of ${skipMax}`))
+  })
+
+  it("rejects the same values on HEAD /query", async () => {
+    db.find.mockReturnValueOnce(recordingCursor([mockDoc], {}))
+    const response = await request(pagedTester).head("/query?limit=abc")
+    assert.strictEqual(response.statusCode, 400)
   })
 })

@@ -74,7 +74,7 @@ const create = async function (req, res, next) {
 const query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     if (!props || Object.keys(props).length === 0) {
         //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
         let err = {

@@ -86,7 +86,7 @@ const history = async function (req, res, next) {
 const queryHeadRequest = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     try {
         const matches = await db.find(props).limit(limit).skip(skip).toArray()
         if (matches.length) {

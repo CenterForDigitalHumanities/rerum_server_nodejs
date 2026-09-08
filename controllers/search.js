@@ -271,7 +271,7 @@ const searchAsWords = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: searchOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -357,7 +357,7 @@ const searchAsPhrase = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "phrase", options: phraseOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -435,7 +435,7 @@ const searchFuzzily = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: fuzzyOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -529,7 +529,7 @@ const searchWildly = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "wildcard", options: wildcardOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -622,7 +622,7 @@ const searchAlikes = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     // Build moreLikeThis queries for both IIIF 3.0 and IIIF 2.1 indexes
     const searchQuery_presi3 = [
         {

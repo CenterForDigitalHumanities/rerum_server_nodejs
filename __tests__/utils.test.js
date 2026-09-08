@@ -327,30 +327,138 @@ describe('controllers/utils.js idNegotiation edge cases', () => {
 })
 
 describe('controllers/utils.js getPagination', () => {
+  /** Assert that a query is rejected as a 400 rather than guessed at. */
+  const assertRejects = (query, matcher) => {
+    assert.throws(
+      () => getPagination(query),
+      (err) => {
+        assert.strictEqual(err.statusCode, 400)
+        assert.match(err.statusMessage, matcher)
+        return true
+      },
+      `${JSON.stringify(query)} should be rejected`
+    )
+  }
+
   it('returns the default limit and skip 0 for an empty query', () => {
-    const result = getPagination({}, 100)
+    const result = getPagination({}, null, 100)
     assert.strictEqual(result.limit, 100)
     assert.strictEqual(result.skip, 0)
   })
 
-  it('parses numeric string values from the query', () => {
+  it('parses decimal integer string values from the query', () => {
     const result = getPagination({ limit: '50', skip: '10' })
     assert.strictEqual(result.limit, 50)
     assert.strictEqual(result.skip, 10)
   })
 
-  it('falls back to defaults on non-numeric or non-positive input', () => {
-    const result = getPagination({ limit: 'bogus', skip: 'nope' }, 100)
-    assert.strictEqual(result.limit, 100)
-    assert.strictEqual(result.skip, 0)
+  it('rejects a limit that is not a whole number greater than 0', () => {
+    for (const limit of ['abc', '10abc', '1e3', '0x10', '250.7', '-5', '', '0']) {
+      assertRejects({ limit }, /'limit' URL parameter must be a whole number greater than 0/)
+    }
   })
 
-  it('clamps an unreasonably large limit below the max', () => {
-    const huge = Number.MAX_SAFE_INTEGER
-    const result = getPagination({ limit: String(huge) })
-    assert.ok(result.limit > 0)
-    assert.ok(result.limit < huge, `limit should be clamped below ${huge}`)
+  it('rejects a skip that is not a whole number of 0 or greater', () => {
+    for (const skip of ['abc', '10abc', '1e3', '0x10', '2.9', '-5', '']) {
+      assertRejects({ skip }, /'skip' URL parameter must be a whole number 0 or greater/)
+    }
   })
+
+  it('accepts skip 0, which limit does not', () => {
+    assert.strictEqual(getPagination({ skip: '0' }).skip, 0)
+    assertRejects({ limit: '0' }, /whole number greater than 0/)
+  })
+
+  it('rejects a repeated parameter rather than taking a guess at which one was meant', () => {
+    // Express hands a repeated URL parameter over as an Array.  '?limit=100&limit=200' has no
+    // single correct reading.
+    assertRejects({ limit: ['100', '200'] }, /'limit' URL parameter was provided more than once/)
+    assertRejects({ skip: ['1', '2'] }, /'skip' URL parameter was provided more than once/)
+  })
+
+  it('truncates a long rejected value rather than reflecting all of it back', () => {
+    assert.throws(
+      () => getPagination({ limit: 'x'.repeat(500) }),
+      (err) => err.statusMessage.length < 200
+    )
+  })
+
+  it('clamps a limit above the maximum instead of rejecting it', () => {
+    const { limit } = getPagination({ limit: String(Number.MAX_SAFE_INTEGER) })
+    const { 'Pagination-Limit-Max': max } = capturedHeadersFor({})
+    assert.strictEqual(limit, Number(max))
+  })
+
+  it('rejects a skip above the maximum rather than serving the same page forever', () => {
+    // Clamping it would hand back the page at the maximum on every request past it.  A client
+    // advancing skip and stopping on an empty page would never terminate.
+    const max = Number(capturedHeadersFor({})['Pagination-Skip-Max'])
+    assertRejects({ skip: String(max + 1) }, /beyond the maximum/)
+    assertRejects({ skip: String(max + 50000) }, /beyond the maximum/)
+  })
+
+  it('names the configured maximum in the rejection, so a client can act on it', () => {
+    const original = process.env.MAX_QUERY_SKIP
+    try {
+      process.env.MAX_QUERY_SKIP = '2500'
+      assertRejects({ skip: '2501' }, /2501 is beyond the maximum of 2500/)
+      assert.strictEqual(getPagination({ skip: '2500' }).skip, 2500)
+    } finally {
+      if (original === undefined) delete process.env.MAX_QUERY_SKIP
+      else process.env.MAX_QUERY_SKIP = original
+    }
+  })
+
+  it('accepts a skip exactly at the maximum', () => {
+    const max = Number(capturedHeadersFor({})['Pagination-Skip-Max'])
+    assert.strictEqual(getPagination({ skip: String(max) }).skip, max)
+  })
+
+  it('reports the applied values and the maximums on every paged response', () => {
+    const headers = capturedHeadersFor({ limit: '25', skip: '10' })
+    assert.strictEqual(headers['Pagination-Limit'], '25')
+    assert.strictEqual(headers['Pagination-Skip'], '10')
+    assert.ok(Number(headers['Pagination-Limit-Max']) > 0)
+    assert.ok(Number(headers['Pagination-Skip-Max']) > 0)
+  })
+
+  it('reports the clamped limit, not the one that was asked for', () => {
+    const headers = capturedHeadersFor({ limit: '999999' })
+    assert.strictEqual(headers['Pagination-Limit'], headers['Pagination-Limit-Max'])
+  })
+
+  it('reads the caps from the environment at call time', () => {
+    // Captured at module load these would be unreadable, which is how the RERUM_MAX_QUERY_* /
+    // MAX_QUERY_* name mismatch went unnoticed.
+    const original = process.env.MAX_QUERY_LIMIT
+    try {
+      process.env.MAX_QUERY_LIMIT = '25'
+      const { limit } = getPagination({ limit: '100' })
+      assert.strictEqual(limit, 25)
+      assert.strictEqual(capturedHeadersFor({})['Pagination-Limit-Max'], '25')
+    } finally {
+      if (original === undefined) delete process.env.MAX_QUERY_LIMIT
+      else process.env.MAX_QUERY_LIMIT = original
+    }
+  })
+
+  it('falls back to the code default when a configured cap is unusable', () => {
+    const original = process.env.MAX_QUERY_LIMIT
+    try {
+      process.env.MAX_QUERY_LIMIT = 'not-a-number'
+      assert.strictEqual(capturedHeadersFor({})['Pagination-Limit-Max'], '500')
+    } finally {
+      if (original === undefined) delete process.env.MAX_QUERY_LIMIT
+      else process.env.MAX_QUERY_LIMIT = original
+    }
+  })
+
+  /** Run getPagination against a minimal response double and hand back the headers it set. */
+  function capturedHeadersFor(query) {
+    let captured
+    getPagination(query, { set: (headers) => { captured = headers } })
+    return captured
+  }
 })
 
 describe('controllers/utils.js findLeafAnnotationsFor', () => {

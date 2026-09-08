@@ -23,7 +23,8 @@ const GOG_AGENTS = [GOG_PROD_AGENT, GOG_DEV_AGENT]
  * The Bearer Token in the header must be from TinyMatt.
  * The body must be formatted correctly - {"ManuscriptWitness":"witness_uri_here"}
  *
- * TODO? Some sort of limit and skip for large responses?
+ * Paged with the 'limit' and 'skip' URL parameters, defaulting to 50 per page.  The applied
+ * values and the configured maximums come back in the 'Pagination-*' response headers.
  *
  * @return The set of {'@id':'123', '@type':'WitnessFragment'} objects that match this criteria, as an Array
  * */
@@ -33,7 +34,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const { limit, skip } = getPagination(req.query, 50)
+    const { limit, skip } = getPagination(req.query, res, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== GOG_PROD_AGENT) {
@@ -154,7 +155,8 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
  * The Bearer Token in the header must be from TinyMatt.
  * The body must be formatted correctly - {"ManuscriptWitness":"witness_uri_here"}
  *
- * TODO? Some sort of limit and skip for large responses?
+ * Paged with the 'limit' and 'skip' URL parameters, defaulting to 50 per page.  The applied
+ * values and the configured maximums come back in the 'Pagination-*' response headers.
  *
  * @return The set of {'@id':'123', '@type':'Gloss'} objects that match this criteria, as an Array
  * */
@@ -164,7 +166,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const { limit, skip } = getPagination(req.query, 50)
+    const { limit, skip } = getPagination(req.query, res, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== GOG_PROD_AGENT) {
