@@ -443,14 +443,29 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('falls back to the code default when a configured cap is unusable', () => {
+    // '1e3' and '100_000' are what a hand-typed six figure cap looks like.  Parsed rather than
+    // validated they become 1, which would serve one record per page across the deployment.
     const original = process.env.MAX_QUERY_LIMIT
     try {
-      process.env.MAX_QUERY_LIMIT = 'not-a-number'
-      assert.strictEqual(capturedHeadersFor({})['Pagination-Limit-Max'], '500')
+      for (const configured of ['not-a-number', '1e3', '100_000', '500abc', '250.7', '0', '-5', ' 500']) {
+        process.env.MAX_QUERY_LIMIT = configured
+        assert.strictEqual(
+          capturedHeadersFor({})['Pagination-Limit-Max'],
+          '500',
+          `MAX_QUERY_LIMIT='${configured}' should fall back to the code default`
+        )
+      }
     } finally {
       if (original === undefined) delete process.env.MAX_QUERY_LIMIT
       else process.env.MAX_QUERY_LIMIT = original
     }
+  })
+
+  it('accepts an already-integral number, which req.query never holds but a caller might pass', () => {
+    const result = getPagination({ limit: 50, skip: 10 })
+    assert.strictEqual(result.limit, 50)
+    assert.strictEqual(result.skip, 10)
+    assertRejects({ limit: 250.7 }, /whole number greater than 0/)
   })
 
   /** Run getPagination against a minimal response double and hand back the headers it set. */

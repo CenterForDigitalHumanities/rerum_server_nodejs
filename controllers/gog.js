@@ -23,8 +23,10 @@ const GOG_AGENTS = [GOG_PROD_AGENT, GOG_DEV_AGENT]
  * The Bearer Token in the header must be from TinyMatt.
  * The body must be formatted correctly - {"ManuscriptWitness":"witness_uri_here"}
  *
- * Paged with the 'limit' and 'skip' URL parameters, defaulting to 50 per page.  The applied
- * values and the configured maximums come back in the 'Pagination-*' response headers.
+ * The 'limit' and 'skip' URL parameters bound the candidate Annotations this aggregation considers,
+ * defaulting to 50, not the entities it returns.  Later stages filter and unwind that window, so the
+ * response length is not the limit in either direction.  No 'Pagination-*' headers are reported,
+ * because there is nothing honest to report until the window moves to the end of the pipeline.
  *
  * @return The set of {'@id':'123', '@type':'WitnessFragment'} objects that match this criteria, as an Array
  * */
@@ -34,7 +36,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const { limit, skip } = getPagination(req.query, res, 50)
+    const { limit, skip } = getPagination(req.query, null, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== GOG_PROD_AGENT) {
@@ -155,8 +157,10 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
  * The Bearer Token in the header must be from TinyMatt.
  * The body must be formatted correctly - {"ManuscriptWitness":"witness_uri_here"}
  *
- * Paged with the 'limit' and 'skip' URL parameters, defaulting to 50 per page.  The applied
- * values and the configured maximums come back in the 'Pagination-*' response headers.
+ * The 'limit' and 'skip' URL parameters bound the candidate Annotations this aggregation considers,
+ * defaulting to 50, not the entities it returns.  Later stages filter and unwind that window, so the
+ * response length is not the limit in either direction.  No 'Pagination-*' headers are reported,
+ * because there is nothing honest to report until the window moves to the end of the pipeline.
  *
  * @return The set of {'@id':'123', '@type':'Gloss'} objects that match this criteria, as an Array
  * */
@@ -166,7 +170,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const { limit, skip } = getPagination(req.query, res, 50)
+    const { limit, skip } = getPagination(req.query, null, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== GOG_PROD_AGENT) {

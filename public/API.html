@@ -561,7 +561,8 @@
                         <span class="ind2">},</span>
                         <span class="ind2">body: JSON.stringify(queryObj)</span>
                     <span class="ind1">})</span>
-                    <span class="ind1">// Also how a walk past the skip maximum ends. The message says so.</span>
+                    <span class="ind1">// A walk past the skip maximum ends here. Keep the pages already gathered.</span>
+                    <span class="ind1">if (response.status === 400 &amp;&amp; it &gt; 0) return allResults</span>
                     <span class="ind1">if (!response.ok) throw new Error(await response.text())</span>
                     <span class="ind1">const results = await response.json()</span>
                     <span class="ind1">allResults = allResults.concat(results)</span>

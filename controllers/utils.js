@@ -22,15 +22,29 @@ const PARAM_ECHO_MAX = 40
  * Resolve a configured pagination cap from the environment.
  *
  * Read per call rather than captured at module load, so a deployment's '.env' and the tests can
- * both set it.  A missing or unusable value falls back to the code default.
+ * both set it.
+ *
+ * The raw value is validated as a decimal integer string before it is parsed, for the same reason
+ * the client parameters are.  'Number.parseInt' would read a hand-typed 'MAX_QUERY_LIMIT=1e3' as a
+ * cap of 1 and serve one record per page across the whole deployment, with only
+ * 'Pagination-Limit-Max: 1' as evidence.
+ *
+ * An unset key falls back quietly.  A value that is present but unusable falls back loudly, because
+ * a cap that is silently wrong is very hard to notice.  0 is not a usable cap for either maximum.
  *
  * @param key The 'process.env' key holding the cap.
  * @param fallback The cap to use when the key is unset or unusable.
  * @return A usable cap greater than 0.
  */
 function resolveQueryCap(key, fallback) {
-    const configured = Number.parseInt(process.env[key] ?? "", 10)
-    return Number.isFinite(configured) && configured > 0 ? configured : fallback
+    const raw = process.env[key]
+    if (raw === undefined || raw === "") return fallback
+    const configured = /^\d+$/.test(raw) ? Number.parseInt(raw, 10) : NaN
+    if (!Number.isInteger(configured) || configured <= 0) {
+        console.warn(`\x1b[33m[pagination] ${key}='${String(raw).slice(0, PARAM_ECHO_MAX)}' is not a whole number greater than 0.  Falling back to ${fallback}.\x1b[0m`)
+        return fallback
+    }
+    return configured
 }
 
 /**
@@ -45,6 +59,9 @@ function resolveQueryCap(key, fallback) {
  *
  * '?limit[a]=5' cannot be caught here.  Under Express's default 'simple' query parser the key never
  * reaches the server, so it is indistinguishable from a request that omitted the parameter.
+ *
+ * An already-integral Number is taken as-is.  'req.query' never holds one, but a non-Express caller
+ * should not get a 400 complaining that 50 is not a whole number.
  *
  * @param raw The raw value from 'req.query', or undefined when the parameter was omitted.
  * @param name The parameter name, used in the error message.
@@ -61,8 +78,10 @@ function readWholeNumberParam(raw, name, fallback, min) {
             status: 400
         })
     }
-    const parsed = typeof raw === "string" && /^\d+$/.test(raw) ? Number.parseInt(raw, 10) : NaN
-    if (!Number.isFinite(parsed) || parsed < min) {
+    const parsed = typeof raw === "number" ? raw
+        : typeof raw === "string" && /^\d+$/.test(raw) ? Number.parseInt(raw, 10)
+        : NaN
+    if (!Number.isInteger(parsed) || parsed < min) {
         const bound = min > 0 ? `greater than 0` : `0 or greater`
         throw utils.createExpressError({
             message: `The '${name}' URL parameter must be a whole number ${bound}. Received '${String(raw).slice(0, PARAM_ECHO_MAX)}'.`,

@@ -74,7 +74,6 @@ const create = async function (req, res, next) {
 const query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let props = req.body
-    const { limit, skip } = getPagination(req.query, res, 100)
     if (!props || Object.keys(props).length === 0) {
         //Hey now, don't ask for everything...this can happen by accident.  Don't allow it.
         let err = {
@@ -83,6 +82,8 @@ const query = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
+    // Below the guard above, so a request that is never paged does not report a page in its headers.
+    const { limit, skip } = getPagination(req.query, res, 100)
     try {
         let matches = await db.find(props).limit(limit).skip(skip).toArray()
         matches = matches.map(o => idNegotiation(o))

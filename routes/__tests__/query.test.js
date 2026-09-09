@@ -183,6 +183,19 @@ describe('pagination parameters on /query', () => {
     assert.match(response.text, new RegExp(`beyond the maximum of ${skipMax}`))
   })
 
+  it("reports no page on the empty body 400, because none was served", async () => {
+    const response = await request(pagedTester)
+      .post("/query?limit=25&skip=5")
+      .set("Content-Type", "application/json")
+      .send({})
+
+    assert.strictEqual(response.statusCode, 400)
+    assert.match(response.text, /Detected empty JSON object/)
+    for (const header of ['pagination-limit', 'pagination-skip', 'pagination-limit-max', 'pagination-skip-max']) {
+      assert.strictEqual(response.headers[header], undefined, `${header} should not be set`)
+    }
+  })
+
   it("rejects the same values on HEAD /query", async () => {
     db.find.mockReturnValueOnce(recordingCursor([mockDoc], {}))
     const response = await request(pagedTester).head("/query?limit=abc")
