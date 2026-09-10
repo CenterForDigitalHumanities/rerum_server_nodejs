@@ -104,6 +104,9 @@ function readWholeNumberParam(raw, name, fallback, min) {
  *
  * The applied values and both maximums are reported in the response headers, so a client can tell
  * a truncated page from a genuine final one and can configure itself from any single response.
+ * The maximums are reported before either parameter is read, so a rejection carries them too: the
+ * 400 for an over-deep 'skip' is the one response a client most needs the ceiling from, and it is
+ * what lets a paged walk tell that boundary apart from every other 400 it could receive.
  *
  * @param query The Express 'req.query' object.
  * @param res The Express response, so the applied values can be reported.  Optional.
@@ -115,6 +118,13 @@ function readWholeNumberParam(raw, name, fallback, min) {
 function getPagination(query = {}, res = null, defaultLimit = 100) {
     const limitMax = resolveQueryCap("MAX_QUERY_LIMIT", DEFAULT_MAX_QUERY_LIMIT)
     const skipMax = resolveQueryCap("MAX_QUERY_SKIP", DEFAULT_MAX_QUERY_SKIP)
+    // Both ceilings are known before either parameter is read, so they are reported before anything
+    // can throw.  A client that gets a 400 back can then read the boundary it hit off the same
+    // response rather than parsing it out of the message.
+    res?.set({
+        "Pagination-Limit-Max": String(limitMax),
+        "Pagination-Skip-Max": String(skipMax)
+    })
     const safeDefaultLimit = defaultLimit > 0 ? defaultLimit : 100
     const limit = Math.min(readWholeNumberParam(query.limit, "limit", safeDefaultLimit, 1), limitMax)
     const skip = readWholeNumberParam(query.skip, "skip", 0, 0)
@@ -124,11 +134,10 @@ function getPagination(query = {}, res = null, defaultLimit = 100) {
             status: 400
         })
     }
+    // The applied values are only knowable once both parameters have survived validation.
     res?.set({
         "Pagination-Limit": String(limit),
-        "Pagination-Skip": String(skip),
-        "Pagination-Limit-Max": String(limitMax),
-        "Pagination-Skip-Max": String(skipMax)
+        "Pagination-Skip": String(skip)
     })
     return { limit, skip }
 }

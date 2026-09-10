@@ -42,6 +42,9 @@ beforeEach(() => {
 
 it("'/query' route functions", async () => {
   const queryCursor = {
+    sort() {
+      return this
+    },
     limit() {
       return this
     },
@@ -67,6 +70,7 @@ it("'/query' route functions", async () => {
 
 describe('HEAD /query', () => {
   const buildCursor = (docs) => ({
+    sort() { return this },
     limit() { return this },
     skip() { return this },
     async toArray() { return docs }
@@ -112,6 +116,10 @@ describe('pagination parameters on /query', () => {
 
   /** A cursor that records the limit and skip the controller actually applied. */
   const recordingCursor = (docs, applied) => ({
+    sort(order) {
+      applied.sort = order
+      return this
+    },
     limit(n) {
       applied.limit = n
       return this
@@ -181,6 +189,29 @@ describe('pagination parameters on /query', () => {
     const response = await post(`?skip=${skipMax + 1}`)
     assert.strictEqual(response.statusCode, 400)
     assert.match(response.text, new RegExp(`beyond the maximum of ${skipMax}`))
+  })
+
+  it("reports the ceilings on the skip rejection, so a walk can tell that boundary from any other 400", async () => {
+    const paged = await post("?limit=2&skip=0")
+    const skipMax = Number(paged.headers['pagination-skip-max'])
+
+    const response = await post(`?skip=${skipMax + 1}`)
+    assert.strictEqual(response.statusCode, 400)
+    assert.strictEqual(response.headers['pagination-skip-max'], String(skipMax))
+    assert.ok(Number(response.headers['pagination-limit-max']) > 0)
+    assert.strictEqual(response.headers['pagination-limit'], undefined, 'no page was served')
+    assert.strictEqual(response.headers['pagination-skip'], undefined, 'no page was served')
+  })
+
+  it("pages over a deterministic order, because a skip offset means nothing without one", async () => {
+    const applied = {}
+    db.find.mockReturnValueOnce(recordingCursor([mockDoc], applied))
+    await request(pagedTester)
+      .post("/query?limit=7&skip=3")
+      .set("Content-Type", "application/json")
+      .send({ test: "item" })
+
+    assert.deepStrictEqual(applied.sort, { _id: 1 })
   })
 
   it("reports no page on the empty body 400, because none was served", async () => {

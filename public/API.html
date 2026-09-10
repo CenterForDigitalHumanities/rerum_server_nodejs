@@ -561,8 +561,10 @@
                         <span class="ind2">},</span>
                         <span class="ind2">body: JSON.stringify(queryObj)</span>
                     <span class="ind1">})</span>
-                    <span class="ind1">// A walk past the skip maximum ends here. Keep the pages already gathered.</span>
-                    <span class="ind1">if (response.status === 400 &amp;&amp; it &gt; 0) return allResults</span>
+                    <span class="ind1">// Only the skip ceiling ends a walk early. Every other 400 is a real error, and</span>
+                    <span class="ind1">// returning the pages gathered so far would report a walk that never finished.</span>
+                    <span class="ind1">const skipMax = Number(response.headers.get("Pagination-Skip-Max"))</span>
+                    <span class="ind1">if (response.status === 400 &amp;&amp; skipMax &amp;&amp; it &gt; skipMax) return allResults</span>
                     <span class="ind1">if (!response.ok) throw new Error(await response.text())</span>
                     <span class="ind1">const results = await response.json()</span>
                     <span class="ind1">allResults = allResults.concat(results)</span>
@@ -615,12 +617,23 @@
             Every paged response reports what was applied and what the maximums are, so a client can configure itself from any single response and tell a truncated page from a genuine final one. These headers are readable cross-origin.
         </p>
         <p>
+            <code>Pagination-Limit-Max</code> and <code>Pagination-Skip-Max</code> are reported on rejections too, including the <code>400</code> for a <code>skip</code> past the maximum. That is what lets a paged walk recognise the depth boundary and stop cleanly, instead of treating every <code>400</code> as the end of the results. <code>Pagination-Limit</code> and <code>Pagination-Skip</code> appear only where a page was actually served.
+        </p>
+        <p>
             <pre><code class="jsExample"> 
                 <span>Pagination-Limit: 500</span>
                 <span>Pagination-Skip: 0</span>
                 <span>Pagination-Limit-Max: 500</span>
                 <span>Pagination-Skip-Max: 100000</span>
             </code></pre>
+        </p>
+        <h4>Result ordering</h4>
+        <p>
+            <a href="#custom-query">Custom Query</a> pages in ascending <code>_id</code> order, on both <code>POST</code> and <code>HEAD</code>. A <code>skip</code> offset only means something over a fixed order, so consecutive pages tile that order without repeating or missing a record.
+        </p>
+        <p class="alert">This is not oldest-to-newest. RERUM <code>_id</code> values are a mix of BSON types across the repository's history, and BSON sorts each type into its own block, so the order is stable and complete but carries no chronological meaning. Sort client-side on <code>__rerum.createdAt</code> if you need records in the order they were made.</p>
+        <p>
+            The search endpoints do not currently make an ordering guarantee. Do not assume paged search results tile the same way.
         </p>
 
         <h3 id="text-search">Text Search</h3>

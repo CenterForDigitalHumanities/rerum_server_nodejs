@@ -49,6 +49,7 @@ function createMockFunction(implementation = () => undefined) {
  */
 export function createCursor(docs = []) {
   const cursor = {
+    sort: createMockFunction(function () { return this }),
     limit: createMockFunction(function () { return this }),
     skip: createMockFunction(function () { return this }),
     batchSize: createMockFunction(function () { return this }),

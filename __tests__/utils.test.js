@@ -461,6 +461,22 @@ describe('controllers/utils.js getPagination', () => {
     }
   })
 
+  it('reports the ceilings on a rejection, so a client can recover from the 400 it just got', () => {
+    // The 400 for an over-deep skip is the response a client most needs the ceiling from, and it
+    // is what lets a paged walk tell that boundary apart from every other 400 it could receive.
+    for (const query of [{ limit: 'abc' }, { skip: 'abc' }, { limit: ['100', '200'] }, { skip: '999999999' }]) {
+      const headers = capturedHeadersFor(query)
+      assert.ok(Number(headers['Pagination-Limit-Max']) > 0, `${JSON.stringify(query)} should still report the limit ceiling`)
+      assert.ok(Number(headers['Pagination-Skip-Max']) > 0, `${JSON.stringify(query)} should still report the skip ceiling`)
+    }
+  })
+
+  it('reports no applied page on a rejection, because none was served', () => {
+    const headers = capturedHeadersFor({ skip: '999999999' })
+    assert.strictEqual(headers['Pagination-Limit'], undefined)
+    assert.strictEqual(headers['Pagination-Skip'], undefined)
+  })
+
   it('accepts an already-integral number, which req.query never holds but a caller might pass', () => {
     const result = getPagination({ limit: 50, skip: 10 })
     assert.strictEqual(result.limit, 50)
@@ -468,10 +484,20 @@ describe('controllers/utils.js getPagination', () => {
     assertRejects({ limit: 250.7 }, /whole number greater than 0/)
   })
 
-  /** Run getPagination against a minimal response double and hand back the headers it set. */
+  /**
+   * Run getPagination against a minimal response double and hand back the headers it set.
+   *
+   * The ceilings and the applied values arrive as two separate set() calls, so they are merged
+   * rather than overwritten.  A rejected query still reports the ceilings, so a 400 is caught here
+   * instead of propagating.  Anything else still throws, so a real fault is not swallowed.
+   */
   function capturedHeadersFor(query) {
-    let captured
-    getPagination(query, { set: (headers) => { captured = headers } })
+    const captured = {}
+    try {
+      getPagination(query, { set: (headers) => Object.assign(captured, headers) })
+    } catch (err) {
+      if (err.statusCode !== 400) throw err
+    }
     return captured
   }
 })

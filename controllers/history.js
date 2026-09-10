@@ -88,7 +88,8 @@ const queryHeadRequest = async function (req, res, next) {
     let props = req.body
     const { limit, skip } = getPagination(req.query, res, 100)
     try {
-        const matches = await db.find(props).limit(limit).skip(skip).toArray()
+        // Sorted the same way POST /query is, so the two verbs page over one order.
+        const matches = await db.find(props).sort({ _id: 1 }).limit(limit).skip(skip).toArray()
         if (matches.length) {
             const negotiated = matches.map(o => idNegotiation(o))
             const size = Buffer.byteLength(JSON.stringify(negotiated))
