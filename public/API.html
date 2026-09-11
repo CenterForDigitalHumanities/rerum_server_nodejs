@@ -571,7 +571,9 @@
                     <span class="ind1">}</span>
                     <span class="ind1">if (!response.ok) throw new Error(await response.text())</span>
                     <span class="ind1">const results = await response.json()</span>
-                    <span class="ind1">allResults = allResults.concat(results)</span>
+                    <span class="ind1">// Append in place. Walking to the skip ceiling at this page size is a thousand pages,</span>
+                    <span class="ind1">// and concat() would copy every record gathered so far on each one of them.</span>
+                    <span class="ind1">allResults.push(...results)</span>
                     <br>
                     <span class="ind1">// Advance by the page size the server applied, which may be smaller than the one you asked for.</span>
                     <span class="ind1">const appliedLimit = Number(response.headers.get("Pagination-Limit")) || lim</span>

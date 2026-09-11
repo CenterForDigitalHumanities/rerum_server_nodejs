@@ -63,6 +63,11 @@ function resolveQueryCap(key, fallback) {
  * An already-integral Number is taken as-is.  'req.query' never holds one, but a non-Express caller
  * should not get a 400 complaining that 50 is not a whole number.
  *
+ * A digit string too large for a Number is saturated to 'Number.MAX_SAFE_INTEGER' rather than
+ * rejected.  It is a whole number, so the caller's maximum is what should decide it: a 'limit'
+ * clamps the way the contract promises, and a 'skip' gets the ceiling message naming the maximum
+ * instead of one claiming 400 digits are not a whole number.
+ *
  * @param raw The raw value from 'req.query', or undefined when the parameter was omitted.
  * @param name The parameter name, used in the error message.
  * @param fallback The value to use when the parameter was omitted.
@@ -81,6 +86,11 @@ function readWholeNumberParam(raw, name, fallback, min) {
     const parsed = typeof raw === "number" ? raw
         : typeof raw === "string" && /^\d+$/.test(raw) ? Number.parseInt(raw, 10)
         : NaN
+    // A digit string past Number's range parses to Infinity.  It is still a whole number, just a
+    // larger one than any maximum, so it belongs in the caller's clamp and ceiling handling rather
+    // than here.  Rejecting it would tell a client that '9'.repeat(400) is not a whole number, and
+    // would reject a 'limit' the contract promises to clamp.
+    if (parsed === Infinity) return Number.MAX_SAFE_INTEGER
     if (!Number.isInteger(parsed) || parsed < min) {
         const bound = min > 0 ? `greater than 0` : `0 or greater`
         throw utils.createExpressError({

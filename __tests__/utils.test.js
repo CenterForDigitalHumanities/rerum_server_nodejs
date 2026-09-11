@@ -389,6 +389,18 @@ describe('controllers/utils.js getPagination', () => {
     assert.strictEqual(limit, Number(max))
   })
 
+  it('clamps a limit too large for a Number rather than calling it not a whole number', () => {
+    // Past about 309 digits Number.parseInt returns Infinity.  Rejected there, a digit-only value
+    // would get a 400 saying it is not a whole number, and a limit the contract promises to clamp
+    // would be refused for being large - the one thing an over-maximum limit is never supposed to be.
+    const { limit } = getPagination({ limit: '9'.repeat(400) })
+    assert.strictEqual(limit, Number(capturedHeadersFor({})['Pagination-Limit-Max']))
+  })
+
+  it('sends a skip too large for a Number to the ceiling message, not the malformed one', () => {
+    assertRejects({ skip: '9'.repeat(400) }, /beyond the maximum/)
+  })
+
   it('rejects a skip above the maximum rather than serving the same page forever', () => {
     // Clamping it would hand back the page at the maximum on every request past it.  A client
     // advancing skip and stopping on an empty page would never terminate.
