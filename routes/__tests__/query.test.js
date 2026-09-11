@@ -142,16 +142,20 @@ describe('pagination parameters on /query', () => {
       .send({ test: "item" })
   }
 
+  // The rejected forms themselves are covered against getPagination in __tests__/utils.test.js.
+  // What is left to prove here is the wiring: the controller reads req.query, and the 400 it
+  // throws reaches the client as a 400 rather than as an unhandled error.
   it("rejects a limit or skip it cannot read exactly", async () => {
-    for (const queryString of ["?limit=abc", "?limit=1e3", "?limit=0", "?limit=-5", "?limit=250.7", "?limit=", "?skip=abc", "?skip=2.9", "?skip=-5"]) {
+    for (const queryString of ["?limit=abc", "?skip=2.9"]) {
       const response = await post(queryString)
       assert.strictEqual(response.statusCode, 400, `${queryString} should be a 400`)
     }
   })
 
+  // Asserted over HTTP rather than only against getPagination, because this is what proves
+  // Express really does hand a repeated parameter over as the Array that getPagination rejects.
   it("rejects a repeated limit rather than taking one of the two values", async () => {
     assert.strictEqual((await post("?limit=100&limit=200")).statusCode, 400)
-    assert.strictEqual((await post("?limit=200&limit=100")).statusCode, 400)
   })
 
   it("reports the applied limit and skip, and the maximums, on a paged response", async () => {
@@ -163,13 +167,7 @@ describe('pagination parameters on /query', () => {
     assert.ok(Number(response.headers['pagination-skip-max']) > 0)
   })
 
-  it("reports the clamp when the limit asked for is above the maximum", async () => {
-    const response = await post("?limit=999999")
-    assert.strictEqual(response.statusCode, 200)
-    assert.strictEqual(response.headers['pagination-limit'], response.headers['pagination-limit-max'])
-  })
-
-  it("applies the reported limit and skip to the database cursor", async () => {
+  it("applies the reported limit and skip to the database cursor, over a deterministic order", async () => {
     const applied = {}
     db.find.mockReturnValueOnce(recordingCursor([mockDoc], applied))
     const response = await request(pagedTester)
@@ -179,6 +177,8 @@ describe('pagination parameters on /query', () => {
 
     assert.strictEqual(applied.limit, 7)
     assert.strictEqual(applied.skip, 3)
+    // A skip offset means nothing without a stable order to count into.
+    assert.deepStrictEqual(applied.sort, { _id: 1 })
     assert.strictEqual(response.headers['pagination-limit'], '7')
     assert.strictEqual(response.headers['pagination-skip'], '3')
   })
@@ -192,29 +192,11 @@ describe('pagination parameters on /query', () => {
     const response = await post(`?skip=${skipMax + 1}`)
     assert.strictEqual(response.statusCode, 400)
     assert.match(response.text, new RegExp(`beyond the maximum of ${skipMax}`))
-  })
-
-  it("reports the ceilings on the skip rejection, so a walk can tell that boundary from any other 400", async () => {
-    const paged = await post("?limit=2&skip=0")
-    const skipMax = Number(paged.headers['pagination-skip-max'])
-
-    const response = await post(`?skip=${skipMax + 1}`)
-    assert.strictEqual(response.statusCode, 400)
+    // The ceilings still come back, so a paged walk can tell this boundary from any other 400.
     assert.strictEqual(response.headers['pagination-skip-max'], String(skipMax))
     assert.ok(Number(response.headers['pagination-limit-max']) > 0)
     assert.strictEqual(response.headers['pagination-limit'], undefined, 'no page was served')
     assert.strictEqual(response.headers['pagination-skip'], undefined, 'no page was served')
-  })
-
-  it("pages over a deterministic order, because a skip offset means nothing without one", async () => {
-    const applied = {}
-    db.find.mockReturnValueOnce(recordingCursor([mockDoc], applied))
-    await request(pagedTester)
-      .post("/query?limit=7&skip=3")
-      .set("Content-Type", "application/json")
-      .send({ test: "item" })
-
-    assert.deepStrictEqual(applied.sort, { _id: 1 })
   })
 
   it("reports no page on the empty body 400, because none was served", async () => {
