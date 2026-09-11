@@ -27,6 +27,27 @@ function mockAggregateResults(docs) {
   })
 }
 
+/**
+ * Answer the two branches with different documents, so cross-index behavior can be observed.
+ *
+ * The controllers build the Promise.all array literal presi3 first, and array elements evaluate
+ * left to right, so the first queued result is the IIIF 3.0 branch.
+ */
+function mockBranchResults(presi3Docs, presi2Docs) {
+  db.aggregate.mockReturnValueOnce({ toArray: () => Promise.resolve(presi3Docs) })
+  db.aggregate.mockReturnValueOnce({ toArray: () => Promise.resolve(presi2Docs) })
+}
+
+/** A search hit carrying its relevance where the branch pipelines actually put it. */
+const scoredDoc = (id, score) => ({
+  _id: id,
+  '@id': `https://store.rerum.io/v1/id/${id}`,
+  __rerum: { score }
+})
+
+/** The document ids of a search response, in the order the endpoint returned them. */
+const idsOf = (response) => response.body.map(o => o['@id'].split('/').pop())
+
 describe('search controllers', () => {
   it("searchAsWords returns 400 when the body is empty", async () => {
     const response = await request(routeTester)
@@ -100,5 +121,75 @@ describe('search controllers', () => {
 
     assert.strictEqual(response.statusCode, 200)
     assert.strictEqual(response.body.length, 1, 'duplicate _id across indexes should be deduped')
+  })
+
+  // The branch pipelines write relevance to '__rerum.score'.  A comparator reading a top-level
+  // 'score' finds nothing on any document, so the merge keeps its construction order and every
+  // IIIF 2.1 match is ranked behind every IIIF 3.0 match however well it scores.
+  it("searchAsWords ranks across both indexes by score, not by which index answered", async () => {
+    mockBranchResults(
+      [scoredDoc('presi3-weak', 1.69), scoredDoc('presi3-weaker', 1.24)],
+      [scoredDoc('presi2-best', 83.92)]
+    )
+
+    const response = await request(routeTester)
+      .post('/search')
+      .set('Content-Type', 'text/plain')
+      .send('line')
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.deepStrictEqual(idsOf(response), ['presi2-best', 'presi3-weak', 'presi3-weaker'])
+  })
+
+  // The point of the ranking, for this endpoint: 'limit' and 'skip' slice the merged order, so a
+  // merge that does not rank hands back a window of the wrong records rather than a wrong order.
+  it("pages the score order, so skip walks best-first across both indexes", async () => {
+    const branches = () => mockBranchResults(
+      [scoredDoc('p3-c', 3), scoredDoc('p3-d', 2)],
+      [scoredDoc('p2-a', 9), scoredDoc('p2-b', 5)]
+    )
+    const page = (queryString) => {
+      branches()
+      return request(routeTester)
+        .post(`/search${queryString}`)
+        .set('Content-Type', 'text/plain')
+        .send('line')
+    }
+
+    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=0')), ['p2-a', 'p2-b'])
+    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=2')), ['p3-c', 'p3-d'])
+  })
+})
+
+describe('search pagination parameters', () => {
+  // getPagination is shared with /query, so this proves the search endpoints are covered by the
+  // same contract rather than re-testing every rejected form here.
+  const searchFor = (path, queryString) => {
+    mockAggregateResults([])
+    return request(routeTester)
+      .post(`${path}${queryString}`)
+      .set('Content-Type', 'text/plain')
+      .send('manuscript')
+  }
+
+  it("searchAsWords rejects a limit or skip it cannot read exactly", async () => {
+    for (const queryString of ["?limit=abc", "?skip=-5"]) {
+      const response = await searchFor('/search', queryString)
+      assert.strictEqual(response.statusCode, 400, `${queryString} should be a 400`)
+    }
+  })
+
+  it("searchAsPhrase rejects them too", async () => {
+    const response = await searchFor('/search/phrase', '?skip=2.9')
+    assert.strictEqual(response.statusCode, 400)
+  })
+
+  it("reports the applied limit and skip on a search response", async () => {
+    const response = await searchFor('/search', '?limit=25&skip=10')
+    assert.strictEqual(response.statusCode, 200)
+    assert.strictEqual(response.headers['pagination-limit'], '25')
+    assert.strictEqual(response.headers['pagination-skip'], '10')
+    assert.ok(Number(response.headers['pagination-limit-max']) > 0)
+    assert.ok(Number(response.headers['pagination-skip-max']) > 0)
   })
 })

@@ -60,6 +60,7 @@
                             <li><a href="#create">Create</a></li>
                             <li><a href="#bulk-create">Bulk Create</a></li>
                             <li><a href="#custom-query">Custom Query</a></li>
+                            <li><a href="#pagination-parameters">Pagination parameters</a></li>
                             <li><a href="#text-search">Text Search</a></li>
                             <li><a href="#phrase-search">Phrase Search</a></li>
                             <li><a href="#expanded-record-with-filters">Expanded record with filters</a></li>
@@ -503,8 +504,8 @@
         </ul>
         <p>
             This simple format will be made more complex in the future, but should serve the basic needs as it is.
-            RERUM will test for property matches. By default, this is limited to 10 records in the response to guard against unreasonable queries. To allow for more records in the response one can add the URL parameter <code>limit</code> to the query requests. If you expect the query request will have a very large response with many objects, your application should use a paged query by also using the <code>skip</code> URL parameter. You will see an example of this below.
-            <p class="alert"> Note that your application may experience strange behavior with large limits, such as ?limit=1000. It is recommended to use a limit of 100 or less. If you expect there are more than 100 matching records, use a paged query to make consecutive requests until all records all gathered.</p>
+            RERUM will test for property matches. By default, this is limited to 100 records in the response to guard against unreasonable queries. To allow for more records in the response one can add the URL parameter <code>limit</code> to the query requests. If you expect the query request will have a very large response with many objects, your application should use a paged query by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            <p class="alert">A <code>limit</code> above the maximum of 500 is not an error. It is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
             <div class="exHeading">Non-Paged Query Javascript Example</div>
@@ -552,29 +553,89 @@
             <pre><code class="jsExample"> 
                 <span>const many_results = await pagedQuery(100, 0, {"type": "Thing"})</span>
                 <br>
-                <span>function pagedQuery(lim, it = 0, queryObj, allResults = []) {</span>
-                    <span class="ind1">return fetch(`https://devstore.rerum.io/v1/api/query?limit=${lim}&skip=${it}`, {</span>
+                <span>async function pagedQuery(lim, it = 0, queryObj, allResults = []) {</span>
+                    <span class="ind1">const response = await fetch(`https://devstore.rerum.io/v1/api/query?limit=${lim}&skip=${it}`, {</span>
                         <span class="ind2"> method: "POST",</span>
                         <span class="ind2">headers: {</span>
                             <span class="ind3">"Content-Type": "application/json; charset=utf-8"</span>
                         <span class="ind2">},</span>
                         <span class="ind2">body: JSON.stringify(queryObj)</span>
                     <span class="ind1">})</span>
-                    <span class="ind1">.then(response => response.json())</span>
-                    <span class="ind1">.then(results => {</span>
-                        <span class="ind2">if (results.length) {</span>
-                            <span class="ind3">allResults = allResults.concat(results)</span>
-                            <span class="ind3">return pagedQuery(lim, it + results.length, queryObj, allResults)</span>
-                        <span class="ind2">}</span>
+                    <span class="ind1">// Only the skip ceiling ends a walk early. Every other 400 is a real error, and</span>
+                    <span class="ind1">// returning the pages gathered so far would report a walk that never finished.</span>
+                    <span class="ind1">// Stopping at the ceiling still truncates, so say so rather than returning quietly.</span>
+                    <span class="ind1">const skipMax = Number(response.headers.get("Pagination-Skip-Max"))</span>
+                    <span class="ind1">if (response.status === 400 &amp;&amp; skipMax &amp;&amp; it &gt; skipMax) {</span>
+                        <span class="ind2">console.warn(`Stopped at the skip ceiling of ${skipMax}. These results are incomplete. Narrow the query.`)</span>
                         <span class="ind2">return allResults</span>
-                    <span class="ind1">})</span>
-                    <span class="ind1">.catch(err => {</span>
-                        <span class="ind2">console.warn("Could not process a result in paged query")</span>
-                        <span class="ind2">throw err</span>
-                    <span class="ind1">})</span>
+                    <span class="ind1">}</span>
+                    <span class="ind1">if (!response.ok) throw new Error(await response.text())</span>
+                    <span class="ind1">const results = await response.json()</span>
+                    <span class="ind1">// Append in place. Walking to the skip ceiling at this page size is a thousand pages,</span>
+                    <span class="ind1">// and concat() would copy every record gathered so far on each one of them.</span>
+                    <span class="ind1">allResults.push(...results)</span>
+                    <br>
+                    <span class="ind1">// Advance by the page size the server applied, which may be smaller than the one you asked for.</span>
+                    <span class="ind1">const appliedLimit = Number(response.headers.get("Pagination-Limit")) || lim</span>
+                    <br>
+                    <span class="ind1">// A short page is the last page. Do not wait for an empty one.</span>
+                    <span class="ind1">if (results.length &lt; appliedLimit) return allResults</span>
+                    <span class="ind1">return pagedQuery(lim, it + appliedLimit, queryObj, allResults)</span>
                 <span>}</span>
             </code></pre>
         </p>
+        <h3 id="pagination-parameters">Pagination parameters</h3>
+        <p>
+            <code>limit</code> and <code>skip</code> are URL parameters shared by <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a>. Both must be whole numbers written in plain decimal digits. Anything else is a <code>400</code>.
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Default</th>
+                    <th>Maximum</th>
+                    <th>Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>limit</code></td>
+                    <td>100</td>
+                    <td>500</td>
+                    <td>A whole number of 1 or greater. Above the maximum it is reduced to the maximum, and <code>Pagination-Limit</code> reports what was applied.</td>
+                </tr>
+                <tr>
+                    <td><code>skip</code></td>
+                    <td>0</td>
+                    <td>100000</td>
+                    <td>A whole number of 0 or greater. Above the maximum it is a <code>400</code> naming the maximum, because clamping it would return the page at the maximum over and over.</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+            Every paged response reports what was applied and what the maximums are, so a client can configure itself from any single response and tell a truncated page from a genuine final one. These headers are readable cross-origin.
+        </p>
+        <p>
+            <code>Pagination-Limit-Max</code> and <code>Pagination-Skip-Max</code> are reported on rejections too, including the <code>400</code> for a <code>skip</code> past the maximum. That is what lets a paged walk recognise the depth boundary and stop cleanly.
+        </p>
+        <p>
+            <pre><code class="jsExample"> 
+                <span>Pagination-Limit: 500</span>
+                <span>Pagination-Skip: 0</span>
+                <span>Pagination-Limit-Max: 500</span>
+                <span>Pagination-Skip-Max: 100000</span>
+            </code></pre>
+        </p>
+        <h4>Result ordering</h4>
+        <p>
+            <a href="#custom-query">Custom Query</a> pages in ascending <code>_id</code> order, on both <code>POST</code> and <code>HEAD</code>. A <code>skip</code> offset only means something over a fixed order, so consecutive pages tile that order without repeating or missing a record.
+        </p>
+        <p class="alert">This is not oldest-to-newest. RERUM <code>_id</code> values are a mix of BSON types across the repository's history, and BSON sorts each type into its own block, so the order is stable and complete but carries no chronological meaning. Sort client-side on <code>__rerum.createdAt</code> if you need records in the order they were made.</p>
+        <p>
+            The search endpoints page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. That order is the same across both the IIIF 3.0 and IIIF 2.1 indexes, so the best match is the first record of the first page whichever shape it was written in.
+        </p>
+        <p class="alert">Descending score is an ordering, not a tiling guarantee. <a href="#custom-query">Custom Query</a> is the endpoint to walk when you need every matching record exactly once.</p>
+
         <h3 id="text-search">Text Search</h3>
         <table>
             <thead>
@@ -609,7 +670,7 @@
         </ul>
         <p>
             To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
-            <p class="alert"> Note that your application may experience strange behavior with large limits, such as ?limit=1000. It is recommended to use a limit of 100 or less. If you expect there are more than 100 matching records, use a paged search to make consecutive requests until all records all gathered.</p>
+            <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
             Search behavior:
@@ -727,7 +788,7 @@
         </ul>
         <p>
             To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
-            <p class="alert"> Note that your application may experience strange behavior with large limits, such as ?limit=1000. It is recommended to use a limit of 100 or less. If you expect there are more than 100 matching records, use a paged search to make consecutive requests until all records are gathered.</p>
+            <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
             Search behavior:

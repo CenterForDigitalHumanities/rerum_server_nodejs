@@ -23,7 +23,7 @@ import { idNegotiation, getPagination } from './utils.js'
  * 1. Combines both result arrays
  * 2. Removes duplicates based on MongoDB _id (keeps first occurrence)
  * 3. Sorts by search score in descending order (highest relevance first)
- * 
+ *
  * The function handles different _id formats:
  * - ObjectId objects with $oid property
  * - String-based _id values
@@ -40,9 +40,7 @@ function mergeSearchResults(results1, results2) {
             merged.push(result)
         }
     }
-    
-    // Sort by score descending
-    return merged.sort((a, b) => (b.score || 0) - (a.score || 0))
+    return merged.sort((a, b) => (b.__rerum?.score ?? 0) - (a.__rerum?.score ?? 0))
 }
 
 /**
@@ -271,7 +269,7 @@ const searchAsWords = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: searchOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -357,7 +355,7 @@ const searchAsPhrase = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "phrase", options: phraseOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -435,7 +433,7 @@ const searchFuzzily = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: fuzzyOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -529,7 +527,7 @@ const searchWildly = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "wildcard", options: wildcardOptions }, limit, skip)
     try {
         const [resultsPresi3, resultsPresi2] = await Promise.all([
@@ -622,7 +620,7 @@ const searchAlikes = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, 100)
+    const { limit, skip } = getPagination(req.query, res, 100)
     // Build moreLikeThis queries for both IIIF 3.0 and IIIF 2.1 indexes
     const searchQuery_presi3 = [
         {
