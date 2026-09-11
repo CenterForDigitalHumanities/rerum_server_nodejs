@@ -109,7 +109,9 @@ function readWholeNumberParam(raw, name, fallback, min) {
  * what lets a paged walk tell that boundary apart from every other 400 it could receive.
  *
  * @param query The Express 'req.query' object.
- * @param res The Express response, so the applied values can be reported.  Optional.
+ * @param res The Express response, so the applied values can be reported.  Optional.  Anything
+ * without a 'set' method reports nothing rather than throwing, so a caller using the older
+ * two-argument shape still gets its values back instead of a 500.
  * @param defaultLimit The limit to apply when the client does not ask for one.
  * @throws A 400 express error when either parameter is not a whole number in range, or when 'skip'
  * is beyond the configured maximum.
@@ -118,10 +120,15 @@ function readWholeNumberParam(raw, name, fallback, min) {
 function getPagination(query = {}, res = null, defaultLimit = 100) {
     const limitMax = resolveQueryCap("MAX_QUERY_LIMIT", DEFAULT_MAX_QUERY_LIMIT)
     const skipMax = resolveQueryCap("MAX_QUERY_SKIP", DEFAULT_MAX_QUERY_SKIP)
+    // 'res' is only ever used to report headers, so anything that cannot report is treated as an
+    // omitted response rather than an error.  'res?.set(...)' would throw a TypeError on the older
+    // getPagination(query, defaultLimit) shape, and a caller asking for a page would get a 500
+    // naming optional chaining instead of the page it asked for.
+    const report = typeof res?.set === "function" ? (headers) => res.set(headers) : () => undefined
     // Both ceilings are known before either parameter is read, so they are reported before anything
     // can throw.  A client that gets a 400 back can then read the boundary it hit off the same
     // response rather than parsing it out of the message.
-    res?.set({
+    report({
         "Pagination-Limit-Max": String(limitMax),
         "Pagination-Skip-Max": String(skipMax)
     })
@@ -129,13 +136,16 @@ function getPagination(query = {}, res = null, defaultLimit = 100) {
     const limit = Math.min(readWholeNumberParam(query.limit, "limit", safeDefaultLimit, 1), limitMax)
     const skip = readWholeNumberParam(query.skip, "skip", 0, 0)
     if (skip > skipMax) {
+        // Echo the raw value, not the parsed one.  A digit string long enough to lose precision
+        // parses to a different number than the client sent, and a message quoting a value nobody
+        // asked for is hard to match back to the request that caused it.
         throw utils.createExpressError({
-            message: `The 'skip' URL parameter of ${skip} is beyond the maximum of ${skipMax}. Reading deeper than that is not supported, because every page past it would repeat the one at the maximum. Narrow the query so the records you want fall within the first ${skipMax} results.`,
+            message: `The 'skip' URL parameter of ${String(query.skip).slice(0, PARAM_ECHO_MAX)} is beyond the maximum of ${skipMax}. Reading deeper than that is not supported, because every page past it would repeat the one at the maximum. Narrow the query so the records you want fall within the first ${skipMax} results.`,
             status: 400
         })
     }
     // The applied values are only knowable once both parameters have survived validation.
-    res?.set({
+    report({
         "Pagination-Limit": String(limit),
         "Pagination-Skip": String(skip)
     })

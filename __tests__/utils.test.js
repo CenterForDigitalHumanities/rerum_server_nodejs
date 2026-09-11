@@ -484,6 +484,31 @@ describe('controllers/utils.js getPagination', () => {
     assertRejects({ limit: 250.7 }, /whole number greater than 0/)
   })
 
+  it('reports nothing rather than throwing when the second argument cannot set headers', () => {
+    // The pre-existing shape was getPagination(query, defaultLimit).  A caller still using it would
+    // otherwise get a TypeError out of the header reporting, which surfaces as a 500 on an endpoint
+    // that meant to answer 200.
+    for (const notAResponse of [100, 'res', true, {}, { set: 'not a function' }]) {
+      const result = getPagination({ limit: '25', skip: '5' }, notAResponse)
+      assert.strictEqual(result.limit, 25, `${JSON.stringify(notAResponse)} should not change the limit`)
+      assert.strictEqual(result.skip, 5, `${JSON.stringify(notAResponse)} should not change the skip`)
+    }
+  })
+
+  it('echoes the raw skip in the ceiling rejection, not the value it parsed to', () => {
+    // A digit string long enough to lose precision parses to a different number than the client
+    // sent, and a message naming a value nobody asked for cannot be matched back to its request.
+    const raw = '99999999999999999999'
+    assert.throws(
+      () => getPagination({ skip: raw }),
+      (err) => {
+        assert.strictEqual(err.statusCode, 400)
+        assert.match(err.statusMessage, new RegExp(`of ${raw} is beyond the maximum`))
+        return true
+      }
+    )
+  })
+
   /**
    * Run getPagination against a minimal response double and hand back the headers it set.
    *

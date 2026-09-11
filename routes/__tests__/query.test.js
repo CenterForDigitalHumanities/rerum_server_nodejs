@@ -108,10 +108,13 @@ describe('HEAD /query', () => {
 describe('pagination parameters on /query', () => {
   // rest.messenger renders the 400s that getPagination throws.  The routeTester above deliberately
   // mounts no error handler, so these get their own app rather than changing how it behaves.
+  // Mounted the way routes/query.js mounts it, verifyJsonContentType included, so the order the
+  // real app answers in is what is under test: a Content-Type it cannot accept is a 415 before any
+  // pagination parameter is read.
   const pagedTester = express()
   pagedTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
   pagedTester.head("/query", controller.queryHeadRequest)
-  pagedTester.use("/query", controller.query)
+  pagedTester.post("/query", rest.verifyJsonContentType, controller.query)
   pagedTester.use(rest.messenger)
 
   /** A cursor that records the limit and skip the controller actually applied. */
@@ -231,5 +234,20 @@ describe('pagination parameters on /query', () => {
     db.find.mockReturnValueOnce(recordingCursor([mockDoc], {}))
     const response = await request(pagedTester).head("/query?limit=abc")
     assert.strictEqual(response.statusCode, 400)
+  })
+
+  it("answers an unacceptable Content-Type before it reads a pagination parameter", async () => {
+    // Both faults are present.  The Content-Type is the one the endpoint can answer without
+    // looking at the query string, so it is the one that should decide the status.
+    db.find.mockReturnValueOnce(recordingCursor([mockDoc], {}))
+    const response = await request(pagedTester)
+      .post("/query?limit=abc")
+      .set("Content-Type", "text/plain")
+      .send("not json")
+
+    assert.strictEqual(response.statusCode, 415)
+    for (const header of ['pagination-limit-max', 'pagination-skip-max']) {
+      assert.strictEqual(response.headers[header], undefined, `${header} should not be set`)
+    }
   })
 })
