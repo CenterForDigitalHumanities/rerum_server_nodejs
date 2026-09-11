@@ -563,8 +563,12 @@
                     <span class="ind1">})</span>
                     <span class="ind1">// Only the skip ceiling ends a walk early. Every other 400 is a real error, and</span>
                     <span class="ind1">// returning the pages gathered so far would report a walk that never finished.</span>
+                    <span class="ind1">// Stopping at the ceiling still truncates, so say so rather than returning quietly.</span>
                     <span class="ind1">const skipMax = Number(response.headers.get("Pagination-Skip-Max"))</span>
-                    <span class="ind1">if (response.status === 400 &amp;&amp; skipMax &amp;&amp; it &gt; skipMax) return allResults</span>
+                    <span class="ind1">if (response.status === 400 &amp;&amp; skipMax &amp;&amp; it &gt; skipMax) {</span>
+                        <span class="ind2">console.warn(`Stopped at the skip ceiling of ${skipMax}. These results are incomplete. Narrow the query.`)</span>
+                        <span class="ind2">return allResults</span>
+                    <span class="ind1">}</span>
                     <span class="ind1">if (!response.ok) throw new Error(await response.text())</span>
                     <span class="ind1">const results = await response.json()</span>
                     <span class="ind1">allResults = allResults.concat(results)</span>
