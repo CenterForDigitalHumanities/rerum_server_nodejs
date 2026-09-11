@@ -23,7 +23,11 @@ import { idNegotiation, getPagination } from './utils.js'
  * 1. Combines both result arrays
  * 2. Removes duplicates based on MongoDB _id (keeps first occurrence)
  * 3. Sorts by search score in descending order (highest relevance first)
- * 
+ *
+ * The score is read from '__rerum.score', which is where buildDualIndexQueries() and the
+ * searchAlikes() pipelines put '$meta: "searchScore"'.  There is no top-level 'score' on any
+ * document, so a comparator that reads one silently ranks nothing.
+ *
  * The function handles different _id formats:
  * - ObjectId objects with $oid property
  * - String-based _id values
@@ -41,8 +45,11 @@ function mergeSearchResults(results1, results2) {
         }
     }
     
-    // Sort by score descending
-    return merged.sort((a, b) => (b.score || 0) - (a.score || 0))
+    // Sort by score descending.  The branch pipelines write each document's relevance to
+    // '__rerum.score', so it is read from there.  No document carries a top-level 'score', so a
+    // comparator reading one returns 0 for every pair and leaves the merge in its construction
+    // order - every IIIF 3.0 hit, then every IIIF 2.1 hit, regardless of relevance.
+    return merged.sort((a, b) => (b.__rerum?.score ?? 0) - (a.__rerum?.score ?? 0))
 }
 
 /**

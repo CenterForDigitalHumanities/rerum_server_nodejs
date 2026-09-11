@@ -27,6 +27,27 @@ function mockAggregateResults(docs) {
   })
 }
 
+/**
+ * Answer the two branches with different documents, so cross-index behavior can be observed.
+ *
+ * The controllers build the Promise.all array literal presi3 first, and array elements evaluate
+ * left to right, so the first queued result is the IIIF 3.0 branch.
+ */
+function mockBranchResults(presi3Docs, presi2Docs) {
+  db.aggregate.mockReturnValueOnce({ toArray: () => Promise.resolve(presi3Docs) })
+  db.aggregate.mockReturnValueOnce({ toArray: () => Promise.resolve(presi2Docs) })
+}
+
+/** A search hit carrying its relevance where the branch pipelines actually put it. */
+const scoredDoc = (id, score) => ({
+  _id: id,
+  '@id': `https://store.rerum.io/v1/id/${id}`,
+  __rerum: { score }
+})
+
+/** The document ids of a search response, in the order the endpoint returned them. */
+const idsOf = (response) => response.body.map(o => o['@id'].split('/').pop())
+
 describe('search controllers', () => {
   it("searchAsWords returns 400 when the body is empty", async () => {
     const response = await request(routeTester)
@@ -100,6 +121,55 @@ describe('search controllers', () => {
 
     assert.strictEqual(response.statusCode, 200)
     assert.strictEqual(response.body.length, 1, 'duplicate _id across indexes should be deduped')
+  })
+
+  // The branch pipelines write relevance to '__rerum.score'.  A comparator reading a top-level
+  // 'score' finds nothing on any document, so the merge keeps its construction order and every
+  // IIIF 2.1 match is ranked behind every IIIF 3.0 match however well it scores.
+  it("searchAsWords ranks across both indexes by score, not by which index answered", async () => {
+    mockBranchResults(
+      [scoredDoc('presi3-weak', 1.69), scoredDoc('presi3-weaker', 1.24)],
+      [scoredDoc('presi2-best', 83.92)]
+    )
+
+    const response = await request(routeTester)
+      .post('/search')
+      .set('Content-Type', 'text/plain')
+      .send('line')
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.deepStrictEqual(idsOf(response), ['presi2-best', 'presi3-weak', 'presi3-weaker'])
+  })
+
+  it("searchAsPhrase ranks across both indexes too", async () => {
+    mockBranchResults([scoredDoc('presi3-weak', 2.45)], [scoredDoc('presi2-best', 6.95)])
+
+    const response = await request(routeTester)
+      .post('/search/phrase')
+      .set('Content-Type', 'text/plain')
+      .send('exact phrase')
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.deepStrictEqual(idsOf(response), ['presi2-best', 'presi3-weak'])
+  })
+
+  // The point of the ranking, for this endpoint: 'limit' and 'skip' slice the merged order, so a
+  // merge that does not rank hands back a window of the wrong records rather than a wrong order.
+  it("pages the score order, so skip walks best-first across both indexes", async () => {
+    const branches = () => mockBranchResults(
+      [scoredDoc('p3-c', 3), scoredDoc('p3-d', 2)],
+      [scoredDoc('p2-a', 9), scoredDoc('p2-b', 5)]
+    )
+    const page = (queryString) => {
+      branches()
+      return request(routeTester)
+        .post(`/search${queryString}`)
+        .set('Content-Type', 'text/plain')
+        .send('line')
+    }
+
+    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=0')), ['p2-a', 'p2-b'])
+    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=2')), ['p3-c', 'p3-d'])
   })
 })
 

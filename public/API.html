@@ -637,8 +637,9 @@
         </p>
         <p class="alert">This is not oldest-to-newest. RERUM <code>_id</code> values are a mix of BSON types across the repository's history, and BSON sorts each type into its own block, so the order is stable and complete but carries no chronological meaning. Sort client-side on <code>__rerum.createdAt</code> if you need records in the order they were made.</p>
         <p>
-            The search endpoints do not currently make an ordering guarantee. Do not assume paged search results tile the same way.
+            The search endpoints page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. That order is the same across both the IIIF 3.0 and IIIF 2.1 indexes, so the best match is the first record of the first page whichever shape it was written in.
         </p>
+        <p class="alert">Descending score is an ordering, not a tiling guarantee. <a href="#custom-query">Custom Query</a> is the endpoint to walk when you need every matching record exactly once.</p>
 
         <h3 id="text-search">Text Search</h3>
         <table>
