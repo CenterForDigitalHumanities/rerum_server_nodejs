@@ -85,9 +85,6 @@ const query = async function (req, res, next) {
     // Below the guard above, so a request that is never paged does not report a page in its headers.
     const { limit, skip } = getPagination(req.query, res, 100)
     try {
-        // A skip offset only means something over a deterministic order.  '_id' is unique, always
-        // present, and always indexed, so it is the cheapest total order available, and it is the
-        // key a keyset cursor would resume from if paging ever moves off offsets.
         let matches = await db.find(props).sort({ _id: 1 }).limit(limit).skip(skip).toArray()
         matches = matches.map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(matches))

@@ -20,15 +20,6 @@ const PARAM_ECHO_MAX = 40
 
 /**
  * Resolve a configured pagination cap from the environment.
- *
- * Read per call rather than captured at module load, so a deployment's '.env' and the tests can
- * both set it.
- *
- * The raw value is validated as a decimal integer string before it is parsed, for the same reason
- * the client parameters are.  'Number.parseInt' would read a hand-typed 'MAX_QUERY_LIMIT=1e3' as a
- * cap of 1 and serve one record per page across the whole deployment, with only
- * 'Pagination-Limit-Max: 1' as evidence.
- *
  * An unset key falls back quietly.  A value that is present but unusable falls back loudly, because
  * a cap that is silently wrong is very hard to notice.  0 is not a usable cap for either maximum.
  *
@@ -49,24 +40,8 @@ function resolveQueryCap(key, fallback) {
 
 /**
  * Read one pagination URL parameter as a whole number, rejecting anything it cannot read exactly.
- *
- * The raw value is validated as a decimal integer string before it is parsed, because
- * 'Number.parseInt' guesses: it reads '10abc' as 10, '1e3' as 1, and '250.7' as 250.  A client
- * asking for 1000 records and silently receiving 1 is the worst of those.
- *
  * A parameter supplied more than once arrives from Express as an Array.  There is no single correct
  * reading of '?limit=100&limit=200', so it is a client mistake rather than something to guess at.
- *
- * '?limit[a]=5' cannot be caught here.  Under Express's default 'simple' query parser the key never
- * reaches the server, so it is indistinguishable from a request that omitted the parameter.
- *
- * An already-integral Number is taken as-is.  'req.query' never holds one, but a non-Express caller
- * should not get a 400 complaining that 50 is not a whole number.
- *
- * A digit string too large for a Number is saturated to 'Number.MAX_SAFE_INTEGER' rather than
- * rejected.  It is a whole number, so the caller's maximum is what should decide it: a 'limit'
- * clamps the way the contract promises, and a 'skip' gets the ceiling message naming the maximum
- * instead of one claiming 400 digits are not a whole number.
  *
  * @param raw The raw value from 'req.query', or undefined when the parameter was omitted.
  * @param name The parameter name, used in the error message.
@@ -86,10 +61,6 @@ function readWholeNumberParam(raw, name, fallback, min) {
     const parsed = typeof raw === "number" ? raw
         : typeof raw === "string" && /^\d+$/.test(raw) ? Number.parseInt(raw, 10)
         : NaN
-    // A digit string past Number's range parses to Infinity.  It is still a whole number, just a
-    // larger one than any maximum, so it belongs in the caller's clamp and ceiling handling rather
-    // than here.  Rejecting it would tell a client that '9'.repeat(400) is not a whole number, and
-    // would reject a 'limit' the contract promises to clamp.
     if (parsed === Infinity) return Number.MAX_SAFE_INTEGER
     if (!Number.isInteger(parsed) || parsed < min) {
         const bound = min > 0 ? `greater than 0` : `0 or greater`
@@ -103,20 +74,15 @@ function readWholeNumberParam(raw, name, fallback, min) {
 
 /**
  * Resolve the 'limit' and 'skip' URL parameters for a paged endpoint, and report what was applied.
- *
  * An unreadable value is rejected with a 400 instead of being guessed at.
  *
  * The two maximums are not treated alike, because being over them does not mean the same thing.
  * A 'limit' above its maximum is clamped, which is conventional for a page size and leaves the
  * response readable.  A 'skip' above its maximum is rejected, because clamping it would serve the
- * page at the maximum over and over: a client advancing 'skip' and stopping on an empty page would
- * never terminate, and would accumulate the same records on every pass.
+ * page at the maximum over and over.
  *
  * The applied values and both maximums are reported in the response headers, so a client can tell
  * a truncated page from a genuine final one and can configure itself from any single response.
- * The maximums are reported before either parameter is read, so a rejection carries them too: the
- * 400 for an over-deep 'skip' is the one response a client most needs the ceiling from, and it is
- * what lets a paged walk tell that boundary apart from every other 400 it could receive.
  *
  * @param query The Express 'req.query' object.
  * @param res The Express response, so the applied values can be reported.  Optional.  Anything
@@ -131,13 +97,8 @@ function getPagination(query = {}, res = null, defaultLimit = 100) {
     const limitMax = resolveQueryCap("MAX_QUERY_LIMIT", DEFAULT_MAX_QUERY_LIMIT)
     const skipMax = resolveQueryCap("MAX_QUERY_SKIP", DEFAULT_MAX_QUERY_SKIP)
     // 'res' is only ever used to report headers, so anything that cannot report is treated as an
-    // omitted response rather than an error.  'res?.set(...)' would throw a TypeError on the older
-    // getPagination(query, defaultLimit) shape, and a caller asking for a page would get a 500
-    // naming optional chaining instead of the page it asked for.
+    // omitted response rather than an error.
     const report = typeof res?.set === "function" ? (headers) => res.set(headers) : () => undefined
-    // Both ceilings are known before either parameter is read, so they are reported before anything
-    // can throw.  A client that gets a 400 back can then read the boundary it hit off the same
-    // response rather than parsing it out of the message.
     report({
         "Pagination-Limit-Max": String(limitMax),
         "Pagination-Skip-Max": String(skipMax)
@@ -146,9 +107,6 @@ function getPagination(query = {}, res = null, defaultLimit = 100) {
     const limit = Math.min(readWholeNumberParam(query.limit, "limit", safeDefaultLimit, 1), limitMax)
     const skip = readWholeNumberParam(query.skip, "skip", 0, 0)
     if (skip > skipMax) {
-        // Echo the raw value, not the parsed one.  A digit string long enough to lose precision
-        // parses to a different number than the client sent, and a message quoting a value nobody
-        // asked for is hard to match back to the request that caused it.
         throw utils.createExpressError({
             message: `The 'skip' URL parameter of ${String(query.skip).slice(0, PARAM_ECHO_MAX)} is beyond the maximum of ${skipMax}. Reading deeper than that is not supported, because every page past it would repeat the one at the maximum. Narrow the query so the records you want fall within the first ${skipMax} results.`,
             status: 400

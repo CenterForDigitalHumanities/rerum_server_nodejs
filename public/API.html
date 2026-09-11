@@ -586,7 +586,7 @@
         </p>
         <h3 id="pagination-parameters">Pagination parameters</h3>
         <p>
-            <code>limit</code> and <code>skip</code> are URL parameters shared by <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a>. Both must be whole numbers written in plain decimal digits. Anything else is a <code>400</code> rather than a guess, because guessing is how a client asking for <code>?limit=1e3</code> used to receive a single record and report a completed walk.
+            <code>limit</code> and <code>skip</code> are URL parameters shared by <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a>. Both must be whole numbers written in plain decimal digits. Anything else is a <code>400</code>.
         </p>
         <table>
             <thead>
@@ -613,17 +613,10 @@
             </tbody>
         </table>
         <p>
-            Rejected with a <code>400</code>: <code>?limit=abc</code>, <code>?limit=10abc</code>, <code>?limit=1e3</code>, <code>?limit=0x10</code>, <code>?limit=250.7</code>, <code>?limit=0</code>, <code>?limit=-5</code>, <code>?limit=</code>, and the same forms of <code>skip</code>. Supplying either parameter more than once, as in <code>?limit=100&amp;limit=200</code>, is also a <code>400</code> &mdash; there is no correct reading of it.
-        </p>
-        <p class="alert">One form cannot be caught. <code>?limit[a]=5</code> never reaches the server as a <code>limit</code> at all, so it is indistinguishable from leaving the parameter out and you will silently get the default.</p>
-        <p>
-            The two maximums are not treated alike, because being over them does not mean the same thing. An over-maximum <code>limit</code> is a page size RERUM can honour in part, so it is reduced. An over-maximum <code>skip</code> has no honest reading at all &mdash; every page past it would repeat the page at the maximum &mdash; so it is refused. If you are reaching that depth, narrow the query rather than paging further.
-        </p>
-        <p>
             Every paged response reports what was applied and what the maximums are, so a client can configure itself from any single response and tell a truncated page from a genuine final one. These headers are readable cross-origin.
         </p>
         <p>
-            <code>Pagination-Limit-Max</code> and <code>Pagination-Skip-Max</code> are reported on rejections too, including the <code>400</code> for a <code>skip</code> past the maximum. That is what lets a paged walk recognise the depth boundary and stop cleanly, instead of treating every <code>400</code> as the end of the results. <code>Pagination-Limit</code> and <code>Pagination-Skip</code> appear only where a page was actually served.
+            <code>Pagination-Limit-Max</code> and <code>Pagination-Skip-Max</code> are reported on rejections too, including the <code>400</code> for a <code>skip</code> past the maximum. That is what lets a paged walk recognise the depth boundary and stop cleanly.
         </p>
         <p>
             <pre><code class="jsExample"> 
