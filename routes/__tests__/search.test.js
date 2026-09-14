@@ -123,9 +123,6 @@ describe('search controllers', () => {
     assert.strictEqual(response.body.length, 1, 'duplicate _id across indexes should be deduped')
   })
 
-  // The branch pipelines write relevance to '__rerum.score'.  A comparator reading a top-level
-  // 'score' finds nothing on any document, so the merge keeps its construction order and every
-  // IIIF 2.1 match is ranked behind every IIIF 3.0 match however well it scores.
   it("searchAsWords ranks across both indexes by score, not by which index answered", async () => {
     mockBranchResults(
       [scoredDoc('presi3-weak', 1.69), scoredDoc('presi3-weaker', 1.24)],
@@ -141,8 +138,6 @@ describe('search controllers', () => {
     assert.deepStrictEqual(idsOf(response), ['presi2-best', 'presi3-weak', 'presi3-weaker'])
   })
 
-  // The point of the ranking, for this endpoint: 'limit' and 'skip' slice the merged order, so a
-  // merge that does not rank hands back a window of the wrong records rather than a wrong order.
   it("pages the score order, so skip walks best-first across both indexes", async () => {
     const branches = () => mockBranchResults(
       [scoredDoc('p3-c', 3), scoredDoc('p3-d', 2)],
@@ -162,8 +157,6 @@ describe('search controllers', () => {
 })
 
 describe('search pagination parameters', () => {
-  // getPagination is shared with /query, so this proves the search endpoints are covered by the
-  // same contract rather than re-testing every rejected form here.
   const searchFor = (path, queryString) => {
     mockAggregateResults([])
     return request(routeTester)

@@ -106,11 +106,6 @@ describe('HEAD /query', () => {
 })
 
 describe('pagination parameters on /query', () => {
-  // rest.messenger renders the 400s that getPagination throws.  The routeTester above deliberately
-  // mounts no error handler, so these get their own app rather than changing how it behaves.
-  // Mounted the way routes/query.js mounts it, verifyJsonContentType included, so the order the
-  // real app answers in is what is under test: a Content-Type it cannot accept is a 415 before any
-  // pagination parameter is read.
   const pagedTester = express()
   pagedTester.use(express.json({ type: ["application/json", "application/ld+json"] }))
   pagedTester.head("/query", controller.queryHeadRequest)
@@ -142,9 +137,6 @@ describe('pagination parameters on /query', () => {
       .send({ test: "item" })
   }
 
-  // The rejected forms themselves are covered against getPagination in __tests__/utils.test.js.
-  // What is left to prove here is the wiring: the controller reads req.query, and the 400 it
-  // throws reaches the client as a 400 rather than as an unhandled error.
   it("rejects a limit or skip it cannot read exactly", async () => {
     for (const queryString of ["?limit=abc", "?skip=2.9"]) {
       const response = await post(queryString)
@@ -152,8 +144,6 @@ describe('pagination parameters on /query', () => {
     }
   })
 
-  // Asserted over HTTP rather than only against getPagination, because this is what proves
-  // Express really does hand a repeated parameter over as the Array that getPagination rejects.
   it("rejects a repeated limit rather than taking one of the two values", async () => {
     assert.strictEqual((await post("?limit=100&limit=200")).statusCode, 400)
   })

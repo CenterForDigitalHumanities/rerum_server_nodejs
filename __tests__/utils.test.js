@@ -384,9 +384,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('clamps a limit too large for a Number rather than calling it not a whole number', () => {
-    // Past about 309 digits Number.parseInt returns Infinity.  Rejected there, a digit-only value
-    // would get a 400 saying it is not a whole number, and a limit the contract promises to clamp
-    // would be refused for being large - the one thing an over-maximum limit is never supposed to be.
     const { limit } = getPagination({ limit: '9'.repeat(400) })
     assert.strictEqual(limit, Number(capturedHeadersFor({})['Pagination-Limit-Max']))
   })
@@ -396,9 +393,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('rejects a skip above the maximum rather than serving the same page forever', () => {
-    // Clamping it would hand back the page at the maximum on every request past it.  A client
-    // advancing skip and stopping on an empty page would never terminate.  The rejection names the
-    // configured maximum, so a client can act on it, and the maximum itself is still readable.
     const original = process.env.MAX_QUERY_SKIP
     try {
       process.env.MAX_QUERY_SKIP = '2500'
@@ -424,8 +418,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('reads the caps from the environment at call time', () => {
-    // Captured at module load these would be unreadable, which is how the RERUM_MAX_QUERY_* /
-    // MAX_QUERY_* name mismatch went unnoticed.
     const original = process.env.MAX_QUERY_LIMIT
     try {
       process.env.MAX_QUERY_LIMIT = '25'
@@ -439,8 +431,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('falls back to the code default when a configured cap is unusable', () => {
-    // '1e3' and '100_000' are what a hand-typed six figure cap looks like.  Parsed rather than
-    // validated they become 1, which would serve one record per page across the deployment.
     const original = process.env.MAX_QUERY_LIMIT
     try {
       for (const configured of ['not-a-number', '1e3', '100_000', '500abc', '250.7', '0', '-5', ' 500']) {
@@ -458,9 +448,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('reports the ceilings on a rejection, so a client can recover from the 400 it just got', () => {
-    // The 400 for an over-deep skip is the response a client most needs the ceiling from, and it
-    // is what lets a paged walk tell that boundary apart from every other 400 it could receive.
-    // One query per throw site: the value it cannot read, and the skip it can read but will not serve.
     for (const query of [{ limit: 'abc' }, { skip: '999999999' }]) {
       const headers = capturedHeadersFor(query)
       assert.ok(Number(headers['Pagination-Limit-Max']) > 0, `${JSON.stringify(query)} should still report the limit ceiling`)
@@ -482,9 +469,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('reports nothing rather than throwing when the second argument cannot set headers', () => {
-    // The pre-existing shape was getPagination(query, defaultLimit).  A caller still using it would
-    // otherwise get a TypeError out of the header reporting, which surfaces as a 500 on an endpoint
-    // that meant to answer 200.
     for (const notAResponse of [100, 'res', true, {}, { set: 'not a function' }]) {
       const result = getPagination({ limit: '25', skip: '5' }, notAResponse)
       assert.strictEqual(result.limit, 25, `${JSON.stringify(notAResponse)} should not change the limit`)
@@ -493,8 +477,6 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('echoes the raw skip in the ceiling rejection, not the value it parsed to', () => {
-    // A digit string long enough to lose precision parses to a different number than the client
-    // sent, and a message naming a value nobody asked for cannot be matched back to its request.
     const raw = '99999999999999999999'
     assert.throws(
       () => getPagination({ skip: raw }),
