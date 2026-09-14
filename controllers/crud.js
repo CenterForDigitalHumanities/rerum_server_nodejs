@@ -82,7 +82,6 @@ const query = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    // Below the guard above, so a request that is never paged does not report a page in its headers.
     const { limit, skip } = getPagination(req.query, res, 100)
     try {
         let matches = await db.find(props).sort({ _id: 1 }).limit(limit).skip(skip).toArray()
