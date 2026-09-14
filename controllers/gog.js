@@ -31,7 +31,6 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const { limit, skip } = getPagination(req.query, null, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== GOG_PROD_AGENT) {
@@ -50,6 +49,7 @@ const _gog_fragments_from_manuscript = async function (req, res, next) {
     if (err.status) {
         return next(utils.createExpressError(err))
     }
+    const { limit, skip } = getPagination(req.query, null, 50)
     try {
         let matches = []
         const partOfConditions = [
@@ -160,7 +160,6 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     if (!agent) return
     const agentID = agent.split("/").pop()
     const manID = req.body["ManuscriptWitness"]
-    const { limit, skip } = getPagination(req.query, null, 50)
     let err = { message: `` }
     // This request can only be made my Gallery of Glosses production apps.
     if (agentID !== GOG_PROD_AGENT) {
@@ -179,6 +178,7 @@ const _gog_glosses_from_manuscript = async function (req, res, next) {
     if (err.status) {
         return next(utils.createExpressError(err))
     }
+    const { limit, skip } = getPagination(req.query, null, 50)
     try {
         let matches = []
         const partOfConditions = [

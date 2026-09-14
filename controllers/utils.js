@@ -86,8 +86,7 @@ function readWholeNumberParam(raw, name, fallback, min) {
  *
  * @param query The Express 'req.query' object.
  * @param res The Express response, so the applied values can be reported.  Optional.  Anything
- * without a 'set' method reports nothing rather than throwing, so a caller using the older
- * two-argument shape still gets its values back instead of a 500.
+ * without a 'set' method reports nothing.
  * @param defaultLimit The limit to apply when the client does not ask for one.
  * @throws A 400 express error when either parameter is not a whole number in range, or when 'skip'
  * is beyond the configured maximum.

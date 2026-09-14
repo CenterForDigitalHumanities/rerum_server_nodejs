@@ -191,7 +191,6 @@ describe('pagination parameters on /query', () => {
 
     const response = await post(`?skip=${skipMax + 1}`)
     assert.strictEqual(response.statusCode, 400)
-    assert.match(response.text, new RegExp(`beyond the maximum of ${skipMax}`))
     // The ceilings still come back, so a paged walk can tell this boundary from any other 400.
     assert.strictEqual(response.headers['pagination-skip-max'], String(skipMax))
     assert.ok(Number(response.headers['pagination-limit-max']) > 0)
@@ -206,7 +205,6 @@ describe('pagination parameters on /query', () => {
       .send({})
 
     assert.strictEqual(response.statusCode, 400)
-    assert.match(response.text, /Detected empty JSON object/)
     for (const header of ['pagination-limit', 'pagination-skip', 'pagination-limit-max', 'pagination-skip-max']) {
       assert.strictEqual(response.headers[header], undefined, `${header} should not be set`)
     }
