@@ -561,9 +561,6 @@
                         <span class="ind2">},</span>
                         <span class="ind2">body: JSON.stringify(queryObj)</span>
                     <span class="ind1">})</span>
-                    <span class="ind1">// Only the skip ceiling ends a walk early. Every other 400 is a real error, and</span>
-                    <span class="ind1">// returning the pages gathered so far would report a walk that never finished.</span>
-                    <span class="ind1">// Stopping at the ceiling still truncates, so say so rather than returning quietly.</span>
                     <span class="ind1">const skipMax = Number(response.headers.get("Pagination-Skip-Max"))</span>
                     <span class="ind1">if (response.status === 400 &amp;&amp; skipMax &amp;&amp; it &gt; skipMax) {</span>
                         <span class="ind2">console.warn(`Stopped at the skip ceiling of ${skipMax}. These results are incomplete. Narrow the query.`)</span>
@@ -571,14 +568,8 @@
                     <span class="ind1">}</span>
                     <span class="ind1">if (!response.ok) throw new Error(await response.text())</span>
                     <span class="ind1">const results = await response.json()</span>
-                    <span class="ind1">// Append in place. Walking to the skip ceiling at this page size is a thousand pages,</span>
-                    <span class="ind1">// and concat() would copy every record gathered so far on each one of them.</span>
                     <span class="ind1">allResults.push(...results)</span>
-                    <br>
-                    <span class="ind1">// Advance by the page size the server applied, which may be smaller than the one you asked for.</span>
                     <span class="ind1">const appliedLimit = Number(response.headers.get("Pagination-Limit")) || lim</span>
-                    <br>
-                    <span class="ind1">// A short page is the last page. Do not wait for an empty one.</span>
                     <span class="ind1">if (results.length &lt; appliedLimit) return allResults</span>
                     <span class="ind1">return pagedQuery(lim, it + appliedLimit, queryObj, allResults)</span>
                 <span>}</span>
@@ -630,11 +621,11 @@
         <p>
             <a href="#custom-query">Custom Query</a> pages in ascending <code>_id</code> order, on both <code>POST</code> and <code>HEAD</code>. A <code>skip</code> offset only means something over a fixed order, so consecutive pages tile that order without repeating or missing a record.
         </p>
-        <p class="alert">This is not oldest-to-newest. RERUM <code>_id</code> values are a mix of BSON types across the repository's history, and BSON sorts each type into its own block, so the order is stable and complete but carries no chronological meaning. Sort client-side on <code>__rerum.createdAt</code> if you need records in the order they were made.</p>
+
         <p>
             The search endpoints page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. That order is the same across both the IIIF 3.0 and IIIF 2.1 indexes, so the best match is the first record of the first page whichever shape it was written in.
         </p>
-        <p class="alert">Descending score is an ordering, not a tiling guarantee. <a href="#custom-query">Custom Query</a> is the endpoint to walk when you need every matching record exactly once.</p>
+        <p class="alert">Descending score is an ordering, not a tiling guarantee.</p>
 
         <h3 id="text-search">Text Search</h3>
         <table>
