@@ -19,10 +19,10 @@ const DEFAULT_MAX_QUERY_SKIP = 100000
 const PARAM_ECHO_MAX = 40
 
 /**
- * Check whether a value is a string of plain decimal digits, the only form a pagination value may take.
+ * Check whether a value is a string of plain decimal digits.
  * Anything else, such as '1e3', '0x10', '250.7', '-5', ' 500', or the empty string, is not.
- * Both the configured caps and the 'limit' and 'skip' URL parameters are held to this, so the policy
- * lives here.
+ * The configured caps and the 'limit' and 'skip' URL parameters arrive as strings and are held to
+ * this, so the policy lives here.  A caller passing an already-integral Number skips this check.
  *
  * @param value The raw value to check.
  * @return A boolean

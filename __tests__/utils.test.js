@@ -327,6 +327,13 @@ describe('controllers/utils.js idNegotiation edge cases', () => {
 })
 
 describe('controllers/utils.js getPagination', () => {
+  /**
+   * Values that are not plain decimal digits, from the vector list in #301 plus whitespace and digit
+   * separators.  'limit', 'skip', and the configured caps all share this one policy, so they share
+   * this one table.
+   */
+  const NOT_DECIMAL_WHOLE_NUMBERS = ['abc', '10abc', '1e3', '0x10', '250.7', '2.9', '-5', ' 500', '100_000', '']
+
   /** Assert that a query is rejected as a 400 rather than guessed at. */
   const assertRejects = (query, matcher) => {
     assert.throws(
@@ -354,13 +361,13 @@ describe('controllers/utils.js getPagination', () => {
   })
 
   it('rejects a limit that is not a whole number greater than 0', () => {
-    for (const limit of ['abc', '10abc', '1e3', '0x10', '250.7', '-5', '']) {
+    for (const limit of NOT_DECIMAL_WHOLE_NUMBERS) {
       assertRejects({ limit }, /'limit' URL parameter must be a whole number greater than 0/)
     }
   })
 
   it('rejects a skip that is not a whole number of 0 or greater', () => {
-    for (const skip of ['abc', '10abc', '1e3', '0x10', '2.9', '-5', '']) {
+    for (const skip of NOT_DECIMAL_WHOLE_NUMBERS) {
       assertRejects({ skip }, /'skip' URL parameter must be a whole number 0 or greater/)
     }
   })
@@ -434,7 +441,7 @@ describe('controllers/utils.js getPagination', () => {
   it('falls back to the code default when a configured cap is unusable', () => {
     const original = process.env.MAX_QUERY_LIMIT
     try {
-      for (const configured of ['not-a-number', '1e3', '100_000', '500abc', '250.7', '0', '-5', ' 500']) {
+      for (const configured of [...NOT_DECIMAL_WHOLE_NUMBERS, '0']) {
         process.env.MAX_QUERY_LIMIT = configured
         assert.strictEqual(
           capturedHeadersFor({})['Pagination-Limit-Max'],
