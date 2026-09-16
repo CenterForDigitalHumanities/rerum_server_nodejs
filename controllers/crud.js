@@ -82,7 +82,7 @@ const query = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const { limit, skip } = getPagination(req.query, res, 100)
+    const { limit, skip } = getPagination(req.query, { res })
     try {
         let matches = await db.find(props).sort({ _id: 1 }).limit(limit).skip(skip).toArray()
         matches = matches.map(o => idNegotiation(o))

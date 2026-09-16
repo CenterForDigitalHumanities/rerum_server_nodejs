@@ -341,9 +341,10 @@ describe('controllers/utils.js getPagination', () => {
   }
 
   it('returns the default limit and skip 0 for an empty query', () => {
-    const result = getPagination({}, null, 100)
+    const result = getPagination({})
     assert.strictEqual(result.limit, 100)
     assert.strictEqual(result.skip, 0)
+    assert.strictEqual(getPagination({}, { defaultLimit: 50 }).limit, 50)
   })
 
   it('parses decimal integer string values from the query', () => {
@@ -468,9 +469,9 @@ describe('controllers/utils.js getPagination', () => {
     assertRejects({ limit: 250.7 }, /whole number greater than 0/)
   })
 
-  it('reports nothing rather than throwing when the second argument cannot set headers', () => {
-    for (const notAResponse of [100, 'res', true, {}, { set: 'not a function' }]) {
-      const result = getPagination({ limit: '25', skip: '5' }, notAResponse)
+  it('reports nothing rather than throwing when res cannot set headers', () => {
+    for (const notAResponse of [null, 100, 'res', true, {}, { set: 'not a function' }]) {
+      const result = getPagination({ limit: '25', skip: '5' }, { res: notAResponse })
       assert.strictEqual(result.limit, 25, `${JSON.stringify(notAResponse)} should not change the limit`)
       assert.strictEqual(result.skip, 5, `${JSON.stringify(notAResponse)} should not change the skip`)
     }
@@ -498,7 +499,7 @@ describe('controllers/utils.js getPagination', () => {
   function capturedHeadersFor(query) {
     const captured = {}
     try {
-      getPagination(query, { set: (headers) => Object.assign(captured, headers) })
+      getPagination(query, { res: { set: (headers) => Object.assign(captured, headers) } })
     } catch (err) {
       if (err.statusCode !== 400) throw err
     }

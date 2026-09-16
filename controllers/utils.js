@@ -19,6 +19,19 @@ const DEFAULT_MAX_QUERY_SKIP = 100000
 const PARAM_ECHO_MAX = 40
 
 /**
+ * Check whether a value is a string of plain decimal digits, the only form a pagination value may take.
+ * Anything else, such as '1e3', '0x10', '250.7', '-5', ' 500', or the empty string, is not.
+ * Both the configured caps and the 'limit' and 'skip' URL parameters are held to this, so the policy
+ * lives here.
+ *
+ * @param value The raw value to check.
+ * @return A boolean
+ */
+function isDecimalWholeNumber(value) {
+    return typeof value === "string" && /^\d+$/.test(value)
+}
+
+/**
  * Resolve a configured pagination cap from the environment.
  * An unset key falls back quietly.  A value that is present but unusable falls back loudly, because
  * a cap that is silently wrong is very hard to notice.  0 is not a usable cap for either maximum.
@@ -30,7 +43,7 @@ const PARAM_ECHO_MAX = 40
 function resolveQueryCap(key, fallback) {
     const raw = process.env[key]
     if (raw === undefined || raw === "") return fallback
-    const configured = /^\d+$/.test(raw) ? Number.parseInt(raw, 10) : NaN
+    const configured = isDecimalWholeNumber(raw) ? Number.parseInt(raw, 10) : NaN
     if (!Number.isInteger(configured) || configured <= 0) {
         console.warn(`\x1b[33m[pagination] ${key}='${String(raw).slice(0, PARAM_ECHO_MAX)}' is not a whole number greater than 0.  Falling back to ${fallback}.\x1b[0m`)
         return fallback
@@ -59,7 +72,7 @@ function readWholeNumberParam(raw, name, fallback, min) {
         })
     }
     const parsed = typeof raw === "number" ? raw
-        : typeof raw === "string" && /^\d+$/.test(raw) ? Number.parseInt(raw, 10)
+        : isDecimalWholeNumber(raw) ? Number.parseInt(raw, 10)
         : NaN
     if (parsed === Infinity) return Number.MAX_SAFE_INTEGER
     if (!Number.isInteger(parsed) || parsed < min) {
@@ -85,14 +98,16 @@ function readWholeNumberParam(raw, name, fallback, min) {
  * a truncated page from a genuine final one and can configure itself from any single response.
  *
  * @param query The Express 'req.query' object.
- * @param res The Express response, so the applied values can be reported.  Optional.  Anything
- * without a 'set' method reports nothing.
- * @param defaultLimit The limit to apply when the client does not ask for one.
+ * @param options Optional settings for this endpoint.
+ * @param options.res The Express response, so the applied values can be reported.  Optional.
+ * Anything without a 'set' method reports nothing.
+ * @param options.defaultLimit The limit to apply when the client does not ask for one.  Defaults to 100.
  * @throws A 400 express error when either parameter is not a whole number in range, or when 'skip'
  * is beyond the configured maximum.
  * @return An object carrying the applied 'limit' and 'skip'.
  */
-function getPagination(query = {}, res = null, defaultLimit = 100) {
+function getPagination(query = {}, options = {}) {
+    const { res = null, defaultLimit = 100 } = options ?? {}
     const limitMax = resolveQueryCap("MAX_QUERY_LIMIT", DEFAULT_MAX_QUERY_LIMIT)
     const skipMax = resolveQueryCap("MAX_QUERY_SKIP", DEFAULT_MAX_QUERY_SKIP)
     // 'res' is only ever used to report headers, so anything that cannot report is treated as an
