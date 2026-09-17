@@ -619,12 +619,12 @@
         </p>
         <h4 id="following-next">Following <code>rel="next"</code></h4>
         <p>
-            While another page exists, <a href="#custom-query">Custom Query</a> responses carry a <code>rel="next"</code> link in the <code>Link</code> header (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</a>), next to the JSON-LD context link. The final page has no <code>rel="next"</code>. Follow it until it is gone.
+            While another page exists, <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a> responses carry a <code>rel="next"</code> link in the <code>Link</code> header (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</a>), next to the JSON-LD context link. The final page has no <code>rel="next"</code>. Follow it until it is gone.
         </p>
         <p>
             <code>rel="next"</code> advances <code>skip</code>. It is still present when the next page would start past the <code>skip</code> maximum, and following it is answered with the <code>400</code> that names the maximum.
         </p>
-        <p class="alert">Custom Query takes a <code>POST</code>. The link only carries the paging URL parameters, so send the same request body to it that you sent to the first page.</p>
+        <p class="alert">All three endpoints take a <code>POST</code>. The link only carries the paging URL parameters, so send the same request body to it that you sent to the first page.</p>
         <p>
             <pre><code class="jsExample"> 
                 <span>Link: &lt;http://store.rerum.io/v1/context.json&gt;; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"</span>
@@ -637,9 +637,12 @@
         </p>
 
         <p>
-            The search endpoints page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. That order is the same across both the IIIF 3.0 and IIIF 2.1 indexes, so the best match is the first record of the first page whichever shape it was written in.
+            <a href="#text-search">Text Search</a> and <a href="#phrase-search">Phrase Search</a> page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. Every object is scored once against one index that covers both the IIIF 3.0 and the IIIF 2.1 text fields, so the best match is the first record of the first page whichever shape it was written in, and consecutive pages tile that order without repeating or missing a record.
         </p>
-        <p class="alert">Descending score is an ordering, not a tiling guarantee.</p>
+        <h4 id="unserved-objects">What is not served</h4>
+        <p>
+            A handful of objects in the store were written outside the API, or imported from RERUM v0, and their <code>_id</code> is not a string. They have no addressable URL &mdash; there is nothing for a client to follow, read back, or update &mdash; so <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a> do not return them. They are excluded before a page is measured, so a page still fills to the applied <code>limit</code> while matches remain.
+        </p>
 
         <h3 id="text-search">Text Search</h3>
         <table>
@@ -674,7 +677,7 @@
             <li><strong>IIIF Presentation API 2.1 fields<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>:</strong> oa:Annotation <code class="language-plaintext highlighter-rouge">resource.chars</code>, oa:Annotation <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in sc:AnnotationList <code class="language-plaintext highlighter-rouge">resources</code>, sc:Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and sc:Manifest <code class="language-plaintext highlighter-rouge">sequences</code>.</li>
         </ul>
         <p>
-            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
             <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
@@ -759,6 +762,34 @@
                 Results are returned sorted by relevance score in descending order. The <code>__rerum.score</code> property indicates match quality.
             </p>
         </p>
+        <p>
+            <div class="exHeading">Paged Search Javascript Example</div>
+            <pre><code class="jsExample"> 
+                <span>const many_results = await pagedSearch("lorem ipsum")</span>
+                <br>
+                <span>async function pagedSearch(searchText, lim = 100) {</span>
+                    <span class="ind1">const request = {</span>
+                        <span class="ind2">method: "POST",</span>
+                        <span class="ind2">headers: { "Content-Type": "application/json; charset=utf-8" },</span>
+                        <span class="ind2">body: JSON.stringify({ searchText })</span>
+                    <span class="ind1">}</span>
+                    <span class="ind1">const allResults = []</span>
+                    <span class="ind1">let url = `https://devstore.rerum.io/v1/api/search?limit=${lim}`</span>
+                    <span class="ind1">while (url) {</span>
+                        <span class="ind2">const response = await fetch(url, request)</span>
+                        <span class="ind2">if (response.status === 400 &amp;&amp; allResults.length) {</span>
+                            <span class="ind3">console.warn(`Stopped at the skip maximum of ${response.headers.get("Pagination-Skip-Max")}. These results are incomplete. Narrow the search.`)</span>
+                            <span class="ind3">return allResults</span>
+                        <span class="ind2">}</span>
+                        <span class="ind2">if (!response.ok) throw new Error(await response.text())</span>
+                        <span class="ind2">allResults.push(...await response.json())</span>
+                        <span class="ind2">url = response.headers.get("Link")?.match(/&lt;([^&gt;]+)&gt;;\s*rel="next"/)?.[1]</span>
+                    <span class="ind1">}</span>
+                    <span class="ind1">return allResults</span>
+                <span>}</span>
+            </code></pre>
+            <p class="alert">Stop when there is no <code>rel="next"</code>, not when a page looks short. <code>/search/phrase</code> pages the same way.</p>
+        </p>
         <h3 id="phrase-search">Phrase Search</h3>
         <table>
             <thead>
@@ -792,7 +823,7 @@
             <li><strong>IIIF Presentation API 2.1 fields<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>:</strong> oa:Annotation <code class="language-plaintext highlighter-rouge">resource.chars</code>, oa:Annotation <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in sc:AnnotationList <code class="language-plaintext highlighter-rouge">resources</code>, sc:Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and sc:Manifest <code class="language-plaintext highlighter-rouge">sequences</code>.</li>
         </ul>
         <p>
-            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
             <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
@@ -831,7 +862,7 @@
             <li>When you need more precision than standard search but more flexibility than exact matching</li>
         </ul>
         <p>
-            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters work the same as in the standard text search endpoint for pagination support.
+            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters, and the <code>rel="next"</code> link, work the same as in the standard text search endpoint &mdash; see <a href="#pagination-parameters">Pagination parameters</a>.
         </p>
         <p>
             <div class="exHeading">Javascript Example with Custom Slop</div>

@@ -5,6 +5,7 @@ import express from 'express'
 import request from 'supertest'
 
 import controller from '../../db-controller.js'
+import { searchFuzzily, searchWildly, searchAlikes } from '../../controllers/search.js'
 import rest from '../../rest.js'
 import { db, resetMocks } from '../../database/index.js'
 
@@ -19,23 +20,40 @@ beforeEach(() => {
   resetMocks()
 })
 
+/** What the controller last handed to db.aggregate, and how many times, since the mock was installed. */
+const searchCalls = { count: 0, pipeline: null }
+
+/** The value a pipeline gives an aggregation operator, e.g. stageOf(pipeline, '$limit'). */
+const stageOf = (pipeline, operator) => pipeline.find(stage => operator in stage)?.[operator]
+
+/** Where an operator sits in a pipeline, so the order of the stages can be asserted. */
+const positionOf = (pipeline, operator) => pipeline.findIndex(stage => operator in stage)
+
 function mockAggregateResults(docs) {
-  // db.aggregate is called twice (presi3 + presi2 indexes) in parallel; mockReturnValue
-  // applies to every call until the next reset.
-  db.aggregate.mockReturnValue({
-    toArray: () => Promise.resolve(docs)
+  // One index means one aggregation per request, so there is a single pipeline to record.
+  searchCalls.count = 0
+  db.aggregate.mockImplementation((pipeline) => {
+    searchCalls.count++
+    searchCalls.pipeline = pipeline
+    return { toArray: () => Promise.resolve(docs) }
   })
 }
 
 /**
- * Answer the two branches with different documents, so cross-index behavior can be observed.
- *
- * The controllers build the Promise.all array literal presi3 first, and array elements evaluate
- * left to right, so the first queued result is the IIIF 3.0 branch.
+ * Answer the search from a fixed, score ordered set of documents, honouring the $skip and $limit
+ * the controller put in the pipeline so a walk pages the way Atlas would.
  */
-function mockBranchResults(presi3Docs, presi2Docs) {
-  db.aggregate.mockReturnValueOnce({ toArray: () => Promise.resolve(presi3Docs) })
-  db.aggregate.mockReturnValueOnce({ toArray: () => Promise.resolve(presi2Docs) })
+function mockSearchCollection(docs) {
+  searchCalls.count = 0
+  db.aggregate.mockImplementation((pipeline) => {
+    searchCalls.count++
+    searchCalls.pipeline = pipeline
+    const skip = stageOf(pipeline, '$skip') ?? 0
+    const limit = stageOf(pipeline, '$limit') ?? Infinity
+    return {
+      toArray: () => Promise.resolve(docs.slice(skip, skip + limit).map(doc => structuredClone(doc)))
+    }
+  })
 }
 
 /** A search hit carrying its relevance where the branch pipelines actually put it. */
@@ -103,16 +121,11 @@ describe('search controllers', () => {
     assert.strictEqual(response.body[0]['@id'], doc['@id'])
   })
 
-  // The two parallel db.aggregate calls (presi3 + presi2) can return overlapping documents.
-  // mergeSearchResults must dedupe by _id; a regression that drops the dedupe would return
-  // duplicates here.
-  it("searchAsWords dedupes when both indexes return the same document", async () => {
-    const doc = {
-      _id: 'shared-doc',
-      '@id': 'https://store.rerum.io/v1/id/shared-doc',
-      text: 'shared'
-    }
-    mockAggregateResults([doc])
+  // One index returns every matching document exactly once, in score order, so there is nothing for
+  // the controller to merge, deduplicate or sort.  A regression back to a per-index fan-out would
+  // show up here as a second aggregation.
+  it("searchAsWords runs one search, against the index that covers both vocabularies", async () => {
+    mockAggregateResults([])
 
     const response = await request(routeTester)
       .post('/search')
@@ -120,14 +133,28 @@ describe('search controllers', () => {
       .send('shared')
 
     assert.strictEqual(response.statusCode, 200)
-    assert.strictEqual(response.body.length, 1, 'duplicate _id across indexes should be deduped')
+    assert.strictEqual(searchCalls.count, 1)
+    assert.strictEqual(searchCalls.pipeline[0].$search.index, 'annotationText')
   })
 
-  it("searchAsWords ranks across both indexes by score, not by which index answered", async () => {
-    mockBranchResults(
-      [scoredDoc('presi3-weak', 1.69), scoredDoc('presi3-weaker', 1.24)],
-      [scoredDoc('presi2-best', 83.92)]
-    )
+  it("searches the IIIF 3.0 and IIIF 2.1 text fields in one compound query", async () => {
+    mockAggregateResults([])
+
+    await request(routeTester)
+      .post('/search')
+      .set('Content-Type', 'text/plain')
+      .send('line')
+
+    const compound = searchCalls.pipeline[0].$search.compound
+    const searched = JSON.stringify(compound.should)
+    for (const path of ['body.value', 'bodyValue', 'resource.chars', 'resource.cnt:chars']) {
+      assert.ok(searched.includes(path), `${path} must still be searched`)
+    }
+    assert.strictEqual(compound.minimumShouldMatch, 1, 'any one clause matching qualifies a document')
+  })
+
+  it("serves the relevance order the database returned, without resorting it", async () => {
+    mockAggregateResults([scoredDoc('best', 83.92), scoredDoc('weak', 1.69), scoredDoc('weaker', 1.24)])
 
     const response = await request(routeTester)
       .post('/search')
@@ -135,24 +162,156 @@ describe('search controllers', () => {
       .send('line')
 
     assert.strictEqual(response.statusCode, 200)
-    assert.deepStrictEqual(idsOf(response), ['presi2-best', 'presi3-weak', 'presi3-weaker'])
+    assert.deepStrictEqual(idsOf(response), ['best', 'weak', 'weaker'])
   })
 
-  it("pages the score order, so skip walks best-first across both indexes", async () => {
-    const branches = () => mockBranchResults(
-      [scoredDoc('p3-c', 3), scoredDoc('p3-d', 2)],
-      [scoredDoc('p2-a', 9), scoredDoc('p2-b', 5)]
-    )
-    const page = (queryString) => {
-      branches()
-      return request(routeTester)
-        .post(`/search${queryString}`)
+  it("hands skip and limit to the database rather than paging in memory", async () => {
+    mockSearchCollection([scoredDoc('a', 9), scoredDoc('b', 5), scoredDoc('c', 3), scoredDoc('d', 2)])
+    const page = (queryString) => request(routeTester)
+      .post(`/search${queryString}`)
+      .set('Content-Type', 'text/plain')
+      .send('line')
+
+    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=0')), ['a', 'b'])
+    assert.strictEqual(stageOf(searchCalls.pipeline, '$skip'), 0)
+    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=2')), ['c', 'd'])
+    assert.strictEqual(stageOf(searchCalls.pipeline, '$skip'), 2)
+    // limit + 1: the extra record is the only evidence that another page exists.
+    assert.strictEqual(stageOf(searchCalls.pipeline, '$limit'), 3)
+  })
+
+  // Legacy objects whose _id is not a string have no addressable URL, so a page made of them is a
+  // page a client cannot use.  Excluding them after $limit would leave the page short instead.
+  it("excludes objects whose _id is not a string, before the page is measured", async () => {
+    for (const path of ['/search', '/search/phrase']) {
+      mockAggregateResults([])
+
+      await request(routeTester)
+        .post(path)
         .set('Content-Type', 'text/plain')
-        .send('line')
+        .send('manuscript')
+
+      const pipeline = searchCalls.pipeline
+      assert.deepStrictEqual(stageOf(pipeline, '$match'), { _id: { $type: 'string' } }, path)
+      assert.ok(
+        positionOf(pipeline, '$match') < positionOf(pipeline, '$limit'),
+        `${path} must exclude them before $limit, or the page under-fills`
+      )
+    }
+  })
+})
+
+describe('rel="next" links on /search', () => {
+  /** The Link header of a response as { rel: url }. */
+  const linksOf = (response) => Object.fromEntries(
+    [...(response.headers.link ?? '').matchAll(/<([^>]+)>;\s*rel="([^"]+)"/g)].map(([, url, rel]) => [rel, url])
+  )
+
+  /** The query string of a link target, which may be absolute or path-only. */
+  const paramsOf = (url) => new URL(url, 'http://localhost').searchParams
+
+  const post = (path) => request(routeTester)
+    .post(path)
+    .set('Content-Type', 'text/plain')
+    .send('line')
+
+  const scored = (ids) => ids.map((id, i) => scoredDoc(id, ids.length - i))
+
+  it("links the next page while more records exist, and serves only the page", async () => {
+    mockSearchCollection(scored(['a', 'b', 'c']))
+    const response = await post('/search?limit=2')
+    const links = linksOf(response)
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.deepStrictEqual(idsOf(response), ['a', 'b'])
+    assert.ok(links.next, 'a next link is present while more records exist')
+    assert.strictEqual(paramsOf(links.next).get('limit'), '2')
+    assert.strictEqual(paramsOf(links.next).get('skip'), '2')
+  })
+
+  it("keeps the JSON-LD context link alongside the next link", async () => {
+    mockSearchCollection(scored(['a', 'b', 'c']))
+    const links = linksOf(await post('/search?limit=2'))
+    assert.ok(links['http://www.w3.org/ns/json-ld#context'])
+    assert.ok(links.next)
+  })
+
+  it("omits next on the final page", async () => {
+    mockSearchCollection(scored(['a', 'b']))
+    const response = await post('/search?limit=2')
+
+    assert.deepStrictEqual(idsOf(response), ['a', 'b'])
+    assert.deepStrictEqual(
+      Object.keys(linksOf(response)),
+      ['http://www.w3.org/ns/json-ld#context'],
+      'only the JSON-LD context link remains'
+    )
+  })
+
+  it("never serves the record read past the page, even at the maximum limit", async () => {
+    mockSearchCollection(scored(['a']))
+    const limitMax = Number((await post('/search?limit=1')).headers['pagination-limit-max'])
+    const ids = Array.from({ length: limitMax + 1 }, (_, i) => `id${String(i).padStart(6, '0')}`)
+    mockSearchCollection(scored(ids))
+
+    const response = await post(`/search?limit=${limitMax + 100}`)
+
+    assert.strictEqual(response.body.length, limitMax)
+    assert.ok(!idsOf(response).includes(ids.at(-1)), 'the extra record must not be served')
+    assert.ok(linksOf(response).next)
+  })
+
+  it("still links next past the skip maximum, so a walk too deep to finish ends in the 400 that names it", async () => {
+    mockSearchCollection(scored(['a']))
+    const skipMax = Number((await post('/search?limit=1')).headers['pagination-skip-max'])
+    // Every page this double serves has a record past it, however deep the skip.
+    db.aggregate.mockImplementation(() => ({
+      toArray: () => Promise.resolve(scored(['a', 'b', 'c']))
+    }))
+
+    const deepest = await post(`/search?limit=2&skip=${skipMax}`)
+    const next = linksOf(deepest).next
+    assert.strictEqual(deepest.statusCode, 200)
+    assert.strictEqual(
+      paramsOf(next).get('skip'),
+      String(skipMax + 2),
+      'absence would tell the client the walk was complete'
+    )
+
+    const beyond = await post(`/search?${paramsOf(next)}`)
+    assert.strictEqual(beyond.statusCode, 400)
+    assert.strictEqual(beyond.headers['pagination-skip-max'], String(skipMax))
+  })
+
+  it("walks every record exactly once by following only rel=\"next\"", async () => {
+    const ids = ['d01', 'd02', 'd03', 'd04', 'd05', 'd06', 'd07']
+    mockSearchCollection(scored(ids))
+
+    const walked = []
+    let path = '/search?limit=3'
+    for (let requests = 0; path; requests++) {
+      assert.ok(requests < ids.length, 'the walk must terminate')
+      const response = await post(path)
+      assert.strictEqual(response.statusCode, 200)
+      walked.push(...idsOf(response))
+      const next = linksOf(response).next
+      path = next && `/search?${paramsOf(next)}`
     }
 
-    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=0')), ['p2-a', 'p2-b'])
-    assert.deepStrictEqual(idsOf(await page('?limit=2&skip=2')), ['p3-c', 'p3-d'])
+    assert.deepStrictEqual(walked, ids)
+  })
+
+  it("links the next page of a phrase search the same way", async () => {
+    mockSearchCollection(scored(['a', 'b', 'c']))
+    const response = await request(routeTester)
+      .post('/search/phrase?limit=2')
+      .set('Content-Type', 'text/plain')
+      .send('a line')
+    const links = linksOf(response)
+
+    assert.deepStrictEqual(idsOf(response), ['a', 'b'])
+    assert.ok(links['http://www.w3.org/ns/json-ld#context'])
+    assert.strictEqual(paramsOf(links.next).get('skip'), '2')
   })
 })
 
@@ -185,4 +344,56 @@ describe('search pagination parameters', () => {
     assert.ok(Number(response.headers['pagination-limit-max']) > 0)
     assert.ok(Number(response.headers['pagination-skip-max']) > 0)
   })
+})
+
+// searchFuzzily, searchWildly and searchAlikes have no routes yet.  They are covered here so the
+// paging contract cannot be lost when they get one.
+describe('the unmounted search variants page the same way', () => {
+  const variantTester = express()
+  variantTester.use(express.json({ type: ['application/json', 'application/ld+json'] }))
+  variantTester.use(express.text())
+  variantTester.post('/fuzzy', searchFuzzily)
+  variantTester.post('/wildcard', searchWildly)
+  variantTester.post('/alike', searchAlikes)
+  variantTester.use(rest.messenger)
+
+  const variants = [
+    { path: '/fuzzy', body: 'manuscrpt', contentType: 'text/plain' },
+    { path: '/wildcard', body: 'man*', contentType: 'text/plain' },
+    { path: '/alike', body: { body: { value: 'a line' } }, contentType: 'application/json' }
+  ]
+
+  for (const { path, body, contentType } of variants) {
+    it(`${path} searches one index, excludes non-string _id before $limit, and over-fetches by one`, async () => {
+      mockAggregateResults([])
+
+      const response = await request(variantTester)
+        .post(`${path}?limit=2&skip=4`)
+        .set('Content-Type', contentType)
+        .send(body)
+
+      assert.strictEqual(response.statusCode, 200)
+      assert.strictEqual(searchCalls.count, 1)
+      const pipeline = searchCalls.pipeline
+      assert.strictEqual(pipeline[0].$search.index, 'annotationText')
+      assert.deepStrictEqual(stageOf(pipeline, '$match'), { _id: { $type: 'string' } })
+      assert.ok(positionOf(pipeline, '$match') < positionOf(pipeline, '$limit'))
+      assert.strictEqual(stageOf(pipeline, '$skip'), 4)
+      assert.strictEqual(stageOf(pipeline, '$limit'), 3)
+    })
+
+    it(`${path} links the next page and serves only the page`, async () => {
+      mockSearchCollection([scoredDoc('a', 9), scoredDoc('b', 5), scoredDoc('c', 3)])
+
+      const response = await request(variantTester)
+        .post(`${path}?limit=2`)
+        .set('Content-Type', contentType)
+        .send(body)
+
+      assert.deepStrictEqual(idsOf(response), ['a', 'b'])
+      const next = (response.headers.link ?? '').match(/<([^>]+)>;\s*rel="next"/)?.[1]
+      assert.ok(next, 'a next link is present while more records exist')
+      assert.strictEqual(new URL(next, 'http://localhost').searchParams.get('skip'), '2')
+    })
+  }
 })

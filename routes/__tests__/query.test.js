@@ -65,6 +65,52 @@ it("'/query' route functions", async () => {
   assert.strictEqual(response.body[0]._id, undefined)
 })
 
+describe('objects whose _id is not a string are not served by /query', () => {
+  /** The filter the controller handed to db.find on the most recent request. */
+  let filter = null
+
+  const post = (body) => {
+    db.find.mockImplementation((props) => {
+      filter = props
+      return {
+        sort() { return this },
+        limit() { return this },
+        skip() { return this },
+        async toArray() { return [] }
+      }
+    })
+    return request(routeTester)
+      .post("/query")
+      .set("Content-Type", "application/json")
+      .send(body)
+  }
+
+  // They are legacy data with no addressable URL: idNegotiation() strips _id, so a client receives
+  // bare content it can neither follow nor update.
+  it("adds the string _id condition to the client's filter", async () => {
+    const response = await post({ test: "item" })
+
+    assert.strictEqual(response.statusCode, 200)
+    assert.deepStrictEqual(filter, { $and: [{ test: "item" }, { _id: { $type: "string" } }] })
+  })
+
+  it("keeps a client's own _id condition, whether a literal or an operator", async () => {
+    await post({ _id: "testid123" })
+    assert.deepStrictEqual(
+      filter,
+      { $and: [{ _id: "testid123" }, { _id: { $type: "string" } }] },
+      "a merge into props would have replaced the client's _id outright"
+    )
+
+    await post({ _id: { $not: { $type: "string" } } })
+    assert.deepStrictEqual(
+      filter,
+      { $and: [{ _id: { $not: { $type: "string" } } }, { _id: { $type: "string" } }] },
+      "the two conditions contradict, which is how this query comes back empty"
+    )
+  })
+})
+
 describe('pagination parameters on /query', () => {
   const pagedTester = express()
   pagedTester.use(express.json({ type: ["application/json", "application/ld+json"] }))

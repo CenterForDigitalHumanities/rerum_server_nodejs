@@ -86,8 +86,11 @@ const query = async function (req, res, next) {
     }
     const { limit, skip } = getPagination(req.query, { res })
     try {
+        // Objects whose _id is not a string are legacy data with no addressable URL, so they are not
+        // served.  $and rather than a merge into props, so a client's own _id condition still applies.
         // One record past the page is read only to learn whether another page exists.  It is never served.
-        let matches = await db.find(props).sort({ _id: 1 }).limit(limit + 1).skip(skip).toArray()
+        let matches = await db.find({ $and: [props, { _id: { $type: "string" } }] })
+            .sort({ _id: 1 }).limit(limit + 1).skip(skip).toArray()
         const hasNext = matches.length > limit
         matches = matches.slice(0, limit).map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(matches))
