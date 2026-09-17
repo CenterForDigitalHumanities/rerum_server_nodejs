@@ -142,10 +142,6 @@ function getPagination(query = {}, options = {}) {
  * with the 400 that names the maximum, so a walk too deep to finish ends loudly instead of looking
  * complete.
  *
- * The link carries only paging parameters.  The request body is not part of it, so a client sends
- * the same body to it.  The origin comes from the deployment's RERUM_PREFIX, never from the request.
- * Call this after any res.set() of 'Link', which would replace it.
- *
  * @param req The Express request, for the path that was paged.
  * @param res The Express response.
  * @param page What was served.
