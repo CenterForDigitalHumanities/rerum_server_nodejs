@@ -37,10 +37,17 @@ const createPatchOverrideMiddleware = (message) => {
     return (req, res, next) => {
         if (!checkPatchOverrideSupport(req, res)) {
             res.statusMessage = message
+            res.set("Allow", "PATCH,POST")
             return res.status(405).end()
         }
         next()
     }
+}
+
+const sendMethodNotAllowed = (res, message, allowedMethods) => {
+    res.statusMessage = message
+    res.set("Allow", allowedMethods)
+    return res.status(405).end()
 }
 
 /**
@@ -230,4 +237,4 @@ It may not have completed at all, and most likely did not complete successfully.
     res.status(error.status).send(error.message)
 }
 
-export default { checkPatchOverrideSupport, createPatchOverrideMiddleware, verifyJsonContentType, verifyEitherContentType, messenger }
+export default { checkPatchOverrideSupport, createPatchOverrideMiddleware, sendMethodNotAllowed, verifyJsonContentType, verifyEitherContentType, messenger }

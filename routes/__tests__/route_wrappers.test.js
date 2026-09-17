@@ -88,6 +88,7 @@ function assertInvalidOverride(router) {
   })
 
   assert.strictEqual(res.statusCode, 405)
+  assert.strictEqual(res.headers.Allow, 'PATCH,POST')
   assert.strictEqual(res.ended, true)
   assert.deepStrictEqual(nextCalls, [])
 }
@@ -105,13 +106,23 @@ function assertValidOverride(router) {
   assert.strictEqual(nextCalls[0], undefined)
 }
 
+function getAllowedMethods(route) {
+  const methods = Object.keys(route.methods)
+    .filter(method => method !== '_all')
+    .map(method => method.toUpperCase())
+  if (methods.includes('GET') && !methods.includes('HEAD')) methods.push('HEAD')
+  return methods.join(',')
+}
+
 function assertUnsupportedMethodOnPath(router, path) {
-  const fallbackLayer = getRoute(router, path).stack.at(-1)
+  const route = getRoute(router, path)
+  const fallbackLayer = route.stack.at(-1)
   assert.ok(fallbackLayer, `Expected fallback .all() layer for '${path}'`)
 
   const { res, nextCalls } = invokeLayer(fallbackLayer)
 
   assert.strictEqual(res.statusCode, 405)
+  assert.strictEqual(res.headers.Allow, getAllowedMethods(route))
   assert.strictEqual(res.ended, true)
   assert.deepStrictEqual(nextCalls, [])
 }

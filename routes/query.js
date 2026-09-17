@@ -8,8 +8,7 @@ router.route('/')
     .post(rest.verifyJsonContentType, controller.query)
     .head(controller.queryHeadRequest)
     .all((req, res, next) => {
-        res.statusMessage = 'Improper request method for requesting objects with matching properties.  Please use POST.'
-        res.status(405).end()
+        rest.sendMethodNotAllowed(res, 'Improper request method for requesting objects with matching properties.  Please use POST.', 'POST,HEAD')
     })
 
 export default router
