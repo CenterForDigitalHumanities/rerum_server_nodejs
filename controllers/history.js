@@ -2,13 +2,13 @@
 
 /**
  * History controller for RERUM operations
- * Handles history, since, and HEAD request operations
+ * Handles history and since operations
  * @author cubap, thehabes
  */
 
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, ObjectID, getAgentClaim, getPagination, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
+import { _contextid, ObjectID, getAgentClaim, parseDocumentID, idNegotiation, getAllVersions, getAllAncestors, getAllDescendants } from './utils.js'
 
 /**
  * Public facing servlet to gather for all versions downstream from a provided `key object`.
@@ -79,32 +79,4 @@ const history = async function (req, res, next) {
     res.json(ancestors)
 }
 
-/**
- * Allow for HEAD requests via the RERUM getByProperties pattern /v1/api/query
- * No objects are returned, but the Content-Length header is set. 
- */
-const queryHeadRequest = async function (req, res, next) {
-    res.set("Content-Type", "application/json; charset=utf-8")
-    let props = req.body
-    const { limit, skip } = getPagination(req.query, { res })
-    try {
-        // Sorted the same way POST /query is, so the two verbs page over one order.
-        const matches = await db.find(props).sort({ _id: 1 }).limit(limit).skip(skip).toArray()
-        if (matches.length) {
-            const negotiated = matches.map(o => idNegotiation(o))
-            const size = Buffer.byteLength(JSON.stringify(negotiated))
-            res.set("Content-Length", size)
-            res.status(200).end()
-            return
-        }
-        let err = {
-            "message": `There are no objects in the database matching the query. Check the request body.`,
-            "status": 404
-        } 
-        return next(utils.createExpressError(err))
-    } catch (error) {
-        return next(utils.createExpressError(error))
-    }
-}
-
-export { since, history, queryHeadRequest }
+export { since, history }

@@ -6,7 +6,7 @@
  */
 import { newID, isValidID, db } from '../database/index.js'
 import utils from '../utils.js'
-import { _contextid, idNegotiation, getPagination, generateSlugId, ObjectID, getAgentClaim, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
+import { _contextid, idNegotiation, getPagination, setNextPageLink, generateSlugId, ObjectID, getAgentClaim, findLeafAnnotationsFor, PROTECTED_EXPANSION_KEYS } from './utils.js'
 
 /**
  * Create a new Linked Open Data object in RERUM v1.
@@ -70,6 +70,8 @@ const create = async function (req, res, next) {
  * Query the MongoDB for objects containing the key:value pairs provided in the JSON Object in the request body.
  * This will support wildcards and mongo params like {"key":{$exists:true}}
  * The return is always an array, even if 0 or 1 objects in the return.
+ *
+ * Results page in ascending '_id' order.  The Link header carries rel="next" while another page exists.
  * */
 const query = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
@@ -84,9 +86,12 @@ const query = async function (req, res, next) {
     }
     const { limit, skip } = getPagination(req.query, { res })
     try {
-        let matches = await db.find(props).sort({ _id: 1 }).limit(limit).skip(skip).toArray()
-        matches = matches.map(o => idNegotiation(o))
+        // One record past the page is read only to learn whether another page exists.  It is never served.
+        let matches = await db.find(props).sort({ _id: 1 }).limit(limit + 1).skip(skip).toArray()
+        const hasNext = matches.length > limit
+        matches = matches.slice(0, limit).map(o => idNegotiation(o))
         res.set(utils.configureLDHeadersFor(matches))
+        setNextPageLink(req, res, { limit, skip, hasNext })
         res.json(matches)
     } catch (error) {
         return next(utils.createExpressError(error))

@@ -94,8 +94,8 @@ function readWholeNumberParam(raw, name, fallback, min) {
  * response readable.  A 'skip' above its maximum is rejected, because clamping it would serve the
  * page at the maximum over and over.
  *
- * The applied values and both maximums are reported in the response headers, so a client can tell
- * a truncated page from a genuine final one and can configure itself from any single response.
+ * The applied values and both maximums are reported in the response headers, so a client can
+ * configure itself from any single response.
  *
  * @param query The Express 'req.query' object.
  * @param options Optional settings for this endpoint.
@@ -132,6 +132,30 @@ function getPagination(query = {}, options = {}) {
         "Pagination-Skip": String(skip)
     })
     return { limit, skip }
+}
+
+/**
+ * Report an RFC 8288 rel="next" link while another page exists, alongside any Link the response
+ * already carries.  Its absence is what ends a walk, so nothing is added on the final page.
+ *
+ * 'next' advances 'skip' even when that passes the configured maximum.  Following it is then answered
+ * with the 400 that names the maximum, so a walk too deep to finish ends loudly instead of looking
+ * complete.
+ *
+ * @param req The Express request, for the path that was paged.
+ * @param res The Express response.
+ * @param page What was served.
+ * @param page.limit The applied limit.
+ * @param page.skip The applied skip.
+ * @param page.hasNext Whether any record lies past this page.
+ */
+function setNextPageLink(req, res, { limit, skip = 0, hasNext = false } = {}) {
+    if (!hasNext) return
+    // A route mounted at '/' leaves a trailing slash on the joined path.
+    const path = `${req.baseUrl ?? ""}${req.path ?? ""}`.replace(/(.)\/+$/, "$1")
+    const target = `${path}?${new URLSearchParams({ limit, skip: skip + limit })}`
+    const base = process.env.RERUM_PREFIX
+    res.append("Link", `<${URL.canParse(target, base) ? new URL(target, base).href : target}>; rel="next"`)
 }
 
 /**
@@ -694,6 +718,7 @@ export {
     findLeafAnnotationsFor,
     PROTECTED_EXPANSION_KEYS,
     getPagination,
+    setNextPageLink,
     generateSlugId,
     index,
     ObjectID,

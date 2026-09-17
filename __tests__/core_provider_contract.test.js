@@ -204,13 +204,12 @@ const requiredResponseCodes = {
   'POST /id/{id}/expanded': ['200', '400', '404', '413', '415'],
   'GET /since/{id}': ['200', '404'],
   'GET /history/{id}': ['200', '404'],
-  // HEAD parity tests in routes/__tests__/{id,since,history,query}.test.js assert 404 on miss;
+  // HEAD parity tests in routes/__tests__/{id,since,history}.test.js assert 404 on miss;
   // enforce that the contract declares the same so drift on either side is caught.
   'HEAD /id/{id}': ['200', '404'],
   'HEAD /id/{id}/expanded': ['200', '404'],
   'HEAD /since/{id}': ['200', '404'],
   'HEAD /history/{id}': ['200', '404'],
-  'HEAD /api/query': ['200', '404'],
   'POST /api/query': ['200', '400', '413', '415'],
   'POST /api/search': ['200', '400', '413', '415'],
   'POST /api/search/phrase': ['200', '400', '413', '415']
