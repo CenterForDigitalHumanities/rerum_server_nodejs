@@ -554,7 +554,6 @@
                 <span>const many_results = await pagedQuery({"type": "Thing"})</span>
                 <br>
                 <span>async function pagedQuery(queryObj, lim = 100) {</span>
-                    <span class="ind1">// Every page is requested with the same body.</span>
                     <span class="ind1">const request = {</span>
                         <span class="ind2">method: "POST",</span>
                         <span class="ind2">headers: { "Content-Type": "application/json; charset=utf-8" },</span>
@@ -564,14 +563,12 @@
                     <span class="ind1">let url = `https://devstore.rerum.io/v1/api/query?limit=${lim}`</span>
                     <span class="ind1">while (url) {</span>
                         <span class="ind2">const response = await fetch(url, request)</span>
-                        <span class="ind2">// A next link past the skip maximum is answered with a 400 that names the maximum.</span>
                         <span class="ind2">if (response.status === 400 &amp;&amp; allResults.length) {</span>
                             <span class="ind3">console.warn(`Stopped at the skip maximum of ${response.headers.get("Pagination-Skip-Max")}. These results are incomplete. Narrow the query.`)</span>
                             <span class="ind3">return allResults</span>
                         <span class="ind2">}</span>
                         <span class="ind2">if (!response.ok) throw new Error(await response.text())</span>
                         <span class="ind2">allResults.push(...await response.json())</span>
-                        <span class="ind2">// No next link means there are no more records.</span>
                         <span class="ind2">url = response.headers.get("Link")?.match(/&lt;([^&gt;]+)&gt;;\s*rel="next"/)?.[1]</span>
                     <span class="ind1">}</span>
                     <span class="ind1">return allResults</span>
@@ -622,10 +619,10 @@
         </p>
         <h4 id="following-next">Following <code>rel="next"</code></h4>
         <p>
-            While another page exists, <a href="#custom-query">Custom Query</a> responses carry a <code>rel="next"</code> link in the <code>Link</code> header (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</a>), next to the JSON-LD context link. The final page has no <code>rel="next"</code>. Follow it until it is gone. Do not decide you are done by counting records, because a short page is not always the last one.
+            While another page exists, <a href="#custom-query">Custom Query</a> responses carry a <code>rel="next"</code> link in the <code>Link</code> header (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</a>), next to the JSON-LD context link. The final page has no <code>rel="next"</code>. Follow it until it is gone.
         </p>
         <p>
-            <code>rel="next"</code> advances <code>skip</code>. It is still present when the next page would start past the <code>skip</code> maximum, and following it is answered with the <code>400</code> that names the maximum. A walk longer than the maximum ends in that <code>400</code> rather than looking complete.
+            <code>rel="next"</code> advances <code>skip</code>. It is still present when the next page would start past the <code>skip</code> maximum, and following it is answered with the <code>400</code> that names the maximum.
         </p>
         <p class="alert">Custom Query takes a <code>POST</code>. The link only carries the paging URL parameters, so send the same request body to it that you sent to the first page.</p>
         <p>
