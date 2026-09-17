@@ -220,6 +220,9 @@ paths:
       responses:
         '200':
           description: Query results
+          headers:
+            Link:
+              $ref: '#/components/headers/NextPageLink'
           content:
             application/json:
               schema:
@@ -230,14 +233,6 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
-    head:
-      summary: Query object headers
-      operationId: headQueryObjects
-      responses:
-        '200':
-          description: Query result headers
-        '404':
-          $ref: '#/components/responses/NotFound'
   /api/search:
     post:
       summary: Search objects by keywords
@@ -689,6 +684,18 @@ components:
         never been overwritten.
       schema:
         type: string
+    NextPageLink:
+      description: >-
+        RFC 8288 links. The JSON-LD context link, plus rel="next" only while another page exists, so
+        its absence ends a walk. rel="next" advances 'skip', and is still present when the next page
+        would start past the 'skip' maximum, where following it is answered with the 400 that names
+        the maximum. The link carries only paging URL parameters, so send the same request body to
+        it.
+      schema:
+        type: string
+        example: >-
+          <http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json",
+          <https://store.rerum.io/v1/api/query?limit=100&skip=200>; rel="next"
   parameters:
     ObjectId:
       in: path

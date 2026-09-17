@@ -135,6 +135,34 @@ function getPagination(query = {}, options = {}) {
 }
 
 /**
+ * Report an RFC 8288 rel="next" link while another page exists, alongside any Link the response
+ * already carries.  Its absence is what ends a walk, so nothing is added on the final page.
+ *
+ * 'next' advances 'skip' even when that passes the configured maximum.  Following it is then answered
+ * with the 400 that names the maximum, so a walk too deep to finish ends loudly instead of looking
+ * complete.
+ *
+ * The link carries only paging parameters.  The request body is not part of it, so a client sends
+ * the same body to it.  The origin comes from the deployment's RERUM_PREFIX, never from the request.
+ * Call this after any res.set() of 'Link', which would replace it.
+ *
+ * @param req The Express request, for the path that was paged.
+ * @param res The Express response.
+ * @param page What was served.
+ * @param page.limit The applied limit.
+ * @param page.skip The applied skip.
+ * @param page.hasNext Whether any record lies past this page.
+ */
+function setNextPageLink(req, res, { limit, skip = 0, hasNext = false } = {}) {
+    if (!hasNext) return
+    // A route mounted at '/' leaves a trailing slash on the joined path.
+    const path = `${req.baseUrl ?? ""}${req.path ?? ""}`.replace(/(.)\/+$/, "$1")
+    const target = `${path}?${new URLSearchParams({ limit, skip: skip + limit })}`
+    const base = process.env.RERUM_PREFIX
+    res.append("Link", `<${URL.canParse(target, base) ? new URL(target, base).href : target}>; rel="next"`)
+}
+
+/**
  * Check if a @context value contains a known @id-id mapping context
  *
  * @param contextInput A string URI, or an Array of them.
@@ -694,6 +722,7 @@ export {
     findLeafAnnotationsFor,
     PROTECTED_EXPANSION_KEYS,
     getPagination,
+    setNextPageLink,
     generateSlugId,
     index,
     ObjectID,

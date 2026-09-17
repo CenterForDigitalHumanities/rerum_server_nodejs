@@ -219,6 +219,15 @@ describe('unsupported-method 405 fallbacks', () => {
       assertUnsupportedMethodOnPath(router, path)
     })
   }
+
+  // HEAD is GET without content.  A route with no GET has nothing for HEAD to mirror, so HEAD must
+  // fall through to the 405 fallback rather than reach a handler of its own.
+  for (const { label, router, path } of cases) {
+    if (getMethodLayers(router, path, 'get').length) continue
+    it(`has no HEAD handler of its own for ${label}`, () => {
+      assert.deepStrictEqual(getMethodLayers(router, path, 'head'), [])
+    })
+  }
 })
 
 describe('api routes discovery', () => {
