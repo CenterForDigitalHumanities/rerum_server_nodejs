@@ -94,8 +94,8 @@ function readWholeNumberParam(raw, name, fallback, min) {
  * response readable.  A 'skip' above its maximum is rejected, because clamping it would serve the
  * page at the maximum over and over.
  *
- * The applied values and both maximums are reported in the response headers, so a client can tell
- * a truncated page from a genuine final one and can configure itself from any single response.
+ * The applied values and both maximums are reported in the response headers, so a client can
+ * configure itself from any single response.
  *
  * @param query The Express 'req.query' object.
  * @param options Optional settings for this endpoint.
