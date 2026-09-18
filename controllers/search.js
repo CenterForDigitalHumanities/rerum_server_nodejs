@@ -95,6 +95,9 @@ function readSearchOptions(body, defaults) {
  * @returns {Array<Object>} The aggregation pipeline to hand to db.aggregate()
  *
  * @description
+ * The options are applied first in every clause, so they can tune the operator but never replace
+ * the validated searchText or the paths the clause searches.
+ *
  * IIIF 3.0 clauses:
  * - Web Annotation fields: body.value, bodyValue
  * - Canvas annotations: annotations[].items[].body.value
@@ -113,9 +116,9 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
             should: [
                 {
                     [operator.type]: {
+                        ...operator.options,
                         query: searchText,
-                        path: ["body.value", "bodyValue"],
-                        ...operator.options
+                        path: ["body.value", "bodyValue"]
                     }
                 },
                 {
@@ -123,9 +126,9 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
                         path: "annotations.items",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
-                                path: ["annotations.items.body.value", "annotations.items.bodyValue"],
-                                ...operator.options
+                                path: ["annotations.items.body.value", "annotations.items.bodyValue"]
                             }
                         }
                     }
@@ -135,23 +138,23 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
                         path: "items",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
                                 path: [
                                     "items.body.value",
                                     "items.bodyValue",
                                     "items.annotations.items.body.value",
                                     "items.annotations.items.bodyValue"
-                                ],
-                                ...operator.options
+                                ]
                             }
                         }
                     }
                 },
                 {
                     [operator.type]: {
+                        ...operator.options,
                         query: searchText,
-                        path: ["resource.chars", "resource.cnt:chars"],
-                        ...operator.options
+                        path: ["resource.chars", "resource.cnt:chars"]
                     }
                 },
                 {
@@ -159,9 +162,9 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
                         path: "resources",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
-                                path: ["resources.resource.chars", "resources.resource.cnt:chars"],
-                                ...operator.options
+                                path: ["resources.resource.chars", "resources.resource.cnt:chars"]
                             }
                         }
                     }
@@ -171,9 +174,9 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
                         path: "otherContent.resources",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
-                                path: ["otherContent.resources.resource.chars", "otherContent.resources.resource.cnt:chars"],
-                                ...operator.options
+                                path: ["otherContent.resources.resource.chars", "otherContent.resources.resource.cnt:chars"]
                             }
                         }
                     }
@@ -183,12 +186,12 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
                         path: "sequences.canvases.otherContent.resources",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
                                 path: [
                                     "sequences.canvases.otherContent.resources.resource.chars",
                                     "sequences.canvases.otherContent.resources.resource.cnt:chars"
-                                ],
-                                ...operator.options
+                                ]
                             }
                         }
                     }
@@ -305,8 +308,9 @@ const searchAsWords = async function (req, res, next) {
  * - "manuscript illumination" → matches:
  *   ✓ "manuscript illumination"
  *   ✓ "manuscript and illumination"
- *   ✓ "illumination of manuscript" (reversed order with slop)
- *   ✓ "illuminated manuscript"
+ *   ✓ "illumination manuscript" (adjacent words in reverse order cost a slop of 2)
+ *   ✗ "illumination of manuscript" (reverse order with a word between needs a slop of 3)
+ *   ✗ "illuminated manuscript" (words are not stemmed)
  * 
  * Use Cases:
  * - Finding exact or near-exact phrases

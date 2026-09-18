@@ -161,6 +161,31 @@ describe('search controllers', () => {
     }
   })
 
+  it("never lets options replace the searchText or the paths a clause searches", async () => {
+    /** The operator document of every should clause, whether it is top level or inside embeddedDocument. */
+    const operatorsOf = (pipeline, type) => pipeline[0].$search.compound.should
+      .map(clause => (clause.embeddedDocument?.operator ?? clause)[type])
+    const search = async (path, options) => {
+      mockAggregateResults([])
+      const response = await request(routeTester)
+        .post(path)
+        .set('Content-Type', 'application/json')
+        .send({ searchText: 'a line', options })
+      assert.strictEqual(response.statusCode, 200, `${path} ${JSON.stringify(options)}`)
+      return searchCalls.pipeline
+    }
+
+    for (const [path, type] of [['/search', 'text'], ['/search/phrase', 'phrase']]) {
+      const expectedPaths = operatorsOf(await search(path, {}), type).map(op => op.path)
+      const operators = operatorsOf(await search(path, { query: '', path: 'x', slop: 3 }), type)
+
+      assert.ok(operators.length > 0, path)
+      for (const op of operators) assert.strictEqual(op.query, 'a line', `${path} must search the searchText`)
+      assert.deepStrictEqual(operators.map(op => op.path), expectedPaths, `${path} must search its own paths`)
+      assert.ok(operators.every(op => op.slop === 3), `${path} still applies the client's other options`)
+    }
+  })
+
   it("searchAsPhrase returns 200 and an array of results for a text body", async () => {
     const doc = {
       _id: 'doc-2',
