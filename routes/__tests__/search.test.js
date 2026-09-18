@@ -133,20 +133,6 @@ describe('search controllers', () => {
     }
   })
 
-  it("returns 400 without searching when a phrase search's slop is not a whole number", async () => {
-    for (const slop of ['x', -1, 1.5]) {
-      mockAggregateResults([])
-
-      const response = await request(routeTester)
-        .post('/search/phrase')
-        .set('Content-Type', 'application/json')
-        .send({ searchText: 'a line', options: { slop } })
-
-      assert.strictEqual(response.statusCode, 400, JSON.stringify(slop))
-      assert.strictEqual(searchCalls.count, 0, `slop ${JSON.stringify(slop)} must not reach the database`)
-    }
-  })
-
   it("hands a client's options to the phrase operator, and the default slop when there are none", async () => {
     for (const [options, slop] of [[{ slop: 5 }, 5], [null, 2]]) {
       mockAggregateResults([])

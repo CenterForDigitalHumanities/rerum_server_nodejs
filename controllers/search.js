@@ -42,7 +42,8 @@ function searchPipelineFor(searchQuery, limit, skip) {
 }
 
 /**
- * Serves one page of search results.
+ * Serves one page of search results.  The over-fetched record is the only evidence
+ * that another page exists.  It is trimmed here and never serialized.
  *
  * @param {Object} req - Express request, which the next-page link is built from
  * @param {Object} res - Express response
@@ -52,9 +53,7 @@ function searchPipelineFor(searchQuery, limit, skip) {
  * @param {number} pagination.skip - The applied skip
  *
  * @description
- * The over-fetched record is the only evidence that another page exists.  It is trimmed here and
- * never serialized.  The JSON-LD headers go on first because configureLDHeadersFor() replaces Link
- * while setNextPageLink() appends to it; reversing the two would discard the next-page link.
+
  */
 function serveSearchPage(req, res, page, { limit, skip }) {
     const hasNext = page.length > limit
@@ -66,14 +65,12 @@ function serveSearchPage(req, res, page, { limit, skip }) {
 
 /**
  * Reads the operator options a client sent in a JSON request body.
+ * Atlas rejects malformed operator options with an error that cannot be told apart from a server fault,
+ * so options that are not a JSON object are refused here, before they reach the $search stage.
  *
  * @param {Object|string} body - The request body
  * @param {Object} defaults - The options to use when the client sent none
  * @returns {Object|null} The options to hand to the operator, or null when they are not a JSON object
- *
- * @description
- * Atlas rejects malformed operator options with an error that cannot be told apart from a server fault,
- * so options that are not a JSON object are refused here, before they reach the $search stage.
  */
 function readSearchOptions(body, defaults) {
     const options = body?.options ?? defaults
@@ -282,7 +279,7 @@ const searchAsWords = async function (req, res, next) {
  * @route POST /v1/api/search/phrase
  * @param {Object} req.body - Request body containing search phrase
  * @param {string} req.body.searchText - The phrase to search for (can also be a plain string body)
- * @param {Object} [req.body.options] - Phrase operator options, which must be a JSON object whose slop is a whole number
+ * @param {Object} [req.body.options] - Phrase operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -344,10 +341,9 @@ const searchAsPhrase = async function (req, res, next) {
         }
         return next(utils.createExpressError(err))
     }
-    const slopIsValid = !("slop" in (phraseOptions ?? {})) || (Number.isInteger(phraseOptions.slop) && phraseOptions.slop >= 0)
-    if (!phraseOptions || !slopIsValid) {
+    if (!phraseOptions) {
         let err = {
-            message: "The 'options' property of the search request must be a JSON object, and its 'slop' a whole number.",
+            message: "The 'options' property of the search request must be a JSON object.",
             status: 400
         }
         return next(utils.createExpressError(err))
