@@ -10,18 +10,7 @@ import { idNegotiation, getPagination, setNextPageLink } from './utils.js'
 
 /**
  * The MongoDB Atlas Search index every search operator queries.
- *
- * It covers both vocabularies RERUM stores - the IIIF Presentation API 3.0 paths (body.value,
- * bodyValue, and the items / annotations embedded documents) and the IIIF Presentation API 2.1
- * paths (resource.chars, resource.cnt:chars, and the resources / otherContent / sequences
- * embedded documents).
- *
- * One index is what makes an honest page possible.  Atlas scores each document once across every
- * clause it matched, returns it exactly once, and hands back the whole result set already in
- * descending score order, so there is nothing for this process to merge, deduplicate or sort.
- *
- * The definition lives in Atlas, not in this repository.  A path named below that the index does
- * not cover contributes no matches and raises no error.
+ * It covers both the IIIF Presentation API 3.0 paths and the IIIF Presentation API 2.1 paths.
  */
 const SEARCH_INDEX = "annotationText"
 
@@ -43,9 +32,7 @@ const SEARCH_INDEX = "annotationText"
 function searchPipelineFor(searchQuery, limit, skip) {
     return [
         { $search: searchQuery },
-        // Objects whose _id is not a string are legacy data with no addressable URL, so they are not
-        // served.  Atlas Search cannot express a BSON type condition, which is why this is a $match -
-        // and it has to precede $limit, or the page fills with records the client cannot use.
+        // Objects whose _id is not a string are bad data points, so they are not included.
         { $match: { _id: { $type: "string" } } },
         { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
         { $skip: skip },
@@ -79,6 +66,8 @@ function serveSearchPage(req, res, page, { limit, skip }) {
 
 /**
  * Builds the MongoDB Atlas Search aggregation pipeline for a text-like search operator.
+ * Every one of them is a "should" clause of a single compound query, so any one match qualifies and
+ * a document matching several of them scores higher for it.
  *
  * @param {string} searchText - The text query to search for
  * @param {Object} operator - Search operator configuration
@@ -99,15 +88,6 @@ function serveSearchPage(req, res, page, { limit, skip }) {
  * - AnnotationList resources: resources[].resource.chars
  * - Canvas otherContent: otherContent[].resources[].resource.chars
  * - Manifest sequences: sequences[].canvases[].otherContent[].resources[].resource.chars
- *
- * Every one of them is a "should" clause of a single compound query, so any one match qualifies and
- * a document matching several of them scores higher for it.
- *
- * An embeddedDocument clause names the innermost embeddedDocuments path of the index, such as
- * annotations.items rather than annotations.  Scoped to an outer embeddedDocuments path, a clause
- * cannot see the fields of the one nested inside it, and matches nothing without raising an error.
- * A Manifest's items[].annotations[].items[] text is reached through the items clause, because the
- * index maps items as embeddedDocuments and the annotations and items beneath it as plain documents.
  */
 function buildSearchPipeline(searchText, operator, limit, skip) {
     const searchQuery = {
