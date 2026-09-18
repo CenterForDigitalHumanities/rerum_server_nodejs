@@ -87,6 +87,7 @@ const query = async function (req, res, next) {
     const { limit, skip } = getPagination(req.query, { res })
     try {
         // Objects whose _id is not a string are bad data points, so they are not included.
+        // One record past the page is read only to learn whether another page exists.
         let matches = await db.find({ $and: [props, { _id: { $type: "string" } }] })
             .sort({ _id: 1 }).limit(limit + 1).skip(skip).toArray()
         const hasNext = matches.length > limit

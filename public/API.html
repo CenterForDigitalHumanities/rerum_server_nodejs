@@ -665,7 +665,7 @@
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—An array of annotation objects matching the search, sorted by relevance score</li>
         </ul>
         <p>
-            The Text Search endpoint performs a full-text search across Annotation text content. It searches for exact word matches and tokenizes the search text, finding documents that contain all the search terms anywhere in their text content.
+            The Text Search endpoint performs a full-text search across Annotation text content. It tokenizes the search text into words and matches each word exactly, finding documents that contain any of the search terms anywhere in their text content.
         </p>
         <p>
             The search covers multiple text fields depending on the syntax of objects.  In particular it covers the current Web Annotation syntax, IIIF Presentation API 3.0 syntax, and IIIF Presentation API 2.1 syntax<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>.  See below for specific details.
@@ -685,8 +685,8 @@
             <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span> resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
             <li>Partial word matches and wildcards are NOT supported in this search</li>
-            <li>Standard linguistic analysis is applied (stemming, stop words, etc.)</li>
-            <li>Multi-word searches find documents containing <strong>all</strong> the words (AND logic)</li>
+            <li>Words are not stemmed, so "transcribe" does not match "transcribing". Common words such as "the" are not removed, and are searched like any other word.</li>
+            <li>Multi-word searches find documents containing <strong>any</strong> of the words (OR logic). Documents that contain more of the words usually score higher. To find words that appear together, use <a href="#phrase-search">Phrase Search</a>.</li>
             <li>Results are sorted by relevance score (highest first)</li>
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
@@ -697,7 +697,7 @@
             <li>General full-text search across annotation content</li>
             <li>Finding all annotations containing specific keywords or concepts</li>
             <li>Broad discovery when exact word order doesn't matter</li>
-            <li>Best for single-word searches or when all search terms should appear anywhere in the document</li>
+            <li>Best for single-word searches, or when a document may match on any one of the search terms</li>
         </ul>
         <p>
             <div class="exHeading">Javascript Example (JSON Object)</div>

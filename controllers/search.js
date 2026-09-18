@@ -65,6 +65,23 @@ function serveSearchPage(req, res, page, { limit, skip }) {
 }
 
 /**
+ * Reads the operator options a client sent in a JSON request body.
+ *
+ * @param {Object|string} body - The request body
+ * @param {Object} defaults - The options to use when the client sent none
+ * @returns {Object|null} The options to hand to the operator, or null when they are not a JSON object
+ *
+ * @description
+ * Atlas rejects malformed operator options with an error that cannot be told apart from a server fault,
+ * so options that are not a JSON object are refused here, before they reach the $search stage.
+ */
+function readSearchOptions(body, defaults) {
+    const options = body?.options ?? defaults
+    if (typeof options !== "object" || Array.isArray(options)) return null
+    return options
+}
+
+/**
  * Builds the MongoDB Atlas Search aggregation pipeline for a text-like search operator.
  * Every one of them is a "should" clause of a single compound query, so any one match qualifies and
  * a document matching several of them scores higher for it.
@@ -187,9 +204,10 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
 /**
  * Standard text search endpoint - searches for exact word matches across both IIIF 3.0 and 2.1 resources.
  * 
- * @route POST /search
+ * @route POST /v1/api/search
  * @param {Object} req.body - Request body containing search text
  * @param {string} req.body.searchText - The text to search for (can also be a plain string body)
+ * @param {Object} [req.body.options] - Text operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -198,15 +216,16 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
  * Performs a standard MongoDB Atlas Search text query that:
  * - Tokenizes the search text into words
  * - Searches for exact word matches (case-insensitive)
- * - Applies standard linguistic analysis (stemming, stop words, etc.)
+ * - Uses the lucene.standard analyzer, which lowercases words but neither stems them nor removes stop words
  * - Searches both IIIF Presentation API 3.0 and 2.1 fields in one query, against one index
  * - Pages in the database, and carries a rel="next" Link header while another page exists
  * - Returns results sorted by relevance score (highest first)
  * 
  * Search Behavior:
- * - "Bryan Haberberger" → finds documents containing both "Bryan" AND "Haberberger"
+ * - "Bryan Haberberger" → finds documents containing "Bryan" OR "Haberberger", usually ranking documents that contain both higher
  * - Searches are case-insensitive
- * - Standard analyzer removes common stop words
+ * - Words are not stemmed, so "transcribe" does not match "transcribing"
+ * - Stop words such as "the" are not removed, and are searched like any other word
  * - Partial word matches are NOT supported (use wildcardSearch for that)
  * 
  * IIIF 3.0 Fields Searched:
@@ -221,18 +240,25 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
  * - sequences[].canvases[].otherContent[].resources[].resource.chars (Manifest)
  * 
  * @example
- * POST /search
+ * POST /v1/api/search
  * Body: {"searchText": "Hello World"}
- * Returns: All annotations containing "Hello" and "World"
+ * Returns: All annotations containing "Hello" or "World"
  * 
  */
 const searchAsWords = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const searchOptions = req.body?.options ?? {}
+    const searchOptions = readSearchOptions(req.body, {})
     if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
+    if (!searchOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
             status: 400
         }
         return next(utils.createExpressError(err))
@@ -250,9 +276,10 @@ const searchAsWords = async function (req, res, next) {
 /**
  * Phrase search endpoint - searches for multi-word phrases with words in proximity.
  * 
- * @route POST /phraseSearch
+ * @route POST /v1/api/search/phrase
  * @param {Object} req.body - Request body containing search phrase
  * @param {string} req.body.searchText - The phrase to search for (can also be a plain string body)
+ * @param {Object} [req.body.options] - Phrase operator options, which must be a JSON object whose slop is a whole number
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -288,7 +315,7 @@ const searchAsWords = async function (req, res, next) {
  * - More precise than standard search, more flexible than exact match
  * 
  * Comparison with Other Search Types:
- * - Standard search: Finds "Bryan" AND "Haberberger" anywhere in document
+ * - Standard search: Finds "Bryan" OR "Haberberger" anywhere in document
  * - Phrase search: Finds "Bryan" near "Haberberger" (within 2 words)
  * - Exact match: Would require "Bryan Haberberger" with no intervening words
  * 
@@ -298,20 +325,25 @@ const searchAsWords = async function (req, res, next) {
  * - Good balance of precision and recall
  * 
  * @example
- * POST /phraseSearch
+ * POST /v1/api/search/phrase
  * Body: "medieval manuscript"
  * Returns: Annotations with "medieval" and "manuscript" in proximity
  */
 const searchAsPhrase = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const phraseOptions = req.body?.options ?? 
-    {
-        slop: 2
-    }
+    const phraseOptions = readSearchOptions(req.body, { slop: 2 })
     if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
+    const slopIsValid = !("slop" in (phraseOptions ?? {})) || (Number.isInteger(phraseOptions.slop) && phraseOptions.slop >= 0)
+    if (!phraseOptions || !slopIsValid) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object, and its 'slop' a whole number.",
             status: 400
         }
         return next(utils.createExpressError(err))
@@ -329,9 +361,10 @@ const searchAsPhrase = async function (req, res, next) {
 /**
  * Fuzzy text search endpoint - searches for approximate matches allowing for typos and misspellings.
  * 
- * @route POST /fuzzySearch
+ * @route Not mounted.  See the note at the end of routes/search.js.
  * @param {Object} req.body - Request body containing search text
  * @param {string} req.body.searchText - The text to search for (can also be a plain string body)
+ * @param {Object} [req.body.options] - Text operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -372,17 +405,23 @@ const searchAsPhrase = async function (req, res, next) {
 const searchFuzzily = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const fuzzyOptions = req.body?.options ?? 
-    {
+    const fuzzyOptions = readSearchOptions(req.body, {
         fuzzy: {
             maxEdits: 1,
             prefixLength: 2,
             maxExpansions: 50
         }
-    }
+    })
     if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
+    if (!fuzzyOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
             status: 400
         }
         return next(utils.createExpressError(err))
@@ -400,9 +439,10 @@ const searchFuzzily = async function (req, res, next) {
 /**
  * Wildcard pattern search endpoint - searches using wildcard patterns for partial matches.
  * 
- * @route POST /wildcardSearch
+ * @route Not mounted.  See the note at the end of routes/search.js.
  * @param {Object} req.body - Request body containing search pattern
  * @param {string} req.body.searchText - The wildcard pattern to search for (must contain * or ?)
+ * @param {Object} [req.body.options] - Wildcard operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -455,13 +495,17 @@ const searchFuzzily = async function (req, res, next) {
 const searchWildly = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const wildcardOptions = req.body?.options ?? 
-    {
-        allowAnalyzedField: true
-    }
+    const wildcardOptions = readSearchOptions(req.body, { allowAnalyzedField: true })
     if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
+    if (!wildcardOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
             status: 400
         }
         return next(utils.createExpressError(err))
@@ -487,7 +531,7 @@ const searchWildly = async function (req, res, next) {
 /**
  * "More Like This" search endpoint - finds documents similar to a provided example document.
  * 
- * @route POST /searchAlikes
+ * @route Not mounted.  See the note at the end of routes/search.js.
  * @param {Object} req.body - A complete JSON document to use as the search example
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination

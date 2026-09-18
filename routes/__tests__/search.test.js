@@ -55,7 +55,7 @@ function mockSearchCollection(docs) {
   })
 }
 
-/** A search hit carrying its relevance where the branch pipelines actually put it. */
+/** A search hit carrying its relevance where the search pipeline puts it. */
 const scoredDoc = (id, score) => ({
   _id: id,
   '@id': `https://store.rerum.io/v1/id/${id}`,
@@ -114,6 +114,50 @@ describe('search controllers', () => {
         assert.strictEqual(response.statusCode, 400, `${path} ${JSON.stringify(body)}`)
         assert.strictEqual(searchCalls.count, 0, `${path} ${JSON.stringify(body)} must not reach the database`)
       }
+    }
+  })
+
+  it("returns 400 without searching when options is not a JSON object", async () => {
+    for (const path of ['/search', '/search/phrase']) {
+      for (const options of ['x', ['x'], 5]) {
+        mockAggregateResults([])
+
+        const response = await request(routeTester)
+          .post(path)
+          .set('Content-Type', 'application/json')
+          .send({ searchText: 'a line', options })
+
+        assert.strictEqual(response.statusCode, 400, `${path} ${JSON.stringify(options)}`)
+        assert.strictEqual(searchCalls.count, 0, `${path} ${JSON.stringify(options)} must not reach the database`)
+      }
+    }
+  })
+
+  it("returns 400 without searching when a phrase search's slop is not a whole number", async () => {
+    for (const slop of ['x', -1, 1.5]) {
+      mockAggregateResults([])
+
+      const response = await request(routeTester)
+        .post('/search/phrase')
+        .set('Content-Type', 'application/json')
+        .send({ searchText: 'a line', options: { slop } })
+
+      assert.strictEqual(response.statusCode, 400, JSON.stringify(slop))
+      assert.strictEqual(searchCalls.count, 0, `slop ${JSON.stringify(slop)} must not reach the database`)
+    }
+  })
+
+  it("hands a client's options to the phrase operator, and the default slop when there are none", async () => {
+    for (const [options, slop] of [[{ slop: 5 }, 5], [null, 2]]) {
+      mockAggregateResults([])
+
+      const response = await request(routeTester)
+        .post('/search/phrase')
+        .set('Content-Type', 'application/json')
+        .send({ searchText: 'a line', options })
+
+      assert.strictEqual(response.statusCode, 200, JSON.stringify(options))
+      assert.strictEqual(searchCalls.pipeline[0].$search.compound.should[0].phrase.slop, slop)
     }
   })
 
