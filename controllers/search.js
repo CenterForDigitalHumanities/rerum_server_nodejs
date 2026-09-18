@@ -230,7 +230,7 @@ const searchAsWords = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
     const searchOptions = req.body?.options ?? {}
-    if (!searchText) {
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400
@@ -309,7 +309,7 @@ const searchAsPhrase = async function (req, res, next) {
     {
         slop: 2
     }
-    if (!searchText) {
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400
@@ -380,7 +380,7 @@ const searchFuzzily = async function (req, res, next) {
             maxExpansions: 50
         }
     }
-    if (!searchText) {
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400
@@ -459,7 +459,7 @@ const searchWildly = async function (req, res, next) {
     {
         allowAnalyzedField: true
     }
-    if (!searchText) {
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400

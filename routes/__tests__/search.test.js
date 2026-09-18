@@ -5,7 +5,6 @@ import express from 'express'
 import request from 'supertest'
 
 import controller from '../../db-controller.js'
-import { searchFuzzily, searchWildly, searchAlikes } from '../../controllers/search.js'
 import rest from '../../rest.js'
 import { db, resetMocks } from '../../database/index.js'
 
@@ -100,6 +99,22 @@ describe('search controllers', () => {
       .set('Content-Type', 'text/plain')
       .send('')
     assert.strictEqual(response.statusCode, 400)
+  })
+
+  it("returns 400 without searching when the JSON body has no searchText string", async () => {
+    for (const path of ['/search', '/search/phrase']) {
+      for (const body of [{ text: 'line' }, { searchText: 5 }, { searchText: ['line'] }]) {
+        mockAggregateResults([])
+
+        const response = await request(routeTester)
+          .post(path)
+          .set('Content-Type', 'application/json')
+          .send(body)
+
+        assert.strictEqual(response.statusCode, 400, `${path} ${JSON.stringify(body)}`)
+        assert.strictEqual(searchCalls.count, 0, `${path} ${JSON.stringify(body)} must not reach the database`)
+      }
+    }
   })
 
   it("searchAsPhrase returns 200 and an array of results for a text body", async () => {
