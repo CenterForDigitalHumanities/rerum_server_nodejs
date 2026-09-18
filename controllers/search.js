@@ -51,9 +51,6 @@ function searchPipelineFor(searchQuery, limit, skip) {
  * @param {Object} pagination - The values getPagination() applied
  * @param {number} pagination.limit - The applied limit
  * @param {number} pagination.skip - The applied skip
- *
- * @description
-
  */
 function serveSearchPage(req, res, page, { limit, skip }) {
     const hasNext = page.length > limit
