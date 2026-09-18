@@ -85,8 +85,6 @@ describe('objects whose _id is not a string are not served by /query', () => {
       .send(body)
   }
 
-  // They are legacy data with no addressable URL: idNegotiation() strips _id, so a client receives
-  // bare content it can neither follow nor update.
   it("adds the string _id condition to the client's filter", async () => {
     const response = await post({ test: "item" })
 

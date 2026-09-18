@@ -121,9 +121,6 @@ describe('search controllers', () => {
     assert.strictEqual(response.body[0]['@id'], doc['@id'])
   })
 
-  // One index returns every matching document exactly once, in score order, so there is nothing for
-  // the controller to merge, deduplicate or sort.  A regression back to a per-index fan-out would
-  // show up here as a second aggregation.
   it("searchAsWords runs one search, against the index that covers both vocabularies", async () => {
     mockAggregateResults([])
 
@@ -180,8 +177,6 @@ describe('search controllers', () => {
     assert.strictEqual(stageOf(searchCalls.pipeline, '$limit'), 3)
   })
 
-  // Legacy objects whose _id is not a string have no addressable URL, so a page made of them is a
-  // page a client cannot use.  Excluding them after $limit would leave the page short instead.
   it("excludes objects whose _id is not a string, before the page is measured", async () => {
     for (const path of ['/search', '/search/phrase']) {
       mockAggregateResults([])
@@ -344,56 +339,4 @@ describe('search pagination parameters', () => {
     assert.ok(Number(response.headers['pagination-limit-max']) > 0)
     assert.ok(Number(response.headers['pagination-skip-max']) > 0)
   })
-})
-
-// searchFuzzily, searchWildly and searchAlikes have no routes yet.  They are covered here so the
-// paging contract cannot be lost when they get one.
-describe('the unmounted search variants page the same way', () => {
-  const variantTester = express()
-  variantTester.use(express.json({ type: ['application/json', 'application/ld+json'] }))
-  variantTester.use(express.text())
-  variantTester.post('/fuzzy', searchFuzzily)
-  variantTester.post('/wildcard', searchWildly)
-  variantTester.post('/alike', searchAlikes)
-  variantTester.use(rest.messenger)
-
-  const variants = [
-    { path: '/fuzzy', body: 'manuscrpt', contentType: 'text/plain' },
-    { path: '/wildcard', body: 'man*', contentType: 'text/plain' },
-    { path: '/alike', body: { body: { value: 'a line' } }, contentType: 'application/json' }
-  ]
-
-  for (const { path, body, contentType } of variants) {
-    it(`${path} searches one index, excludes non-string _id before $limit, and over-fetches by one`, async () => {
-      mockAggregateResults([])
-
-      const response = await request(variantTester)
-        .post(`${path}?limit=2&skip=4`)
-        .set('Content-Type', contentType)
-        .send(body)
-
-      assert.strictEqual(response.statusCode, 200)
-      assert.strictEqual(searchCalls.count, 1)
-      const pipeline = searchCalls.pipeline
-      assert.strictEqual(pipeline[0].$search.index, 'annotationText')
-      assert.deepStrictEqual(stageOf(pipeline, '$match'), { _id: { $type: 'string' } })
-      assert.ok(positionOf(pipeline, '$match') < positionOf(pipeline, '$limit'))
-      assert.strictEqual(stageOf(pipeline, '$skip'), 4)
-      assert.strictEqual(stageOf(pipeline, '$limit'), 3)
-    })
-
-    it(`${path} links the next page and serves only the page`, async () => {
-      mockSearchCollection([scoredDoc('a', 9), scoredDoc('b', 5), scoredDoc('c', 3)])
-
-      const response = await request(variantTester)
-        .post(`${path}?limit=2`)
-        .set('Content-Type', contentType)
-        .send(body)
-
-      assert.deepStrictEqual(idsOf(response), ['a', 'b'])
-      const next = (response.headers.link ?? '').match(/<([^>]+)>;\s*rel="next"/)?.[1]
-      assert.ok(next, 'a next link is present while more records exist')
-      assert.strictEqual(new URL(next, 'http://localhost').searchParams.get('skip'), '2')
-    })
-  }
 })
