@@ -291,6 +291,7 @@ const searchAsWords = async function (req, res, next) {
  * 
  * Phrase Options:
  * - slop: 2 (allows up to 2 words between search terms)
+ * - Options a client sends replace these defaults entirely.  Without a slop of their own, the slop is 0.
  * 
  * Phrase Matching Examples (with slop: 2):
  * - "Bryan Haberberger" → matches:

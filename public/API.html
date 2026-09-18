@@ -808,7 +808,7 @@
             </tbody>
         </table>
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object with a <code class="language-plaintext highlighter-rouge">searchText</code> property containing the phrase to search for, and an optional <code class="language-plaintext highlighter-rouge">options</code> property (default <code>slop: 2</code>)</li>
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object with a <code class="language-plaintext highlighter-rouge">searchText</code> property containing the phrase to search for, and an optional <code class="language-plaintext highlighter-rouge">options</code> property (default <code>{"slop": 2}</code>)</li>
             <li><strong><code class="language-plaintext highlighter-rouge">"string"</code></strong>—Alternatively, a plain string phrase to search for</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—An array of annotation objects matching the phrase search, sorted by relevance score</li>
         </ul>
@@ -833,7 +833,7 @@
             <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span> resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
             <li>Partial word matches and wildcards are NOT supported in this search</li>
-            <li>Uses a "slop" value (default: 2) that allows intervening words between search terms (up to the default or provided value).  You may supply your own <code class="language-plaintext highlighter-rouge">slop</code> option.</li>
+            <li>Uses a "slop" value (default: 2) that allows intervening words between search terms (up to the default or provided value).  You may supply your own <code class="language-plaintext highlighter-rouge">slop</code> option.  Any <code class="language-plaintext highlighter-rouge">options</code> you send replace the default entirely, so include <code class="language-plaintext highlighter-rouge">slop</code> in them.  Without it the slop is 0, and the words must be adjacent and in order.</li>
             <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
             <li>More precise than standard text search for multi-word queries</li>
             <li>Results are sorted by relevance score (highest first)</li>
