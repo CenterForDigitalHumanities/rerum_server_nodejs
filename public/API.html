@@ -568,6 +568,8 @@
                             <span class="ind3">return allResults</span>
                         <span class="ind2">}</span>
                         <span class="ind2">if (!response.ok) throw new Error(await response.text())</span>
+                        <span class="ind2">const applied = Number(response.headers.get("Pagination-Limit"))</span>
+                        <span class="ind2">if (applied &lt; lim) console.warn(`Asked for ${lim} per page, served ${applied}. The rel="next" link already accounts for it.`)</span>
                         <span class="ind2">allResults.push(...await response.json())</span>
                         <span class="ind2">url = response.headers.get("Link")?.match(/&lt;([^&gt;]+)&gt;;\s*rel="next"/)?.[1]</span>
                     <span class="ind1">}</span>
@@ -637,8 +639,9 @@
         </p>
 
         <p>
-            <a href="#text-search">Text Search</a> and <a href="#phrase-search">Phrase Search</a> page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. Every object is scored once against one index that covers both the IIIF 3.0 and the IIIF 2.1 text fields, so the best match is the first record of the first page whichever shape it was written in, and consecutive pages tile that order without repeating or missing a record.
+            <a href="#text-search">Text Search</a> and <a href="#phrase-search">Phrase Search</a> page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. Every object is scored once against one index that covers both the IIIF 3.0 and the IIIF 2.1 text fields, so the best match is the first record of the first page whichever shape it was written in, and consecutive pages tile that order.
         </p>
+        <p class="alert">Many results share an identical score, and paging is by offset, so a boundary that falls inside a run of equal scores is not pinned to particular records. A walk of a store that is being written to at the same time can repeat or miss a record at a page boundary.</p>
         <h4 id="unserved-objects">What is not served</h4>
         <p>
             A handful of objects in the store were written outside the API, or imported from RERUM v0, and their <code>_id</code> is not a string. They have no addressable URL &mdash; there is nothing for a client to follow, read back, or update &mdash; so <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a> do not return them. They are excluded before a page is measured, so a page still fills to the applied <code>limit</code> while matches remain.
@@ -782,6 +785,8 @@
                             <span class="ind3">return allResults</span>
                         <span class="ind2">}</span>
                         <span class="ind2">if (!response.ok) throw new Error(await response.text())</span>
+                        <span class="ind2">const applied = Number(response.headers.get("Pagination-Limit"))</span>
+                        <span class="ind2">if (applied &lt; lim) console.warn(`Asked for ${lim} per page, served ${applied}. The rel="next" link already accounts for it.`)</span>
                         <span class="ind2">allResults.push(...await response.json())</span>
                         <span class="ind2">url = response.headers.get("Link")?.match(/&lt;([^&gt;]+)&gt;;\s*rel="next"/)?.[1]</span>
                     <span class="ind1">}</span>

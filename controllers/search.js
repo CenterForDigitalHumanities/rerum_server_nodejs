@@ -36,18 +36,18 @@ const SEARCH_INDEX = "annotationText"
  * @description
  * Stages, in order:
  * - $search, which returns matches in descending relevance score order
- * - $addFields, to carry that score onto the record as __rerum.score
  * - $match, to drop records a client could never resolve, before the page is measured
+ * - $addFields, to carry the relevance score onto each surviving record as __rerum.score
  * - $skip and $limit, so paging is the database's work rather than this process's
  */
 function searchPipelineFor(searchQuery, limit, skip) {
     return [
         { $search: searchQuery },
-        { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
         // Objects whose _id is not a string are legacy data with no addressable URL, so they are not
         // served.  Atlas Search cannot express a BSON type condition, which is why this is a $match -
         // and it has to precede $limit, or the page fills with records the client cannot use.
         { $match: { _id: { $type: "string" } } },
+        { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
         { $skip: skip },
         // One record past the page is read only to learn whether another page exists.  It is never served.
         { $limit: limit + 1 }
@@ -90,19 +90,24 @@ function serveSearchPage(req, res, page, { limit, skip }) {
  *
  * @description
  * IIIF 3.0 clauses:
- * - Direct text fields: body.value, bodyValue
- * - Embedded items: items.annotations.items.body.value
- * - Annotation items: annotations.items.body.value
+ * - Web Annotation fields: body.value, bodyValue
+ * - Canvas annotations: annotations[].items[].body.value
+ * - AnnotationPage and Manifest items: items[].body.value, items[].annotations[].items[].body.value
  *
  * IIIF 2.1 clauses:
  * - Open Annotation fields: resource.chars, resource.cnt:chars
  * - AnnotationList resources: resources[].resource.chars
  * - Canvas otherContent: otherContent[].resources[].resource.chars
  * - Manifest sequences: sequences[].canvases[].otherContent[].resources[].resource.chars
- * - Nested embeddedDocument operators for multi-level array traversal
  *
  * Every one of them is a "should" clause of a single compound query, so any one match qualifies and
  * a document matching several of them scores higher for it.
+ *
+ * An embeddedDocument clause names the innermost embeddedDocuments path of the index, such as
+ * annotations.items rather than annotations.  Scoped to an outer embeddedDocuments path, a clause
+ * cannot see the fields of the one nested inside it, and matches nothing without raising an error.
+ * A Manifest's items[].annotations[].items[] text is reached through the items clause, because the
+ * index maps items as embeddedDocuments and the annotations and items beneath it as plain documents.
  */
 function buildSearchPipeline(searchText, operator, limit, skip) {
     const searchQuery = {
@@ -114,30 +119,6 @@ function buildSearchPipeline(searchText, operator, limit, skip) {
                         query: searchText,
                         path: ["body.value", "bodyValue"],
                         ...operator.options
-                    }
-                },
-                {
-                    embeddedDocument: {
-                        path: "items.annotations.items",
-                        operator: {
-                            [operator.type]: {
-                                query: searchText,
-                                path: ["items.annotations.items.body.value", "items.annotations.items.bodyValue"],
-                                ...operator.options
-                            }
-                        }
-                    }
-                },
-                {
-                    embeddedDocument: {
-                        path: "annotations",
-                        operator: {
-                            [operator.type]: {
-                                query: searchText,
-                                path: ["annotations.items.body.value", "annotations.items.bodyValue"],
-                                ...operator.options
-                            }
-                        }
                     }
                 },
                 {
