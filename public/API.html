@@ -545,7 +545,7 @@
                 <span>]</span>
             </code></pre>
             <p class="alert">
-                All responses are a JSON Array, even if a single or zero records are matched. Results are in ascending <code>_id</code> order &mdash; see <a href="#pagination-parameters">Pagination parameters</a>.
+                All responses are a JSON Array, even if a single or zero records are matched. Results are in ascending <code>_id</code> order &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Objects whose <code>_id</code> is not a string are not served.
             </p>
         </p>
         <p>
@@ -688,6 +688,7 @@
             <li>Words are not stemmed, so "transcribe" does not match "transcribing". Common words such as "the" are not removed, and are searched like any other word.</li>
             <li>Multi-word searches find documents containing <strong>any</strong> of the words (OR logic). Documents that contain more of the words usually score higher. To find words that appear together, use <a href="#phrase-search">Phrase Search</a>.</li>
             <li>Results are sorted by relevance score (highest first)</li>
+            <li>Objects whose <code class="language-plaintext highlighter-rouge">_id</code> is not a string are not served</li>
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
         <p>
@@ -837,6 +838,7 @@
             <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
             <li>More precise than standard text search for multi-word queries</li>
             <li>Results are sorted by relevance score (highest first)</li>
+            <li>Objects whose <code class="language-plaintext highlighter-rouge">_id</code> is not a string are not served</li>
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
         <p>
