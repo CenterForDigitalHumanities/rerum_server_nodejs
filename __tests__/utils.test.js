@@ -10,6 +10,7 @@ import {
   _contextid,
   idNegotiation,
   getPagination,
+  setNextPageLink,
   findLeafAnnotationsFor
 } from '../controllers/utils.js'
 import { db, resetMocks, createCursor } from '../database/index.js'
@@ -512,6 +513,46 @@ describe('controllers/utils.js getPagination', () => {
     }
     return captured
   }
+})
+
+describe('controllers/utils.js setNextPageLink', () => {
+  /** Run setNextPageLink against a response double and hand back what it appended to 'Link'. */
+  const appendedFor = (page, req = { baseUrl: '/v1/api/query', path: '/' }) => {
+    const appended = []
+    setNextPageLink(req, { append: (name, value) => appended.push([name, value]) }, page)
+    assert.ok(appended.every(([name]) => name === 'Link'), 'only Link is appended to, never set over')
+    return appended.map(([, value]) => value)
+  }
+
+  /** Run a test body with RERUM_PREFIX set to a value, or unset for undefined, then restore it. */
+  const withPrefix = (value, body) => {
+    const original = process.env.RERUM_PREFIX
+    try {
+      if (value === undefined) delete process.env.RERUM_PREFIX
+      else process.env.RERUM_PREFIX = value
+      body()
+    } finally {
+      if (original === undefined) delete process.env.RERUM_PREFIX
+      else process.env.RERUM_PREFIX = original
+    }
+  }
+
+  it('links the next page on the deployment origin, for the path that was paged, advancing skip by the limit', () => {
+    withPrefix('https://store.example.org/v1/', () => {
+      assert.deepStrictEqual(appendedFor({ limit: 100, skip: 0, hasNext: true }), ['<https://store.example.org/v1/api/query?limit=100&skip=100>; rel="next"'])
+      assert.deepStrictEqual(appendedFor({ limit: 100, skip: 300, hasNext: true }), ['<https://store.example.org/v1/api/query?limit=100&skip=400>; rel="next"'])
+    })
+  })
+
+  it('builds a path-only link when the deployment origin is not configured', () => {
+    withPrefix(undefined, () => {
+      assert.deepStrictEqual(appendedFor({ limit: 10, skip: 0, hasNext: true }, { baseUrl: '/v1/api', path: '/query' }), ['</v1/api/query?limit=10&skip=10>; rel="next"'])
+    })
+  })
+
+  it('adds nothing on the final page', () => {
+    assert.deepStrictEqual(appendedFor({ limit: 100, skip: 200, hasNext: false }), [])
+  })
 })
 
 describe('controllers/utils.js findLeafAnnotationsFor', () => {
