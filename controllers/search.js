@@ -6,111 +6,113 @@
  */
 import { db } from '../database/index.js'
 import utils from '../utils.js'
-import { idNegotiation, getPagination } from './utils.js'
+import { idNegotiation, getPagination, setNextPageLink } from './utils.js'
 
 /**
- * Merges and deduplicates results from multiple MongoDB Atlas Search index queries.
- * 
- * This function combines search results from both the IIIF Presentation API 3.0 index
- * (presi3AnnotationText) and the IIIF Presentation API 2.1 index (presi2AnnotationText).
- * 
- * @param {Array<Object>} results1 - Results from the first search index (typically IIIF 3.0)
- * @param {Array<Object>} results2 - Results from the second search index (typically IIIF 2.1)
- * @returns {Array<Object>} Merged array of unique results sorted by search score (descending)
- * 
- * @description
- * Process:
- * 1. Combines both result arrays
- * 2. Removes duplicates based on MongoDB _id (keeps first occurrence)
- * 3. Sorts by search score in descending order (highest relevance first)
- *
- * The function handles different _id formats:
- * - ObjectId objects with $oid property
- * - String-based _id values
- *
+ * The MongoDB Atlas Search index every search operator queries.
+ * It covers both the IIIF Presentation API 3.0 paths and the IIIF Presentation API 2.1 paths.
  */
-function mergeSearchResults(results1, results2) {
-    const seen = new Set()
-    const merged = []
-    
-    for (const result of [...results1, ...results2]) {
-        const id = result._id?.$oid || result._id?.toString()
-        if (!seen.has(id)) {
-            seen.add(id)
-            merged.push(result)
-        }
-    }
-    return merged.sort((a, b) => (b.__rerum?.score ?? 0) - (a.__rerum?.score ?? 0))
+const SEARCH_INDEX = "annotationText"
+
+/**
+ * Completes an Atlas Search pipeline with the stages every search operator shares.
+ *
+ * @param {Object} searchQuery - The $search stage's query document, including its index
+ * @param {number} limit - Maximum number of results to serve
+ * @param {number} skip - Number of results to skip for pagination
+ * @returns {Array<Object>} The aggregation pipeline to hand to db.aggregate()
+ *
+ * @description
+ * Stages, in order:
+ * - $search, which returns matches in descending relevance score order
+ * - $match, to drop records a client could never resolve, before the page is measured
+ * - $addFields, to carry the relevance score onto each surviving record as __rerum.score
+ * - $skip and $limit, so paging is the database's work rather than this process's
+ */
+function searchPipelineFor(searchQuery, limit, skip) {
+    return [
+        { $search: searchQuery },
+        // Objects whose _id is not a string are bad data points, so they are not included.
+        { $match: { _id: { $type: "string" } } },
+        { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
+        { $skip: skip },
+        // One record past the page is read only to learn whether another page exists.  It is never served.
+        { $limit: limit + 1 }
+    ]
 }
 
 /**
- * Builds parallel MongoDB Atlas Search aggregation pipelines for both IIIF 3.0 and 2.1 indexes.
- * 
- * This function creates two separate search queries that will be executed in parallel:
- * - One for IIIF Presentation API 3.0 resources (presi3AnnotationText index)
- * - One for IIIF Presentation API 2.1 resources (presi2AnnotationText index)
- * 
+ * Serves one page of search results.  The over-fetched record is the only evidence
+ * that another page exists.  It is trimmed here and never serialized.
+ *
+ * @param {Object} req - Express request, which the next-page link is built from
+ * @param {Object} res - Express response
+ * @param {Array<Object>} page - What the pipeline returned, including the over-fetched record
+ * @param {Object} pagination - The values getPagination() applied
+ * @param {number} pagination.limit - The applied limit
+ * @param {number} pagination.skip - The applied skip
+ */
+function serveSearchPage(req, res, page, { limit, skip }) {
+    const hasNext = page.length > limit
+    const results = page.slice(0, limit).map(o => idNegotiation(o))
+    res.set(utils.configureLDHeadersFor(results))
+    setNextPageLink(req, res, { limit, skip, hasNext })
+    res.json(results)
+}
+
+/**
+ * Reads the operator options a client sent in a JSON request body.
+ * Atlas rejects malformed operator options with an error that cannot be told apart from a server fault,
+ * so options that are not a JSON object are refused here, before they reach the $search stage.
+ *
+ * @param {Object|string} body - The request body
+ * @param {Object} defaults - The options to use when the client sent none
+ * @returns {Object|null} The options to hand to the operator, or null when they are not a JSON object
+ */
+function readSearchOptions(body, defaults) {
+    const options = body?.options ?? defaults
+    if (typeof options !== "object" || Array.isArray(options)) return null
+    return options
+}
+
+/**
+ * Builds the MongoDB Atlas Search aggregation pipeline for a text-like search operator.
+ * Every one of them is a "should" clause of a single compound query, so any one match qualifies and
+ * a document matching several of them scores higher for it.
+ *
  * @param {string} searchText - The text query to search for
  * @param {Object} operator - Search operator configuration
  * @param {string} operator.type - Type of search operator: "text", "wildcard", "phrase", etc.
  * @param {Object} operator.options - Additional options for the search operator (e.g., fuzzy options)
- * @param {number} limit - Maximum number of results to return per index
+ * @param {number} limit - Maximum number of results to serve
  * @param {number} skip - Number of results to skip for pagination
- * @returns {Array<Array>} Two-element array containing [presi3Pipeline, presi2Pipeline]
- * 
+ * @returns {Array<Object>} The aggregation pipeline to hand to db.aggregate()
+ *
  * @description
- * IIIF 3.0 Query Structure (presi3AnnotationText index):
- * - Searches direct text fields: body.value, bodyValue
- * - Searches embedded items: items.annotations.items.body.value
- * - Searches annotation items: annotations.items.body.value
- * - Uses compound query with "should" clauses (any match qualifies)
- * 
- * IIIF 2.1 Query Structure (presi2AnnotationText index):
- * - Searches Open Annotation fields: resource.chars, resource.cnt:chars
- * - Searches AnnotationList resources: resources[].resource.chars
- * - Searches Canvas otherContent: otherContent[].resources[].resource.chars
- * - Searches Manifest sequences: sequences[].canvases[].otherContent[].resources[].resource.chars
- * - Uses nested embeddedDocument operators for multi-level array traversal
- * 
- * Both queries use:
- * - $search stage with the specified operator type (text, wildcard, phrase, etc.)
- * - $addFields to include searchScore metadata
- * - $limit to cap results (limit + skip to allow for pagination)
+ * The options are applied first in every clause, so they can tune the operator but never replace
+ * the validated searchText or the paths the clause searches.
+ *
+ * IIIF 3.0 clauses:
+ * - Web Annotation fields: body.value, bodyValue
+ * - Canvas annotations: annotations[].items[].body.value
+ * - AnnotationPage and Manifest items: items[].body.value, items[].annotations[].items[].body.value
+ *
+ * IIIF 2.1 clauses:
+ * - Open Annotation fields: resource.chars, resource.cnt:chars
+ * - AnnotationList resources: resources[].resource.chars
+ * - Canvas otherContent: otherContent[].resources[].resource.chars
+ * - Manifest sequences: sequences[].canvases[].otherContent[].resources[].resource.chars
  */
-function buildDualIndexQueries(searchText, operator, limit, skip) {
-    const presi3Query = {
-        index: "presi3AnnotationText",
+function buildSearchPipeline(searchText, operator, limit, skip) {
+    const searchQuery = {
+        index: SEARCH_INDEX,
         compound: {
             should: [
                 {
                     [operator.type]: {
+                        ...operator.options,
                         query: searchText,
-                        path: ["body.value", "bodyValue"],
-                        ...operator.options
-                    }
-                },
-                {
-                    embeddedDocument: {
-                        path: "items.annotations.items",
-                        operator: {
-                            [operator.type]: {
-                                query: searchText,
-                                path: ["items.annotations.items.body.value", "items.annotations.items.bodyValue"],
-                                ...operator.options
-                            }
-                        }
-                    }
-                },
-                {
-                    embeddedDocument: {
-                        path: "annotations",
-                        operator: {
-                            [operator.type]: {
-                                query: searchText,
-                                path: ["annotations.items.body.value", "annotations.items.bodyValue"],
-                                ...operator.options
-                            }
-                        }
+                        path: ["body.value", "bodyValue"]
                     }
                 },
                 {
@@ -118,9 +120,9 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
                         path: "annotations.items",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
-                                path: ["annotations.items.body.value", "annotations.items.bodyValue"],
-                                ...operator.options
+                                path: ["annotations.items.body.value", "annotations.items.bodyValue"]
                             }
                         }
                     }
@@ -130,32 +132,23 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
                         path: "items",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
                                 path: [
                                     "items.body.value",
                                     "items.bodyValue",
                                     "items.annotations.items.body.value",
                                     "items.annotations.items.bodyValue"
-                                ],
-                                ...operator.options
+                                ]
                             }
                         }
                     }
-                }
-            ],
-            minimumShouldMatch: 1
-        }
-    }
-
-    const presi2Query = {
-        index: "presi2AnnotationText",
-        compound: {
-            should: [
+                },
                 {
                     [operator.type]: {
+                        ...operator.options,
                         query: searchText,
-                        path: ["resource.chars", "resource.cnt:chars"],
-                        ...operator.options
+                        path: ["resource.chars", "resource.cnt:chars"]
                     }
                 },
                 {
@@ -163,9 +156,9 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
                         path: "resources",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
-                                path: ["resources.resource.chars", "resources.resource.cnt:chars"],
-                                ...operator.options
+                                path: ["resources.resource.chars", "resources.resource.cnt:chars"]
                             }
                         }
                     }
@@ -175,9 +168,9 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
                         path: "otherContent.resources",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
-                                path: ["otherContent.resources.resource.chars", "otherContent.resources.resource.cnt:chars"],
-                                ...operator.options
+                                path: ["otherContent.resources.resource.chars", "otherContent.resources.resource.cnt:chars"]
                             }
                         }
                     }
@@ -187,12 +180,12 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
                         path: "sequences.canvases.otherContent.resources",
                         operator: {
                             [operator.type]: {
+                                ...operator.options,
                                 query: searchText,
                                 path: [
                                     "sequences.canvases.otherContent.resources.resource.chars",
                                     "sequences.canvases.otherContent.resources.resource.cnt:chars"
-                                ],
-                                ...operator.options
+                                ]
                             }
                         }
                     }
@@ -201,28 +194,17 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
             minimumShouldMatch: 1
         }
     }
-
-    return [
-        [
-            { $search: presi3Query },
-            { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
-            { $limit: limit + skip }
-        ],
-        [
-            { $search: presi2Query },
-            { $addFields: { "__rerum.score": { $meta: "searchScore" } } },
-            { $limit: limit + skip }
-        ]
-    ]
+    return searchPipelineFor(searchQuery, limit, skip)
 }
 
 
 /**
  * Standard text search endpoint - searches for exact word matches across both IIIF 3.0 and 2.1 resources.
  * 
- * @route POST /search
+ * @route POST /v1/api/search
  * @param {Object} req.body - Request body containing search text
  * @param {string} req.body.searchText - The text to search for (can also be a plain string body)
+ * @param {Object} [req.body.options] - Text operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -231,14 +213,16 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
  * Performs a standard MongoDB Atlas Search text query that:
  * - Tokenizes the search text into words
  * - Searches for exact word matches (case-insensitive)
- * - Applies standard linguistic analysis (stemming, stop words, etc.)
- * - Searches across both IIIF Presentation API 3.0 and 2.1 indexes in parallel
+ * - Uses the lucene.standard analyzer, which lowercases words but neither stems them nor removes stop words
+ * - Searches both IIIF Presentation API 3.0 and 2.1 fields in one query, against one index
+ * - Pages in the database, and carries a rel="next" Link header while another page exists
  * - Returns results sorted by relevance score (highest first)
  * 
  * Search Behavior:
- * - "Bryan Haberberger" → finds documents containing both "Bryan" AND "Haberberger"
+ * - "Bryan Haberberger" → finds documents containing "Bryan" OR "Haberberger", usually ranking documents that contain both higher
  * - Searches are case-insensitive
- * - Standard analyzer removes common stop words
+ * - Words are not stemmed, so "transcribe" does not match "transcribing"
+ * - Stop words such as "the" are not removed, and are searched like any other word
  * - Partial word matches are NOT supported (use wildcardSearch for that)
  * 
  * IIIF 3.0 Fields Searched:
@@ -253,34 +237,33 @@ function buildDualIndexQueries(searchText, operator, limit, skip) {
  * - sequences[].canvases[].otherContent[].resources[].resource.chars (Manifest)
  * 
  * @example
- * POST /search
+ * POST /v1/api/search
  * Body: {"searchText": "Hello World"}
- * Returns: All annotations containing "Hello" and "World"
+ * Returns: All annotations containing "Hello" or "World"
  * 
  */
 const searchAsWords = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const searchOptions = req.body?.options ?? {}
-    if (!searchText) {
+    const searchOptions = readSearchOptions(req.body, {})
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
         return next(utils.createExpressError(err))
     }
+    if (!searchOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
     const { limit, skip } = getPagination(req.query, { res })
-    const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: searchOptions }, limit, skip)
+    const pipeline = buildSearchPipeline(searchText, { type: "text", options: searchOptions }, limit, skip)
     try {
-        const [resultsPresi3, resultsPresi2] = await Promise.all([
-            db.aggregate(queryPresi3).toArray().catch((err) => { console.error("Presi3 error:", err.message); return [] }),
-            db.aggregate(queryPresi2).toArray().catch((err) => { console.error("Presi2 error:", err.message); return [] })
-        ])
-        const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
-        let results = merged.slice(skip, skip + limit)
-        results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
-        res.json(results)
+        serveSearchPage(req, res, await db.aggregate(pipeline).toArray(), { limit, skip })
     } catch (error) {
         console.error(error)
         return next(utils.createExpressError(error))
@@ -290,9 +273,10 @@ const searchAsWords = async function (req, res, next) {
 /**
  * Phrase search endpoint - searches for multi-word phrases with words in proximity.
  * 
- * @route POST /phraseSearch
+ * @route POST /v1/api/search/phrase
  * @param {Object} req.body - Request body containing search phrase
  * @param {string} req.body.searchText - The phrase to search for (can also be a plain string body)
+ * @param {Object} [req.body.options] - Phrase operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -302,10 +286,12 @@ const searchAsWords = async function (req, res, next) {
  * - Searches for terms in sequence or close proximity
  * - Allows up to 2 intervening words between search terms (slop: 2)
  * - More precise than standard text search for multi-word queries
- * - Searches across both IIIF Presentation API 3.0 and 2.1 indexes in parallel
+ * - Searches both IIIF Presentation API 3.0 and 2.1 fields in one query, against one index
+ * - Pages in the database, and carries a rel="next" Link header while another page exists
  * 
  * Phrase Options:
  * - slop: 2 (allows up to 2 words between search terms)
+ * - Options a client sends replace these defaults entirely.  Without a slop of their own, the slop is 0.
  * 
  * Phrase Matching Examples (with slop: 2):
  * - "Bryan Haberberger" → matches:
@@ -317,8 +303,9 @@ const searchAsWords = async function (req, res, next) {
  * - "manuscript illumination" → matches:
  *   ✓ "manuscript illumination"
  *   ✓ "manuscript and illumination"
- *   ✓ "illumination of manuscript" (reversed order with slop)
- *   ✓ "illuminated manuscript"
+ *   ✓ "illumination manuscript" (adjacent words in reverse order cost a slop of 2)
+ *   ✗ "illumination of manuscript" (reverse order with a word between needs a slop of 3)
+ *   ✗ "illuminated manuscript" (words are not stemmed)
  * 
  * Use Cases:
  * - Finding exact or near-exact phrases
@@ -327,7 +314,7 @@ const searchAsWords = async function (req, res, next) {
  * - More precise than standard search, more flexible than exact match
  * 
  * Comparison with Other Search Types:
- * - Standard search: Finds "Bryan" AND "Haberberger" anywhere in document
+ * - Standard search: Finds "Bryan" OR "Haberberger" anywhere in document
  * - Phrase search: Finds "Bryan" near "Haberberger" (within 2 words)
  * - Exact match: Would require "Bryan Haberberger" with no intervening words
  * 
@@ -337,36 +324,32 @@ const searchAsWords = async function (req, res, next) {
  * - Good balance of precision and recall
  * 
  * @example
- * POST /phraseSearch
+ * POST /v1/api/search/phrase
  * Body: "medieval manuscript"
  * Returns: Annotations with "medieval" and "manuscript" in proximity
  */
 const searchAsPhrase = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const phraseOptions = req.body?.options ?? 
-    {
-        slop: 2
-    }
-    if (!searchText) {
+    const phraseOptions = readSearchOptions(req.body, { slop: 2 })
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
         return next(utils.createExpressError(err))
     }
+    if (!phraseOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
     const { limit, skip } = getPagination(req.query, { res })
-    const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "phrase", options: phraseOptions }, limit, skip)
+    const pipeline = buildSearchPipeline(searchText, { type: "phrase", options: phraseOptions }, limit, skip)
     try {
-        const [resultsPresi3, resultsPresi2] = await Promise.all([
-            db.aggregate(queryPresi3).toArray().catch(() => []),
-            db.aggregate(queryPresi2).toArray().catch(() => [])
-        ])
-        const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
-        let results = merged.slice(skip, skip + limit)
-        results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
-        res.json(results)
+        serveSearchPage(req, res, await db.aggregate(pipeline).toArray(), { limit, skip })
     } catch (error) {
         console.error(error)
         return next(utils.createExpressError(error))
@@ -376,9 +359,10 @@ const searchAsPhrase = async function (req, res, next) {
 /**
  * Fuzzy text search endpoint - searches for approximate matches allowing for typos and misspellings.
  * 
- * @route POST /fuzzySearch
+ * @route Not mounted.  See the note at the end of routes/search.js.
  * @param {Object} req.body - Request body containing search text
  * @param {string} req.body.searchText - The text to search for (can also be a plain string body)
+ * @param {Object} [req.body.options] - Text operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -388,7 +372,8 @@ const searchAsPhrase = async function (req, res, next) {
  * - Tolerates up to 1 character edit (insertion, deletion, substitution, transposition)
  * - Requires at least 2 characters to match exactly before fuzzy matching begins
  * - Expands to up to 50 similar terms
- * - Searches across both IIIF Presentation API 3.0 and 2.1 indexes in parallel
+ * - Searches both IIIF Presentation API 3.0 and 2.1 fields in one query, against one index
+ * - Pages in the database, and carries a rel="next" Link header while another page exists
  * 
  * Fuzzy Options:
  * - maxEdits: 1 (allows one character difference)
@@ -418,33 +403,31 @@ const searchAsPhrase = async function (req, res, next) {
 const searchFuzzily = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const fuzzyOptions = req.body?.options ?? 
-    {
+    const fuzzyOptions = readSearchOptions(req.body, {
         fuzzy: {
             maxEdits: 1,
             prefixLength: 2,
             maxExpansions: 50
         }
-    }
-    if (!searchText) {
+    })
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
             status: 400
         }
         return next(utils.createExpressError(err))
     }
+    if (!fuzzyOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
     const { limit, skip } = getPagination(req.query, { res })
-    const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "text", options: fuzzyOptions }, limit, skip)
+    const pipeline = buildSearchPipeline(searchText, { type: "text", options: fuzzyOptions }, limit, skip)
     try {
-        const [resultsPresi3, resultsPresi2] = await Promise.all([
-            db.aggregate(queryPresi3).toArray().catch(() => []),
-            db.aggregate(queryPresi2).toArray().catch((error) => { console.error(error); return []; })
-        ])
-        const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
-        let results = merged.slice(skip, skip + limit)
-        results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
-        res.json(results)
+        serveSearchPage(req, res, await db.aggregate(pipeline).toArray(), { limit, skip })
     } catch (error) {
         console.error(error)
         return next(utils.createExpressError(error))
@@ -454,9 +437,10 @@ const searchFuzzily = async function (req, res, next) {
 /**
  * Wildcard pattern search endpoint - searches using wildcard patterns for partial matches.
  * 
- * @route POST /wildcardSearch
+ * @route Not mounted.  See the note at the end of routes/search.js.
  * @param {Object} req.body - Request body containing search pattern
  * @param {string} req.body.searchText - The wildcard pattern to search for (must contain * or ?)
+ * @param {Object} [req.body.options] - Wildcard operator options, which must be a JSON object
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
  * @returns {Array<Object>} JSON array of matching annotation objects sorted by relevance score
@@ -465,7 +449,8 @@ const searchFuzzily = async function (req, res, next) {
  * Performs a wildcard search using pattern matching:
  * - '*' matches zero or more characters (any length)
  * - '?' matches exactly one character
- * - Searches across both IIIF Presentation API 3.0 and 2.1 indexes in parallel
+ * - Searches both IIIF Presentation API 3.0 and 2.1 fields in one query, against one index
+ * - Pages in the database, and carries a rel="next" Link header while another page exists
  * - Requires at least one wildcard character in the search pattern
  * 
  * Wildcard Options:
@@ -508,13 +493,17 @@ const searchFuzzily = async function (req, res, next) {
 const searchWildly = async function (req, res, next) {
     res.set("Content-Type", "application/json; charset=utf-8")
     let searchText = req.body?.searchText ?? req.body
-    const wildcardOptions = req.body?.options ?? 
-    {
-        allowAnalyzedField: true
-    }
-    if (!searchText) {
+    const wildcardOptions = readSearchOptions(req.body, { allowAnalyzedField: true })
+    if (typeof searchText !== "string" || !searchText) {
         let err = {
             message: "You did not provide text to search for in the search request.",
+            status: 400
+        }
+        return next(utils.createExpressError(err))
+    }
+    if (!wildcardOptions) {
+        let err = {
+            message: "The 'options' property of the search request must be a JSON object.",
             status: 400
         }
         return next(utils.createExpressError(err))
@@ -528,17 +517,9 @@ const searchWildly = async function (req, res, next) {
         return next(utils.createExpressError(err))
     }
     const { limit, skip } = getPagination(req.query, { res })
-    const [queryPresi3, queryPresi2] = buildDualIndexQueries(searchText, { type: "wildcard", options: wildcardOptions }, limit, skip)
+    const pipeline = buildSearchPipeline(searchText, { type: "wildcard", options: wildcardOptions }, limit, skip)
     try {
-        const [resultsPresi3, resultsPresi2] = await Promise.all([
-            db.aggregate(queryPresi3).toArray().catch(() => []),
-            db.aggregate(queryPresi2).toArray().catch(() => [])
-        ])
-        const merged = mergeSearchResults(resultsPresi3, resultsPresi2)
-        let results = merged.slice(skip, skip + limit)
-        results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
-        res.json(results)
+        serveSearchPage(req, res, await db.aggregate(pipeline).toArray(), { limit, skip })
     } catch (error) {
         console.error(error)
         return next(utils.createExpressError(error))
@@ -548,7 +529,7 @@ const searchWildly = async function (req, res, next) {
 /**
  * "More Like This" search endpoint - finds documents similar to a provided example document.
  * 
- * @route POST /searchAlikes
+ * @route Not mounted.  See the note at the end of routes/search.js.
  * @param {Object} req.body - A complete JSON document to use as the search example
  * @param {number} [req.query.limit=100] - Maximum number of results to return
  * @param {number} [req.query.skip=0] - Number of results to skip for pagination
@@ -559,7 +540,8 @@ const searchWildly = async function (req, res, next) {
  * - Analyzes the provided document's text content
  * - Extracts significant terms and patterns
  * - Finds other documents with similar content
- * - Uses both IIIF 3.0 (presi3AnnotationText) and IIIF 2.1 (presi2AnnotationText) indexes
+ * - Uses the one index that covers both the IIIF 3.0 and the IIIF 2.1 text fields
+ * - Pages in the database, and carries a rel="next" Link header while another page exists
  * - Great for discovery and finding related content
  * 
  * How It Works:
@@ -583,7 +565,7 @@ const searchWildly = async function (req, res, next) {
  * 
  * Important Notes:
  * - Requires a full JSON document in request body (not just text)
- * - Searches both IIIF 3.0 (presi3AnnotationText) and IIIF 2.1 (presi2AnnotationText) indexes
+ * - Searches the IIIF 3.0 and IIIF 2.1 text fields together, against one index
  * - Returns 400 error if body is empty or invalid
  * - More effective with documents containing substantial text content
  * 
@@ -621,56 +603,14 @@ const searchAlikes = async function (req, res, next) {
         return next(utils.createExpressError(err))
     }
     const { limit, skip } = getPagination(req.query, { res })
-    // Build moreLikeThis queries for both IIIF 3.0 and IIIF 2.1 indexes
-    const searchQuery_presi3 = [
-        {
-            $search: {
-                index: "presi3AnnotationText",
-                moreLikeThis: {
-                    like: Array.isArray(likeDocument) ? likeDocument : [likeDocument]
-                }
-            }
-        },
-        {
-            $addFields: {
-                "__rerum.score": { $meta: "searchScore" }
-            }
-        },
-        {
-            $limit: limit + skip  // Get extra to handle deduplication
+    const pipeline = searchPipelineFor({
+        index: SEARCH_INDEX,
+        moreLikeThis: {
+            like: Array.isArray(likeDocument) ? likeDocument : [likeDocument]
         }
-    ]
-    const searchQuery_presi2 = [
-        {
-            $search: {
-                index: "presi2AnnotationText",
-                moreLikeThis: {
-                    like: Array.isArray(likeDocument) ? likeDocument : [likeDocument]
-                }
-            }
-        },
-        {
-            $addFields: {
-                "__rerum.score": { $meta: "searchScore" }
-            }
-        },
-        {
-            $limit: limit + skip  // Get extra to handle deduplication
-        }
-    ]
+    }, limit, skip)
     try {
-        // Execute both queries in parallel
-        const [results_presi3, results_presi2] = await Promise.all([
-            db.aggregate(searchQuery_presi3).toArray(),
-            db.aggregate(searchQuery_presi2).toArray()
-        ])
-        // Merge and deduplicate results
-        const merged = mergeSearchResults(results_presi3, results_presi2)
-        // Apply pagination after merging
-        let results = merged.slice(skip, skip + limit)
-        results = results.map(o => idNegotiation(o))
-        res.set(utils.configureLDHeadersFor(results))
-        res.json(results)
+        serveSearchPage(req, res, await db.aggregate(pipeline).toArray(), { limit, skip })
     } catch (error) {
         console.error(error)
         return next(utils.createExpressError(error))

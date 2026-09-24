@@ -219,7 +219,9 @@ paths:
               $ref: '#/components/schemas/GenericObject'
       responses:
         '200':
-          description: Query results
+          description: >-
+            Query results, in ascending '_id' order.  Objects whose '_id' is not a string are not
+            served.
           headers:
             Link:
               $ref: '#/components/headers/NextPageLink'
@@ -248,7 +250,12 @@ paths:
               type: string
       responses:
         '200':
-          description: Search results
+          description: >-
+            Search results, in descending relevance score order.  Objects whose '_id' is not a
+            string are not served.
+          headers:
+            Link:
+              $ref: '#/components/headers/NextPageLink'
           content:
             application/json:
               schema:
@@ -274,7 +281,12 @@ paths:
               type: string
       responses:
         '200':
-          description: Phrase search results
+          description: >-
+            Phrase search results, in descending relevance score order.  Objects whose '_id' is not
+            a string are not served.
+          headers:
+            Link:
+              $ref: '#/components/headers/NextPageLink'
           content:
             application/json:
               schema:

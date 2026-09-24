@@ -545,7 +545,7 @@
                 <span>]</span>
             </code></pre>
             <p class="alert">
-                All responses are a JSON Array, even if a single or zero records are matched. Results are in ascending <code>_id</code> order &mdash; see <a href="#pagination-parameters">Pagination parameters</a>.
+                All responses are a JSON Array, even if a single or zero records are matched. Results are in ascending <code>_id</code> order &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Objects whose <code>_id</code> is not a string are not served.
             </p>
         </p>
         <p>
@@ -568,6 +568,8 @@
                             <span class="ind3">return allResults</span>
                         <span class="ind2">}</span>
                         <span class="ind2">if (!response.ok) throw new Error(await response.text())</span>
+                        <span class="ind2">const applied = Number(response.headers.get("Pagination-Limit"))</span>
+                        <span class="ind2">if (applied &lt; lim) console.warn(`Asked for ${lim} per page, served ${applied}. The rel="next" link already accounts for it.`)</span>
                         <span class="ind2">allResults.push(...await response.json())</span>
                         <span class="ind2">url = response.headers.get("Link")?.match(/&lt;([^&gt;]+)&gt;;\s*rel="next"/)?.[1]</span>
                     <span class="ind1">}</span>
@@ -619,12 +621,12 @@
         </p>
         <h4 id="following-next">Following <code>rel="next"</code></h4>
         <p>
-            While another page exists, <a href="#custom-query">Custom Query</a> responses carry a <code>rel="next"</code> link in the <code>Link</code> header (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</a>), next to the JSON-LD context link. The final page has no <code>rel="next"</code>. Follow it until it is gone.
+            While another page exists, <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a> responses carry a <code>rel="next"</code> link in the <code>Link</code> header (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</a>), next to the JSON-LD context link. The final page has no <code>rel="next"</code>. Follow it until it is gone.
         </p>
         <p>
             <code>rel="next"</code> advances <code>skip</code>. It is still present when the next page would start past the <code>skip</code> maximum, and following it is answered with the <code>400</code> that names the maximum.
         </p>
-        <p class="alert">Custom Query takes a <code>POST</code>. The link only carries the paging URL parameters, so send the same request body to it that you sent to the first page.</p>
+        <p class="alert">All three endpoints take a <code>POST</code>. The link only carries the paging URL parameters, so send the same request body to it that you sent to the first page.</p>
         <p>
             <pre><code class="jsExample"> 
                 <span>Link: &lt;http://store.rerum.io/v1/context.json&gt;; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"</span>
@@ -637,9 +639,8 @@
         </p>
 
         <p>
-            The search endpoints page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. That order is the same across both the IIIF 3.0 and IIIF 2.1 indexes, so the best match is the first record of the first page whichever shape it was written in.
+            <a href="#text-search">Text Search</a> and <a href="#phrase-search">Phrase Search</a> page in descending relevance score, which you can read back from <code>__rerum.score</code> on each result. Every object is scored once against one index that covers both the IIIF 3.0 and the IIIF 2.1 text fields, so the best match is the first record of the first page whichever shape it was written in.
         </p>
-        <p class="alert">Descending score is an ordering, not a tiling guarantee.</p>
 
         <h3 id="text-search">Text Search</h3>
         <table>
@@ -664,7 +665,7 @@
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—An array of annotation objects matching the search, sorted by relevance score</li>
         </ul>
         <p>
-            The Text Search endpoint performs a full-text search across Annotation text content. It searches for exact word matches and tokenizes the search text, finding documents that contain all the search terms anywhere in their text content.
+            The Text Search endpoint performs a full-text search across Annotation text content. It tokenizes the search text into words and matches each word exactly, finding documents that contain any of the search terms anywhere in their text content.
         </p>
         <p>
             The search covers multiple text fields depending on the syntax of objects.  In particular it covers the current Web Annotation syntax, IIIF Presentation API 3.0 syntax, and IIIF Presentation API 2.1 syntax<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>.  See below for specific details.
@@ -674,7 +675,7 @@
             <li><strong>IIIF Presentation API 2.1 fields<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>:</strong> oa:Annotation <code class="language-plaintext highlighter-rouge">resource.chars</code>, oa:Annotation <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in sc:AnnotationList <code class="language-plaintext highlighter-rouge">resources</code>, sc:Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and sc:Manifest <code class="language-plaintext highlighter-rouge">sequences</code>.</li>
         </ul>
         <p>
-            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
             <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
@@ -684,9 +685,10 @@
             <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span> resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
             <li>Partial word matches and wildcards are NOT supported in this search</li>
-            <li>Standard linguistic analysis is applied (stemming, stop words, etc.)</li>
-            <li>Multi-word searches find documents containing <strong>all</strong> the words (AND logic)</li>
+            <li>Words are not stemmed, so "transcribe" does not match "transcribing". Common words such as "the" are not removed, and are searched like any other word.</li>
+            <li>Multi-word searches find documents containing <strong>any</strong> of the words (OR logic). Documents that contain more of the words usually score higher. To find words that appear together, use <a href="#phrase-search">Phrase Search</a>.</li>
             <li>Results are sorted by relevance score (highest first)</li>
+            <li>Objects whose <code class="language-plaintext highlighter-rouge">_id</code> is not a string are not served</li>
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
         <p>
@@ -696,7 +698,7 @@
             <li>General full-text search across annotation content</li>
             <li>Finding all annotations containing specific keywords or concepts</li>
             <li>Broad discovery when exact word order doesn't matter</li>
-            <li>Best for single-word searches or when all search terms should appear anywhere in the document</li>
+            <li>Best for single-word searches, or when a document may match on any one of the search terms</li>
         </ul>
         <p>
             <div class="exHeading">Javascript Example (JSON Object)</div>
@@ -759,6 +761,36 @@
                 Results are returned sorted by relevance score in descending order. The <code>__rerum.score</code> property indicates match quality.
             </p>
         </p>
+        <p>
+            <div class="exHeading">Paged Search Javascript Example</div>
+            <pre><code class="jsExample"> 
+                <span>const many_results = await pagedSearch("lorem ipsum")</span>
+                <br>
+                <span>async function pagedSearch(searchText, lim = 100) {</span>
+                    <span class="ind1">const request = {</span>
+                        <span class="ind2">method: "POST",</span>
+                        <span class="ind2">headers: { "Content-Type": "application/json; charset=utf-8" },</span>
+                        <span class="ind2">body: JSON.stringify({ searchText })</span>
+                    <span class="ind1">}</span>
+                    <span class="ind1">const allResults = []</span>
+                    <span class="ind1">let url = `https://devstore.rerum.io/v1/api/search?limit=${lim}`</span>
+                    <span class="ind1">while (url) {</span>
+                        <span class="ind2">const response = await fetch(url, request)</span>
+                        <span class="ind2">if (response.status === 400 &amp;&amp; allResults.length) {</span>
+                            <span class="ind3">console.warn(`Stopped at the skip maximum of ${response.headers.get("Pagination-Skip-Max")}. These results are incomplete. Narrow the search.`)</span>
+                            <span class="ind3">return allResults</span>
+                        <span class="ind2">}</span>
+                        <span class="ind2">if (!response.ok) throw new Error(await response.text())</span>
+                        <span class="ind2">const applied = Number(response.headers.get("Pagination-Limit"))</span>
+                        <span class="ind2">if (applied &lt; lim) console.warn(`Asked for ${lim} per page, served ${applied}. The rel="next" link already accounts for it.`)</span>
+                        <span class="ind2">allResults.push(...await response.json())</span>
+                        <span class="ind2">url = response.headers.get("Link")?.match(/&lt;([^&gt;]+)&gt;;\s*rel="next"/)?.[1]</span>
+                    <span class="ind1">}</span>
+                    <span class="ind1">return allResults</span>
+                <span>}</span>
+            </code></pre>
+            <p class="alert">Stop when there is no <code>rel="next"</code>, not when a page looks short. <code>/search/phrase</code> pages the same way.</p>
+        </p>
         <h3 id="phrase-search">Phrase Search</h3>
         <table>
             <thead>
@@ -777,7 +809,7 @@
             </tbody>
         </table>
         <ul>
-            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object with a <code class="language-plaintext highlighter-rouge">searchText</code> property containing the phrase to search for, and an optional <code class="language-plaintext highlighter-rouge">options</code> property (default <code>slop: 2</code>)</li>
+            <li><strong><code class="language-plaintext highlighter-rouge">{JSON}</code></strong>—An object with a <code class="language-plaintext highlighter-rouge">searchText</code> property containing the phrase to search for, and an optional <code class="language-plaintext highlighter-rouge">options</code> property (default <code>{"slop": 2}</code>)</li>
             <li><strong><code class="language-plaintext highlighter-rouge">"string"</code></strong>—Alternatively, a plain string phrase to search for</li>
             <li><strong>Response: <code class="language-plaintext highlighter-rouge">[{JSON}]</code></strong>—An array of annotation objects matching the phrase search, sorted by relevance score</li>
         </ul>
@@ -792,7 +824,7 @@
             <li><strong>IIIF Presentation API 2.1 fields<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span>:</strong> oa:Annotation <code class="language-plaintext highlighter-rouge">resource.chars</code>, oa:Annotation <code class="language-plaintext highlighter-rouge">resource.cnt:chars</code>, and nested structures in sc:AnnotationList <code class="language-plaintext highlighter-rouge">resources</code>, sc:Canvas <code class="language-plaintext highlighter-rouge">otherContent</code>, and sc:Manifest <code class="language-plaintext highlighter-rouge">sequences</code>.</li>
         </ul>
         <p>
-            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search by also using the <code>skip</code> URL parameter. You will see an example of this below.
+            To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
             <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
         </p>
         <p>
@@ -802,10 +834,11 @@
             <li>Results will only include Web Annotation, IIIF Presentation API 3.0, and IIIF Presentation API 2.1<span class="dep" title="When creating new data be IIIF Presentation API 3.0 compliant!">⚠️</span> resource types that have the text embedded within their structure.</li>
             <li>Searches are case-insensitive</li>
             <li>Partial word matches and wildcards are NOT supported in this search</li>
-            <li>Uses a "slop" value (default: 2) that allows intervening words between search terms (up to the default or provided value).  You may supply your own <code class="language-plaintext highlighter-rouge">slop</code> option.</li>
+            <li>Uses a "slop" value (default: 2) that allows intervening words between search terms (up to the default or provided value).  You may supply your own <code class="language-plaintext highlighter-rouge">slop</code> option.  Any <code class="language-plaintext highlighter-rouge">options</code> you send replace the default entirely, so include <code class="language-plaintext highlighter-rouge">slop</code> in them.  Without it the slop is 0, and the words must be adjacent and in order.</li>
             <li>Words don't need to be directly adjacent, providing flexibility while maintaining phrase coherence</li>
             <li>More precise than standard text search for multi-word queries</li>
             <li>Results are sorted by relevance score (highest first)</li>
+            <li>Objects whose <code class="language-plaintext highlighter-rouge">_id</code> is not a string are not served</li>
             <li>A <code class="language-plaintext highlighter-rouge">__rerum.score</code> property is added to each result indicating match quality</li>
         </ul>
         <p>
@@ -816,7 +849,8 @@
                 <ul>
                     <li>✓ "medieval manuscript"</li>
                     <li>✓ "medieval illuminated manuscript"</li>
-                    <li>✓ "manuscript from medieval times"</li>
+                    <li>✓ "manuscript medieval" (adjacent words in reverse order use a slop of 2)</li>
+                    <li>✗ "manuscript from medieval times" (reverse order with a word between needs a slop of 3)</li>
                     <li>✗ "medieval art with many beautiful decorated manuscripts" (too many words between)</li>
                 </ul>
             </li>
@@ -831,7 +865,7 @@
             <li>When you need more precision than standard search but more flexibility than exact matching</li>
         </ul>
         <p>
-            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters work the same as in the standard text search endpoint for pagination support.
+            The <code class="language-plaintext highlighter-rouge">limit</code> and <code class="language-plaintext highlighter-rouge">skip</code> URL parameters, and the <code>rel="next"</code> link, work the same as in the standard text search endpoint &mdash; see <a href="#pagination-parameters">Pagination parameters</a>.
         </p>
         <p>
             <div class="exHeading">Javascript Example with Custom Slop</div>
