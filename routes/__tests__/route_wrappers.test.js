@@ -24,6 +24,7 @@ import releaseRouter from '../release.js'
 import apiRoutesRouter from '../api-routes.js'
 import gogFragmentsRouter from '../_gog_fragments_from_manuscript.js'
 import gogGlossesRouter from '../_gog_glosses_from_manuscript.js'
+import gogIdRouter from '../_gog_id.js'
 
 function getRoute(router, path) {
   const routeLayer = router.stack.find(layer => layer.route?.path === path)
@@ -222,7 +223,8 @@ describe('unsupported-method 405 fallbacks', () => {
     { label: '/id/:_id/expanded', router: idRouter,       path: '/:_id/expanded' },
     { label: '/since/:_id',     router: sinceRouter,      path: '/:_id' },
     { label: '/_gog_fragments_from_manuscript', router: gogFragmentsRouter, path: '/' },
-    { label: '/_gog_glosses_from_manuscript',   router: gogGlossesRouter,   path: '/' }
+    { label: '/_gog_glosses_from_manuscript',   router: gogGlossesRouter,   path: '/' },
+    { label: '/_gog_id/:_id',                   router: gogIdRouter,        path: '/:_id' }
   ]
 
   for (const { label, router, path } of cases) {
