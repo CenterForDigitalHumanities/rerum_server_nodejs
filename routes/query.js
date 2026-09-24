@@ -7,7 +7,7 @@ import rest from '../rest.js'
 router.route('/')
     .post(rest.verifyJsonContentType, controller.query)
     .all((req, res, next) => {
-        rest.sendMethodNotAllowed(res, 'Improper request method for requesting objects with matching properties.  Please use POST.', 'POST,HEAD')
+        rest.sendMethodNotAllowed(res, 'Improper request method for requesting objects with matching properties.  Please use POST.', 'POST')
     })
 
 export default router
