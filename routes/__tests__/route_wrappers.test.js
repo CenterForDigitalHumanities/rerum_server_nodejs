@@ -24,6 +24,7 @@ import releaseRouter from '../release.js'
 import apiRoutesRouter from '../api-routes.js'
 import gogFragmentsRouter from '../_gog_fragments_from_manuscript.js'
 import gogGlossesRouter from '../_gog_glosses_from_manuscript.js'
+import gogIdRouter from '../_gog_id.js'
 
 function getRoute(router, path) {
   const routeLayer = router.stack.find(layer => layer.route?.path === path)
@@ -88,6 +89,7 @@ function assertInvalidOverride(router) {
   })
 
   assert.strictEqual(res.statusCode, 405)
+  assert.strictEqual(res.headers.Allow, 'PATCH,POST')
   assert.strictEqual(res.ended, true)
   assert.deepStrictEqual(nextCalls, [])
 }
@@ -105,13 +107,23 @@ function assertValidOverride(router) {
   assert.strictEqual(nextCalls[0], undefined)
 }
 
+function getAllowedMethods(route) {
+  const methods = Object.keys(route.methods)
+    .filter(method => method !== '_all')
+    .map(method => method.toUpperCase())
+  if (methods.includes('GET') && !methods.includes('HEAD')) methods.push('HEAD')
+  return methods.join(',')
+}
+
 function assertUnsupportedMethodOnPath(router, path) {
-  const fallbackLayer = getRoute(router, path).stack.at(-1)
+  const route = getRoute(router, path)
+  const fallbackLayer = route.stack.at(-1)
   assert.ok(fallbackLayer, `Expected fallback .all() layer for '${path}'`)
 
   const { res, nextCalls } = invokeLayer(fallbackLayer)
 
   assert.strictEqual(res.statusCode, 405)
+  assert.strictEqual(res.headers.Allow, getAllowedMethods(route))
   assert.strictEqual(res.ended, true)
   assert.deepStrictEqual(nextCalls, [])
 }
@@ -211,7 +223,8 @@ describe('unsupported-method 405 fallbacks', () => {
     { label: '/id/:_id/expanded', router: idRouter,       path: '/:_id/expanded' },
     { label: '/since/:_id',     router: sinceRouter,      path: '/:_id' },
     { label: '/_gog_fragments_from_manuscript', router: gogFragmentsRouter, path: '/' },
-    { label: '/_gog_glosses_from_manuscript',   router: gogGlossesRouter,   path: '/' }
+    { label: '/_gog_glosses_from_manuscript',   router: gogGlossesRouter,   path: '/' },
+    { label: '/_gog_id/:_id',                   router: gogIdRouter,        path: '/:_id' }
   ]
 
   for (const { label, router, path } of cases) {
