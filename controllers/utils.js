@@ -469,7 +469,7 @@ async function getAllVersions(obj) {
         throw new Error("Object has no valid history.prime value")
     }
     //All the children of this object will have its @id in __rerum.history.prime
-    ls_versions = await db.find({ "__rerum.history.prime": rootObj['@id'] }).toArray()
+    ls_versions = await db.find({ "__rerum.history.prime": { $eq: rootObj['@id'] } }).toArray()
     //The root object is a version, prepend it in
     ls_versions.unshift(rootObj)
     return ls_versions
