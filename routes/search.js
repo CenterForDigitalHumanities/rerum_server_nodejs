@@ -6,15 +6,13 @@ import rest from '../rest.js'
 router.route('/')
     .post(rest.verifyEitherContentType, controller.searchAsWords)
     .all((req, res, next) => {
-        res.statusMessage = 'Improper request method for search.  Please use POST.'
-        res.status(405).end()
+        rest.sendMethodNotAllowed(res, 'Improper request method for search.  Please use POST.', 'POST')
     })
 
 router.route('/phrase')
     .post(rest.verifyEitherContentType, controller.searchAsPhrase)
     .all((req, res, next) => {
-        res.statusMessage = 'Improper request method for search.  Please use POST.'
-        res.status(405).end()
+        rest.sendMethodNotAllowed(res, 'Improper request method for search.  Please use POST.', 'POST')
     })
 
 // Note that there are more search functions available in the controller, such as controller.searchFuzzily
