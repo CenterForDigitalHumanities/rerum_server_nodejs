@@ -490,7 +490,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><code class="language-plaintext highlighter-rouge">/query?limit=10&skip=0</code></td>
+                    <td><code class="language-plaintext highlighter-rouge">/query?limit=100&skip=0</code></td>
                     <td><code class="language-plaintext highlighter-rouge">{JSON}</code></td>
                     <td>200 <code class="language-plaintext highlighter-rouge">[{JSON}]</code></td>
                 </tr>
@@ -505,7 +505,7 @@
         <p>
             This simple format will be made more complex in the future, but should serve the basic needs as it is.
             RERUM will test for property matches. By default, this is limited to 100 records in the response to guard against unreasonable queries. To allow for more records in the response one can add the URL parameter <code>limit</code> to the query requests. If you expect the query request will have a very large response with many objects, your application should use a paged query that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
-            <p class="alert">A <code>limit</code> above the maximum of 500 is not an error. It is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
+            <p class="alert">A <code>limit</code> above the maximum of 500 is not an error. It is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for. A <code>skip</code> above the maximum of 100000 is not reduced. It is a <code>400</code>.</p>
         </p>
         <p>
             <div class="exHeading">Non-Paged Query Javascript Example</div>
@@ -579,7 +579,7 @@
         </p>
         <h3 id="pagination-parameters">Pagination parameters</h3>
         <p>
-            <code>limit</code> and <code>skip</code> are URL parameters shared by <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a>. Both must be whole numbers written in plain decimal digits. Anything else is a <code>400</code>.
+            <code>limit</code> and <code>skip</code> are URL parameters shared by <a href="#custom-query">Custom Query</a>, <a href="#text-search">Text Search</a>, and <a href="#phrase-search">Phrase Search</a>. Both must be whole numbers written in plain decimal digits. Anything else is a <code>400</code>, and so is sending either one more than once.
         </p>
         <table>
             <thead>
@@ -605,6 +605,9 @@
                 </tr>
             </tbody>
         </table>
+        <p class="alert">
+            Only a parameter named exactly <code>limit</code> or <code>skip</code> is read. A bracketed parameter such as <code>?limit[a]=5</code> arrives under the name <code>limit[a]</code>, so RERUM cannot tell it apart from leaving <code>limit</code> out, and the default applies. If you build paging URLs programmatically, check <code>Pagination-Limit</code>.
+        </p>
         <p>
             Every paged response reports what was applied and what the maximums are, so a client can configure itself from any single response. These headers are readable cross-origin.
         </p>
@@ -676,7 +679,7 @@
         </ul>
         <p>
             To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
-            <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
+            <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for. A <code>skip</code> above the maximum of 100000 is not reduced. It is a <code>400</code>.</p>
         </p>
         <p>
             Search behavior:
@@ -825,7 +828,7 @@
         </ul>
         <p>
             To allow for more records in the response one can add the URL parameter <code>limit</code> to the search requests. If you expect the search request will have a very large response with many objects, your application should use a paged search that follows the <code>rel="next"</code> link in each response's <code>Link</code> header until there is none. You will see an example of this below.
-            <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for.</p>
+            <p class="alert">A <code>limit</code> above the maximum of 500 is reduced to 500, and the response says so &mdash; see <a href="#pagination-parameters">Pagination parameters</a>. Read the applied value from the <code>Pagination-Limit</code> response header rather than assuming you received everything you asked for. A <code>skip</code> above the maximum of 100000 is not reduced. It is a <code>400</code>.</p>
         </p>
         <p>
             Search behavior:
