@@ -823,7 +823,7 @@ components:
     PageBadRequest:
       description: >-
         The request body was malformed.  It could also mean the 'limit' or 'skip' URL parameter 
-        was malformed.
+        was malformed or beyond the maximum.
       headers:
         Pagination-Limit-Max:
           $ref: '#/components/headers/PaginationLimitMax'
