@@ -822,9 +822,8 @@ components:
       description: Bad request — the request body was missing, empty, or otherwise invalid.
     PageBadRequest:
       description: >-
-        Bad request — the request body was missing, empty, or otherwise invalid, or the 'limit' or
-        'skip' URL parameter was.  When 'limit' or 'skip' caused it, the response still reports both
-        maximums.
+        The request body was malformed.  It could also mean the 'limit' or 'skip' URL parameter 
+        was malformed.
       headers:
         Pagination-Limit-Max:
           $ref: '#/components/headers/PaginationLimitMax'
