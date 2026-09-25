@@ -791,8 +791,8 @@ components:
       name: limit
       required: false
       description: >-
-        How many records to serve, as a whole number in plain decimal digits. A larger 'limit'
-        is reduced to the maximum rather than rejected.
+        How many records to serve, as a whole number in plain decimal digits. A 'limit'
+        larger than 500 is reduced to 500 rather than rejected.
       schema:
         type: integer
         minimum: 1
