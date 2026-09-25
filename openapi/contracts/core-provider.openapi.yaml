@@ -211,6 +211,9 @@ paths:
     post:
       summary: Query objects
       operationId: queryObjects
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/PageSkip'
       requestBody:
         required: true
         content:
@@ -225,12 +228,20 @@ paths:
           headers:
             Link:
               $ref: '#/components/headers/NextPageLink'
+            Pagination-Limit:
+              $ref: '#/components/headers/PaginationLimit'
+            Pagination-Skip:
+              $ref: '#/components/headers/PaginationSkip'
+            Pagination-Limit-Max:
+              $ref: '#/components/headers/PaginationLimitMax'
+            Pagination-Skip-Max:
+              $ref: '#/components/headers/PaginationSkipMax'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/PageBadRequest'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
@@ -239,6 +250,9 @@ paths:
     post:
       summary: Search objects by keywords
       operationId: searchObjects
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/PageSkip'
       requestBody:
         required: true
         content:
@@ -256,12 +270,20 @@ paths:
           headers:
             Link:
               $ref: '#/components/headers/NextPageLink'
+            Pagination-Limit:
+              $ref: '#/components/headers/PaginationLimit'
+            Pagination-Skip:
+              $ref: '#/components/headers/PaginationSkip'
+            Pagination-Limit-Max:
+              $ref: '#/components/headers/PaginationLimitMax'
+            Pagination-Skip-Max:
+              $ref: '#/components/headers/PaginationSkipMax'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/PageBadRequest'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
@@ -270,6 +292,9 @@ paths:
     post:
       summary: Search objects by phrase
       operationId: searchObjectsByPhrase
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/PageSkip'
       requestBody:
         required: true
         content:
@@ -287,12 +312,20 @@ paths:
           headers:
             Link:
               $ref: '#/components/headers/NextPageLink'
+            Pagination-Limit:
+              $ref: '#/components/headers/PaginationLimit'
+            Pagination-Skip:
+              $ref: '#/components/headers/PaginationSkip'
+            Pagination-Limit-Max:
+              $ref: '#/components/headers/PaginationLimitMax'
+            Pagination-Skip-Max:
+              $ref: '#/components/headers/PaginationSkipMax'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericArray'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/PageBadRequest'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
@@ -705,6 +738,33 @@ components:
         example: >-
           <http://store.rerum.io/v1/context.json>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json",
           <https://store.rerum.io/v1/api/query?limit=100&skip=200>; rel="next"
+    PaginationLimit:
+      description: >-
+        The 'limit' applied to this page, after any reduction to the maximum.  Read it rather than
+        assuming the requested 'limit' was served.
+      schema:
+        type: integer
+        minimum: 1
+    PaginationSkip:
+      description: >-
+        The 'skip' applied to this page.
+      schema:
+        type: integer
+        minimum: 0
+    PaginationLimitMax:
+      description: >-
+        The largest 'limit' served.  A larger 'limit' is reduced to it.
+      schema:
+        type: integer
+        minimum: 1
+        example: 500
+    PaginationSkipMax:
+      description: >-
+        The largest 'skip' accepted.  A larger 'skip' is a 400.
+      schema:
+        type: integer
+        minimum: 1
+        example: 100000
   parameters:
     ObjectId:
       in: path
@@ -726,6 +786,29 @@ components:
       description: Only expand with Annotations attributed to this creator.
       schema:
         type: string
+    PageLimit:
+      in: query
+      name: limit
+      required: false
+      description: >-
+        How many records to serve, as a whole number in plain decimal digits. A 'limit'
+        larger than 500 is reduced to 500 rather than rejected.
+      schema:
+        type: integer
+        minimum: 1
+        default: 100
+    PageSkip:
+      in: query
+      name: skip
+      required: false
+      description: >-
+        How many records to pass over before the page starts, as a whole number in plain decimal
+        digits.  A 'skip' beyond 100000 is rejected with a 400.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 100000
+        default: 0
   schemas:
     GenericObject:
       type: object
@@ -737,6 +820,15 @@ components:
   responses:
     BadRequest:
       description: Bad request — the request body was missing, empty, or otherwise invalid.
+    PageBadRequest:
+      description: >-
+        The request body was malformed.  It could also mean the 'limit' or 'skip' URL parameter 
+        was malformed or beyond the maximum.
+      headers:
+        Pagination-Limit-Max:
+          $ref: '#/components/headers/PaginationLimitMax'
+        Pagination-Skip-Max:
+          $ref: '#/components/headers/PaginationSkipMax'
     Unauthorized:
       description: Unauthorized — missing, malformed, or invalid bearer token.
     Forbidden:
