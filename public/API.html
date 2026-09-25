@@ -605,9 +605,6 @@
                 </tr>
             </tbody>
         </table>
-        <p class="alert">
-            Only a parameter named exactly <code>limit</code> or <code>skip</code> is read. A bracketed parameter such as <code>?limit[a]=5</code> arrives under the name <code>limit[a]</code>, so RERUM cannot tell it apart from leaving <code>limit</code> out, and the default applies. If you build paging URLs programmatically, check <code>Pagination-Limit</code>.
-        </p>
         <p>
             Every paged response reports what was applied and what the maximums are, so a client can configure itself from any single response. These headers are readable cross-origin.
         </p>

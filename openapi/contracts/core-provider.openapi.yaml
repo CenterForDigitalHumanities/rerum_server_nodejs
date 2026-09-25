@@ -791,10 +791,8 @@ components:
       name: limit
       required: false
       description: >-
-        How many records to serve, as a whole number in plain decimal digits.  The maximum is 500, and
-        'Pagination-Limit-Max' reports the maximum in effect.  A larger 'limit' is reduced to the
-        maximum rather than rejected, and 'Pagination-Limit' reports what was applied.  A value that
-        is not plain decimal digits, is 0, or is sent more than once is a 400.
+        How many records to serve, as a whole number in plain decimal digits. A larger 'limit'
+        is reduced to the maximum rather than rejected.
       schema:
         type: integer
         minimum: 1
@@ -805,10 +803,7 @@ components:
       required: false
       description: >-
         How many records to pass over before the page starts, as a whole number in plain decimal
-        digits.  The maximum is 100000, and 'Pagination-Skip-Max' reports the maximum in effect.  A
-        larger 'skip' is a 400 rather than being reduced, because every page past the maximum would
-        repeat the page at it.  A value that is not plain decimal digits, or is sent more than once,
-        is a 400 too.
+        digits.  A 'skip' beyond 100000 is rejected with a 400.
       schema:
         type: integer
         minimum: 0
