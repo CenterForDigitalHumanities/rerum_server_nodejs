@@ -39,7 +39,7 @@
     "express-oauth2-jwt-bearer": "^1.10.0",
     "express-urlrewrite": "~2.0.3",
     "mongodb": "^7.5.0",
-    "morgan": "~1.11.0"
+    "morgan": "~1.12.1"
   },
   "devDependencies": {
     "c8": "^12.0.0",
